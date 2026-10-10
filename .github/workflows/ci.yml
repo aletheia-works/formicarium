@@ -52,11 +52,19 @@ jobs:
         with:
           node-version: '24.21.0'
           package-manager-cache: false
+      - name: Load reviewed validator for the initial migration only
+        if: ${{ (github.event.pull_request.base.sha || github.event.before) == '12a92eabf70f6772f11e33f698e3db5088992270' }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: 7fc23afedef9a2296cb24026c0f19998a6933da7
+          path: .trusted-bootstrap
+          persist-credentials: false
       - name: Validate with trusted base rules
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: node .trusted-base/scripts/ci/commit-format.ts "$BASE_SHA" "$HEAD_SHA"
+          TRUSTED_VALIDATOR: ${{ (github.event.pull_request.base.sha || github.event.before) == '12a92eabf70f6772f11e33f698e3db5088992270' && '.trusted-bootstrap/scripts/ci/commit-format.ts' || '.trusted-base/scripts/ci/commit-format.ts' }}
+        run: node "$TRUSTED_VALIDATOR" "$BASE_SHA" "$HEAD_SHA"
   ci-required:
     if: always()
     needs: [quality, commit-format]

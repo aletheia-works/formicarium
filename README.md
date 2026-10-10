@@ -103,7 +103,7 @@ blink の wasm ビルドは、既定ではコンテナ（`emscripten/emsdk:<ロ�
 
 commit形式は信頼済みbaseの`scripts/ci/commit-format.ts`で検査する。導入前mainにこのvalidatorがない初回は安全側で失敗する。初期導入の手順は管理者がレビューと外部操作の承認後に決め、PR側validatorへのfallbackやcheck除外で回避しない。既存の`verify.yml`と`publish.yml`、公開RCと固定RC入力branchは保持する。
 
-候補SHAの回帰は`candidate-verify.yml`のworkflow_dispatchで実行する（`candidate-required`、360分）。事前にmain担当者が、そのSHAから新しいtarball/siteを生成し、変更のないcore/guestとprovenance/native baselineを照合して入力bundleを作る。`candidateSourcePaths(root)`が列挙した第一者source全てを`bundle.ts`の`sourcePaths`へ渡し、schemaVersion1 manifestとpayload inventoryを固定する。新sourceへ旧RCの検証結果を転用しない。
+候補SHAの回帰は`candidate-verify.yml`のworkflow_dispatchで実行する（`candidate-required`、360分）。既存の登録済み`verify.yml`も同じ手順の互換入口として維持する。初回の通常CIでは、baseが移行前の固定SHA `12a92eabf70f6772f11e33f698e3db5088992270` の場合だけ、検証済みSHA `7fc23afedef9a2296cb24026c0f19998a6933da7` のcommit形式検査を使用する。以後はtrusted baseの検査を使用し、PRから検査コードを選ばない。事前にmain担当者が、そのSHAから新しいtarball/siteを生成し、変更のないcore/guestとprovenance/native baselineを照合して入力bundleを作る。`candidateSourcePaths(root)`が列挙した第一者source全てを`bundle.ts`の`sourcePaths`へ渡し、schemaVersion1 manifestとpayload inventoryを固定する。新sourceへ旧RCの検証結果を転用しない。
 
 承認後、管理者は新しい固定commitのHTTPS raw URLを`FORMICARIUM_MODERNIZATION_INPUT_URL`、archive SHA256を`FORMICARIUM_MODERNIZATION_INPUT_SHA256`へ設定する。旧`FORMICARIUM_CI_INPUT_*`は変更しない。入力不足、未知member、symlink、digest/source/provenance不一致は試験前に拒否する。準備した入力と環境があれば`mise run verify-candidate`も同じ入口を使う。未変更guestは再ビルドしない。
 
