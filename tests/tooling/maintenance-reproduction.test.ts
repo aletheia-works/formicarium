@@ -302,6 +302,7 @@ test('fixed Biome reproduces exactly formatting-only bytes with no write credent
     'GITHUB_TOKEN',
     'GH_TOKEN',
     'MAINTENANCE_READ_APP_PRIVATE_KEY',
+    'TF_TOKEN_GITHUB',
   ];
   const previous = secretKeys.map((key) => process.env[key]);
   for (const key of secretKeys) process.env[key] = `fixture-secret-${key}`;

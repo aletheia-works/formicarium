@@ -34,23 +34,10 @@ jobs:
           bun-version: '1.4.2'
       - name: Install trusted base tools only
         run: bun install --frozen-lockfile --ignore-scripts
-      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0, node24
-        id: read-token
-        with:
-          client-id: ${{ secrets.MAINTENANCE_READ_APP_CLIENT_ID }}
-          private-key: ${{ secrets.MAINTENANCE_READ_APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: ${{ github.event.repository.name }}
-          permission-contents: read
-          permission-actions: read
-          permission-checks: read
-          permission-pull-requests: read
-          permission-administration: read
-          skip-token-revoke: false
       - name: Independently inspect and reproduce PR data
         id: prepare
         env:
-          MAINTENANCE_TOKEN: ${{ steps.read-token.outputs.token }}
+          MAINTENANCE_TOKEN: ${{ secrets.TF_TOKEN_GITHUB }}
           TRUSTED_BASE_SHA: ${{ github.sha }}
           CI_RUN_ID: ${{ github.event.workflow_run.id }}
         run: |
@@ -83,21 +70,9 @@ jobs:
         with:
           node-version: '24.21.0'
           package-manager-cache: false
-      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0, node24
-        id: token
-        with:
-          client-id: ${{ secrets.FORMAT_APP_CLIENT_ID }}
-          private-key: ${{ secrets.FORMAT_APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: ${{ github.event.repository.name }}
-          permission-contents: write
-          permission-actions: read
-          permission-checks: read
-          permission-pull-requests: read
-          skip-token-revoke: false
       - name: Recheck and atomically commit trusted additions
         env:
-          MAINTENANCE_TOKEN: ${{ steps.token.outputs.token }}
+          MAINTENANCE_TOKEN: ${{ secrets.TF_TOKEN_GITHUB }}
           TRUSTED_BASE_SHA: ${{ needs.prepare.outputs.base }}
           PREPARED_HEAD: ${{ needs.prepare.outputs.head }}
           PREPARATION_RUN_ID: ${{ github.run_id }}
@@ -125,22 +100,9 @@ jobs:
         with:
           node-version: '24.21.0'
           package-manager-cache: false
-      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0, node24
-        id: token
-        with:
-          client-id: ${{ secrets.MERGE_APP_CLIENT_ID }}
-          private-key: ${{ secrets.MERGE_APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: ${{ github.event.repository.name }}
-          permission-contents: write
-          permission-actions: read
-          permission-checks: read
-          permission-pull-requests: read
-          permission-administration: read
-          skip-token-revoke: false
       - name: Recheck and sha-conditional squash merge
         env:
-          MAINTENANCE_TOKEN: ${{ steps.token.outputs.token }}
+          MAINTENANCE_TOKEN: ${{ secrets.TF_TOKEN_GITHUB }}
           TRUSTED_BASE_SHA: ${{ needs.prepare.outputs.base }}
           PREPARED_HEAD: ${{ needs.prepare.outputs.head }}
           PREPARATION_RUN_ID: ${{ github.run_id }}

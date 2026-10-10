@@ -182,22 +182,20 @@ node node_modules/@playwright/test/cli.js install chromium firefox webkit
 ## 保守 workflow
 
 通常 CI の成功後に `maintenance.yml` が独立した API 観測と整形・依存更新の再現を行います。
-整形 push と依存更新の squash merge は別の GitHub App を使用し、直前の head と
+整形 push と依存更新の squash merge は別の job で実行し、直前の head と
 `quality`・`commit-format`・`ci-required` を再確認します。書込みは head 条件付きで 1 回だけ行い、
 結果が不明な場合は読取りで照合します。自動再送はしません。失敗した lint を整形で迂回しません。
 
 初期設定は `.github/maintenance/policy.json` の `writerEnabled: false` です。
 有効化には独立確認した workflow・producer App・更新 Bot の数値 ID、workflow/config digest、
 artifact の許可 redirect host、main の保護設定が必要です。`MAINTENANCE_ENABLED` も設定してください。
-`FORMAT_APP_CLIENT_ID` / `FORMAT_APP_PRIVATE_KEY` と `MERGE_APP_CLIENT_ID` / `MERGE_APP_PRIVATE_KEY` は
-用途別に登録し、対象 repository だけへ権限を限定します。保護情報を読めない場合も処理を拒否します。
-prepare は `MAINTENANCE_READ_APP_CLIENT_ID` / `MAINTENANCE_READ_APP_PRIVATE_KEY` の専用 App を使い、
-contents・actions・checks・pull-requests・administration を read のみに限定します。信頼済みツールの導入後に
-対象 repository 専用 token を取得し、保護 API を Administration read のない GITHUB_TOKEN で代替しません。
-秘密鍵は token Action だけへ渡し、token は親の API 取得だけで使用します。隔離した再現 child の環境は
-PATH/HOME/TMPDIR/CI/cache の許可項目だけで組み立て、token・秘密鍵を渡しません。format App は保護 API を
-呼ばないため Administration を追加せず、保護を再確認する merge App は Administration read が必要です。
-これらの外部設定は、この実装では実施していません。
+既存の terrarium と同じ repository secret `TF_TOKEN_GITHUB` を使います。
+必要権限は Contents / Pull requests write、Actions / Checks / Administration read です。
+この credential は信頼済み base の固定 runner にだけ渡し、checkout には保存しません。
+prepare は信頼済みツールの導入後に親の API 取得だけで使用し、隔離した再現 child へは渡しません。
+同じ credential は write 権限も持つため、read 専用 App token による権限分離はありません。
+子プロセスの環境は PATH/HOME/TMPDIR/CI/cache の許可項目だけで組み立て、token や秘密鍵を除外します。
+secret の登録と実際の権限確認が済むまで自動書込みは無効のままです。
 
 書込み job は trusted base にある Node 用 bundle を実行し、PR のコードや install script を実行しません。
 bundle 更新時は固定 Bun で次を実行し、source と bundle の再生成一致を確認してください。
@@ -223,11 +221,9 @@ Dependabot は毎週月曜 05:00（Asia/Tokyo）に Bun の依存と Actions を
 Bun の更新はグループ化せず、直接の許可済み devDependency 1 件の固定版 patch/minor だけを merge 判定の対象とします。
 range・major・prerelease・複数依存・Actions 更新は手動確認へ残します。
 設定仕様は [Dependabot の公式資料](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference) を参照してください。
-既存 `aletheia-works-bot`（App ID 5182946）は contents / pull-requests write です。
-現在の保守 workflow が要求する Actions / Checks / Administration read が不足しているため、書込み有効化の前に App 権限と用途ごとの token 制限を合わせる必要があります。
 `pr-labels.yml` は PR の path metadata からラベルだけを追加します。
 
-停止時は `MAINTENANCE_ENABLED` を無効にし、必要なら用途別 App の権限を取り消してください。
+停止時は `MAINTENANCE_ENABLED` を無効にし、必要なら`TF_TOKEN_GITHUB` のアクセス権を取り消してください。
 不明な書込み結果は PR・commit・merge の実状態を照合してから手動復旧します。
 実 GitHub CI、App が起動する後続 CI、runtime の全 realm/80% coverage、実 API の atomic 操作は未検証です。
 

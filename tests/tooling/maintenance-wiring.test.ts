@@ -177,44 +177,26 @@ test('fork metadata and hostile titles stay data while labels are the sole write
 test('privileged workflow reads a fixed trusted base and never installs in either writer', async (t) => {
   const workflow = await read('.github/workflows/maintenance.yml');
   await t.test(
-    'prepare gets a dedicated repository-scoped read-only App token after tool installation',
+    'existing repository credential is available only to trusted parent API steps',
     () => {
       const prepare = workflow
         .split('  prepare:\n')[1]
         ?.split('\n  format-write:\n')[0];
       assert.ok(prepare);
-      const token = prepare.indexOf(
-        'actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1',
-      );
       assert.ok(
-        token >
+        prepare.indexOf('MAINTENANCE_TOKEN:') >
           prepare.indexOf('bun install --frozen-lockfile --ignore-scripts'),
       );
-      assert.match(prepare, /permission-administration: read/);
-      for (const permission of [
-        'contents',
-        'actions',
-        'checks',
-        'pull-requests',
-      ])
-        assert.match(prepare, new RegExp(`permission-${permission}: read`));
+      assert.match(prepare, /ref: \$\{\{ github.sha \}\}/);
+      assert.match(prepare, /persist-credentials: false/);
       assert.match(
         prepare,
-        /repositories: \$\{\{ github.event.repository.name \}\}/,
-      );
-      assert.match(
-        prepare,
-        /MAINTENANCE_TOKEN: \$\{\{ steps\.[a-z-]+\.outputs\.token \}\}/,
+        /MAINTENANCE_TOKEN: \$\{\{ secrets.TF_TOKEN_GITHUB \}\}/,
       );
       assert.doesNotMatch(
-        prepare,
-        /permission-[a-z-]+: write|MAINTENANCE_TOKEN: \$\{\{ github.token \}\}/,
+        workflow,
+        /create-github-app-token|PRIVATE_KEY|APP_CLIENT_ID/,
       );
-      const childStep = prepare
-        .split('name: Independently inspect and reproduce PR data')[1]
-        ?.split('- uses: actions/upload-artifact')[0];
-      assert.ok(childStep);
-      assert.doesNotMatch(childStep, /PRIVATE_KEY|private-key:|secrets\./);
     },
   );
   assert.match(workflow, /workflow_run:/);
@@ -230,9 +212,11 @@ test('privileged workflow reads a fixed trusted base and never installs in eithe
       section,
       /group: maintenance-\$\{\{ github.repository \}\}-\$\{\{ needs.prepare.outputs.pr \}\}/,
     );
-    assert.match(section, /skip-token-revoke: false/);
-    if (name === 'dependency-merge')
-      assert.match(section, /permission-administration: read/);
+    assert.match(
+      section,
+      /MAINTENANCE_TOKEN: \$\{\{ secrets.TF_TOKEN_GITHUB \}\}/,
+    );
+    assert.match(section, /persist-credentials: false/);
     assert.doesNotMatch(
       section,
       /bun install|setup-bun|npm |git push|head_ref/,

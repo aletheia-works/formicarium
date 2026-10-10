@@ -33,7 +33,8 @@ jobs:
       - run: node scripts/ci/tasks.ts lint
       - run: node scripts/ci/tasks.ts typecheck
       - run: node scripts/ci/tasks.ts build
-      - run: node scripts/ci/tasks.ts test-light
+      - name: Run light tests with the installed fixed Bun
+        run: BUN_EXECUTABLE="$(command -v bun)" node scripts/ci/tasks.ts test-light
   commit-format:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
