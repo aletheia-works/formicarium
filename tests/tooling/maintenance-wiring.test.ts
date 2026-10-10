@@ -87,7 +87,7 @@ test('tracked policy starts disabled and incomplete immutable identity cannot en
       join(temporary, '.github/maintenance/policy.json'),
       JSON.stringify(policy),
     );
-    await assert.rejects(loadConfig(temporary), /INVALID_API/);
+    await assert.rejects(loadConfig(temporary), /INVALID_POLICY/);
     assert.deepEqual(
       policy.policy.requiredCheckProducers.map(
         (row: { name: string }) => row.name,
