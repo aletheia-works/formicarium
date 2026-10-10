@@ -196,6 +196,8 @@ prepare は信頼済みツールの導入後に親の API 取得だけで使用�
 同じ credential は write 権限も持つため、read 専用 App token による権限分離はありません。
 子プロセスの環境は PATH/HOME/TMPDIR/CI/cache の許可項目だけで組み立て、token や秘密鍵を除外します。
 secret の登録と実際の権限確認が済むまで自動書込みは無効のままです。
+`verify.yml` の手動実行で verification を `credential` にすると、checkout・依存導入・書込みなしで token の読取 API を検証します。
+この検査の成功は Contents / Pull requests の書込み権限の実行検証を意味しません。
 
 書込み job は trusted base にある Node 用 bundle を実行し、PR のコードや install script を実行しません。
 bundle 更新時は固定 Bun で次を実行し、source と bundle の再生成一致を確認してください。
