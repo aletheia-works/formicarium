@@ -219,10 +219,12 @@ publish / release job は同じ tag SHA の checkout にある Node builtin boot
 
 外部 write の結果が不明な場合は自動再送しません。npm registry の同じ版・integrity・dist-tag、GitHub Release の tag / asset digest、run log を読み返し、人が状態を確定してから復旧を判断します。publish が失敗すれば release を起動せず、npm 成功後の Release 失敗も部分成功として扱います。共有 tag concurrency は実行中の処理を cancel しません。
 
-Renovate は毎週月曜の早朝（Asia/Tokyo）に Bun の依存と Actions を更新する設定です。
-直接の許可済み devDependency 1 件の固定版 patch/minor だけが merge 判定の対象です。
-range・major・prerelease・複数依存・Actions 更新は手動確認へ残し、Renovate 自体の automerge は無効です。
-管理仕様は [Renovate の Bun manager](https://docs.renovatebot.com/modules/manager/bun/) を参照してください。
+Dependabot は毎週月曜 05:00（Asia/Tokyo）に Bun の依存と Actions を更新します。
+Bun の更新はグループ化せず、直接の許可済み devDependency 1 件の固定版 patch/minor だけを merge 判定の対象とします。
+range・major・prerelease・複数依存・Actions 更新は手動確認へ残します。
+設定仕様は [Dependabot の公式資料](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference) を参照してください。
+既存 `aletheia-works-bot`（App ID 5182946）は contents / pull-requests write です。
+現在の保守 workflow が要求する Actions / Checks / Administration read が不足しているため、書込み有効化の前に App 権限と用途ごとの token 制限を合わせる必要があります。
 `pr-labels.yml` は PR の path metadata からラベルだけを追加します。
 
 停止時は `MAINTENANCE_ENABLED` を無効にし、必要なら用途別 App の権限を取り消してください。

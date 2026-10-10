@@ -98,26 +98,25 @@ test('tracked policy starts disabled and incomplete immutable identity cannot en
     await rm(temporary, { recursive: true, force: true });
   }
 });
-test('Renovate separates Bun direct updates and manual Actions without a second merge authority', async () => {
-  const config = JSON.parse(await read('renovate.json'));
-  assert.deepEqual(config.enabledManagers, ['bun', 'github-actions']);
-  assert.equal(config.automerge, false);
-  assert.equal(config.platformAutomerge, false);
-  assert.equal(config.lockFileMaintenance.enabled, false);
-  assert.deepEqual(config.schedule, ['before 6am on monday']);
-  assert.equal(config.timezone, 'Asia/Tokyo');
-  assert.ok(
-    config.packageRules.every(
-      (rule: { automerge: boolean }) => rule.automerge === false,
+test('Dependabot keeps Bun updates independent and groups manual Actions updates', async () => {
+  const config = JSON.parse(await read('.github/dependabot.yml'));
+  assert.equal(config.version, 2);
+  assert.deepEqual(
+    config.updates.map(
+      (update: { 'package-ecosystem': string }) => update['package-ecosystem'],
     ),
+    ['bun', 'github-actions'],
   );
-  assert.ok(
-    config.packageRules.some(
-      (rule: { matchManagers: string[]; groupName: unknown }) =>
-        rule.matchManagers.includes('github-actions') &&
-        rule.groupName === 'github-actions',
-    ),
-  );
+  const [bun, actions] = config.updates;
+  assert.equal(bun.directory, '/');
+  assert.equal(bun.groups, undefined);
+  for (const update of config.updates) {
+    assert.equal(update.schedule.interval, 'weekly');
+    assert.equal(update.schedule.day, 'monday');
+    assert.equal(update.schedule.timezone, 'Asia/Tokyo');
+    assert.equal(update['commit-message'].prefix, 'chore(deps)');
+  }
+  assert.deepEqual(actions.groups['github-actions'].patterns, ['*']);
 });
 test('managed labels match path segments and deduplicate without prefix confusion', async () => {
   const rules = JSON.parse(
