@@ -181,38 +181,19 @@ node node_modules/@playwright/test/cli.js install chromium firefox webkit
 
 ## 保守 workflow
 
-通常 CI の成功後に `maintenance.yml` が独立した API 観測と整形・依存更新の再現を行います。
-整形 push と依存更新の squash merge は別の job で実行し、直前の head と
-`quality`・`commit-format`・`ci-required` を再確認します。書込みは head 条件付きで 1 回だけ行い、
-結果が不明な場合は読取りで照合します。自動再送はしません。失敗した lint を整形で迂回しません。
+共通の保守は terrarium / vivarium と同じ GitHub Actions の構成を使います。
 
-`.github/maintenance/policy.json` は観測済みの CI・保守 workflow ID と作成元を登録しています。
-自動書込みは `writerEnabled` と repository variable `MAINTENANCE_ENABLED=true` の両方で有効になります。
-有効化には独立確認した workflow・producer App・更新 Bot の数値 ID、workflow/config digest、
-artifact の許可 redirect host、main の保護設定が必要です。
-保存先は GitHub が公開している `productionresultssa*.blob.core.windows.net` の数字シャードに限定します。
-許可は認証した GitHub API からの HTTPS redirect にだけ適用し、転送先へ token を渡しません。
-再 redirect・別 domain・別 port・userinfo は拒否します。`MAINTENANCE_ENABLED` も設定してください。
-既存の terrarium と同じ repository secret `TF_TOKEN_GITHUB` を使います。
-必要権限は Contents / Pull requests write、Actions / Administration read です。
-公開 repository の Checks API は Checks 権限を指定せず読取り可能で、実際の読取検査も成功しています。
-この credential は信頼済み base の固定 runner にだけ渡し、checkout には保存しません。
-prepare は信頼済みツールの導入後に親の API 取得だけで使用し、隔離した再現 child へは渡しません。
-同じ credential は write 権限も持つため、read 専用 App token による権限分離はありません。
-子プロセスの環境は PATH/HOME/TMPDIR/CI/cache の許可項目だけで組み立て、token や秘密鍵を除外します。
-secret の登録と読取確認は完了しています。実際の push・merge 成功は、対象となる保守実行の結果で確認してください。
-`verify.yml` の手動実行で verification を `credential` にすると、checkout・依存導入・書込みなしで token の読取 API を検証します。
-この検査の成功は Contents / Pull requests の書込み権限の実行検証を意味しません。
+- `dependabot-auto-merge.yml`: `dependabot/fetch-metadata` で更新内容を読み、major 以外の更新は `gh pr merge --auto --squash` で予約します。main の required checks が成功し、branch protection の条件を満たしてから GitHub が統合します。major 更新は自動統合しません。
+- `lint-autofix.yml` / `lint-autofix-apply.yml`: 権限なしで Biome の修正 patch を作り、別 job が許可された既存ファイルの差分だけを確認して適用します。head が変わっていれば適用しません。適用先は同じ repository の PR に限ります。
+- `labeler.yml` / `.github/labeler.yml`: `actions/labeler` によるファイル分類と、既存 repository と同じ Conventional Commits の type label を使います。
+- `assign.yml`、`dependency-review.yml`、`commitlint.yml`: 担当者の設定、依存更新のレビュー、共有 commitlint workflow を既存 repository と同じ構成で使います。
 
-書込み job は trusted base にある Node 用 bundle を実行し、PR のコードや install script を実行しません。
-bundle 更新時は固定 Bun で次を実行し、source と bundle の再生成一致を確認してください。
+Bun 1.4.2 / bun.lock による依存管理、固定 Node、`ci.yml` の lint・型検査・build・軽量試験、候補回帰・coverage・公開前検査は formicarium 固有の検証として維持します。
+整形の適用には既存の repository secret `TF_TOKEN_GITHUB` を使います。Dependabot の auto-merge は `GITHUB_TOKEN` を使います。
+整形 patch は workflow・依存定義・lockfile・tool設定を変更できず、PR のコードを privileged job で実行しません。
+独自の TypeScript 保守 runner、producer ID の登録、保守用 policy、`MAINTENANCE_ENABLED` は不要です。
 
-```bash
-bun build scripts/maintenance/runner.ts --target=node --format=esm --packages=bundle --outfile=.github/maintenance/runner.mjs
-biome check --write --config-path=biome.json .github/maintenance/runner.mjs
-```
-
-### 将来の RC / stable 公開
+## 将来の RC / stable 公開
 
 `publish.yml` は `v*` tag を入口とし、実行時に `X.Y.Z-rc.N`（N は正整数）または `X.Y.Z` の厳密な版、tag、source SHA、公開先、版ごとの人の承認を照合します。RC は `next`、stable は `latest` を使います。stable は同じ基底版の公開 RC の受け入れ証拠と差分検査も必要です。既存 `v0.1.0-rc.1` と `codex/release/rc1-inputs` は履歴の固定入力として保持します。上の U1 導入時の workflow 保持記述に対し、この U4 で `publish.yml` の将来版対応を追加しています。
 
@@ -225,14 +206,8 @@ publish / release job は同じ tag SHA の checkout にある Node builtin boot
 外部 write の結果が不明な場合は自動再送しません。npm registry の同じ版・integrity・dist-tag、GitHub Release の tag / asset digest、run log を読み返し、人が状態を確定してから復旧を判断します。publish が失敗すれば release を起動せず、npm 成功後の Release 失敗も部分成功として扱います。共有 tag concurrency は実行中の処理を cancel しません。
 
 Dependabot は毎週月曜 05:00（Asia/Tokyo）に Bun の依存と Actions を更新します。
-Bun の更新はグループ化せず、直接の許可済み devDependency 1 件の固定版 patch/minor だけを merge 判定の対象とします。
-range・major・prerelease・複数依存・Actions 更新は手動確認へ残します。
-設定仕様は [Dependabot の公式資料](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference) を参照してください。
-`pr-labels.yml` は PR の path metadata からラベルだけを追加します。
-
-停止時は `MAINTENANCE_ENABLED` を無効にし、必要なら`TF_TOKEN_GITHUB` のアクセス権を取り消してください。
-不明な書込み結果は PR・commit・merge の実状態を照合してから手動復旧します。
-実 GitHub CI、App が起動する後続 CI、runtime の全 realm/80% coverage、実 API の atomic 操作は未検証です。
+自動統合の設定は terrarium / vivarium と同じ YAML にあり、main の品質 checks と branch protection が最終判断を行います。
+停止するときは GitHub Actions の対象 workflow を Disable workflow にします。
 
 ## 実行
 
