@@ -99,7 +99,9 @@ async function command(
     throw Error(`CI command failed: ${id}`);
   return result;
 }
-export async function runVerification() {
+export async function runVerification(
+  validateInput: typeof validateManifest = validateManifest,
+) {
   await createFreshResultsDirectory(output); // Fresh output only; never reuse an earlier successful generation.
   const inputRoot = resolve(root, '.ci-inputs');
   const manifest = JSON.parse(
@@ -111,7 +113,7 @@ export async function runVerification() {
     event: process.env.GITHUB_EVENT_NAME ?? '',
     ref: process.env.GITHUB_REF ?? '',
   };
-  validateManifest(manifest, context);
+  validateInput(manifest, context);
   await verifyPins(root, manifest.sourceFiles);
   await validatePayloadInventory(
     resolve(inputRoot, 'payload'),

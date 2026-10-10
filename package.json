@@ -5,6 +5,8 @@
   "description": "blink（x86-64 Linux ユーザーモードエミュレータ）を wasm 上で動かす PoC",
   "license": "Apache-2.0",
   "type": "module",
+  "packageManager": "bun@1.4.2",
+  "trustedDependencies": [],
   "files": [
     "runtime/public.js",
     "runtime/contracts.js",
@@ -61,11 +63,15 @@
     "check:fix": "biome check --write .",
     "format": "biome format --write .",
     "test:unit": "node --test --test-concurrency=1 --test-skip-pattern=\"real Node |real generated loader mutation\" tests/package/errors.test.js tests/package/public.test.js tests/package/validation.test.js tests/package/state.test.js tests/package/protocol.test.js tests/package/lifecycle.test.js tests/package/core.test.js tests/package/guest-io.test.js tests/package/worker-execution.test.js tests/package/node-api.test.js tests/package/node-worker.test.js tests/package/runner-ready.test.js tests/package/types.test.js tests/package/tooling.test.js tests/package/coverage.test.js tests/guest-distribution/*.test.js tests/terrarium/adapter.test.js tests/terrarium/coverage.test.js",
-    "test:e2e": "npm run build && playwright test",
-    "pretest": "npm run build",
-    "test": "npm run test:unit",
-    "preserve": "npm run build",
-    "test:integration": "npm run build && node --test --test-concurrency=1 tests/package/*.test.js tests/terrarium/*.test.js"
+    "install:frozen": "node scripts/ci/tasks.ts install-frozen",
+    "test:light": "bun run test:unit && node --test --test-concurrency=1 .build/tests/tooling/*.test.js",
+    "test:consumer": "bun run test:integration",
+    "verify:candidate": "node scripts/ci/candidate.js",
+    "test:e2e": "bun run build && playwright test",
+    "pretest": "bun run build",
+    "test": "bun run test:unit",
+    "preserve": "bun run build",
+    "test:integration": "bun run build && node --test --test-concurrency=1 tests/package/*.test.js tests/terrarium/*.test.js"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",

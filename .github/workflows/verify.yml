@@ -1,52 +1,93 @@
-name: Candidate verification
+name: Modernization candidate verification
 on:
-  push:
-    branches: ['codex/verify/**']
   workflow_dispatch:
+    inputs:
+      verification:
+        description: Candidate regressions or read-only credential verification
+        type: choice
+        default: candidate
+        options: [candidate, credential]
 permissions:
   contents: read
 concurrency:
-  group: verification-${{ github.ref }}
+  group: modernization-candidate-${{ github.sha }}
   cancel-in-progress: false
 jobs:
-  verify:
-    if: github.repository == 'Marukome0743/formicarium' && startsWith(github.ref, 'refs/heads/codex/verify/')
+  candidate-required:
+    if: github.repository == 'aletheia-works/formicarium' && inputs.verification != 'credential'
     runs-on: ubuntu-24.04
     timeout-minutes: 360
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.sha }}
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24.21.0'
-      - uses: oven-sh/setup-bun@v2
+          package-manager-cache: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        id: bun
         with:
           bun-version: '1.4.2'
-      - run: npm ci --ignore-scripts
-      - run: node node_modules/typescript/bin/tsc -p tsconfig.json && node node_modules/typescript/bin/tsc -p tsconfig.tests.json && node .build/scripts/emit.js
-      - name: Verify publication boundaries without sending
-        shell: bash
-        run: |
-          mkdir -p .artifacts
-          node --test --test-concurrency=1 tests/release/publication-cli.test.js tests/release/publication.test.js tests/release/workflow.test.js tests/release/evidence.test.js tests/release/decision.test.js tests/release/collect.test.js tests/ci/verification.test.js 2>&1 | tee .artifacts/ci-publication-boundary.txt
+      - run: node scripts/ci/tasks.ts install-frozen --cacheless
+      - run: node scripts/ci/tasks.ts build
       - run: node node_modules/@playwright/test/cli.js install --with-deps chromium firefox webkit
-      - name: Install reviewed candidate inputs
+      - name: Install reviewed modernization inputs
         env:
-          FORMICARIUM_CI_INPUT_URL: ${{ vars.FORMICARIUM_CI_INPUT_URL }}
-          FORMICARIUM_CI_INPUT_SHA256: ${{ vars.FORMICARIUM_CI_INPUT_SHA256 }}
-        run: python3 scripts/ci/install-inputs.py
-      - name: Verify sequentially
-        run: FORMICARIUM_CI_BUN="$(command -v bun)" node scripts/ci/run.js
-      - uses: actions/upload-artifact@v4
+          FORMICARIUM_MODERNIZATION_INPUT_URL: ${{ vars.FORMICARIUM_MODERNIZATION_INPUT_URL }}
+          FORMICARIUM_MODERNIZATION_INPUT_SHA256: ${{ vars.FORMICARIUM_MODERNIZATION_INPUT_SHA256 }}
+        run: python3 scripts/ci/install-modernization-inputs.py
+      - name: Verify current source and consumer regressions sequentially
+        env:
+          FORMICARIUM_CI_BUN: ${{ steps.bun.outputs.bun-path }}
+        run: node scripts/ci/candidate.js
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
-          name: verification-${{ github.sha }}-${{ github.run_attempt }}
+          name: modernization-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             .artifacts/ci-results/
-            .artifacts/ci-publication-boundary.txt
             .artifacts/ci-coverage-fixed24/
             .artifacts/u1-coverage-v1000001/coverage-report.json
             .artifacts/u1-coverage-v1000001/browser-results/
           include-hidden-files: true
           if-no-files-found: error
+  credential-read:
+    if: github.repository == 'aletheia-works/formicarium' && inputs.verification == 'credential'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.21.0'
+          package-manager-cache: false
+      - name: Verify stored credential with GET requests only
+        env:
+          TOKEN: ${{ secrets.TF_TOKEN_GITHUB }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          node --input-type=module <<'NODE'
+          const token = process.env.TOKEN;
+          if (!token) throw new Error('TF_TOKEN_GITHUB is missing');
+          const repo = 'aletheia-works/formicarium';
+          const paths = [
+            `/repos/${repo}`,
+            `/repos/${repo}/branches/main/protection`,
+            `/repos/${repo}/actions/workflows`,
+            `/repos/${repo}/actions/artifacts?per_page=1`,
+            `/repos/${repo}/commits/${process.env.SOURCE_SHA}/check-runs`,
+          ];
+          for (const path of paths) {
+            const response = await fetch(`https://api.github.com${path}`, {
+              method: 'GET', redirect: 'error', signal: AbortSignal.timeout(15000),
+              headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
+            });
+            console.log(JSON.stringify({ path, status: response.status }));
+            if (!response.ok) throw new Error(`Credential read failed: ${response.status}`);
+            await response.arrayBuffer();
+          }
+          console.log('Credential read verification passed; no write requests performed.');
+          NODE

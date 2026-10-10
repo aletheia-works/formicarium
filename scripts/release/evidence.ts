@@ -4,9 +4,10 @@ import {
   BROWSER_TITLES,
   FILES,
   REQUIRED_U1_REALMS,
-} from '../terrarium/coverage.js';
-import { sha256 } from '../terrarium/evidence.js';
-import type { ReleaseEvidence } from './types.js';
+  sha256,
+} from './inventory.ts';
+import { ASSET_LIMITS, readBoundedFile } from './publication-assets.ts';
+import type { ReleaseEvidence } from './types.ts';
 
 export const hex = (s: unknown): s is string =>
   typeof s === 'string' && /^[a-f0-9]{64}$/.test(s);
@@ -22,7 +23,11 @@ export function unique(values: readonly string[], label: string) {
     `duplicate ${label}`,
   );
 }
-export async function artifactBytes(root: string, path: string) {
+export async function artifactBytes(
+  root: string,
+  path: string,
+  limit?: number,
+) {
   requireCondition(
     typeof path === 'string' &&
       path.length > 0 &&
@@ -43,7 +48,11 @@ export async function artifactBytes(root: string, path: string) {
     );
   }
   requireCondition((await lstat(target)).isFile(), 'artifact must be a file');
-  return readFile(target);
+  const maximum =
+    limit ?? (path.endsWith('.json') ? ASSET_LIMITS.metadataBytes : undefined);
+  return maximum === undefined
+    ? readFile(target)
+    : readBoundedFile(target, maximum);
 }
 export async function validateEvidence(
   root: string,
@@ -196,7 +205,11 @@ export async function validateEvidence(
           (row.collection !== 'not-executed' || row.coveredLines === 0),
         'coverage counters invalid',
       );
-    const bytes = await artifactBytes(root, v.reportArtifact);
+    const bytes = await artifactBytes(
+      root,
+      v.reportArtifact,
+      ASSET_LIMITS.metadataBytes,
+    );
     const reportDigest = sha256(bytes);
     requireCondition(
       evidence.checks.some(
@@ -231,7 +244,11 @@ export async function validateEvidence(
         report[key] === expected[key],
         'coverage report binding differs',
       );
-    const inventoryBytes = await artifactBytes(root, v.inventoryArtifact);
+    const inventoryBytes = await artifactBytes(
+      root,
+      v.inventoryArtifact,
+      ASSET_LIMITS.metadataBytes,
+    );
     requireCondition(
       evidence.checks.some(
         (check) =>
@@ -384,7 +401,11 @@ export async function resolveEvidence(
   );
   const entry = index.entries.find((e) => e.evidenceId === id);
   requireCondition(entry && hex(entry.sha256), 'unknown evidenceId');
-  const bytes = await artifactBytes(root, entry.artifact);
+  const bytes = await artifactBytes(
+    root,
+    entry.artifact,
+    ASSET_LIMITS.metadataBytes,
+  );
   requireCondition(sha256(bytes) === entry.sha256, 'envelope digest differs');
   const evidence = JSON.parse(bytes.toString()) as ReleaseEvidence;
   requireCondition(evidence.evidenceId === id, 'envelope ID differs');

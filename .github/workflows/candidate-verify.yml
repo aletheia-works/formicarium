@@ -1,0 +1,49 @@
+name: Modernization candidate verification
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: modernization-candidate-${{ github.sha }}
+  cancel-in-progress: false
+jobs:
+  candidate-required:
+    if: github.repository == 'aletheia-works/formicarium'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.21.0'
+          package-manager-cache: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        id: bun
+        with:
+          bun-version: '1.4.2'
+      - run: node scripts/ci/tasks.ts install-frozen --cacheless
+      - run: node scripts/ci/tasks.ts build
+      - run: node node_modules/@playwright/test/cli.js install --with-deps chromium firefox webkit
+      - name: Install reviewed modernization inputs
+        env:
+          FORMICARIUM_MODERNIZATION_INPUT_URL: ${{ vars.FORMICARIUM_MODERNIZATION_INPUT_URL }}
+          FORMICARIUM_MODERNIZATION_INPUT_SHA256: ${{ vars.FORMICARIUM_MODERNIZATION_INPUT_SHA256 }}
+        run: python3 scripts/ci/install-modernization-inputs.py
+      - name: Verify current source and consumer regressions sequentially
+        env:
+          FORMICARIUM_CI_BUN: ${{ steps.bun.outputs.bun-path }}
+        run: node scripts/ci/candidate.js
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: modernization-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            .artifacts/ci-results/
+            .artifacts/ci-coverage-fixed24/
+            .artifacts/u1-coverage-v1000001/coverage-report.json
+            .artifacts/u1-coverage-v1000001/browser-results/
+          include-hidden-files: true
+          if-no-files-found: error

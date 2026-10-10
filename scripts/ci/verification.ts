@@ -105,6 +105,12 @@ export function validateManifest(
     !context.ref.startsWith('refs/heads/codex/verify/')
   )
     throw Error('untrusted CI execution source');
+  validateManifestContents(input, context);
+}
+export function validateManifestContents(
+  input: InputManifest,
+  context: { repository: string; commit: string },
+) {
   if (
     input.schemaVersion !== 1 ||
     input.repository !== context.repository ||

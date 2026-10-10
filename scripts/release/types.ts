@@ -67,16 +67,16 @@ export interface StableRcAdoption {
     evidenceId: string;
     evidenceSha256: string;
     candidateId: string;
-    version: '0.1.0-rc.1';
+    version: string;
     tarballSha256: string;
     publishedPackage: {
-      version: '0.1.0-rc.1';
+      version: string;
       tarballSha256: string;
       registryIntegrity: string;
     };
     requiredAcceptanceCheckIds: readonly string[];
   };
-  stable: { candidateId: string; version: '0.1.0'; tarballSha256: string };
+  stable: { candidateId: string; version: string; tarballSha256: string };
   diff: {
     artifact: string;
     sha256: string;
@@ -113,7 +113,7 @@ export interface ReleaseDecision {
   candidateId: string;
   approvalIds: readonly string[];
   evidenceIds: readonly string[];
-  version: '0.1.0-rc.1' | '0.1.0';
+  version: string;
   tag: string;
   distTag: 'next' | 'latest';
   channel: 'rc' | 'stable';

@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "files": [
+    {
+      "path": "runner.mjs",
+      "sha256": "9e126fc77b69bf1bcd34399ffea12c6406ab9d25135f2cac00ece086026d003a",
+      "size": 76611
+    },
+    {
+      "path": "trusted-policy.json",
+      "sha256": "31777237ffd76c78d9e76322ac2817b30d9d92bbc61bf49540d9e82bed38c7b6",
+      "size": 808
+    }
+  ]
+}

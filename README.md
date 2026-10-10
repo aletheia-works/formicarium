@@ -81,11 +81,12 @@ Node.js の Worker と、COOP/COEP 付きのブラウザページ（Chromium・F
 
 | ツール | 用途 | 入手 |
 |---|---|---|
-| Node.js 24 | ランナー、テスト、計測 | `mise.toml`（`mise install`） |
+| Bun 1.4.2 | 開発依存の固定導入、開発task | `mise.toml`（`mise install`） |
+| Node.js 24.21.0 | ランナー、consumer、Worker、テスト、計測 | `mise.toml`（`mise install`）。公開packageの対応範囲はNode >=24 |
 | Docker Desktop または wslc | blink の wasm ビルド、ゲストのビルド、native の基準値 | wslc（`C:\Program Files\WSL\wslc.exe`）を優先し、動かなければ docker を使う。`FORMICARIUM_CONTAINER` で指定もできる |
 | emsdk | ローカルでの Emscripten（`FORMICARIUM_BUILD=host` のとき） | `~/AppData/Local/emsdk`（Windows）または `~/emsdk`。`git clone https://github.com/emscripten-core/emsdk && ./emsdk install latest && ./emsdk activate latest` |
 | Git、Git Bash | スクリプトの実行（Windows） | — |
-| Playwright のブラウザ | ブラウザのテストと計測 | `npm install` → `npx playwright install chromium firefox webkit` |
+| Playwright のブラウザ | ブラウザのテストと計測 | `mise run install-frozen` → `node node_modules/@playwright/test/cli.js install chromium firefox webkit` |
 
 Windows では、mise のツールは非対話シェルの PATH に載らない。`~/AppData/Local/mise/installs/<tool>/<version>/` の実体を直接呼ぶ。
 
@@ -96,30 +97,55 @@ blink の wasm ビルドは、既定ではコンテナ（`emscripten/emsdk:<ロ�
 
 ## ビルド
 
+### 通常CIと候補検証
+
+`ci.yml`は全PRとmain pushで`quality`（30分）、`commit-format`（10分）、`ci-required`（5分）を実行する。品質taskはfrozen導入→lint→typecheck→build→軽量Node検査の順。通常CIはcontents readだけを使い、checkout credentialを保存しない。OS/Bun/Node/lock digestで依存cacheを分け、cache missでも検査を実行する。通常CI成功は重い回帰や配布coverageの成功を意味しない。
+
+commit形式は信頼済みbaseの`scripts/ci/commit-format.ts`で検査する。導入前mainにこのvalidatorがない初回は安全側で失敗する。初期導入の手順は管理者がレビューと外部操作の承認後に決め、PR側validatorへのfallbackやcheck除外で回避しない。既存の`verify.yml`と`publish.yml`、公開RCと固定RC入力branchは保持する。
+
+候補SHAの回帰は`candidate-verify.yml`のworkflow_dispatchで実行する（`candidate-required`、360分）。既存の登録済み`verify.yml`も同じ手順の互換入口として維持する。初回の通常CIでは、baseが移行前の固定SHA `12a92eabf70f6772f11e33f698e3db5088992270` の場合だけ、検証済みSHA `7fc23afedef9a2296cb24026c0f19998a6933da7` のcommit形式検査を使用する。以後はtrusted baseの検査を使用し、PRから検査コードを選ばない。事前にmain担当者が、そのSHAから新しいtarball/siteを生成し、変更のないcore/guestとprovenance/native baselineを照合して入力bundleを作る。`candidateSourcePaths(root)`が列挙した第一者source全てを`bundle.ts`の`sourcePaths`へ渡し、schemaVersion1 manifestとpayload inventoryを固定する。新sourceへ旧RCの検証結果を転用しない。
+
+承認後、管理者は新しい固定commitのHTTPS raw URLを`FORMICARIUM_MODERNIZATION_INPUT_URL`、archive SHA256を`FORMICARIUM_MODERNIZATION_INPUT_SHA256`へ設定する。旧`FORMICARIUM_CI_INPUT_*`は変更しない。入力不足、未知member、symlink、digest/source/provenance不一致は試験前に拒否する。準備した入力と環境があれば`mise run verify-candidate`も同じ入口を使う。未変更guestは再ビルドしない。
+
+必要checksの設定候補は`quality`、`commit-format`、`ci-required`、`candidate-required`。実設定と実CIは管理者の承認後に確認するため、workflowファイルがあるだけで運用済みとは扱わない。PRのGitHub run/checkがmerge SHAを示す場合も、checkoutしたhead SHAとreceiptを独立照合する。通常receiptのself申告は権限判断に使わず、run/attempt/workflow/producerとartifact digestをGitHub APIで確認する。保守自動化・自動merge・公開操作は別単位で整備する。
+
+失敗時はlog、実行SHA、lock/toolchain、入力archive digestを確認し、新commit・新入力で再検証する。skip/cancel/pendingは成功へ置き換えない。入力がない状態で候補checkを成功扱いしない。公開や外向きpushは別承認を要する。実機Safariは未検証で、WebKit結果とは区別する。
+
+| 論理task | mise入口 | Bun scripts | 実行境界 |
+|---|---|---|---|
+| install-frozen | `mise run install-frozen` | `bun run install:frozen` | Bun固定版、frozen、script無効 |
+| lint | `mise run check` | `bun run check` | Biome |
+| typecheck | `mise run typecheck` | `bun run typecheck` | TypeScript |
+| build | `mise run build` | `bun run build` | tscとNode emitter |
+| test-light | `mise run test-light` | `bun run test:light` | Node node:test |
+| test-consumer | `mise run test-consumer` | `bun run test:consumer` | Node consumer、別途資産準備 |
+| verify-candidate | `mise run verify-candidate` | `bun run verify:candidate` | Node/browser/nativeと固定80%coverage |
+
 すべてプロジェクトのルートで実行する。
 
-実装・開発スクリプト・テスト・Playwright 設定は TypeScript で管理する。`npm run build` は型チェック後、生成した `.js` をソースと同じディレクトリに配置する。生成物は jj に記録しない。生成された blink loader は元の形式を維持する。`coi-sw.ts` は classic service worker として登録するため、ビルドでは型だけを除去し ESM の export を加えない。
+実装・開発スクリプト・テスト・Playwright 設定は TypeScript で管理する。`mise run build` は型チェック後、生成した `.js` をソースと同じディレクトリに配置する。生成物は jj に記録しない。生成された blink loader は元の形式を維持する。`coi-sw.ts` は classic service worker として登録するため、ビルドでは型だけを除去し ESM の export を加えない。
 
 ```bash
-npm ci
-npm run check       # Biome による lint・format・import の検査
-npm run typecheck   # 実装とテストの strict 型チェック
-npm test            # 外部 wasm/guest 資産を必要としない単体テスト
-npm run check:fix   # Biome の安全な自動修正
+mise run install-frozen
+mise run check       # Biome による lint・format・import の検査
+mise run typecheck   # 実装とテストの strict 型チェック
+mise run build
+mise run test-light  # Node単体テストと開発tooling検査
+bun run check:fix    # Biome の安全な自動修正
 ```
 
 Windows では POSIX permission bits の検査だけを skip する。同じ検査を Linux で実行することで権限の条件を確認する。外部の実配布資産に関するテストも、資産を未準備のときは未検証として表示する。
 
-`npm run test:integration` は wasm・guest・検証済みの npm アーカイブ・独立した consumer を使うため、各テストの資産と環境変数を準備してから実行する。Playwright は `.spec.ts` を読み、3 ブラウザ・1 worker・再試行なしを維持する。失敗時には trace と screenshot を保存する。
+`mise run test-consumer` は wasm・guest・検証済みの npm アーカイブ・独立した consumer を使うため、各テストの資産と環境変数を準備してから実行する。Playwright は `.spec.ts` を読み、3 ブラウザ・1 worker・再試行なしを維持する。失敗時には trace と screenshot を保存する。開発依存はtext `bun.lock`をコミットし、frozen導入でlockの変更を拒否する。導入scriptは全て無効化し、`trustedDependencies: []`でBunの既定許可にも頼らない。cacheなし確認は`node scripts/ci/tasks.ts install-frozen --cacheless`で実行する。Node向けconsumer・Worker・固有flagsをBun runtimeへ置換しない。
 
 ```bash
-npm ci
-npm run build                    # TypeScript を JavaScript にコンパイルする
+mise run install-frozen
+mise run build                   # TypeScript を JavaScript にコンパイルする
 bash scripts/build-blink-wasm.sh   # blink.lock のコミットを取得し、dist/blink/blink.mjs と blink.wasm を作る
 bash scripts/build-guests.sh       # dist/guests/ に probe・hello・exit3・aube（v2.6.1）・pitchfork（v2.29.0）を作る（aube は 1 時間以上かかる）
 bash scripts/native-baseline.sh    # fixtures/baseline/aube-1645.native.txt（native の基準値）を作る
 bash scripts/native-baseline.sh pitchfork-basic --check-reproducible   # pitchfork の基準値（2 回作って一致を確かめる）
-npx playwright install chromium firefox webkit
+node node_modules/@playwright/test/cli.js install chromium firefox webkit
 ```
 
 `bash scripts/fetch-blink.sh` は `blink.lock` のコミットだけを `.vendor/blink` に取得する。fork と upstream の差分は
@@ -152,6 +178,56 @@ npx playwright install chromium firefox webkit
    公開済みのコミットに変更が混ざらないように注意する（jj は作業中の変更を今のコミットに取り込むため、先に `jj new` しておく）。
 4. `bash scripts/fetch-blink.sh` と `bash scripts/build-blink-wasm.sh` でクリーンビルドし、全テストを実行する。
 5. レビュー用に、差分の写しを `patches/` に置く。
+
+## 保守 workflow
+
+通常 CI の成功後に `maintenance.yml` が独立した API 観測と整形・依存更新の再現を行います。
+整形 push と依存更新の squash merge は別の job で実行し、直前の head と
+`quality`・`commit-format`・`ci-required` を再確認します。書込みは head 条件付きで 1 回だけ行い、
+結果が不明な場合は読取りで照合します。自動再送はしません。失敗した lint を整形で迂回しません。
+
+初期設定は `.github/maintenance/policy.json` の `writerEnabled: false` です。
+有効化には独立確認した workflow・producer App・更新 Bot の数値 ID、workflow/config digest、
+artifact の許可 redirect host、main の保護設定が必要です。`MAINTENANCE_ENABLED` も設定してください。
+既存の terrarium と同じ repository secret `TF_TOKEN_GITHUB` を使います。
+必要権限は Contents / Pull requests write、Actions / Checks / Administration read です。
+この credential は信頼済み base の固定 runner にだけ渡し、checkout には保存しません。
+prepare は信頼済みツールの導入後に親の API 取得だけで使用し、隔離した再現 child へは渡しません。
+同じ credential は write 権限も持つため、read 専用 App token による権限分離はありません。
+子プロセスの環境は PATH/HOME/TMPDIR/CI/cache の許可項目だけで組み立て、token や秘密鍵を除外します。
+secret の登録と実際の権限確認が済むまで自動書込みは無効のままです。
+`verify.yml` の手動実行で verification を `credential` にすると、checkout・依存導入・書込みなしで token の読取 API を検証します。
+この検査の成功は Contents / Pull requests の書込み権限の実行検証を意味しません。
+
+書込み job は trusted base にある Node 用 bundle を実行し、PR のコードや install script を実行しません。
+bundle 更新時は固定 Bun で次を実行し、source と bundle の再生成一致を確認してください。
+
+```bash
+bun build scripts/maintenance/runner.ts --target=node --format=esm --packages=bundle --outfile=.github/maintenance/runner.mjs
+biome check --write --config-path=biome.json .github/maintenance/runner.mjs
+```
+
+### 将来の RC / stable 公開
+
+`publish.yml` は `v*` tag を入口とし、実行時に `X.Y.Z-rc.N`（N は正整数）または `X.Y.Z` の厳密な版、tag、source SHA、公開先、版ごとの人の承認を照合します。RC は `next`、stable は `latest` を使います。stable は同じ基底版の公開 RC の受け入れ証拠と差分検査も必要です。既存 `v0.1.0-rc.1` と `codex/release/rc1-inputs` は履歴の固定入力として保持します。上の U1 導入時の workflow 保持記述に対し、この U4 で `publish.yml` の将来版対応を追加しています。
+
+readonly verify job は Bun 1.4.2 と `bun.lock` で導入・ビルドし、固定生成済み Node runner の再現を確認します。公開候補は通常 CI と別に `candidate-verify.yml` の `candidate-required`、9 個の必須検査、固定 inventory の全 realm receipt と 80% coverage を要求します。GitHub API の run/attempt/source/workflow/producer、artifact digest、署名済み report bytes を独立照合し、skip・missing・非成功を拒否します。
+
+publish / release job は同じ tag SHA の checkout にある Node builtin bootstrap と trusted manifest で転送物を検証してから runner を起動します。writer では install / build を行いません。npm 11.19.0 は固定 URL と SHA512 を検証した archive から展開し、Node 24.21.0 で固定 CLI を実行します。npm の OIDC 権限は publish job、contents write は release job だけに与えます。Bun は開発用で、Node consumer と Worker の runtime は変えません。
+
+`.github/publication/trusted-policy.json` の workflow / producer ID、許可した archive redirect host は独立確認後に設定する前提です。現状の null ID と `writerEnabled: false` は安全側で拒否し、実 CI・公開の運用開始を示しません。公開先の設定、tag / branch push、公開実行は別の承認が必要です。
+
+外部 write の結果が不明な場合は自動再送しません。npm registry の同じ版・integrity・dist-tag、GitHub Release の tag / asset digest、run log を読み返し、人が状態を確定してから復旧を判断します。publish が失敗すれば release を起動せず、npm 成功後の Release 失敗も部分成功として扱います。共有 tag concurrency は実行中の処理を cancel しません。
+
+Dependabot は毎週月曜 05:00（Asia/Tokyo）に Bun の依存と Actions を更新します。
+Bun の更新はグループ化せず、直接の許可済み devDependency 1 件の固定版 patch/minor だけを merge 判定の対象とします。
+range・major・prerelease・複数依存・Actions 更新は手動確認へ残します。
+設定仕様は [Dependabot の公式資料](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference) を参照してください。
+`pr-labels.yml` は PR の path metadata からラベルだけを追加します。
+
+停止時は `MAINTENANCE_ENABLED` を無効にし、必要なら`TF_TOKEN_GITHUB` のアクセス権を取り消してください。
+不明な書込み結果は PR・commit・merge の実状態を照合してから手動復旧します。
+実 GitHub CI、App が起動する後続 CI、runtime の全 realm/80% coverage、実 API の atomic 操作は未検証です。
 
 ## 実行
 
