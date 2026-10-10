@@ -75,7 +75,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",
-    "@playwright/test": "1.63.0",
+    "@playwright/test": "1.64.0",
     "@types/istanbul-lib-coverage": "^2.0.6",
     "@types/istanbul-lib-instrument": "^1.7.8",
     "@types/node": "^24.19.1",
