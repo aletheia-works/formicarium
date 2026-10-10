@@ -64,7 +64,7 @@ async function bunPath(): Promise<string> {
   }
   throw Error('fixed Bun1.4.2 unavailable');
 }
-test('tracked policy starts disabled and incomplete immutable identity cannot enable writing', async (t) => {
+test('registered policy loads while disabled or incomplete identities refuse writing', async (t) => {
   await t.test(
     'tracked acquisition policy is valid after only external IDs are supplied',
     async () => {
@@ -77,12 +77,21 @@ test('tracked policy starts disabled and incomplete immutable identity cannot en
       assert.doesNotThrow(() => validateAcquisitionPolicy(actual));
     },
   );
-  await assert.rejects(loadConfig(root), /WRITER_DISABLED/);
+  const tracked = await loadConfig(root);
+  assert.equal(tracked.preparationWorkflowId, 380872201);
+  assert.equal(tracked.preparationProducerAppId, 15368);
   const temporary = await mkdtemp(join(tmpdir(), 'maintenance-policy-'));
   try {
     await mkdir(join(temporary, '.github/maintenance'), { recursive: true });
     const policy = JSON.parse(await read('.github/maintenance/policy.json'));
+    policy.writerEnabled = false;
+    await writeFile(
+      join(temporary, '.github/maintenance/policy.json'),
+      JSON.stringify(policy),
+    );
+    await assert.rejects(loadConfig(temporary), /WRITER_DISABLED/);
     policy.writerEnabled = true;
+    policy.preparationWorkflowId = null;
     await writeFile(
       join(temporary, '.github/maintenance/policy.json'),
       JSON.stringify(policy),
