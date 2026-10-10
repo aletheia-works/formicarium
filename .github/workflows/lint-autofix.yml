@@ -1,0 +1,66 @@
+name: Polyglot lint autofix
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lint-autofix-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  autofix:
+    name: Polyglot lint autofix
+    if: github.repository_owner == 'aletheia-works'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.21.0'
+          package-manager-cache: false
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.4.2'
+      - name: Install fixed tools
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      # The fixers exit non-zero when an issue is left that they cannot fix
+      # (Biome does so after applying the fixes it can), so a failure here
+      # must not drop the patch. It is reported as a warning instead, and
+      # CI quality, a required check, fails the PR for whatever is left.
+      - name: Run polyglot lint autofix
+        run: |
+          if ! bun run check:fix; then
+            echo "::warning::check:fix exited non-zero: an issue it cannot fix is left, or a tool failed. CI quality reports what remains."
+          fi
+
+      - name: Capture autofix patch
+        run: |
+          set -euo pipefail
+          mkdir -p autofix-out
+          git diff --binary > autofix-out/autofix.patch
+          if [ -s autofix-out/autofix.patch ]; then
+            echo "Autofix produced changes in:"
+            git diff --name-only
+          else
+            echo "No autofix changes."
+          fi
+
+      - name: Upload autofix patch
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: lint-autofix-patch
+          path: autofix-out/autofix.patch
+          retention-days: 1
+          if-no-files-found: error

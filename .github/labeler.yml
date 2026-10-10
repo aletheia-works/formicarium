@@ -1,0 +1,72 @@
+{
+  "ci": [
+    {
+      "changed-files": [
+        {
+          "any-glob-to-any-file": [
+            ".github/**"
+          ]
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "changed-files": [
+        {
+          "any-glob-to-any-file": [
+            "package.json",
+            "bun.lock"
+          ]
+        }
+      ]
+    }
+  ],
+  "runtime": [
+    {
+      "changed-files": [
+        {
+          "any-glob-to-any-file": [
+            "runtime/**",
+            "index.ts"
+          ]
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "changed-files": [
+        {
+          "any-glob-to-any-file": [
+            "tests/**"
+          ]
+        }
+      ]
+    }
+  ],
+  "documentation": [
+    {
+      "changed-files": [
+        {
+          "any-glob-to-any-file": [
+            "README.md",
+            "docs/**"
+          ]
+        }
+      ]
+    }
+  ],
+  "tooling": [
+    {
+      "changed-files": [
+        {
+          "any-glob-to-any-file": [
+            "scripts/**",
+            "mise.toml"
+          ]
+        }
+      ]
+    }
+  ]
+}
