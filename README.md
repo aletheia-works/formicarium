@@ -189,7 +189,10 @@ node node_modules/@playwright/test/cli.js install chromium firefox webkit
 `.github/maintenance/policy.json` は観測済みの CI・保守 workflow ID と作成元を登録しています。
 自動書込みは `writerEnabled` と repository variable `MAINTENANCE_ENABLED=true` の両方で有効になります。
 有効化には独立確認した workflow・producer App・更新 Bot の数値 ID、workflow/config digest、
-artifact の許可 redirect host、main の保護設定が必要です。`MAINTENANCE_ENABLED` も設定してください。
+artifact の許可 redirect host、main の保護設定が必要です。
+保存先は GitHub が公開している `productionresultssa*.blob.core.windows.net` の数字シャードに限定します。
+許可は認証した GitHub API からの HTTPS redirect にだけ適用し、転送先へ token を渡しません。
+再 redirect・別 domain・別 port・userinfo は拒否します。`MAINTENANCE_ENABLED` も設定してください。
 既存の terrarium と同じ repository secret `TF_TOKEN_GITHUB` を使います。
 必要権限は Contents / Pull requests write、Actions / Administration read です。
 公開 repository の Checks API は Checks 権限を指定せず読取り可能で、実際の読取検査も成功しています。

@@ -11,8 +11,10 @@ import {
 } from '../../scripts/maintenance/archive.js';
 import {
   type ApiClock,
+  GITHUB_ARTIFACT_SHARDS,
   GitHubApi,
   type HttpTransport,
+  validArchiveHostRule,
 } from '../../scripts/maintenance/github.js';
 import {
   type AcquisitionPolicy,
@@ -601,4 +603,62 @@ test('PR ambiguity, fork, closed state and malformed trusted policy fail before 
       workflowId: 0,
     }),
   );
+});
+
+test('GitHub numeric artifact shards work without credentials while hostile redirects refuse', async (t) => {
+  assert.equal(validArchiveHostRule(GITHUB_ARTIFACT_SHARDS), true);
+  for (const rule of [
+    '*.blob.core.windows.net',
+    '*',
+    'productionresultssa*.evil.example',
+  ])
+    assert.equal(validArchiveHostRule(rule), false);
+  for (const host of [
+    'productionresultssa2.blob.core.windows.net',
+    'productionresultssa10.blob.core.windows.net',
+    'productionresultssa19.blob.core.windows.net',
+    'productionresultssa100.blob.core.windows.net',
+  ])
+    await t.test(host, async () => {
+      const calls: RequestInit[] = [];
+      const api = new GitHubApi('private-token', async (url, init) => {
+        calls.push(init);
+        return new URL(url).hostname === 'api.github.com'
+          ? new Response(null, {
+              status: 302,
+              headers: { location: `https://${host}/artifact?signature=fixed` },
+            })
+          : new Response('archive');
+      });
+      assert.equal(
+        Buffer.from(
+          await api.bytes('/repos/owner/repo/zip', [GITHUB_ARTIFACT_SHARDS]),
+        ).toString(),
+        'archive',
+      );
+      assert.equal(calls.length, 2);
+      assert.equal(calls[1]?.headers, undefined);
+      assert.equal(calls[1]?.redirect, 'error');
+    });
+  for (const location of [
+    'http://productionresultssa2.blob.core.windows.net/x',
+    'https://productionresultssa2.blob.core.windows.net.evil.example/x',
+    'https://productionresultssax.blob.core.windows.net/x',
+    'https://other.blob.core.windows.net/x',
+    'https://user:secret@productionresultssa2.blob.core.windows.net/x',
+    'https://productionresultssa2.blob.core.windows.net:8443/x',
+    'https://productionresultssa2.blob.core.windows.net/x#fragment',
+  ])
+    await t.test(location, async () => {
+      let calls = 0;
+      const api = new GitHubApi('private-token', async () => {
+        calls++;
+        return new Response(null, { status: 302, headers: { location } });
+      });
+      await assert.rejects(
+        api.bytes('/repos/owner/repo/zip', [GITHUB_ARTIFACT_SHARDS]),
+        /REDIRECT_REJECTED/,
+      );
+      assert.equal(calls, 1);
+    });
 });

@@ -1,5 +1,22 @@
 import { BoundaryError, decodeJson, readBoundedStream } from './archive.ts';
 
+// GitHub publishes this storage namespace; only numeric shards are supported.
+export const GITHUB_ARTIFACT_SHARDS =
+  'productionresultssa*.blob.core.windows.net';
+export function validArchiveHostRule(rule: string): boolean {
+  return (
+    rule === GITHUB_ARTIFACT_SHARDS ||
+    (/^[a-z0-9.-]+$/.test(rule) && !rule.includes('..'))
+  );
+}
+function allowedArchiveHost(host: string, rules: readonly string[]): boolean {
+  return rules.some((rule) =>
+    rule === GITHUB_ARTIFACT_SHARDS
+      ? /^productionresultssa[0-9]+\.blob\.core\.windows\.net$/.test(host)
+      : rule === host,
+  );
+}
+
 export type HttpTransport = (
   url: string,
   init: RequestInit,
@@ -98,7 +115,9 @@ export class GitHubApi {
             const redirect = new URL(location);
             if (
               redirect.protocol !== 'https:' ||
-              !redirectHosts.includes(redirect.hostname) ||
+              !allowedArchiveHost(redirect.hostname, redirectHosts) ||
+              redirect.port ||
+              redirect.hash ||
               redirect.username ||
               redirect.password
             )

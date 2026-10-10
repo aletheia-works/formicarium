@@ -24,10 +24,7 @@
       "LICENSE",
       "THIRD_PARTY_NOTICES.md"
     ],
-    "archiveRedirectHosts": [
-      "productionresultssa10.blob.core.windows.net",
-      "productionresultssa19.blob.core.windows.net"
-    ],
+    "archiveRedirectHosts": ["productionresultssa*.blob.core.windows.net"],
     "updateActorId": 49699333,
     "updateActorType": "Bot"
   },

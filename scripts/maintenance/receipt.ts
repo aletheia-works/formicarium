@@ -9,7 +9,7 @@ import {
   limitBytes,
   unpackArchive,
 } from './archive.ts';
-import type { GitHubApi } from './github.ts';
+import { type GitHubApi, validArchiveHostRule } from './github.ts';
 import { snapshot } from './input.ts';
 
 export const REQUIRED_JOBS = [
@@ -108,7 +108,7 @@ export function validateAcquisitionPolicy(raw: unknown): AcquisitionPolicy {
     'INVALID_POLICY',
   );
   for (const host of archiveRedirectHosts)
-    fail(/^[a-z0-9.-]+$/.test(host) && !host.includes('..'), 'INVALID_POLICY');
+    fail(validArchiveHostRule(host), 'INVALID_POLICY');
   fail(source.updateActorType === 'Bot', 'INVALID_POLICY');
   return {
     repository,
