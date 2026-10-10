@@ -25,7 +25,7 @@ export function coverageFixture(c: CandidateIdentity) {
   const binding = {
     generation: 'fixture-generation',
     sourceIdentity: sha256(JSON.stringify(digests)),
-    candidateSha256: 'b'.repeat(64),
+    candidateSha256: c.tarballSha256,
     executionIdentity: 'c'.repeat(64),
   };
   const inventory = {

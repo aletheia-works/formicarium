@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "writerEnabled": false,
+  "preparationWorkflowId": null,
+  "preparationWorkflowPath": ".github/workflows/maintenance.yml",
+  "preparationProducerAppId": null,
+  "acquisition": {
+    "repository": "aletheia-works/formicarium",
+    "workflowId": null,
+    "workflowPath": ".github/workflows/ci.yml",
+    "workflowDigest": "9f77cb1f9d545bc73a2f706c9691c94939ff0e5d72aa83fd460929d291bcf417",
+    "producerAppId": null,
+    "toolchainRevision": "bun1.4.2-node24.21.0",
+    "protectedPaths": [
+      ".github",
+      ".github/workflows/ci.yml",
+      "scripts/maintenance",
+      "scripts/ci",
+      "scripts/release",
+      "runtime/public.ts",
+      "runtime/web/api.ts",
+      "runtime/node/api.ts",
+      "blink.lock",
+      "LICENSE",
+      "THIRD_PARTY_NOTICES.md"
+    ],
+    "archiveRedirectHosts": [],
+    "updateActorId": null,
+    "updateActorType": "Bot"
+  },
+  "policy": {
+    "revision": "maintenance-v1",
+    "repository": "aletheia-works/formicarium",
+    "allowedFormatPaths": ["runtime", "scripts", "tests", "index.ts"],
+    "allowedDevDependencies": [
+      "@biomejs/biome",
+      "@playwright/test",
+      "@types/istanbul-lib-coverage",
+      "@types/istanbul-lib-instrument",
+      "@types/node",
+      "istanbul-lib-coverage",
+      "istanbul-lib-instrument",
+      "typescript"
+    ],
+    "requiredCheckProducers": [
+      {
+        "name": "quality",
+        "producerIdentity": null
+      },
+      {
+        "name": "commit-format",
+        "producerIdentity": null
+      },
+      {
+        "name": "ci-required",
+        "producerIdentity": null
+      }
+    ],
+    "formatterRevision": "biome-2.5.15",
+    "formatterConfigDigest": "974a0ef509e115d1d9a137416de13bfd6ae13307f40d0149bbedf70e063896de"
+  }
+}

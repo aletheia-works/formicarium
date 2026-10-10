@@ -3,8 +3,7 @@
   "on": {
     "push": {
       "tags": [
-        "v0.1.0-rc.1",
-        "v0.1.0"
+        "v*"
       ]
     }
   },
@@ -17,143 +16,142 @@
   },
   "jobs": {
     "verify": {
-      "if": "github.event_name == 'push' && github.repository == 'aletheia-works/formicarium' && (github.ref == 'refs/tags/v0.1.0-rc.1' || github.ref == 'refs/tags/v0.1.0')",
+      "if": "github.event_name == 'push' && github.repository == 'aletheia-works/formicarium' && startsWith(github.ref, 'refs/tags/v')",
       "runs-on": "ubuntu-24.04",
       "timeout-minutes": 30,
       "permissions": {
-        "contents": "read"
+        "contents": "read",
+        "actions": "read",
+        "checks": "read"
+      },
+      "env": {
+        "GH_TOKEN": "${{ github.token }}",
+        "FORMICARIUM_RELEASE_INPUT_URL": "${{ vars.FORMICARIUM_RELEASE_INPUT_URL }}",
+        "FORMICARIUM_RELEASE_INPUT_SHA256": "${{ vars.FORMICARIUM_RELEASE_INPUT_SHA256 }}"
       },
       "steps": [
         {
-          "uses": "actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
           "with": {
+            "ref": "${{ github.sha }}",
             "persist-credentials": false
           }
         },
         {
-          "uses": "actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "uses": "actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
           "with": {
-            "node-version": "24.21.0"
+            "node-version": "24.21.0",
+            "package-manager-cache": false
           }
         },
         {
-          "run": "npm ci --ignore-scripts"
+          "uses": "oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6",
+          "with": {
+            "bun-version": "1.4.2"
+          }
         },
         {
-          "run": "node node_modules/typescript/bin/tsc -p tsconfig.json && node node_modules/typescript/bin/tsc -p tsconfig.tests.json && node .build/scripts/emit.js"
+          "run": "bun install --frozen-lockfile --ignore-scripts"
         },
         {
-          "name": "Fetch reviewed immutable release inputs",
-          "env": {
-            "FORMICARIUM_RELEASE_INPUT_URL": "${{ vars.FORMICARIUM_RELEASE_INPUT_URL }}",
-            "FORMICARIUM_RELEASE_INPUT_SHA256": "${{ vars.FORMICARIUM_RELEASE_INPUT_SHA256 }}"
-          },
-          "run": "node scripts/release/publication-cli.js fetch .artifacts/publication"
+          "run": "bun run build"
         },
         {
-          "run": "node scripts/release/publication-cli.js gate .artifacts/publication"
+          "run": "node scripts/release/bundle.js verify \"$(command -v bun)\" \"$PWD/node_modules/@biomejs/biome/bin/biome\""
         },
         {
-          "run": "node --test --test-concurrency=1 tests/release/publication.test.js tests/release/workflow.test.js tests/release/evidence.test.js tests/release/decision.test.js tests/release/collect.test.js tests/ci/verification.test.js"
+          "run": "node .github/publication/runner.mjs fetch .artifacts/publication"
+        },
+        {
+          "run": "node .github/publication/runner.mjs gate .artifacts/publication"
+        },
+        {
+          "run": "node .github/publication/runner.mjs prepare-assets .artifacts/publication .artifacts/publication-assets"
+        },
+        {
+          "uses": "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "with": {
+            "name": "publication-assets",
+            "path": ".artifacts/publication-assets/*",
+            "if-no-files-found": "error",
+            "retention-days": 1,
+            "include-hidden-files": false
+          }
         }
       ]
     },
     "publish": {
-      "if": "github.event_name == 'push' && github.repository == 'aletheia-works/formicarium' && (github.ref == 'refs/tags/v0.1.0-rc.1' || github.ref == 'refs/tags/v0.1.0')",
+      "if": "github.event_name == 'push' && github.repository == 'aletheia-works/formicarium' && startsWith(github.ref, 'refs/tags/v')",
       "needs": "verify",
       "runs-on": "ubuntu-24.04",
       "timeout-minutes": 30,
       "environment": "release",
       "permissions": {
         "contents": "read",
+        "actions": "read",
+        "checks": "read",
         "id-token": "write"
+      },
+      "env": {
+        "GH_TOKEN": "${{ github.token }}",
+        "FORMICARIUM_RELEASE_INPUT_URL": "${{ vars.FORMICARIUM_RELEASE_INPUT_URL }}",
+        "FORMICARIUM_RELEASE_INPUT_SHA256": "${{ vars.FORMICARIUM_RELEASE_INPUT_SHA256 }}",
+        "AIDLC_RELEASE_OPERATION": "publish"
       },
       "steps": [
         {
-          "uses": "actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
           "with": {
+            "ref": "${{ github.sha }}",
             "persist-credentials": false
           }
         },
         {
-          "uses": "actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "uses": "actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
           "with": {
-            "node-version": "24.21.0"
+            "node-version": "24.21.0",
+            "package-manager-cache": false
           }
         },
         {
-          "run": "npm ci --ignore-scripts"
-        },
-        {
-          "run": "node node_modules/typescript/bin/tsc -p tsconfig.json && node node_modules/typescript/bin/tsc -p tsconfig.tests.json && node .build/scripts/emit.js"
-        },
-        {
-          "run": "npm install --global npm@11.19.0 --ignore-scripts"
-        },
-        {
-          "name": "Fetch reviewed immutable release inputs",
-          "env": {
-            "FORMICARIUM_RELEASE_INPUT_URL": "${{ vars.FORMICARIUM_RELEASE_INPUT_URL }}",
-            "FORMICARIUM_RELEASE_INPUT_SHA256": "${{ vars.FORMICARIUM_RELEASE_INPUT_SHA256 }}"
-          },
-          "run": "node scripts/release/publication-cli.js fetch .artifacts/publication"
-        },
-        {
-          "run": "node scripts/release/publication-cli.js gate .artifacts/publication"
-        },
-        {
-          "env": {
-            "AIDLC_RELEASE_OPERATION": "publish"
-          },
-          "run": "node scripts/release/publication-cli.js publish .artifacts/publication"
+          "run": "node .github/publication/bootstrap.mjs publish"
         }
       ]
     },
     "release": {
-      "if": "github.event_name == 'push' && github.repository == 'aletheia-works/formicarium' && (github.ref == 'refs/tags/v0.1.0-rc.1' || github.ref == 'refs/tags/v0.1.0')",
+      "if": "github.event_name == 'push' && github.repository == 'aletheia-works/formicarium' && startsWith(github.ref, 'refs/tags/v')",
       "needs": "publish",
       "runs-on": "ubuntu-24.04",
       "timeout-minutes": 30,
       "environment": "release",
       "permissions": {
-        "contents": "write"
+        "contents": "write",
+        "actions": "read",
+        "checks": "read"
+      },
+      "env": {
+        "GH_TOKEN": "${{ github.token }}",
+        "FORMICARIUM_RELEASE_INPUT_URL": "${{ vars.FORMICARIUM_RELEASE_INPUT_URL }}",
+        "FORMICARIUM_RELEASE_INPUT_SHA256": "${{ vars.FORMICARIUM_RELEASE_INPUT_SHA256 }}",
+        "AIDLC_RELEASE_OPERATION": "release"
       },
       "steps": [
         {
-          "uses": "actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
           "with": {
+            "ref": "${{ github.sha }}",
             "persist-credentials": false
           }
         },
         {
-          "uses": "actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "uses": "actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
           "with": {
-            "node-version": "24.21.0"
+            "node-version": "24.21.0",
+            "package-manager-cache": false
           }
         },
         {
-          "run": "npm ci --ignore-scripts"
-        },
-        {
-          "run": "node node_modules/typescript/bin/tsc -p tsconfig.json && node node_modules/typescript/bin/tsc -p tsconfig.tests.json && node .build/scripts/emit.js"
-        },
-        {
-          "name": "Fetch reviewed immutable release inputs",
-          "env": {
-            "FORMICARIUM_RELEASE_INPUT_URL": "${{ vars.FORMICARIUM_RELEASE_INPUT_URL }}",
-            "FORMICARIUM_RELEASE_INPUT_SHA256": "${{ vars.FORMICARIUM_RELEASE_INPUT_SHA256 }}"
-          },
-          "run": "node scripts/release/publication-cli.js fetch .artifacts/publication"
-        },
-        {
-          "run": "node scripts/release/publication-cli.js gate .artifacts/publication"
-        },
-        {
-          "env": {
-            "AIDLC_RELEASE_OPERATION": "release",
-            "GH_TOKEN": "${{ github.token }}"
-          },
-          "run": "node scripts/release/publication-cli.js release .artifacts/publication"
+          "run": "node .github/publication/bootstrap.mjs release"
         }
       ]
     }

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { elfHeader, isolatedDirectory } from './fixtures.js';
@@ -11,8 +12,41 @@ test('U1 runner supports ESM, assertions and isolated cleanup on Node >=24', asy
 });
 
 test('U1 tool dependencies match the lockfile', async () => {
-  const lock: { packages: Record<string, { version: string }> } = JSON.parse(
-    await readFile(new URL('../../package-lock.json', import.meta.url), 'utf8'),
+  const bun = process.env.FORMICARIUM_CI_BUN ?? 'bun';
+  assert.equal(
+    execFileSync(bun, ['--version'], { encoding: 'utf8', shell: false }).trim(),
+    '1.4.2',
+  );
+  // Bun's native JSONC parser handles its generated lock format. Feed bytes
+  // through stdin, never interpolate lock contents into executable code.
+  const lock = JSON.parse(
+    execFileSync(
+      bun,
+      [
+        '--eval',
+        'console.log(JSON.stringify(Bun.JSONC.parse(await Bun.stdin.text())))',
+      ],
+      {
+        input: await readFile(
+          new URL('../../bun.lock', import.meta.url),
+          'utf8',
+        ),
+        encoding: 'utf8',
+        shell: false,
+      },
+    ),
+  ) as {
+    lockfileVersion: number;
+    workspaces: Record<string, { devDependencies: Record<string, string> }>;
+    packages: Record<string, [string, string, unknown, string]>;
+  };
+  assert.equal(lock.lockfileVersion, 2);
+  const manifest = JSON.parse(
+    await readFile(new URL('../../package.json', import.meta.url), 'utf8'),
+  );
+  assert.deepEqual(
+    lock.workspaces['']!.devDependencies,
+    manifest.devDependencies,
   );
   const dependencies = [
     '@playwright/test',
@@ -28,11 +62,11 @@ test('U1 tool dependencies match the lockfile', async () => {
         'utf8',
       ),
     );
-    assert.equal(
-      metadata.version,
-      lock.packages[`node_modules/${name}`]!.version,
-      name,
-    );
+    const pinned = lock.packages[name];
+    assert.ok(pinned, `${name} must have a resolved lock entry`);
+    assert.equal(metadata.name, name);
+    assert.equal(pinned[0], `${name}@${metadata.version}`, name);
+    assert.match(pinned[3], /^sha512-[A-Za-z0-9+/]+={0,2}$/, name);
   }
 });
 

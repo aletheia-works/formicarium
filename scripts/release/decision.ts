@@ -1,19 +1,21 @@
 import { randomUUID } from 'node:crypto';
-import { sha256 } from '../terrarium/evidence.js';
-import type { EvidenceIndex } from './evidence.js';
+import type { EvidenceIndex } from './evidence.ts';
 import {
   artifactBytes,
   hex,
   requireCondition,
   resolveEvidence,
   unique,
-} from './evidence.js';
+} from './evidence.ts';
+import { sha256 } from './inventory.ts';
+import { ASSET_LIMITS } from './publication-assets.ts';
 import type {
   CandidateIdentity,
   ReleaseApproval,
   ReleaseDecision,
   ReleaseEvidence,
-} from './types.js';
+} from './types.ts';
+import { publicationChannel } from './version.ts';
 
 export const RC_CHECKS = Object.freeze([
   'pack',
@@ -120,12 +122,13 @@ async function adoption(
 ) {
   const a = e.rcAdoption;
   requireCondition(
-    a?.status === 'passed' && e.candidate.version === '0.1.0',
+    a?.status === 'passed' &&
+      publicationChannel(e.candidate.version) === 'stable',
     'RC adoption missing',
   );
   requireCondition(
     a.stable.candidateId === e.candidate.candidateId &&
-      a.stable.version === '0.1.0' &&
+      a.stable.version === e.candidate.version &&
       a.stable.tarballSha256 === e.candidate.tarballSha256,
     'stable adoption differs',
   );
@@ -137,14 +140,15 @@ async function adoption(
   const rc = await resolveEvidence(root, index, a.rc.evidenceId);
   requireCondition(
     !rc.rcAdoption &&
-      rc.candidate.version === '0.1.0-rc.1' &&
+      publicationChannel(rc.candidate.version) === 'rc' &&
+      rc.candidate.version.split('-rc.')[0] === e.candidate.version &&
       rc.candidate.candidateId === a.rc.candidateId &&
       rc.candidate.tarballSha256 === a.rc.tarballSha256 &&
-      a.rc.version === '0.1.0-rc.1',
+      a.rc.version === rc.candidate.version,
     'RC identity/cycle differs',
   );
   requireCondition(
-    a.rc.publishedPackage.version === '0.1.0-rc.1' &&
+    a.rc.publishedPackage.version === rc.candidate.version &&
       a.rc.publishedPackage.tarballSha256 === rc.candidate.tarballSha256 &&
       /^sha512-[A-Za-z0-9+/]+={0,2}$/.test(
         a.rc.publishedPackage.registryIntegrity,
@@ -160,7 +164,7 @@ async function adoption(
     const c = rc.checks.find((row) => row.checkId === id);
     requireCondition(
       checkPassed(rc, id) &&
-        c?.terrarium?.installedVersion === '0.1.0-rc.1' &&
+        c?.terrarium?.installedVersion === rc.candidate.version &&
         c.terrarium.baselineCommit &&
         c.terrarium.integrationCommit &&
         hex(c.terrarium.diffSha256) &&
@@ -173,7 +177,11 @@ async function adoption(
   }
   for (const id of DIFF_CHECKS)
     requireCondition(checkPassed(e, id), 'stable diff check incomplete');
-  const bytes = await artifactBytes(root, a.diff.artifact);
+  const bytes = await artifactBytes(
+    root,
+    a.diff.artifact,
+    ASSET_LIMITS.metadataBytes,
+  );
   requireCondition(sha256(bytes) === a.diff.sha256, 'diff digest differs');
   const diff = JSON.parse(bytes.toString());
   requireCondition(
@@ -204,10 +212,14 @@ export async function decideRelease({
   target: string;
   channel: 'rc' | 'stable';
 }): Promise<ReleaseDecision> {
-  const version = channel === 'rc' ? '0.1.0-rc.1' : '0.1.0',
+  const version = candidate.version,
     missing: string[] = [],
     envelopes: ReleaseEvidence[] = [];
   try {
+    requireCondition(
+      publicationChannel(version) === channel,
+      'version/channel differs',
+    );
     unique(evidenceIds, 'decision evidenceId');
     unique(
       approvals.map((a) => a.approvalId),

@@ -1,8 +1,30 @@
 # formicarium の開発ツール。emsdk は mise ではなく ~/AppData/Local/emsdk
 # （Windows 以外では ~/emsdk）を使う。scripts/emscripten-env.sh を参照。
 [tools]
-"github:awslabs/aidlc-workflows" = { version = "2.10.0", matching_regex = "^aidlc-(darwin|linux|windows)-", bin = "aidlc", additional_asset_patterns = ["aidlc-runtime-{{ version }}.tar.gz"] }
-node = "24"
+"github:awslabs/aidlc-workflows" = { version = "latest", matching_regex = "^aidlc-(darwin|linux|windows)-", bin = "aidlc", additional_asset_patterns = ["aidlc-runtime-{{ version }}.tar.gz"] }
+node = "24.21.0"
+bun = "1.4.2"
 rust = { version = "stable", targets = "x86_64-unknown-linux-musl" }
 cmake = "4"
 ninja = "1"
+
+[tasks.install-frozen]
+run = "node scripts/ci/tasks.ts install-frozen"
+
+[tasks.build]
+run = "node scripts/ci/tasks.ts build"
+
+[tasks.typecheck]
+run = "node scripts/ci/tasks.ts typecheck"
+
+[tasks.check]
+run = "node scripts/ci/tasks.ts lint"
+
+[tasks.test-light]
+run = "node scripts/ci/tasks.ts test-light"
+
+[tasks.test-consumer]
+run = "node scripts/ci/tasks.ts test-consumer"
+
+[tasks.verify-candidate]
+run = "node scripts/ci/tasks.ts verify-candidate"
