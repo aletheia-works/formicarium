@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "writerEnabled": false,
-  "preparationWorkflowId": null,
+  "writerEnabled": true,
+  "preparationWorkflowId": 380872201,
   "preparationWorkflowPath": ".github/workflows/maintenance.yml",
-  "preparationProducerAppId": null,
+  "preparationProducerAppId": 15368,
   "acquisition": {
     "repository": "aletheia-works/formicarium",
     "workflowId": 380853002,
@@ -24,7 +24,10 @@
       "LICENSE",
       "THIRD_PARTY_NOTICES.md"
     ],
-    "archiveRedirectHosts": [],
+    "archiveRedirectHosts": [
+      "productionresultssa10.blob.core.windows.net",
+      "productionresultssa19.blob.core.windows.net"
+    ],
     "updateActorId": 49699333,
     "updateActorType": "Bot"
   },

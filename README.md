@@ -186,16 +186,18 @@ node node_modules/@playwright/test/cli.js install chromium firefox webkit
 `quality`・`commit-format`・`ci-required` を再確認します。書込みは head 条件付きで 1 回だけ行い、
 結果が不明な場合は読取りで照合します。自動再送はしません。失敗した lint を整形で迂回しません。
 
-初期設定は `.github/maintenance/policy.json` の `writerEnabled: false` です。
+`.github/maintenance/policy.json` は観測済みの CI・保守 workflow ID と作成元を登録しています。
+自動書込みは `writerEnabled` と repository variable `MAINTENANCE_ENABLED=true` の両方で有効になります。
 有効化には独立確認した workflow・producer App・更新 Bot の数値 ID、workflow/config digest、
 artifact の許可 redirect host、main の保護設定が必要です。`MAINTENANCE_ENABLED` も設定してください。
 既存の terrarium と同じ repository secret `TF_TOKEN_GITHUB` を使います。
-必要権限は Contents / Pull requests write、Actions / Checks / Administration read です。
+必要権限は Contents / Pull requests write、Actions / Administration read です。
+公開 repository の Checks API は Checks 権限を指定せず読取り可能で、実際の読取検査も成功しています。
 この credential は信頼済み base の固定 runner にだけ渡し、checkout には保存しません。
 prepare は信頼済みツールの導入後に親の API 取得だけで使用し、隔離した再現 child へは渡しません。
 同じ credential は write 権限も持つため、read 専用 App token による権限分離はありません。
 子プロセスの環境は PATH/HOME/TMPDIR/CI/cache の許可項目だけで組み立て、token や秘密鍵を除外します。
-secret の登録と実際の権限確認が済むまで自動書込みは無効のままです。
+secret の登録と読取確認は完了しています。実際の push・merge 成功は、対象となる保守実行の結果で確認してください。
 `verify.yml` の手動実行で verification を `credential` にすると、checkout・依存導入・書込みなしで token の読取 API を検証します。
 この検査の成功は Contents / Pull requests の書込み権限の実行検証を意味しません。
 
