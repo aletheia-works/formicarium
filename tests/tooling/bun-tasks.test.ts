@@ -97,7 +97,7 @@ test('all C1 logical task names have developer commands and unknown tasks fail',
   );
   assert.deepEqual(executeTask('build').calls[1], {
     executable: 'bun',
-    args: ['run', 'build'],
+    args: ['run', '--bun', 'build'],
   });
 });
 test('dependency install scripts are disabled rather than trusting Bun defaults', async () => {

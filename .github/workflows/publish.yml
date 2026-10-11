@@ -55,10 +55,10 @@
           "run": "bun install --frozen-lockfile --ignore-scripts"
         },
         {
-          "run": "bun run build"
+          "run": "bun run --bun build"
         },
         {
-          "run": "node scripts/release/bundle.js verify \"$(command -v bun)\" \"$PWD/node_modules/@biomejs/biome/bin/biome\""
+          "run": "bun scripts/release/bundle.js verify \"$(command -v bun)\" \"$PWD/node_modules/@biomejs/biome/bin/biome\""
         },
         {
           "run": "node .github/publication/runner.mjs fetch .artifacts/publication"

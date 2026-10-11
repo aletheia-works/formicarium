@@ -35,7 +35,14 @@ find_node() {
 # その元の文字列 SESSION_INFO を設定する。失敗すれば session-info.js の終了コードを返す。
 load_session_info() {
   local session=$1 node status
-  node=$(find_node) || return 1
+  # Session metadata is a helper, not a Node consumer compatibility test.
+  if [ -n "${FORMICARIUM_NODE:-}" ]; then
+    node=$(find_node) || return 1
+  elif command -v bun >/dev/null 2>&1; then
+    node=$(command -v bun)
+  else
+    node=$(find_node) || return 1
+  fi
   set +e
   SESSION_INFO=$("$node" "$_formicarium_node_root/scripts/session-info.js" "$session")
   status=$?

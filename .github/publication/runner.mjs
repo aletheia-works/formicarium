@@ -2049,7 +2049,7 @@ function validatePublishWorkflow(text) {
     if (name === 'verify') {
       requireCondition(
         runs.includes('bun install --frozen-lockfile --ignore-scripts') &&
-          runs.includes('bun run build'),
+          runs.includes('bun run --bun build'),
         'Bun verification tasks missing',
       );
       requireCondition(

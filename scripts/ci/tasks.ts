@@ -5,9 +5,9 @@ import { pathToFileURL } from 'node:url';
 export const TOOLCHAIN = Object.freeze({ bun: 'latest', node: 'latest' });
 export const TASKS = Object.freeze({
   'install-frozen': ['install', '--frozen-lockfile', '--ignore-scripts'],
-  lint: ['run', 'check'],
-  typecheck: ['run', 'typecheck'],
-  build: ['run', 'build'],
+  lint: ['run', '--bun', 'check'],
+  typecheck: ['run', '--bun', 'typecheck'],
+  build: ['run', '--bun', 'build'],
   'test-light': ['run', 'test:light'],
   'test-consumer': ['run', 'test:consumer'],
   'verify-candidate': ['run', 'verify:candidate'],

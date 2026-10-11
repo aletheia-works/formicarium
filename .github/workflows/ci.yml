@@ -63,7 +63,13 @@ jobs:
           bun-version: 'latest'
       - run: bun install --frozen-lockfile --ignore-scripts
       - run: bun add --dev --no-save --ignore-scripts @playwright/test@latest
-      - run: bun run build
+      - name: Record resolved test tool versions
+        run: |
+          bun --version
+          node --version
+          bun node_modules/@playwright/test/cli.js --version
+          cat /etc/os-release
+      - run: bun run --bun build
       # The locked blink commit is supplied by a reviewed source bundle until
       # it is available directly from the core repository. No built product
       # or consumer dependencies from the archive are reused in this job.
@@ -87,10 +93,33 @@ jobs:
             if (result.status !== 0) throw new Error(`${id} failed: ${result.status}`);
           });
           JS
-      - name: Build wasm core and static Linux guests from source
+      - name: Resolve current build container images
+        id: build-images
         run: |
-          bash scripts/build-blink-wasm.sh
-          bash scripts/build-guests.sh all
+          docker pull emscripten/emsdk:latest
+          docker pull rust:alpine
+          digest=$(docker image inspect --format '{{.Id}}' emscripten/emsdk:latest rust:alpine | sha256sum | cut -d ' ' -f 1)
+          printf 'digest=%s\n' "$digest" >> "$GITHUB_OUTPUT"
+      - name: Cache builds for the exact current compiler images and inputs
+        id: product-build
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            dist/blink/
+            dist/guests/
+          key: product-${{ runner.os }}-${{ runner.arch }}-${{ steps.build-images.outputs.digest }}-${{ hashFiles('blink.lock', 'scripts/**/*.sh', 'scripts/**/*.ts', 'guest/**', 'patches/**') }}
+      - name: Build wasm core from source
+        if: steps.product-build.outputs.cache-hit != 'true'
+        run: bash scripts/build-blink-wasm.sh
+      - name: Build static Linux probe guests from source
+        if: steps.product-build.outputs.cache-hit != 'true'
+        run: bash scripts/build-guests.sh probe
+      - name: Build static Linux aube from source
+        if: steps.product-build.outputs.cache-hit != 'true'
+        run: bash scripts/build-guests.sh aube
+      - name: Build unpatched static Linux pitchfork from source
+        if: steps.product-build.outputs.cache-hit != 'true'
+        run: bash scripts/build-guests.sh pitchfork
       - name: Verify reproducible native baselines
         run: |
           cp fixtures/baseline/aube-1645.native.txt "$RUNNER_TEMP/aube.native.txt"
@@ -102,9 +131,9 @@ jobs:
       - name: Run product regression tests on Node
         run: node --test --test-concurrency=1 tests/node/build.test.js tests/node/runner.test.js tests/node/probe.test.js tests/node/session.test.js tests/node/aube-1645.test.js tests/node/pitchfork-basic.test.js
       - name: Install browsers matching the project lockfile
-        run: bunx --no-install playwright install --with-deps chromium firefox webkit
+        run: bunx --bun --no-install playwright install --with-deps chromium firefox webkit
       - name: Run browser regression tests sequentially
-        run: bun run test:browser -- --workers=1 --retries=0
+        run: bun run --bun test:browser -- --workers=1 --retries=0
       - name: Save build metadata and browser diagnostics
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

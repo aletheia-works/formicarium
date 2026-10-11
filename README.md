@@ -342,3 +342,8 @@ so tests use the latest release while preserving the committed dependency lock.
 Bun runs build, lint, type checks, helper scripts and browser tooling. Explicit
 Node tests retain Node to verify the published Node consumer and Worker behavior.
 The wasm compiler image is `emscripten/emsdk:latest` in PR product tests.
+
+Product builds are cached by the resolved Docker image IDs and all locked core,
+guest and build-script inputs. CI pulls the current compiler images before
+looking up the cache, so a compiler update causes a fresh build. Native, Node
+and browser tests still run on every PR.
