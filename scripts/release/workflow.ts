@@ -22,6 +22,23 @@ export function assertPublicationContext(
     'untrusted publication context',
   );
 }
+/** Read-only readiness check; never accepts a PR/fork or a different candidate source. */
+export function assertReleasePreflightContext(
+  i: PublicationIdentity,
+  c: PublicationContext,
+  packageVersion: string,
+) {
+  validatePublicationIdentity(i);
+  requireCondition(
+    c.event === 'workflow_dispatch' &&
+      c.repository === 'aletheia-works/formicarium' &&
+      c.repository === i.repository &&
+      c.ref === 'refs/heads/main' &&
+      c.sha === i.sourceCommit &&
+      packageVersion === i.version,
+    'untrusted release preflight context',
+  );
+}
 /** Validate the native Actions dependency and artifact boundaries. */
 export function validatePublishWorkflow(text: string) {
   const w = parse(text);

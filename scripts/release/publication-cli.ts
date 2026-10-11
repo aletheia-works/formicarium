@@ -34,6 +34,7 @@ import {
 } from './publication-evidence.ts';
 import {
   assertPublicationContext,
+  assertReleasePreflightContext,
   validatePublishWorkflow,
 } from './workflow.ts';
 
@@ -48,6 +49,7 @@ export interface PublicationBoundary {
 export async function gatePublication(
   root: string,
   boundary: PublicationBoundary = { policyRoot: process.cwd(), fetcher: fetch },
+  mode: 'publication' | 'preflight' = 'publication',
 ) {
   const request = JSON.parse(
     (
@@ -95,12 +97,16 @@ export async function gatePublication(
       buildInfo.blinkCommit === request.candidate.core.sourceCommit,
     'request core provenance differs',
   );
-  assertPublicationContext(request.identity, {
+  const context = {
     event: process.env.GITHUB_EVENT_NAME ?? '',
     repository: process.env.GITHUB_REPOSITORY ?? '',
     ref: process.env.GITHUB_REF ?? '',
     sha: process.env.GITHUB_SHA ?? '',
-  });
+  };
+  if (mode === 'preflight') {
+    const pkg = await json(resolve(boundary.policyRoot, 'package.json'));
+    assertReleasePreflightContext(request.identity, context, pkg.version);
+  } else assertPublicationContext(request.identity, context);
   requireCondition(
     request.identity.repository === 'aletheia-works/formicarium' &&
       request.identity.environment === 'release',
@@ -223,6 +229,8 @@ export async function publicationCli(
     await fetchBundle(paths[0]!);
     return { outcome: 'downloaded-not-published' };
   }
+  if (command === 'preflight' && paths.length === 1)
+    return (await gatePublication(paths[0]!, boundary, 'preflight')).decision;
   if (command === 'gate' && paths.length === 1)
     return (await gatePublication(paths[0]!, boundary)).decision;
   if (command === 'prepare-artifact' && paths.length === 2) {
@@ -241,7 +249,7 @@ export async function publicationCli(
     return output;
   }
   throw new Error(
-    'usage: prepare <old-manifest> <old.tgz> <new-out> <identity>; validate <publication-manifest> <identity> <tgz>; plan <evidence-root> <request>; fetch|gate <bundle-root>; prepare-artifact <bundle-root> <output-directory>',
+    'usage: prepare <old-manifest> <old.tgz> <new-out> <identity>; validate <publication-manifest> <identity> <tgz>; plan <evidence-root> <request>; fetch|gate|preflight <bundle-root>; prepare-artifact <bundle-root> <output-directory>',
   );
 }
 if (

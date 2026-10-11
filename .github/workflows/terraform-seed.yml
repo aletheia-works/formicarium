@@ -1,0 +1,79 @@
+name: Seed Terraform State
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: terraform-state
+  cancel-in-progress: false
+
+jobs:
+  seed:
+    if: github.repository == 'aletheia-works/formicarium' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: infra/github
+    env:
+      GITHUB_TOKEN: ${{ secrets.TF_TOKEN_GITHUB }}
+      GH_TOKEN: ${{ secrets.TF_TOKEN_GITHUB }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4
+        with:
+          tofu_version: latest
+          tofu_wrapper: false
+      - name: Refuse to replace an existing CI state
+        env:
+          LATEST_APPLY_RUN_ID: ${{ vars.LATEST_APPLY_RUN_ID }}
+        run: |
+          set -euo pipefail
+          test -z "$LATEST_APPLY_RUN_ID"
+      - name: Adopt already applied release resources
+        run: |
+          set -euo pipefail
+          cat > seed-imports.tf <<'HCL'
+          import {
+            to = github_issue_label.labels["autorelease: pending"]
+            id = "formicarium:autorelease: pending"
+          }
+          import {
+            to = github_issue_label.labels["autorelease: tagged"]
+            id = "formicarium:autorelease: tagged"
+          }
+          import {
+            to = github_actions_variable.release_automation
+            id = "formicarium:RELEASE_AUTOMATION_ENABLED"
+          }
+          import {
+            to = github_actions_variable.weekly_release_merge
+            id = "formicarium:WEEKLY_RELEASE_MERGE_ENABLED"
+          }
+          HCL
+          tofu init -input=false
+          tofu validate
+          tofu plan -input=false -out=seed.tfplan
+          tofu show -json seed.tfplan > seed-plan.json
+          jq -e 'all(.resource_changes[]?; .change.actions == ["no-op"])' seed-plan.json
+          tofu apply -input=false seed.tfplan
+      - name: Upload imported state
+        id: state
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: terraform-state
+          path: infra/github/terraform.tfstate
+          retention-days: 90
+          if-no-files-found: error
+      - name: Point subsequent CI at the verified state
+        env:
+          STATE_RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          gh variable set LATEST_APPLY_RUN_ID --repo "$GITHUB_REPOSITORY" --body "$STATE_RUN_ID"

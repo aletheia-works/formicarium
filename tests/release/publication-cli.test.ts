@@ -196,3 +196,27 @@ test('workflow outputs are emitted only after successful artifact validation', a
     /ENOENT/,
   );
 });
+
+test('read-only preflight runs the real evidence gate but cannot export a publication artifact', async (t) => {
+  const f = await stableBundle(t);
+  await writeFile(
+    join(f.boundary.policyRoot, 'package.json'),
+    JSON.stringify({ version: f.request.identity.version }),
+  );
+  process.env.GITHUB_EVENT_NAME = 'workflow_dispatch';
+  process.env.GITHUB_REF = 'refs/heads/main';
+  const result = await publicationCli(['preflight', f.root], f.boundary);
+  assert.ok('allowed' in result);
+  assert.equal(result.allowed, true);
+  await assert.rejects(
+    preparePublicationArtifact(
+      f.root,
+      join(f.root, 'not-exported'),
+      f.boundary,
+    ),
+    /untrusted publication context/,
+  );
+  f.request.candidate.version = '0.2.0';
+  await f.save();
+  await assert.rejects(publicationCli(['preflight', f.root], f.boundary));
+});

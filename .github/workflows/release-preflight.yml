@@ -1,0 +1,36 @@
+name: Release preflight
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  checks: read
+
+concurrency:
+  group: release-preflight-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  readiness:
+    if: github.repository == 'aletheia-works/formicarium' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+      FORMICARIUM_RELEASE_INPUT_URL: ${{ vars.FORMICARIUM_RELEASE_INPUT_URL }}
+      FORMICARIUM_RELEASE_INPUT_SHA256: ${{ vars.FORMICARIUM_RELEASE_INPUT_SHA256 }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile --ignore-scripts
+      - name: Download digest-pinned reviewed inputs
+        run: bun scripts/release/publication-cli.ts fetch .artifacts/publication
+      - name: Check candidate, CI, coverage, acceptance and approval without publishing
+        run: bun scripts/release/publication-cli.ts preflight .artifacts/publication

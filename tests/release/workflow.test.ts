@@ -5,6 +5,7 @@ import { parse, stringify } from 'yaml';
 import type { PublicationIdentity } from '../../scripts/release/publication.js';
 import {
   assertPublicationContext,
+  assertReleasePreflightContext,
   validatePublishWorkflow,
 } from '../../scripts/release/workflow.js';
 
@@ -185,4 +186,37 @@ test('cross-run artifacts, forged outputs and failed-step bypass are refused', (
       () => validatePublishWorkflow(alter(change)),
       /artifact|output|conditional/,
     );
+});
+
+test('read-only preflight accepts only the exact upstream main candidate and package version', () => {
+  const preflight = {
+    ...context,
+    event: 'workflow_dispatch',
+    ref: 'refs/heads/main',
+  };
+  assertReleasePreflightContext(identity, preflight, identity.version);
+  for (const mutation of [
+    { event: 'push' },
+    { event: 'pull_request' },
+    { repository: 'Marukome0743/formicarium' },
+    { ref: 'refs/heads/codex/release' },
+    { sha: 'd'.repeat(40) },
+  ])
+    assert.throws(
+      () =>
+        assertReleasePreflightContext(
+          identity,
+          { ...preflight, ...mutation },
+          identity.version,
+        ),
+      /untrusted/,
+    );
+  assert.throws(
+    () => assertReleasePreflightContext(identity, preflight, '0.2.0'),
+    /untrusted/,
+  );
+  assert.throws(
+    () => assertPublicationContext(identity, preflight),
+    /untrusted/,
+  );
 });

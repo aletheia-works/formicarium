@@ -45,3 +45,22 @@ GitHub Release while npm publication is blocked.
 The current npm command does not retry publication of an existing version.
 Inspect the registry before recovering a failed run. No existing tag or release
 asset is overwritten. Stable publishes latest; RC publishes next.
+
+## State handoff and release preflight
+
+After merging the seed workflow, dispatch `terraform-seed.yml` on main once.
+It reconstructs all 27 resource bindings with import blocks, rejects every
+planned remote resource change before applying the import-only plan, uploads
+`terraform-state`, and records LATEST_APPLY_RUN_ID. It refuses to run when a
+CI state run is already configured. It does not enable infrastructure Apply,
+weekly merging or release automation. Future CI restores this artifact; keep
+the local state backup until download and state comparison are verified.
+
+Dispatch `release-preflight.yml` on main after updating the reviewed release
+input URL/SHA. It uses the actual evidence gate, including independent API
+provenance checks, coverage and stable RC adoption. The input source must match
+the dispatched main SHA and its version must match package.json. The preflight
+has no publishing permissions and cannot export a publication package.
+A successful preflight is a readiness check, not a publication or tagging
+approval. Candidate input generation and terrarium acceptance remain external;
+these workflows do not fabricate approvals or reuse old version evidence.
