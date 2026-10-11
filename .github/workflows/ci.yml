@@ -55,7 +55,7 @@ jobs:
   product-build:
     name: "Build (${{ matrix.component }})"
     runs-on: "ubuntu-latest"
-    timeout-minutes: 180
+    timeout-minutes: 140
     strategy:
       fail-fast: false
       matrix:

@@ -99,7 +99,7 @@ blink の wasm ビルドは、既定ではコンテナ（`emscripten/emsdk:<ロ�
 
 ### 通常CIと候補検証
 
-`ci.yml`は全PRとmain pushで`quality`（30分）、`product-tests`（240分）、`commit-format`（10分）、`ci-required`（5分）を実行する。品質taskはfrozen導入→lint→typecheck→build→軽量Node検査の順。通常CIはcontents readだけを使い、checkout credentialを保存しない。OS/Bun/Node/lock digestで依存cacheを分け、cache missでも検査を実行する。製品回帰はsource build・native・Node・3ブラウザで確認する。cross-repository consumerと配布coverageはcandidate検証で別途確認する。
+`ci.yml`は全PRとmain pushで`quality`（30分）、`product-build`（各140分）、`product-regression`（各90分）、`product-tests`（集約5分）、`commit-format`（10分）、`ci-required`（5分）を実行する。品質taskはfrozen導入→lint→typecheck→build→Bun中心の軽量検査とNode固有検査の順。通常CIはcontents readだけを使い、checkout credentialを保存しない。製品ビルドはwasm・probe・aube/pitchforkの3ジョブ、回帰試験はNode・3ブラウザの4ジョブへ分割する。コンパイラimageと入力が同じ場合に個別成果物cacheを使い、cache missでもビルドと検査を実行する。native検査と全回帰試験はcache hitでも省略しない。cross-repository consumerと配布coverageはcandidate検証で別途確認する。
 
 commit形式は信頼済みbaseの`scripts/ci/commit-format.ts`で検査する。導入前mainにこのvalidatorがない初回は安全側で失敗する。初期導入の手順は管理者がレビューと外部操作の承認後に決め、PR側validatorへのfallbackやcheck除外で回避しない。既存の`verify.yml`と`publish.yml`、公開RCと固定RC入力branchは保持する。
 
