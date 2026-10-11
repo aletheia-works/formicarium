@@ -19,7 +19,7 @@ export function assertPublicationContext(
       c.repository === i.repository &&
       c.ref === `refs/tags/${i.tag}` &&
       c.sha === i.sourceCommit,
-    'untrusted publication context',
+    `untrusted publication context: reviewed inputs require ${i.repository}@${i.sourceCommit} refs/tags/${i.tag}; observed ${c.repository}@${c.sha} ${c.ref} (${c.event}). Prepare matching RC/stable inputs and complete release preflight before publication; do not reuse another version's inputs.`,
   );
 }
 /** Read-only readiness check; never accepts a PR/fork or a different candidate source. */

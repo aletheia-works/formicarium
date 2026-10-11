@@ -44,6 +44,49 @@ export function candidateVersion(version: unknown): string {
   return version;
 }
 
+/** Read-only candidate builds may be dispatched only on the upstream main SHA. */
+export function dispatchedCandidateContext(context: {
+  repository: string;
+  commit: string;
+  event: string;
+  ref: string;
+}) {
+  if (
+    context.repository !== 'aletheia-works/formicarium' ||
+    context.event !== 'workflow_dispatch' ||
+    context.ref !== 'refs/heads/main' ||
+    !/^[a-f0-9]{40}$/.test(context.commit)
+  )
+    throw Error('release candidate dispatch requires upstream main');
+  return context;
+}
+
+export function selectedCandidateVersion(
+  packageVersion: string,
+  requested: string,
+  event: string,
+) {
+  const base = candidateVersion(packageVersion);
+  if (!requested) return base;
+  const version = candidateVersion(requested);
+  if (
+    event !== 'workflow_dispatch' ||
+    base.includes('-') ||
+    !version.startsWith(`${base}-rc.`)
+  )
+    throw Error('RC candidate must match the dispatched package version');
+  return version;
+}
+
+async function selectedVersion(root: string) {
+  const pkg = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'));
+  return selectedCandidateVersion(
+    pkg.version,
+    process.env.CANDIDATE_VERSION ?? '',
+    process.env.GITHUB_EVENT_NAME ?? '',
+  );
+}
+
 /** Bind PR execution to its actual head; the publication validator is unchanged. */
 export function validateReleaseCandidateContext(
   manifest: InputManifest,
@@ -57,7 +100,7 @@ export function validateReleaseCandidateContext(
     context.event !== expected.event ||
     context.ref !== expected.ref
   )
-    throw Error('release candidate execution differs from pull request head');
+    throw Error('release candidate execution differs from observed source');
   // Reuse strict inventory validation without admitting PRs to the publication workflow.
   return {
     ...expected,
@@ -67,8 +110,17 @@ export function validateReleaseCandidateContext(
 }
 
 async function eventContext() {
+  if (process.env.GITHUB_EVENT_NAME === 'workflow_dispatch')
+    return dispatchedCandidateContext({
+      repository: process.env.GITHUB_REPOSITORY ?? '',
+      commit: process.env.GITHUB_SHA ?? '',
+      event: process.env.GITHUB_EVENT_NAME,
+      ref: process.env.GITHUB_REF ?? '',
+    });
   if (process.env.GITHUB_EVENT_NAME !== 'pull_request')
-    throw Error('release candidate only runs on pull_request');
+    throw Error(
+      'release candidate requires pull_request or upstream main dispatch',
+    );
   return releaseCandidateContext(
     JSON.parse(await readFile(process.env.GITHUB_EVENT_PATH!, 'utf8')),
   );
@@ -76,8 +128,7 @@ async function eventContext() {
 
 async function preparePublic(root: string) {
   const context = await eventContext();
-  const pkg = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'));
-  const version = candidateVersion(pkg.version);
+  const version = await selectedVersion(root);
   const identity = {
     repository: context.repository,
     workflow: 'publish.yml' as const,
@@ -112,9 +163,7 @@ export async function prepareInputs(
   );
   await verifyPins(`${seed}/payload`, old.files);
   const identity = JSON.parse(await readFile(`${out}/identity.json`, 'utf8'));
-  const version = candidateVersion(
-    JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8')).version,
-  );
+  const version = await selectedVersion(root);
   if (identity.sourceCommit !== expected.commit || identity.version !== version)
     throw Error('prepared publication identity differs');
   const publication = await validatePublication(
@@ -130,6 +179,7 @@ export async function prepareInputs(
   manifest.sourceCommit = expected.commit;
   const candidate = {
     ...original,
+    version,
     files: publication.files,
     stagedDirectory: manifest.packageRoot,
     tarball: { ...publication.tarball, path: manifest.tarball },
@@ -159,7 +209,8 @@ export async function prepareInputs(
     if (!file) throw Error(`candidate site file missing: ${row.path}`);
     return { ...row, sha256: file.sha256 };
   });
-  stage.status = 'Current PR candidate; regression and coverage not yet run';
+  stage.status =
+    'Current source candidate; regression and coverage not yet run';
   await writeFile(`${out}/site-stage.json`, JSON.stringify(stage, null, 2));
   const inputs = files.map((row) => {
     let source = resolve(seed, 'payload', row.path);

@@ -220,3 +220,22 @@ test('read-only preflight accepts only the exact upstream main candidate and pac
     /untrusted/,
   );
 });
+
+test('stale release inputs explain the expected and observed tag/source without admitting publication', () => {
+  assert.throws(
+    () =>
+      assertPublicationContext(identity, {
+        ...context,
+        ref: 'refs/tags/v0.2.0',
+        sha: 'b'.repeat(40),
+      }),
+    (error: unknown) => {
+      assert.ok(error instanceof Error);
+      assert.match(error.message, /reviewed inputs require/);
+      assert.match(error.message, /refs\/tags\/v0.1.0-rc.1/);
+      assert.match(error.message, /refs\/tags\/v0.2.0/);
+      assert.match(error.message, /complete release preflight/);
+      return true;
+    },
+  );
+});

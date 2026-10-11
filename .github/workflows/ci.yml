@@ -1,5 +1,11 @@
 name: "CI"
 "on":
+  workflow_dispatch:
+    inputs:
+      candidate-version:
+        description: "Optional RC version matching package.json (for example 0.2.0-rc.1); never publishes"
+        required: false
+        type: string
   pull_request: null
   push:
     branches:
@@ -382,6 +388,9 @@ jobs:
           SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           required=false
+          if [ "$EVENT_NAME" = workflow_dispatch ]; then
+            required=true
+          fi
           if [ "$EVENT_NAME" = pull_request ]; then
             git diff --name-only "$BASE_SHA" "$SOURCE_SHA" > "$RUNNER_TEMP/candidate-paths.txt"
             if [[ "$HEAD_REF" == release-please--branches--main--components--formicarium ]] ||
@@ -395,7 +404,8 @@ jobs:
     if: needs.candidate-scope.outputs.required == 'true'
     uses: ./.github/workflows/release-candidate.yml
     with:
-      source-sha: ${{ github.event.pull_request.head.sha }}
+      source-sha: ${{ github.event.pull_request.head.sha || github.sha }}
+      candidate-version: ${{ inputs.candidate-version || '' }}
   commit-format:
     runs-on: "ubuntu-latest"
     timeout-minutes: 10
@@ -427,7 +437,7 @@ jobs:
       -
         name: "Validate with trusted base rules"
         env:
-          BASE_SHA: "${{ github.event.pull_request.base.sha || github.event.before }}"
+          BASE_SHA: "${{ github.event.pull_request.base.sha || github.event.before || '0000000000000000000000000000000000000000' }}"
           HEAD_SHA: "${{ github.event.pull_request.head.sha || github.sha }}"
           TRUSTED_VALIDATOR: "${{ (github.event.pull_request.base.sha || github.event.before) == '12a92eabf70f6772f11e33f698e3db5088992270' && '.trusted-bootstrap/scripts/ci/commit-format.ts' || '.trusted-base/scripts/ci/commit-format.ts' }}"
         run: "bun \"$TRUSTED_VALIDATOR\" \"$BASE_SHA\" \"$HEAD_SHA\""

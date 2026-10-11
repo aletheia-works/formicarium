@@ -7,7 +7,8 @@ Release-please owns the changelog and release notes; publish.yml attaches the
 verified tarball to an existing release, retaining manual RC release support.
 
 The node release strategy uses package.json as the version source, matching
-vivarium. The initial manifest baseline is the published 0.1.0. Release-please
+vivarium. The manifest tracks the version recorded by release-please; a GitHub Release
+does not prove that this version has reached npm. Release-please
 updates package.json and creates the matching v<version> tag and GitHub Release.
 No version.txt is used. The root package remains private.
 
@@ -101,3 +102,43 @@ secret's sharing cannot be confirmed with the current CLI permissions.
 checks Biome, GitHub Actions YAML (actionlint), and maintained shell entry points
 (ShellCheck warning/error severity). Tools use latest versions; no formatter push
 or additional App permissions are introduced.
+
+## Recovering a merged release before npm readiness
+
+A release PR merge creates a GitHub tag and Release immediately. It does not
+supply the reviewed npm publication inputs. If those inputs still describe an
+older tag/source, publish.yml deliberately fails before the npm writer runs.
+Root package.json being private does not disable publication: the verified
+staged package is public. Never replace an existing tag or bypass the context,
+coverage, approval or terrarium acceptance gates to recover this situation.
+
+CI supports workflow_dispatch on upstream main to generate a fresh source-bound
+candidate after a merge. Leave candidate-version empty for the stable version,
+or request an RC of that exact package.json base, for example 0.2.0-rc.1.
+The RC override changes only the staged public package version. It does not
+change main's package.json, publish anything, or create a tag/Release. The same
+wasm build, regression and coverage jobs run, and artifacts bind to the actual
+main SHA/run/attempt. Fork, non-main and other-version dispatches are refused.
+
+Recovery order:
+
+1. Merge the reviewed candidate dispatch change, then dispatch CI on main with
+   candidate-version=0.2.0-rc.1; independently reconcile its completed evidence.
+2. Prepare RC publication inputs for that exact source, version and tarball,
+   observe npm Trusted Publisher settings, and obtain candidate-bound publication
+   approval. The PR candidate artifact is not automatically admitted by the
+   current candidate-verify producer policy; run/reconcile the reviewed producer
+   or explicitly review a policy migration before publication.
+3. Publish the approved RC to next through the existing gated OIDC workflow.
+   Verify npm's version, integrity and provenance before terrarium installs it.
+4. Obtain terrarium acceptance of the published RC. Prepare and verify the
+   stable candidate and stable/RC diff, and collect its publication approval.
+5. Update reviewed publication inputs for the immutable existing v0.2.0 source,
+   then retry the tag publication only when all gates are ready. Preflight must
+   run at the exact stable source/package version; if current main has moved,
+   do not relabel evidence or remove the exact-source restriction. Prepare a
+   separately reviewed recovery path if main cannot satisfy it.
+
+The 0.2.0 PR artifact based on 9d8ec46c is a pre-merge candidate, not evidence
+for the later main/tag 5ae3be2b. Historical fixture provenance is retained, and
+terrarium must independently exercise current guests including Biome.

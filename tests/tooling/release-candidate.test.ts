@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   candidateVersion,
+  dispatchedCandidateContext,
   releaseCandidateContext,
+  selectedCandidateVersion,
   validateReleaseCandidateContext,
 } from '../../scripts/ci/release-candidate.js';
 import type { InputManifest } from '../../scripts/ci/verification.js';
@@ -155,4 +157,102 @@ test('release candidate workflow consumes same-run wasm and exports no writer pe
     steps.every((s) => !s.run?.match(/npm publish|gh release|git push/)),
   );
   assert.ok(steps.every((s) => !JSON.stringify(s).includes('secrets.')));
+});
+
+test('main dispatch binds the actual source and rejects forks, tags and push events', () => {
+  const context = {
+    repository: 'aletheia-works/formicarium',
+    commit: sha,
+    event: 'workflow_dispatch',
+    ref: 'refs/heads/main',
+  };
+  assert.deepEqual(dispatchedCandidateContext(context), context);
+  for (const mutation of [
+    { repository: 'Marukome0743/formicarium' },
+    { ref: 'refs/tags/v0.2.0' },
+    { event: 'push' },
+    { commit: '' },
+  ])
+    assert.throws(
+      () => dispatchedCandidateContext({ ...context, ...mutation }),
+      /upstream main/,
+    );
+  const manifest = { sourceCommit: sha } as InputManifest;
+  validateReleaseCandidateContext(manifest, context, context);
+  assert.throws(
+    () =>
+      validateReleaseCandidateContext(
+        manifest,
+        { ...context, commit: 'b'.repeat(40) },
+        context,
+      ),
+    /observed source/,
+  );
+});
+
+test('RC override cannot replace the stable base or enter PR builds', () => {
+  assert.equal(selectedCandidateVersion('0.2.0', '', 'pull_request'), '0.2.0');
+  assert.equal(
+    selectedCandidateVersion('0.2.0', '0.2.0-rc.1', 'workflow_dispatch'),
+    '0.2.0-rc.1',
+  );
+  for (const [base, version, event] of [
+    ['0.2.0', '0.3.0-rc.1', 'workflow_dispatch'],
+    ['0.2.0', '0.2.0', 'workflow_dispatch'],
+    ['0.2.0', '0.2.0-rc.1', 'pull_request'],
+    ['0.2.0-rc.1', '0.2.0-rc.2', 'workflow_dispatch'],
+  ])
+    assert.throws(
+      () => selectedCandidateVersion(base, version, event),
+      /must match/,
+    );
+});
+
+test('dispatch selects candidate verification and forwards only the observed source and RC input', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const { spawnSync } = await import('node:child_process');
+  const { parse } = await import('yaml');
+  const ci = parse(await readFile('.github/workflows/ci.yml', 'utf8'));
+  const scope = ci.jobs['candidate-scope'].steps.find(
+    (s: any) => s.id === 'scope',
+  );
+  const {
+    mkdtemp,
+    readFile: readOutput,
+    rm,
+  } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const directory = await mkdtemp(join(tmpdir(), 'candidate-scope-'));
+  const output = join(directory, 'output');
+  const result = spawnSync('bash', ['-euo', 'pipefail', '-c', scope.run], {
+    env: {
+      ...process.env,
+      EVENT_NAME: 'workflow_dispatch',
+      GITHUB_OUTPUT: output,
+    },
+    encoding: 'utf8',
+  });
+  assert.equal(result.status, 0);
+  assert.match(await readOutput(output, 'utf8'), /required=true/);
+  await rm(directory, { recursive: true });
+  assert.equal(
+    ci.on.workflow_dispatch.inputs['candidate-version'].required,
+    false,
+  );
+  assert.equal(
+    ci.jobs['release-candidate'].with['source-sha'],
+    '${{ github.event.pull_request.head.sha || github.sha }}',
+  );
+  assert.equal(
+    ci.jobs['release-candidate'].with['candidate-version'],
+    "${{ inputs.candidate-version || '' }}",
+  );
+  const reusable = parse(
+    await readFile('.github/workflows/release-candidate.yml', 'utf8'),
+  );
+  assert.equal(
+    reusable.jobs.verify.env.CANDIDATE_VERSION,
+    '${{ inputs.candidate-version }}',
+  );
 });

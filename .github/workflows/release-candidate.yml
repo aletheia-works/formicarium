@@ -7,6 +7,11 @@ on:
         required: true
         type: string
 
+      candidate-version:
+        required: false
+        type: string
+        default: ''
+
 permissions:
   contents: read
 
@@ -18,6 +23,7 @@ jobs:
     env:
       FORMICARIUM_CI_LATEST_TOOLS: '1'
       SOURCE_SHA: ${{ inputs.source-sha }}
+      CANDIDATE_VERSION: ${{ inputs.candidate-version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
