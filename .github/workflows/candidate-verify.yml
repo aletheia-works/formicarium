@@ -2,7 +2,7 @@ name: Modernization candidate verification
 on:
   workflow_dispatch:
 env:
-  FORMICARIUM_PLAYWRIGHT_LATEST: '1'
+  FORMICARIUM_CI_LATEST_TOOLS: '1'
 permissions:
   contents: read
 concurrency:
@@ -28,7 +28,7 @@ jobs:
         with:
           bun-version: 'latest'
       - run: bun scripts/ci/tasks.ts install-frozen --cacheless
-      - run: bun add --dev --no-save --ignore-scripts @playwright/test@latest
+      - run: bun add --dev --no-save --ignore-scripts @playwright/test@latest @biomejs/biome@latest typescript@latest
       - run: bun scripts/ci/tasks.ts build
       - run: bun node_modules/@playwright/test/cli.js install --with-deps chromium firefox webkit
       - name: Install reviewed modernization inputs

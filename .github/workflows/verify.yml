@@ -8,7 +8,7 @@ on:
         default: candidate
         options: [candidate, credential]
 env:
-  FORMICARIUM_PLAYWRIGHT_LATEST: '1'
+  FORMICARIUM_CI_LATEST_TOOLS: '1'
 permissions:
   contents: read
 concurrency:
@@ -34,7 +34,7 @@ jobs:
         with:
           bun-version: 'latest'
       - run: bun scripts/ci/tasks.ts install-frozen --cacheless
-      - run: bun add --dev --no-save --ignore-scripts @playwright/test@latest
+      - run: bun add --dev --no-save --ignore-scripts @playwright/test@latest @biomejs/biome@latest typescript@latest
       - run: bun scripts/ci/tasks.ts build
       - run: bun node_modules/@playwright/test/cli.js install --with-deps chromium firefox webkit
       - name: Install reviewed modernization inputs
@@ -64,11 +64,9 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          node-version: 'latest'
-          check-latest: true
-          package-manager-cache: false
+          bun-version: 'latest'
       - name: Verify stored credential with GET requests only
         env:
           TOKEN: ${{ secrets.TF_TOKEN_GITHUB }}

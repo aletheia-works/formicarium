@@ -30,6 +30,9 @@ jobs:
       - name: Install fixed tools
         run: bun install --frozen-lockfile --ignore-scripts
 
+      - name: Use latest lint tooling
+        run: bun add --dev --no-save --ignore-scripts @biomejs/biome@latest
+
       # The fixers exit non-zero when an issue is left that they cannot fix
       # (Biome does so after applying the fixes it can), so a failure here
       # must not drop the patch. It is reported as a warning instead, and

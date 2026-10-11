@@ -11,7 +11,7 @@ test('U1 runner supports ESM, assertions and isolated cleanup on Node >=24', asy
   assert.deepEqual([...elfHeader().slice(0, 4)], [127, 69, 76, 70]);
 });
 
-test('U1 dependencies match the lockfile with an explicit latest Playwright CI overlay', async () => {
+test('U1 dependencies match the lockfile with an explicit latest CI tool overlay', async () => {
   const bun = process.env.FORMICARIUM_CI_BUN ?? 'bun';
   assert.match(
     execFileSync(bun, ['--version'], { encoding: 'utf8', shell: false }).trim(),
@@ -66,8 +66,8 @@ test('U1 dependencies match the lockfile with an explicit latest Playwright CI o
     assert.ok(pinned, `${name} must have a resolved lock entry`);
     assert.equal(metadata.name, name);
     if (
-      name === '@playwright/test' &&
-      process.env.FORMICARIUM_PLAYWRIGHT_LATEST === '1'
+      ['@playwright/test', '@biomejs/biome', 'typescript'].includes(name) &&
+      process.env.FORMICARIUM_CI_LATEST_TOOLS === '1'
     ) {
       assert.match(metadata.version, /^\d+\.\d+\.\d+$/);
     } else {

@@ -55,6 +55,9 @@
           "run": "bun install --frozen-lockfile --ignore-scripts"
         },
         {
+          "run": "bun add --dev --no-save --ignore-scripts @biomejs/biome@latest typescript@latest"
+        },
+        {
           "run": "bun run --bun build"
         },
         {

@@ -336,8 +336,8 @@ cross-repository consumer and coverage checks remain in `candidate-verify.yml`.
 That workflow uses the current run’s latest Playwright in the disposable
 terrarium coverage workspace without changing the reviewed input snapshot.
 
-CI selects `ubuntu-latest`, Node `latest` and Bun `latest` on each run. Playwright
-is refreshed with `bun add --dev --no-save --ignore-scripts @playwright/test@latest`,
+CI selects `ubuntu-latest`, Node `latest` and Bun `latest` on each run. Playwright, Biome and TypeScript
+are refreshed with `bun add --dev --no-save --ignore-scripts @playwright/test@latest @biomejs/biome@latest typescript@latest`,
 so tests use the latest release while preserving the committed dependency lock.
 Bun runs build, lint, type checks, helper scripts and browser tooling. Explicit
 Node tests retain Node to verify the published Node consumer and Worker behavior.

@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
 env:
-  FORMICARIUM_PLAYWRIGHT_LATEST: '1'
+  FORMICARIUM_CI_LATEST_TOOLS: '1'
 permissions:
   contents: read
 concurrency:
@@ -34,7 +34,7 @@ jobs:
       - run: bun scripts/ci/tasks.ts install-frozen
       - run: git diff --exit-code -- bun.lock package.json
       - name: Use the latest Playwright without changing the dependency lock
-        run: bun add --dev --no-save --ignore-scripts @playwright/test@latest
+        run: bun add --dev --no-save --ignore-scripts @playwright/test@latest @biomejs/biome@latest typescript@latest
       - run: bun scripts/ci/tasks.ts lint
       - run: bun scripts/ci/tasks.ts typecheck
       - run: bun scripts/ci/tasks.ts build
@@ -62,7 +62,7 @@ jobs:
         with:
           bun-version: 'latest'
       - run: bun install --frozen-lockfile --ignore-scripts
-      - run: bun add --dev --no-save --ignore-scripts @playwright/test@latest
+      - run: bun add --dev --no-save --ignore-scripts @playwright/test@latest @biomejs/biome@latest typescript@latest
       - name: Record resolved test tool versions
         run: |
           bun --version
@@ -107,7 +107,7 @@ jobs:
           path: |
             dist/blink/
             dist/guests/
-          key: product-${{ runner.os }}-${{ runner.arch }}-${{ steps.build-images.outputs.digest }}-${{ hashFiles('blink.lock', 'scripts/**/*.sh', 'scripts/**/*.ts', 'guest/**', 'patches/**') }}
+          key: product-${{ runner.os }}-${{ runner.arch }}-${{ steps.build-images.outputs.digest }}-${{ hashFiles('.github/workflows/ci.yml', 'blink.lock', 'scripts/**/*.sh', 'scripts/**/*.ts', 'guest/**', 'patches/**') }}
       - name: Build wasm core from source
         if: steps.product-build.outputs.cache-hit != 'true'
         run: bash scripts/build-blink-wasm.sh
