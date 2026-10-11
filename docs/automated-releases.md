@@ -48,13 +48,15 @@ asset is overwritten. Stable publishes latest; RC publishes next.
 
 ## State handoff and release preflight
 
-After merging the seed workflow, dispatch `terraform-seed.yml` on main once.
-It reconstructs all 27 resource bindings with import blocks, rejects every
-planned remote resource change before applying the import-only plan, uploads
-`terraform-state`, and records LATEST_APPLY_RUN_ID. It refuses to run when a
-CI state run is already configured. It does not enable infrastructure Apply,
-weekly merging or release automation. Future CI restores this artifact; keep
-the local state backup until download and state comparison are verified.
+After merging the common seed update and this caller, dispatch
+`terraform-seed.yml` on main once with the existing local terraform.tfstate
+encoded as base64 and the decoded file's SHA256. This follows vivarium's
+existing-state upload approach through the common seed workflow. The common
+workflow checks the digest and nonempty v4 state, refuses an existing CI state
+pointer, uploads `terraform-state`, and records LATEST_APPLY_RUN_ID. It does
+not run OpenTofu or modify infrastructure. Never pass credential-bearing state
+through workflow inputs: base64 is not encryption. Keep the local backup until
+the uploaded state is downloaded and compared. Automation remains disabled.
 
 Dispatch `release-preflight.yml` on main after updating the reviewed release
 input URL/SHA. It uses the actual evidence gate, including independent API
