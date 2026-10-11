@@ -275,6 +275,34 @@ jobs:
           bun node_modules/@playwright/test/cli.js --version
           cat /etc/os-release
       -
+        name: "Fetch fixed core source input"
+        env:
+          FORMICARIUM_MODERNIZATION_INPUT_URL: "https://raw.githubusercontent.com/aletheia-works/formicarium/674a7f0a1b1736a2df61a994ab2dac29dddb8ace/modernization-inputs.tar.gz"
+          FORMICARIUM_MODERNIZATION_INPUT_SHA256: "0b074f0ebc170fbabed0fbe1d8bfad9628247a4131f78223db8c343412c38730"
+        run: "python3 scripts/ci/install-modernization-inputs.py"
+        if: "matrix.suite == 'node'"
+      -
+        name: "Prepare locked core source"
+        run: |-
+          mkdir -p .artifacts/ci-candidate
+          cp .ci-inputs/payload/.artifacts/ci-candidate/core-source.bundle .artifacts/ci-candidate/
+          bun run - <<'JS'
+          import { readFileSync } from 'node:fs';
+          import { spawnSync } from 'node:child_process';
+          import { bootstrapCoreSource } from './scripts/ci/core-source.js';
+          const manifest = JSON.parse(readFileSync('.ci-inputs/manifest.json', 'utf8'));
+          await bootstrapCoreSource(process.cwd(), manifest, async (id, args) => {
+            const result = spawnSync(args[0], args.slice(1), { stdio: 'inherit' });
+            if (result.error) throw result.error;
+            if (result.status !== 0) throw new Error(`${id} failed: ${result.status}`);
+          });
+          JS
+        if: "matrix.suite == 'node'"
+      -
+        name: "Checkout the locked core for Node source checks"
+        if: "matrix.suite == 'node'"
+        run: "bash scripts/fetch-blink.sh"
+      -
         name: "Run product regression tests on Node"
         run: "node --test --test-concurrency=1 tests/node/build.test.js tests/node/runner.test.js tests/node/probe.test.js tests/node/session.test.js tests/node/aube-1645.test.js tests/node/pitchfork-basic.test.js"
         if: "matrix.suite == 'node'"
