@@ -199,7 +199,7 @@ describe('ゲストと手順の表（runtime/registry.js、FR4.1）', () => {
     );
     assert.equal(
       SESSIONS['pitchfork-basic'].script,
-      '../../fixtures/sessions/pitchfork-basic.txt',
+      '../fixtures/sessions/pitchfork-basic.txt',
     );
     assert.equal(SESSIONS['pitchfork-basic'].guest, 'pitchfork');
   });
