@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/aletheia-works/formicarium/compare/v0.2.0...v0.2.1) (2026-10-11)
+
+
+### Bug Fixes
+
+* **release:** prepare main-bound RC candidates after release merge ([#25](https://github.com/aletheia-works/formicarium/issues/25)) ([d8e5127](https://github.com/aletheia-works/formicarium/commit/d8e5127816ba63cadfdbdeb1a74c9f43151b06ef))
+* **release:** publish stable packages from verified release tags ([#27](https://github.com/aletheia-works/formicarium/issues/27)) ([3e94eb4](https://github.com/aletheia-works/formicarium/commit/3e94eb4ce99786979b0caf150f6e261e87c3fa6f))
+
 ## [0.2.0](https://github.com/aletheia-works/formicarium/compare/v0.1.0...v0.2.0) (2026-10-11)
 
 
