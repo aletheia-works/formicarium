@@ -27,6 +27,7 @@ export interface PublicationEvidencePolicy {
   toolchainRevision: string;
   requiredChecks: string[];
   archiveRedirectHosts?: string[];
+  allowGithubActionsStorageRedirects?: boolean;
 }
 export async function readPublicationPolicy(
   root: string,
@@ -286,6 +287,8 @@ export async function acquirePublicationEvidence(
     fetcher,
     headers,
     policy.archiveRedirectHosts ?? [],
+    120_000,
+    policy.allowGithubActionsStorageRedirects === true,
   );
   requireCondition(
     item.digest === `sha256:${digest(bytes)}`,

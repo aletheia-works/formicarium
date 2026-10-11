@@ -116,6 +116,7 @@ export async function fetchAsset(
   headers: Record<string, string> = {},
   redirectHosts: string[] = [],
   timeoutMs = 120_000,
+  githubActionsStorage = false,
 ) {
   const source = new URL(url);
   ensure(
@@ -138,7 +139,15 @@ export async function fetchAsset(
         !location.username &&
         !location.password &&
         !location.hash &&
-        redirectHosts.includes(location.hostname),
+        (redirectHosts.includes(location.hostname) ||
+          (githubActionsStorage &&
+            source.hostname === 'api.github.com' &&
+            /^\/repos\/aletheia-works\/formicarium\/actions\/artifacts\/[1-9][0-9]*\/zip$/.test(
+              source.pathname,
+            ) &&
+            /^productionresultssa[0-9]+\.blob\.core\.windows\.net$/.test(
+              location.hostname,
+            ))),
       'UNSAFE_ASSET_REDIRECT',
     );
     response = await fetcher(location.href, {

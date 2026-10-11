@@ -11,6 +11,7 @@
     "archiveRedirectHosts": [
       "productionresultssa3.blob.core.windows.net",
       "productionresultssa4.blob.core.windows.net"
-    ]
+    ],
+    "allowGithubActionsStorageRedirects": true
   }
 }

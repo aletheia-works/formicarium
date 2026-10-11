@@ -361,6 +361,68 @@ test('only trusted HTTPS redirects are allowed and credentials never follow', as
   );
   await assert.rejects(fetchAsset('http://registry.npmjs.org/a', 32), /URL/);
 });
+test('GitHub artifact storage rotation is scoped and never receives API credentials', async () => {
+  const url =
+    'https://api.github.com/repos/aletheia-works/formicarium/actions/artifacts/123/zip';
+  const requests: RequestInit[] = [];
+  const fetcher: typeof fetch = async (_url, init) => {
+    requests.push(init ?? {});
+    return requests.length === 1
+      ? new Response(null, {
+          status: 302,
+          headers: {
+            location: 'https://productionresultssa19.blob.core.windows.net/a',
+          },
+        })
+      : new Response('bytes');
+  };
+  assert.equal(
+    (
+      await fetchAsset(
+        url,
+        32,
+        fetcher,
+        { Authorization: 'Bearer fixture' },
+        [],
+        1000,
+        true,
+      )
+    ).toString(),
+    'bytes',
+  );
+  assert.equal(requests[1]?.headers, undefined);
+  for (const [source, host, enabled] of [
+    [url, 'productionresultssa19.blob.core.windows.net', false],
+    [url, 'productionresultssa19.blob.core.windows.net.evil.example', true],
+    [url, 'unrelated.blob.core.windows.net', true],
+    [
+      'https://api.github.com/repos/other/repo/actions/artifacts/123/zip',
+      'productionresultssa19.blob.core.windows.net',
+      true,
+    ],
+    [
+      'https://registry.npmjs.org/a',
+      'productionresultssa19.blob.core.windows.net',
+      true,
+    ],
+  ] as const)
+    await assert.rejects(
+      fetchAsset(
+        source,
+        32,
+        async () =>
+          new Response(null, {
+            status: 302,
+            headers: { location: `https://${host}/a` },
+          }),
+        {},
+        [],
+        1000,
+        enabled,
+      ),
+      /REDIRECT/,
+    );
+});
 test('timeout cancels an unfinished stream and never returns partial success', async () => {
   let cancelled = false;
   const keepalive = setInterval(() => {}, 100);
