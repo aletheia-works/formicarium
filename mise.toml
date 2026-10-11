@@ -2,7 +2,7 @@
 # （Windows 以外では ~/emsdk）を使う。scripts/emscripten-env.sh を参照。
 [tools]
 "github:awslabs/aidlc-workflows" = { version = "latest", matching_regex = "^aidlc-(darwin|linux|windows)-", bin = "aidlc", additional_asset_patterns = ["aidlc-runtime-{{ version }}.tar.gz"] }
-node = "24.21.0"
+node = "26.11.1"
 bun = "1.4.2"
 rust = { version = "stable", targets = "x86_64-unknown-linux-musl" }
 cmake = "4"

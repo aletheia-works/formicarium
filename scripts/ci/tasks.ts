@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-export const TOOLCHAIN = Object.freeze({ bun: '1.4.2', node: '24.21.0' });
+export const TOOLCHAIN = Object.freeze({ bun: '1.4.2', node: '26.11.1' });
 export const TASKS = Object.freeze({
   'install-frozen': ['install', '--frozen-lockfile', '--ignore-scripts'],
   lint: ['run', 'check'],

@@ -3,12 +3,12 @@
   "files": [
     {
       "path": "runner.mjs",
-      "sha256": "9e126fc77b69bf1bcd34399ffea12c6406ab9d25135f2cac00ece086026d003a",
+      "sha256": "c4de1d2cd461800d93326d3c382186d9b07fe84bd7e5e03417478ca74828f217",
       "size": 76611
     },
     {
       "path": "trusted-policy.json",
-      "sha256": "31777237ffd76c78d9e76322ac2817b30d9d92bbc61bf49540d9e82bed38c7b6",
+      "sha256": "e36bdbe84cb4290b1cd06390416e98f58d18f808cd423ef382320375f8041220",
       "size": 808
     }
   ]

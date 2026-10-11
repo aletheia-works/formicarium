@@ -50,7 +50,7 @@ export function publicationProducer(policy: PublicationEvidencePolicy) {
       (policy.producerAppId ?? 0) > 0 &&
       policy.repository === 'aletheia-works/formicarium' &&
       policy.workflowIdentity === '.github/workflows/candidate-verify.yml' &&
-      policy.toolchainRevision === 'bun1.4.2-node24.21.0' &&
+      policy.toolchainRevision === 'bun1.4.2-node26.11.1' &&
       Array.isArray(policy.requiredChecks) &&
       policy.requiredChecks.length > 0 &&
       policy.requiredChecks.every(

@@ -40,7 +40,7 @@ await writeFile(
       workflowIdentity: '.github/workflows/ci.yml',
       workflowRef: process.env.GITHUB_WORKFLOW_REF,
       purpose: 'ordinary-ci',
-      expectedToolchain: { node: '24.21.0', bun: '1.4.2', lockDigest },
+      expectedToolchain: { node: '26.11.1', bun: '1.4.2', lockDigest },
       receiptNodeVersion: process.versions.node,
       observedJobs: jobs,
       limits:

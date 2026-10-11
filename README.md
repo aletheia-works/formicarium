@@ -82,7 +82,7 @@ Node.js の Worker と、COOP/COEP 付きのブラウザページ（Chromium・F
 | ツール | 用途 | 入手 |
 |---|---|---|
 | Bun 1.4.2 | 開発依存の固定導入、開発task | `mise.toml`（`mise install`） |
-| Node.js 24.21.0 | ランナー、consumer、Worker、テスト、計測 | `mise.toml`（`mise install`）。公開packageの対応範囲はNode >=24 |
+| Node.js 26.11.1 | ランナー、consumer、Worker、テスト、計測 | `mise.toml`（`mise install`）。公開packageの対応範囲はNode >=24 |
 | Docker Desktop または wslc | blink の wasm ビルド、ゲストのビルド、native の基準値 | wslc（`C:\Program Files\WSL\wslc.exe`）を優先し、動かなければ docker を使う。`FORMICARIUM_CONTAINER` で指定もできる |
 | emsdk | ローカルでの Emscripten（`FORMICARIUM_BUILD=host` のとき） | `~/AppData/Local/emsdk`（Windows）または `~/emsdk`。`git clone https://github.com/emscripten-core/emsdk && ./emsdk install latest && ./emsdk activate latest` |
 | Git、Git Bash | スクリプトの実行（Windows） | — |
@@ -199,7 +199,7 @@ Bun 1.4.2 / bun.lock による依存管理、固定 Node、`ci.yml` の lint・�
 
 readonly verify job は Bun 1.4.2 と `bun.lock` で導入・ビルドし、固定生成済み Node runner の再現を確認します。公開候補は通常 CI と別に `candidate-verify.yml` の `candidate-required`、9 個の必須検査、固定 inventory の全 realm receipt と 80% coverage を要求します。GitHub API の run/attempt/source/workflow/producer、artifact digest、署名済み report bytes を独立照合し、skip・missing・非成功を拒否します。
 
-publish / release job は同じ tag SHA の checkout にある Node builtin bootstrap と trusted manifest で転送物を検証してから runner を起動します。writer では install / build を行いません。npm 11.19.0 は固定 URL と SHA512 を検証した archive から展開し、Node 24.21.0 で固定 CLI を実行します。npm の OIDC 権限は publish job、contents write は release job だけに与えます。Bun は開発用で、Node consumer と Worker の runtime は変えません。
+publish / release job は同じ tag SHA の checkout にある Node builtin bootstrap と trusted manifest で転送物を検証してから runner を起動します。writer では install / build を行いません。npm 11.19.0 は固定 URL と SHA512 を検証した archive から展開し、Node 26.11.1 で固定 CLI を実行します。npm の OIDC 権限は publish job、contents write は release job だけに与えます。Bun は開発用で、Node consumer と Worker の runtime は変えません。
 
 `.github/publication/trusted-policy.json` の workflow / producer ID、許可した archive redirect host は独立確認後に設定する前提です。現状の null ID と `writerEnabled: false` は安全側で拒否し、実 CI・公開の運用開始を示しません。公開先の設定、tag / branch push、公開実行は別の承認が必要です。
 

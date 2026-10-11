@@ -46,7 +46,7 @@ test('developer entry rejects either non-pinned runtime before executing work', 
         nodeVersion: '26.0.0',
         execute: () => ({ status: 0 }),
       }),
-    /Node 24.21.0/,
+    /Node 26.11.1/,
   );
   assert.throws(
     () =>
