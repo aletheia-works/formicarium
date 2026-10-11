@@ -62,6 +62,32 @@ export function publicationProducer(policy: PublicationEvidencePolicy) {
   );
   return `${policy.producerAppId}:${policy.workflowId}:${policy.workflowIdentity}`;
 }
+/** The measured site digest and the published package digest identify different artifacts. */
+export function verifyCoverageCandidateBinding(
+  report: {
+    generation: string;
+    sourceIdentity: string;
+    candidateSha256: string;
+    componentImport?: { originalTarballSha256?: string };
+  },
+  inventory: {
+    generation: string;
+    sourceIdentity: string;
+    candidate?: { sha256?: string };
+    tarballSha256: string;
+  },
+  tarballSha256: string,
+) {
+  requireCondition(
+    /^[a-f0-9]{64}$/.test(report.candidateSha256) &&
+      report.candidateSha256 === inventory.candidate?.sha256 &&
+      report.generation === inventory.generation &&
+      report.sourceIdentity === inventory.sourceIdentity &&
+      inventory.tarballSha256 === tarballSha256 &&
+      report.componentImport?.originalTarballSha256 === tarballSha256,
+    'publication coverage candidate binding differs',
+  );
+}
 /** The API observation is a separate argument, never reconstructed from a submitted artifact. */
 export async function verifyPublicationEvidence(
   root: string,
@@ -267,16 +293,25 @@ export async function acquirePublicationEvidence(
   );
   const files = unpackZip(bytes);
   const acceptanceBytes = files.get('ci-results/acceptance.json'),
-    reportBytes = files.get('ci-coverage-fixed24/report.json');
+    reportBytes = files.get('ci-coverage-fixed24/report.json'),
+    inventoryBytes = files.get('ci-coverage-fixed24/inventory.json');
   requireCondition(
     acceptanceBytes &&
       reportBytes &&
+      inventoryBytes &&
       acceptanceBytes.length <= ASSET_LIMITS.metadataBytes &&
-      reportBytes.length <= ASSET_LIMITS.metadataBytes,
+      reportBytes.length <= ASSET_LIMITS.metadataBytes &&
+      inventoryBytes.length <= ASSET_LIMITS.metadataBytes,
     'publication candidate receipt missing',
   );
   const acceptance = JSON.parse(acceptanceBytes.toString()),
-    report = JSON.parse(reportBytes.toString());
+    report = JSON.parse(reportBytes.toString()),
+    inventory = JSON.parse(inventoryBytes.toString());
+  verifyCoverageCandidateBinding(
+    report,
+    inventory,
+    request.candidate.tarballSha256,
+  );
   validateChecks(acceptance.checks);
   requireCondition(
     acceptance.passed === true &&
@@ -285,7 +320,6 @@ export async function acquirePublicationEvidence(
       acceptance.context?.event === 'workflow_dispatch' &&
       JSON.stringify(acceptance.coverage) === JSON.stringify(report) &&
       report.passed === true &&
-      report.candidateSha256 === request.candidate.tarballSha256 &&
       Array.isArray(report.files) &&
       Array.isArray(report.fixedInventory) &&
       Array.isArray(report.freshReceipts),
@@ -297,8 +331,8 @@ export async function acquirePublicationEvidence(
   let exactReport = false;
   for (const row of releaseRows) {
     if (
-      row.coverage?.binding.candidateSha256 ===
-        request.candidate.tarballSha256 &&
+      row.coverage &&
+      row.coverage.binding.candidateSha256 === report.candidateSha256 &&
       digest(
         await artifactBytes(
           root,

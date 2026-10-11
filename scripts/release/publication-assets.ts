@@ -64,7 +64,7 @@ export function assetDigest(bytes: Uint8Array) {
 export function safeAssetPath(path: string) {
   ensure(
     typeof path === 'string' &&
-      /^[A-Za-z0-9_@.+/-]+$/.test(path) &&
+      /^[\p{L}\p{M}\p{N}_@.+/、。-]+$/u.test(path) &&
       !path.startsWith('/') &&
       !path.includes('\\') &&
       !path

@@ -222,11 +222,51 @@ const {
   readPublicationPolicy,
   verifyPublicationEvidence,
   publicationProducer,
+  verifyCoverageCandidateBinding,
 } = (await import(
   pathToFileURL(
     resolve(process.cwd(), 'scripts/release/publication-evidence.js'),
   ).href
 )) as typeof import('../../scripts/release/publication-evidence.js');
+
+test('coverage binds the site inventory and package tarball separately', () => {
+  const tarball = 'a'.repeat(64),
+    site = 'b'.repeat(64);
+  const report = {
+    generation: 'fresh',
+    sourceIdentity: 'c'.repeat(64),
+    candidateSha256: site,
+    componentImport: { originalTarballSha256: tarball },
+  };
+  const inventory = {
+    generation: report.generation,
+    sourceIdentity: report.sourceIdentity,
+    candidate: { sha256: site },
+    tarballSha256: tarball,
+  };
+  assert.doesNotThrow(() =>
+    verifyCoverageCandidateBinding(report, inventory, tarball),
+  );
+  for (const invalid of [
+    { ...inventory, tarballSha256: site },
+    { ...inventory, candidate: { sha256: tarball } },
+    { ...inventory, generation: 'stale' },
+    { ...inventory, sourceIdentity: 'd'.repeat(64) },
+  ])
+    assert.throws(
+      () => verifyCoverageCandidateBinding(report, invalid, tarball),
+      /binding differs/,
+    );
+  assert.throws(
+    () =>
+      verifyCoverageCandidateBinding(
+        { ...report, componentImport: { originalTarballSha256: site } },
+        inventory,
+        tarball,
+      ),
+    /binding differs/,
+  );
+});
 
 import { createHash } from 'node:crypto';
 import type {

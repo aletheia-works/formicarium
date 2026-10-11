@@ -52,7 +52,10 @@ export function coverageFixture(c: CandidateIdentity) {
         })),
       ),
     ],
-    componentImport: { originalRealmNames: [...REQUIRED_U1_REALMS] },
+    componentImport: {
+      originalRealmNames: [...REQUIRED_U1_REALMS],
+      originalTarballSha256: c.tarballSha256,
+    },
   };
   const coverage: CoverageEvidence = {
     candidateId: c.candidateId,

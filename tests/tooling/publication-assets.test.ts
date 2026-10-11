@@ -249,6 +249,21 @@ test('expanded bytes and member caps reject tar and ZIP before extraction', asyn
     /MEMBER/,
   );
 });
+test('UTF-8 browser diagnostic names are valid while unsafe components refuse', () => {
+  const name =
+    'ci-results/probe-ゲストが起動し、状態が保持される。-webkit/diagnostics.json';
+  const bytes = Buffer.from('{}');
+  assert.deepEqual(unpackZip(zip([{ name, bytes }])).get(name), bytes);
+  for (const invalid of [
+    'ci-results/../ゲスト.json',
+    'ゲスト/.npmrc',
+    'ゲスト\u0000.json',
+  ])
+    assert.throws(
+      () => unpackZip(zip([{ name: invalid, bytes }])),
+      /UNSAFE_ASSET_PATH/,
+    );
+});
 test('unsafe path link special duplicate and unsupported tar metadata refuse', () => {
   for (const name of ['../evil', '/evil', 'a/.npmrc', 'a/../evil', 'a\\evil']) {
     assert.throws(() => unpackTar(tar([{ name, value: 'bad' }]), 100, 10));

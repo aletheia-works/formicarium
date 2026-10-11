@@ -100,6 +100,10 @@ export async function publicationBoundaryFixture(
     const archive = zip([
       ['ci-results/acceptance.json', acceptance],
       ['ci-coverage-fixed24/report.json', reportBytes],
+      [
+        'ci-coverage-fixed24/inventory.json',
+        await readFile(join(root, 'inventory.json')),
+      ],
     ]);
     const url = String(input),
       prefix = `https://api.github.com/repos/${request.identity.repository}`;
