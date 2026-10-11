@@ -47,7 +47,7 @@ pitchfork を足すのに変えた formicarium のファイルです。2 つ目�
 | 区分 | ファイル | 内容 | 次のゲストでも要るか |
 |---|---|---|---|
 | ビルド | `scripts/build-guests.sh` | 対象 `pitchfork` と取得元（`PITCHFORK_REPO`／`PITCHFORK_REF`）、static であることの確認。release ビルドが埋め込む web UI を、先に `dist/guests/aube` で `aube install --frozen-lockfile && aube run build` してから作る | 要る（対象を 1 つ足す。ツールごとのビルドの事情は個別に要る） |
-| ビルド | `patches/pitchfork-2.29.0-musl-ioctl.patch`（新規） | musl の `ioctl` の型に合わせる 1 行（`as libc::c_ulong` → `as _`）。v2.29.0 は musl 向けにそのままではコンパイルできない。当てたパッチの sha256 と UI に使った node の版は `dist/guests/pitchfork.build-info` に記録する | ツールによる |
+| ビルド | `scripts/build-guests.sh` | v2.30.1 は上流の musl 型修正を含むため、ローカルパッチなしでビルドする。UI に使った node の版を build-info に記録する | ツールによる |
 | 表 | `runtime/registry.mjs`（新規） | ゲスト・環境変数・手順の唯一の表 | 要る（1 行ずつ足す） |
 | 手順 | `fixtures/sessions/pitchfork-basic.txt`、`fixtures/pitchfork-basic/` | terrarium から写した手順とサンプル | 要る |
 | 基準値 | `fixtures/baseline/pitchfork-basic.native.txt` | `bash scripts/native-baseline.sh pitchfork-basic` が作る | 要る（スクリプトの変更は不要） |
@@ -123,7 +123,7 @@ Node.js は `tests/node/pitchfork-basic.test.mjs` を 3 回実行したときの
 
 - terrarium のツールごとの wasm のサイズと実行時間は、今回測っていない。どちらが勝つかは未検証
 - pitchfork v2.29.0 は musl 向けにそのままではコンパイルできず、型だけを直す 1 行のパッチ
-  （`patches/pitchfork-2.29.0-musl-ioctl.patch`）を当てた。上流に直してもらえるかは未確認
+  （`patches/pitchfork-2.29.0-musl-ioctl.patch`）を当てた。この記述はv2.29.0時点の履歴。v2.30.1では上流修正済みで、パッチと適用処理を削除した
 - terrarium の端末で、手順の文法の外（パイプ、リダイレクト、変数）を打たれたときの扱い（4 節）。
   エラーにするか、sh をゲストとして動かすかは決めていない
 - 実機の Safari（macOS）では確かめていない（WebKit で代用。既存の未解決事項と同じ）

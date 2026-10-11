@@ -4,7 +4,6 @@ import type { TestContext } from 'node:test';
 import test from 'node:test';
 import type { GuestBuild } from '../../integration/terrarium/guest-distribution/index.js';
 import {
-  PITCHFORK_PATCH_SHA256,
   resolveGuest,
   validateGuestElf,
   validateProvenance,
@@ -169,7 +168,7 @@ test('every fetched asset digest is independently enforced', async (t) => {
   }
 });
 
-test('build-info binds schema/tool/ref/commit/time and static musl/patch provenance', async (t) => {
+test('build-info binds schema/tool/ref/commit/time and static musl provenance', async (t) => {
   const data = scenario();
   mock(t, data);
   const build = data.builds.main;
@@ -274,14 +273,8 @@ test('build-info binds schema/tool/ref/commit/time and static musl/patch provena
   const info = {
     ...original,
     tool: 'pitchfork',
-    patch_sha256: PITCHFORK_PATCH_SHA256,
   };
   assert.doesNotThrow(() => validateProvenance(info, pitchfork));
-  assert.throws(
-    () =>
-      validateProvenance({ ...info, patch_sha256: '0'.repeat(64) }, pitchfork),
-    /patch/,
-  );
 });
 
 test('ELF header/program/segment bounds and dynamic interpreter are rejected', () => {

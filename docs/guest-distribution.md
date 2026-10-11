@@ -8,7 +8,7 @@
 
 fixture 未指定は tool の既定、`fixture:''` は空 entries と `/work`。既存 UTF-8 relative file map を `/work` の FsEntry に変換する。明示 byte entry は C1 の既定 persistence roots `/work` と `/root`、path/type/mode/inode/hard-link/symlink 境界を検査してコピーする。cwd と親 directory を seed に補完する。中間 symlink、重複 path、root 外 entry は拒否する。
 
-guest、fixture、build-info の SHA-256、build-info の tool/ref/source URL/ref/commit/time を照合する。ELF64 little-endian x86-64 の program/segment bounds と PT_INTERP 不在を確認する。musl は ELF だけで判断せず、明示した target/libc/linkage provenance を要求する。target は Rust の `x86_64-unknown-linux-musl` または GCC 系の `x86_64-linux-musl`。pitchfork は承認済み一行 patch の SHA-256 `1e307ed8c3009ead22a08c5615fda5b30ac42cdc79726bbb722e10b5426dbac6` と照合する。
+guest、fixture、build-info の SHA-256、build-info の tool/ref/source URL/ref/commit/time を照合する。ELF64 little-endian x86-64 の program/segment bounds と PT_INTERP 不在を確認する。musl は ELF だけで判断せず、明示した target/libc/linkage provenance を要求する。target は Rust の `x86_64-unknown-linux-musl` または GCC 系の `x86_64-linux-musl`。pitchfork v2.30.1 は上流で musl の型修正済みであり、ローカルパッチを要求しない。
 
 URL は同一 origin と base path の配下に限定し、dot traversal/encoded separator/資格情報/redirect を拒否する。fetch は redirect:error で実行する。404、digest/schema/provenance/ELF 不正は原因と対象を示して reject し、fallback/retry や guest の起動は行わない。エラーに fixture 内容や資格情報を含めない。
 
@@ -29,7 +29,7 @@ URL は同一 origin と base path の配下に限定し、dot traversal/encoded
 }
 ```
 
-build-info は `schemaVersion:1`、tool/ref、source `{url,ref,commit}`、built_at、target、libc:'musl'、linkage:'static' を持つ JSON。pitchfork には実際に適用した patch_sha256 が必要。既存 legacy build-info を使う場合も、確認した値からこの JSON を作り、元の証拠への参照を追加する。commit や target を推測で補完しない。公開 release の import では built_at が配布 import 時刻なら timestampMeaning を付け、未知の publisher compiler 時刻と混同しない。
+build-info は `schemaVersion:1`、tool/ref、source `{url,ref,commit}`、built_at、target、libc:'musl'、linkage:'static' を持つ JSON。patch_sha256 は過去のビルドに残る履歴情報であり、現在の配布検証の必須項目ではない。既存 legacy build-info を使う場合も、確認した値からこの JSON を作り、元の証拠への参照を追加する。commit や target を推測で補完しない。公開 release の import では built_at が配布 import 時刻なら timestampMeaning を付け、未知の publisher compiler 時刻と混同しない。
 
 producer は実 bytes から digest を計算し、ref の SHA-256 を directory key として tool ごとに配置する。branch の slash を供給 path に転用しない。既存 tools、builds wrapper、対象外 legacy metadata と対象 build の追加 fields を保持する。全入力検査後に private temporary directory から候補を配置する。既存の非空候補 directory は置換しない。build/download/publish は producer の機能に含まない。
 

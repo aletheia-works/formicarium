@@ -82,9 +82,9 @@ build_pitchfork() {
   # build:ui と同じ `aube install && aube run build`。aube は dist/guests/aube（static-musl）を使い、
   # pnpm-lock.yaml に固定した依存だけを入れる（--frozen-lockfile）。pitchfork のソースは変えない。
   # UI のビルドに使う node のメジャー版は pitchfork の mise.toml（node = "24"）に合わせて固定し、
-  # apk が別のメジャー版を入れたら止める。使った版・パッチ・UI の成果物は pitchfork.build-info に記録する
-  # （pitchfork.commit は上流の HEAD だけ。パッチを当てたことは build-info で分かる）。
-  local aube_bin=dist/guests/aube patch=patches/pitchfork-2.29.0-musl-ioctl.patch
+  # apk が別のメジャー版を入れたら止める。使った版・UI の成果物は pitchfork.build-info に記録する
+  # （pitchfork.commit は上流の HEAD）。
+  local aube_bin=dist/guests/aube
   local node_major=${PITCHFORK_UI_NODE_MAJOR:-24}
   [[ $node_major =~ ^[0-9]+$ ]] || { echo "error: PITCHFORK_UI_NODE_MAJOR は数字にしてください: $node_major" >&2; exit 2; }
   [ -f "$root/$aube_bin" ] || { echo "error: $aube_bin がありません（UI のビルドに使います）" >&2; exit 1; }
@@ -108,24 +108,17 @@ build_pitchfork() {
     aube run build
     [ -f dist/index.html ] || { echo 'error: ui/dist/index.html ができていません' >&2; exit 1; }
     cd \"\$src\"
-    # musl の libc::ioctl は request が c_int なので、v2.29.0 の 1 行（c_ulong へのキャスト）が
-    # 型エラーになる。型だけを合わせるパッチを当てる（動作は変わらない。2026-10-06 に決定）。
-    # キャッシュのクローンを使い回すので、未適用のときだけ当てる。
-    if git apply --check /work/$patch 2>/dev/null; then
-      git apply /work/$patch
-    else
-      git apply --reverse --check /work/$patch
-    fi
+    # 上流のソースをそのまま使う。以前のパッチが残るキャッシュは拒否する。
+    git diff HEAD --exit-code -- src
     cargo build --release --locked --target $target --bin pitchfork --target-dir /cache/pitchfork
     cp /cache/pitchfork/$target/release/pitchfork /out/pitchfork
     {
       echo \"ref=$pitchfork_ref\"
       echo \"commit=\$(cat /out/pitchfork.commit)\"
-      echo \"patch=$patch sha256=\$(sha256sum /work/$patch | cut -d ' ' -f 1)\"
       echo \"ui-node=\$node_version\"
       echo \"ui-index-sha256=\$(sha256sum ui/dist/index.html | cut -d ' ' -f 1)\"
     } > /out/pitchfork.build-info
-  " guest/probe/Cargo.toml "$aube_bin" "$patch"
+  " guest/probe/Cargo.toml "$aube_bin"
 }
 
 case $what in

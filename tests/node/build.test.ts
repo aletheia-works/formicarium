@@ -1,6 +1,6 @@
 // FR1.1・FR1.2：blink の fork を固定したコミットで取得し、wasm にビルドできること。
 // pitchfork（intent 261005-pitchfork-on-blink の FR1.1・FR1.2）：dist/guests/pitchfork が
-// static な x86-64 の ELF で、取得したコミットと、当てたパッチ・UI の node が記録されていること。
+// static な x86-64 の ELF で、取得したコミットと UI の node が記録され、ローカルパッチがないこと。
 // 前提：bash scripts/build-blink-wasm.sh と bash scripts/build-guests.sh pitchfork を実行済み
 //       （README の「テスト」を参照）。
 import assert from 'node:assert/strict';
@@ -216,14 +216,7 @@ describe('pitchfork ゲストのビルド（FR1.1・FR1.2）', () => {
         'utf8',
       ).trim(),
     );
-    // 改行を LF にそろえてからハッシュを取る（コンテナに渡したパッチと同じバイト列にするため）
-    const patchPath = 'patches/pitchfork-2.29.0-musl-ioctl.patch';
-    const patchSha = createHash('sha256')
-      .update(
-        readFileSync(path.join(root, patchPath), 'utf8').replace(/\r\n/g, '\n'),
-      )
-      .digest('hex');
-    assert.equal(fields.patch, `${patchPath} sha256=${patchSha}`);
+    assert.equal(fields.patch, undefined);
     assert.match(fields['ui-node'], /^v24\.\d+\.\d+$/);
     assert.match(fields['ui-index-sha256'], /^[0-9a-f]{64}$/);
   });

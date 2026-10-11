@@ -8,9 +8,6 @@ import {
   selectBuild,
 } from './manifest.js';
 
-export const PITCHFORK_PATCH_SHA256 =
-  '1e307ed8c3009ead22a08c5615fda5b30ac42cdc79726bbb722e10b5426dbac6';
-
 async function fetchBytes(url: string, base: string, target: string) {
   let response: Response;
   try {
@@ -83,12 +80,6 @@ export function validateProvenance(info: unknown, build: GuestBuild) {
     info.libc !== 'musl'
   ) {
     throw new Error('build-info: static musl target provenance required');
-  }
-  if (
-    build.tool === 'pitchfork' &&
-    info.patch_sha256 !== PITCHFORK_PATCH_SHA256
-  ) {
-    throw new Error('build-info: pitchfork patch mismatch');
   }
   return info;
 }

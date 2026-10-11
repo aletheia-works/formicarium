@@ -175,7 +175,7 @@ test('missing inputs and source commit stop before any candidate is created', as
   });
 });
 
-test('target, identity and applied pitchfork patch claims cannot be substituted', async (t) => {
+test('target and identity cannot be substituted; unpatched pitchfork can be staged', async (t) => {
   const { input, output } = await inputs(t);
   const infoPath = input.builds[0].buildInfoPath;
   const original = JSON.parse(await readFile(infoPath, 'utf8'));
@@ -190,7 +190,7 @@ test('target, identity and applied pitchfork patch claims cannot be substituted'
   input.tools.pitchfork = {};
   input.builds[0].tool = 'pitchfork';
   await writeFile(infoPath, JSON.stringify({ ...original, tool: 'pitchfork' }));
-  await assert.rejects(stageDistribution(input, output), /patch mismatch/);
+  await assert.doesNotReject(stageDistribution(input, output));
 });
 
 test('dynamic ELF, invalid fixture and duplicate refs fail atomically; prior candidate stays intact', async (t) => {

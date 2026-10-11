@@ -153,12 +153,11 @@ node node_modules/@playwright/test/cli.js install chromium firefox webkit
 
 - probe だけを作り直すときは `bash scripts/build-guests.sh probe`（1 分ほど）。aube は入力が変わらない限り作り直さなくてよい。
 - pitchfork だけを作るときは `bash scripts/build-guests.sh pitchfork`（初回は 35 分ほど）。公式リポジトリ（jdx/pitchfork）の
-  タグ `v2.29.0` を取得し、コミットを `dist/guests/pitchfork.commit` に記録する（`PITCHFORK_REF` で変えられる）。
+  タグ `v2.30.1` を取得し、コミットを `dist/guests/pitchfork.commit` に記録する（`PITCHFORK_REF` で変えられる）。
   - release ビルドは web UI を埋め込むので、先に `ui/` を `dist/guests/aube` で `aube install --frozen-lockfile && aube run build`
     する。UI に使う node はメジャー版 24 に固定し（`PITCHFORK_UI_NODE_MAJOR`）、違う版が入ったら止まる
-  - v2.29.0 は musl 向けにそのままではコンパイルできないので、型だけを合わせる 1 行のパッチ
-    `patches/pitchfork-2.29.0-musl-ioctl.patch` を当てる（動作は変わらない）
-  - 当てたパッチの sha256、UI に使った node の版、UI の成果物の sha256 を `dist/guests/pitchfork.build-info` に記録する
+  - 上流ソースを修正せずにビルドする。ソース変更が残るキャッシュは拒否する
+  - UI に使った node の版と UI 成果物の sha256 を `dist/guests/pitchfork.build-info` に記録する
   ビルド後、`dist/guests/` のすべてのゲストが static な x86-64 の ELF であること（`PT_INTERP` がないこと）を確かめる。
 - ゲスト・環境変数・手順の一覧は `runtime/registry.ts` の 1 か所にある。ゲストを足すときは、そこに 1 行足し、
   `build-guests.sh` の対象・fixture・基準値・テストを足す（[`docs/terrarium-integration.md`](docs/terrarium-integration.md) の 3 節）。
