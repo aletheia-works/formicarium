@@ -39,14 +39,17 @@ async function bunPath() {
         try {
           await access(path);
           const result = spawnSync(path, ['--version'], { encoding: 'utf8' });
-          if (result.status === 0 && result.stdout.trim() === '1.4.2')
+          if (
+            result.status === 0 &&
+            /^\d+\.\d+\.\d+$/.test(result.stdout.trim())
+          )
             return path;
         } catch {
-          /*Only fixed installed executable.*/
+          /*Only installed executable.*/
         }
       }
   }
-  throw Error('fixed Bun1.4.2 unavailable');
+  throw Error('installed Bun unavailable');
 }
 async function fixture(t: TestContext) {
   const root = await mkdtemp(join(tmpdir(), 'publication-bundle-fixture-'));
@@ -58,7 +61,7 @@ async function fixture(t: TestContext) {
   await cp('biome.json', join(root, 'biome.json'));
   return root;
 }
-test('fixed Bun and Biome reproduce actual tracked runner bootstrap and manifest bytes', async () => {
+test('installed Bun and Biome reproduce actual tracked runner bootstrap and manifest bytes', async () => {
   const rows = await publicationBundles(process.cwd(), await bunPath(), biome);
   assert.deepEqual(
     rows.map((item) => item.path),

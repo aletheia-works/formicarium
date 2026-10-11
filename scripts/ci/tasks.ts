@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-export const TOOLCHAIN = Object.freeze({ bun: '1.4.2', node: '26.11.1' });
+export const TOOLCHAIN = Object.freeze({ bun: 'latest', node: 'latest' });
 export const TASKS = Object.freeze({
   'install-frozen': ['install', '--frozen-lockfile', '--ignore-scripts'],
   lint: ['run', 'check'],
@@ -43,11 +43,17 @@ export function runTask(options: {
   cacheless?: boolean;
 }) {
   const args = taskArguments(options.task, options.cacheless);
-  if (options.nodeVersion !== TOOLCHAIN.node)
-    throw Error(`Node ${TOOLCHAIN.node} required for developer tasks`);
+  if (
+    !/^\d+\.\d+\.\d+$/.test(options.nodeVersion) ||
+    Number(options.nodeVersion.split('.')[0]) < 24
+  )
+    throw Error(`Node 24 or newer required for developer tasks`);
   const version = options.execute('bun', ['--version']);
-  if (version.status !== 0 || version.stdout?.trim() !== TOOLCHAIN.bun)
-    throw Error(`Bun ${TOOLCHAIN.bun} required for developer tasks`);
+  if (
+    version.status !== 0 ||
+    !/^\d+\.\d+\.\d+$/.test(version.stdout?.trim() ?? '')
+  )
+    throw Error(`Bun stable version required for developer tasks`);
   const result = options.execute('bun', args);
   if (result.error) throw result.error;
   if (result.signal) return 1;
@@ -68,11 +74,17 @@ if (
     nodeVersion: process.versions.node,
     execute: (executable, args) => {
       const version = args[0] === '--version';
-      const result = spawnSync(executable, [...args], {
-        shell: false,
-        stdio: version ? 'pipe' : 'inherit',
-        encoding: 'utf8',
-      });
+      const result = spawnSync(
+        executable === 'bun' && process.versions.bun
+          ? process.execPath
+          : executable,
+        [...args],
+        {
+          shell: false,
+          stdio: version ? 'pipe' : 'inherit',
+          encoding: 'utf8',
+        },
+      );
       return { ...result, stdout: result.stdout ?? undefined };
     },
   });

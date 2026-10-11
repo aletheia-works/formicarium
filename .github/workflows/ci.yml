@@ -3,6 +3,8 @@ on:
   pull_request:
   push:
     branches: [main]
+env:
+  FORMICARIUM_PLAYWRIGHT_LATEST: '1'
 permissions:
   contents: read
 concurrency:
@@ -10,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   quality:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -19,27 +21,31 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: '26.11.1'
+          node-version: 'latest'
+          check-latest: true
           package-manager-cache: false
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.4.2'
+          bun-version: 'latest'
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-1.4.2-node-26.11.1-${{ hashFiles('bun.lock') }}
-      - run: node scripts/ci/tasks.ts install-frozen
+          key: ${{ runner.os }}-bun-latest-node-latest-${{ hashFiles('bun.lock') }}
+      - run: bun scripts/ci/tasks.ts install-frozen
       - run: git diff --exit-code -- bun.lock package.json
-      - run: node scripts/ci/tasks.ts lint
-      - run: node scripts/ci/tasks.ts typecheck
-      - run: node scripts/ci/tasks.ts build
-      - name: Run light tests with the installed fixed Bun
-        run: BUN_EXECUTABLE="$(command -v bun)" node scripts/ci/tasks.ts test-light
+      - name: Use the latest Playwright without changing the dependency lock
+        run: bun add --dev --no-save --ignore-scripts @playwright/test@latest
+      - run: bun scripts/ci/tasks.ts lint
+      - run: bun scripts/ci/tasks.ts typecheck
+      - run: bun scripts/ci/tasks.ts build
+      - name: Run light tests with the installed latest Bun
+        run: BUN_EXECUTABLE="$(command -v bun)" bun scripts/ci/tasks.ts test-light
   product-tests:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 240
     env:
       FORMICARIUM_CONTAINER: docker
+      FORMICARIUM_EMSDK_IMAGE: emscripten/emsdk:latest
       AUBE_REF: v2.7.0
       PITCHFORK_REF: v2.30.1
     steps:
@@ -49,12 +55,14 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: '26.11.1'
+          node-version: 'latest'
+          check-latest: true
           package-manager-cache: false
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: '1.4.2'
+          bun-version: 'latest'
       - run: bun install --frozen-lockfile --ignore-scripts
+      - run: bun add --dev --no-save --ignore-scripts @playwright/test@latest
       - run: bun run build
       # The locked blink commit is supplied by a reviewed source bundle until
       # it is available directly from the core repository. No built product
@@ -68,7 +76,7 @@ jobs:
         run: |
           mkdir -p .artifacts/ci-candidate
           cp .ci-inputs/payload/.artifacts/ci-candidate/core-source.bundle .artifacts/ci-candidate/
-          node --input-type=module <<'JS'
+          bun run - <<'JS'
           import { readFileSync } from 'node:fs';
           import { spawnSync } from 'node:child_process';
           import { bootstrapCoreSource } from './scripts/ci/core-source.js';
@@ -111,7 +119,7 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
   commit-format:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -124,10 +132,9 @@ jobs:
           ref: ${{ github.event.pull_request.base.sha || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before) || github.sha }}
           path: .trusted-base
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          node-version: '26.11.1'
-          package-manager-cache: false
+          bun-version: 'latest'
       - name: Load reviewed validator for the initial migration only
         if: ${{ (github.event.pull_request.base.sha || github.event.before) == '12a92eabf70f6772f11e33f698e3db5088992270' }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -140,26 +147,25 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           TRUSTED_VALIDATOR: ${{ (github.event.pull_request.base.sha || github.event.before) == '12a92eabf70f6772f11e33f698e3db5088992270' && '.trusted-bootstrap/scripts/ci/commit-format.ts' || '.trusted-base/scripts/ci/commit-format.ts' }}
-        run: node "$TRUSTED_VALIDATOR" "$BASE_SHA" "$HEAD_SHA"
+        run: bun "$TRUSTED_VALIDATOR" "$BASE_SHA" "$HEAD_SHA"
   ci-required:
     if: always()
     needs: [quality, product-tests, commit-format]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          node-version: '26.11.1'
-          package-manager-cache: false
+          bun-version: 'latest'
       - name: Record observed job outcomes
         env:
           SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           OBSERVED_JOBS: ${{ toJSON(needs) }}
-        run: node scripts/ci/ordinary-receipt.ts
+        run: bun scripts/ci/ordinary-receipt.ts
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ordinary-ci-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}

@@ -40,8 +40,11 @@ await writeFile(
       workflowIdentity: '.github/workflows/ci.yml',
       workflowRef: process.env.GITHUB_WORKFLOW_REF,
       purpose: 'ordinary-ci',
-      expectedToolchain: { node: '26.11.1', bun: '1.4.2', lockDigest },
-      receiptNodeVersion: process.versions.node,
+      expectedToolchain: { node: 'latest', bun: 'latest', lockDigest },
+      receiptRuntime: {
+        bun: process.versions.bun,
+        nodeCompatibility: process.versions.node,
+      },
       observedJobs: jobs,
       limits:
         'Final check conclusions, producer identity, executed SHA and artifact digest require independent GitHub API reconciliation.',

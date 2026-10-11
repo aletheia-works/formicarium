@@ -24,8 +24,8 @@ export async function publicationBundles(
   generate = false,
 ) {
   if (
-    run(bun, ['--version'], root) !== '1.4.2' ||
-    run(biome, ['--version'], root) !== 'Version: 2.5.15'
+    !/^\d+\.\d+\.\d+$/.test(run(bun, ['--version'], root)) ||
+    !/^Version: \d+\.\d+\.\d+$/.test(run(biome, ['--version'], root))
   )
     throw Error('BUNDLE_TOOLCHAIN_MISMATCH');
   const temporary = await mkdtemp(join(tmpdir(), 'publication-bundle-'));

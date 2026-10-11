@@ -16,6 +16,7 @@ import {
 } from '../terrarium/coverage.js';
 import { validatePayloadInventory } from './bundle.js';
 import { bootstrapCoreSource } from './core-source.js';
+import { provisionLatestPlaywright } from './playwright.js';
 import {
   type CheckResult,
   createFreshResultsDirectory,
@@ -256,7 +257,7 @@ export async function runVerification(
   );
   results.push(
     await command('browser-regression', [
-      node,
+      bun,
       playwright,
       'test',
       'tests/browser/probe.spec.ts',
@@ -312,7 +313,7 @@ export async function runVerification(
     await command(
       'u1-browser',
       [
-        node,
+        bun,
         playwright,
         'test',
         '--config',
@@ -339,6 +340,7 @@ export async function runVerification(
     tarball: resolve(root, manifest.tarball),
     u1Report: resolve(u1, 'coverage-report.json'),
   });
+  await provisionLatestPlaywright(root, prepared.workspace);
   await provisionPreparedResolver(root, manifest.files, u3);
   await command('coverage-bundle', [
     bun,
@@ -368,7 +370,7 @@ export async function runVerification(
     await command(
       'u3-browser',
       [
-        node,
+        bun,
         resolve(prepared.workspace, 'node_modules/@playwright/test/cli.js'),
         'test',
         '--config',

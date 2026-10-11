@@ -100,7 +100,7 @@ case $mode in
   container)
     # shellcheck source=lib/container.sh
     . "$root/scripts/lib/container.sh"
-    image="emscripten/emsdk:$(emsdk_version)"
+    image=${FORMICARIUM_EMSDK_IMAGE:-"emscripten/emsdk:$(emsdk_version)"}
     echo "== blink を $image でビルドします"
     rel_src=${src#"$root"/}
     if [ "$rel_src" = "$src" ]; then

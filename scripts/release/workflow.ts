@@ -44,7 +44,7 @@ export function validatePublishWorkflow(text: string) {
   );
   for (const [name, job] of Object.entries(w.jobs) as [string, any][]) {
     requireCondition(
-      job['runs-on'] === 'ubuntu-24.04' && job['timeout-minutes'] === 30,
+      job['runs-on'] === 'ubuntu-latest' && job['timeout-minutes'] === 30,
       'publication runner/time limit differs',
     );
     const expected =

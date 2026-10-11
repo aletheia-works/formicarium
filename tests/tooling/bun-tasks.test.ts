@@ -2,22 +2,17 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import test from 'node:test';
-import {
-  runTask,
-  TASKS,
-  TOOLCHAIN,
-  taskArguments,
-} from '../../scripts/ci/tasks.js';
+import { runTask, TASKS, taskArguments } from '../../scripts/ci/tasks.js';
 
 function executeTask(task: string, status: number | null = 0) {
   const calls: { executable: string; args: readonly string[] }[] = [];
   const code = runTask({
     task,
-    nodeVersion: TOOLCHAIN.node,
+    nodeVersion: '26.11.1',
     execute(executable, args) {
       calls.push({ executable, args });
       return args[0] === '--version'
-        ? { status: 0, stdout: `${TOOLCHAIN.bun}\n` }
+        ? { status: 0, stdout: '1.4.3\n' }
         : { status };
     },
   });
@@ -38,24 +33,24 @@ test('frozen lock mismatch failure reaches the caller', () => {
   assert.equal(result.code, 1);
   assert.ok(result.calls[1].args.includes('--frozen-lockfile'));
 });
-test('developer entry rejects either non-pinned runtime before executing work', () => {
+test('developer entry rejects unsupported Node and invalid Bun versions before executing work', () => {
   assert.throws(
     () =>
       runTask({
         task: 'build',
-        nodeVersion: '26.0.0',
+        nodeVersion: '23.0.0',
         execute: () => ({ status: 0 }),
       }),
-    /Node 26.11.1/,
+    /Node 24 or newer/,
   );
   assert.throws(
     () =>
       runTask({
         task: 'build',
-        nodeVersion: TOOLCHAIN.node,
-        execute: () => ({ status: 0, stdout: '1.4.1' }),
+        nodeVersion: '26.11.1',
+        execute: () => ({ status: 0, stdout: 'not-a-version' }),
       }),
-    /Bun 1.4.2/,
+    /Bun stable version/,
   );
 });
 test('task failures and interrupted tasks propagate nonzero results', () => {
@@ -64,10 +59,10 @@ test('task failures and interrupted tasks propagate nonzero results', () => {
   assert.equal(
     runTask({
       task: 'build',
-      nodeVersion: TOOLCHAIN.node,
+      nodeVersion: '26.11.1',
       execute: (_executable, args) =>
         args[0] === '--version'
-          ? { status: 0, stdout: TOOLCHAIN.bun }
+          ? { status: 0, stdout: '1.4.3' }
           : { status: 0, signal: 'SIGTERM' },
     }),
     1,
@@ -76,14 +71,14 @@ test('task failures and interrupted tasks propagate nonzero results', () => {
 test('Node consumer and worker execution remain explicit Node scripts', async () => {
   const manifest = JSON.parse(await readFile(resolve('package.json'), 'utf8'));
   assert.match(
-    manifest.scripts['test:unit'],
+    manifest.scripts['test:node-unit'],
     /^node --test --test-concurrency=1/,
   );
   assert.match(
     manifest.scripts['test:integration'],
     /node --test --test-concurrency=1/,
   );
-  assert.match(manifest.scripts.build, /node \.build\/scripts\/emit\.js$/);
+  assert.match(manifest.scripts.build, /bun \.build\/scripts\/emit\.js$/);
   assert.equal(manifest.engines.node, '>=24');
 });
 test('all C1 logical task names have developer commands and unknown tasks fail', () => {
@@ -108,6 +103,6 @@ test('all C1 logical task names have developer commands and unknown tasks fail',
 test('dependency install scripts are disabled rather than trusting Bun defaults', async () => {
   const manifest = JSON.parse(await readFile(resolve('package.json'), 'utf8'));
   assert.deepEqual(manifest.trustedDependencies, []);
-  assert.equal(manifest.packageManager, 'bun@1.4.2');
+  assert.match(manifest.packageManager, /^bun@\d+\.\d+\.\d+$/);
   assert.ok(taskArguments('install-frozen').includes('--ignore-scripts'));
 });

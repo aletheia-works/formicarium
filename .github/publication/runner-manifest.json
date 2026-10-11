@@ -3,8 +3,8 @@
   "files": [
     {
       "path": "runner.mjs",
-      "sha256": "c4de1d2cd461800d93326d3c382186d9b07fe84bd7e5e03417478ca74828f217",
-      "size": 76611
+      "sha256": "64f3b2077bdfc3a871157a8a28b540b9c2f1f7c3dd14947db3040e95ed4c4f03",
+      "size": 76612
     },
     {
       "path": "trusted-policy.json",
