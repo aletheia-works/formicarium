@@ -19,7 +19,7 @@ permissions:
 jobs:
   seed:
     if: github.repository == 'aletheia-works/formicarium' && github.ref == 'refs/heads/main'
-    uses: aletheia-works/.github/.github/workflows/seed-state.yml@e05dbc2361a2d0881bad97cf169db715fe6cdeee
+    uses: aletheia-works/.github/.github/workflows/seed-state.yml@9d3810f87b8aaa3e4b9c98a9513c7e65fb092949
     with:
       state_b64: ${{ inputs.state_b64 }}
       state_sha256: ${{ inputs.state_sha256 }}
