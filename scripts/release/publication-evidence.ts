@@ -32,7 +32,7 @@ export async function readPublicationPolicy(
   root: string,
 ): Promise<PublicationEvidencePolicy> {
   const bytes = await readBoundedFile(
-    resolve(root, '.github/publication/trusted-policy.json'),
+    resolve(root, 'scripts/release/publication-policy.json'),
     ASSET_LIMITS.metadataBytes,
   );
   requireCondition(

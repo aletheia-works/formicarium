@@ -197,11 +197,11 @@ Bun 1.4.2 / bun.lock による依存管理、固定 Node、`ci.yml` の lint・�
 
 `publish.yml` は `v*` tag を入口とし、実行時に `X.Y.Z-rc.N`（N は正整数）または `X.Y.Z` の厳密な版、tag、source SHA、公開先、版ごとの人の承認を照合します。RC は `next`、stable は `latest` を使います。stable は同じ基底版の公開 RC の受け入れ証拠と差分検査も必要です。既存 `v0.1.0-rc.1` と `codex/release/rc1-inputs` は履歴の固定入力として保持します。上の U1 導入時の workflow 保持記述に対し、この U4 で `publish.yml` の将来版対応を追加しています。
 
-readonly verify job は Bun latest と `bun.lock` で導入・ビルドし、固定生成済み Node runner の再現を確認します。公開候補は通常 CI と別に `candidate-verify.yml` の `candidate-required`、9 個の必須検査、固定 inventory の全 realm receipt と 80% coverage を要求します。GitHub API の run/attempt/source/workflow/producer、artifact digest、署名済み report bytes を独立照合し、skip・missing・非成功を拒否します。
+readonly verify job は Bun latest と `bun.lock` で依存を導入し、TypeScript の公開前検査を直接実行します。公開候補は通常 CI と別に `candidate-verify.yml` の `candidate-required`、9 個の必須検査、固定 inventory の全 realm receipt と 80% coverage を要求します。GitHub API の run/attempt/source/workflow/producer、artifact digest、report bytes を独立照合し、skip・missing・非成功を拒否します。stable の公開 RC 受入れと差分検査も維持します。
 
-publish / release job は同じ tag SHA の checkout にある Node builtin bootstrap と trusted manifest で転送物を検証してから runner を起動します。writer では install / build を行いません。npm 11.19.0 は固定 URL と SHA512 を検証した archive から展開し、Node 26.11.1 で固定 CLI を実行します。npm の OIDC 権限は publish job、contents write は release job だけに与えます。Bun は開発用で、Node consumer と Worker の runtime は変えません。
+検査成功後、`candidate.tgz` だけを標準の upload/download-artifact で同じ workflow run の後続 job へ渡します。各 writer は verify job の SHA256 出力とダウンロード後の bytes を照合します。生成 runner・bootstrap・独自の転送 manifest は使いません。npm 公開は YAML に記載した `bunx npm@latest publish`（OIDC・provenance・RC は next、stable は latest）、GitHub Release は `gh release create` で実行します。npm CLI の実行にだけ Node latest を用意します。publish job だけに id-token:write、release job だけに contents:write を与え、両方で environment `release` を使います。Release は独立した操作承認があるときだけ作ります。
 
-`.github/publication/trusted-policy.json` の workflow / producer ID、許可した archive redirect host は独立確認後に設定する前提です。現状の null ID と `writerEnabled: false` は安全側で拒否し、実 CI・公開の運用開始を示しません。公開先の設定、tag / branch push、公開実行は別の承認が必要です。
+`scripts/release/publication-policy.json` の workflow / producer ID、許可した archive redirect host は独立確認後に設定する前提です。現状の null ID と `writerEnabled: false` は公開用 artifact の作成を拒否します。公開先の設定、tag / branch push、公開実行は別の承認が必要です。
 
 外部 write の結果が不明な場合は自動再送しません。npm registry の同じ版・integrity・dist-tag、GitHub Release の tag / asset digest、run log を読み返し、人が状態を確定してから復旧を判断します。publish が失敗すれば release を起動せず、npm 成功後の Release 失敗も部分成功として扱います。共有 tag concurrency は実行中の処理を cancel しません。
 

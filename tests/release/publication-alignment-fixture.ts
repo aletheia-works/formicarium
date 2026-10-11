@@ -15,7 +15,6 @@ import type {
   PublicationIdentity,
   PublicationRequest,
 } from '../../scripts/release/publication.js';
-import type { PublicationExecutor } from '../../scripts/release/publication-cli.js';
 import { approval, check, coverageFixture, fixture } from './fixtures.js';
 import { publicationBoundaryFixture } from './publication-boundary-fixture.js';
 
@@ -184,25 +183,7 @@ export async function bundle(t: TestContext) {
     await writeFile(join(root, 'publication.json'), JSON.stringify(candidate));
   };
   const boundary = await publicationBoundaryFixture(root, request);
-  const npmCli = join(root, 'npm/package/bin/npm-cli.js');
-  await mkdir(dirname(npmCli), { recursive: true });
-  await writeFile(
-    join(root, 'npm/package/package.json'),
-    JSON.stringify({ version: '11.19.0' }),
-  );
-  await writeFile(npmCli, '// passive fake executor fixture');
-  const previousNpmCli = process.env.FORMICARIUM_NPM_CLI;
-  setEnvironment({ FORMICARIUM_NPM_CLI: npmCli });
-  t.after(() => setEnvironment({ FORMICARIUM_NPM_CLI: previousNpmCli }));
   await save();
-  const calls: {
-    executable: string;
-    args: string[];
-    options: Parameters<PublicationExecutor>[2];
-  }[] = [];
-  const executor: PublicationExecutor = (executable, args, options) => {
-    calls.push({ executable, args: [...args], options });
-  };
   return {
     ...f,
     request,
@@ -212,10 +193,7 @@ export async function bundle(t: TestContext) {
     pack,
     save,
     core,
-    calls,
-    executor,
     boundary,
-    npmCli,
     setEnvironment,
   };
 }

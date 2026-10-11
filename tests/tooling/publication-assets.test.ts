@@ -7,14 +7,11 @@ import { deflateRawSync, gzipSync } from 'node:zlib';
 
 const {
   ASSET_LIMITS,
-  NPM_ASSET,
   boundedBody,
   crc32,
   fetchAsset,
-  npmFiles,
   unpackTar,
   unpackZip,
-  verifyNpmIntegrity,
   readBoundedFile,
 } = (await import(
   pathToFileURL(resolve(process.cwd(), 'scripts/release/publication-assets.js'))
@@ -92,43 +89,6 @@ function tar(
   }
   return gzipSync(Buffer.concat([...rows, Buffer.alloc(1024)]));
 }
-let fixedNpm: Promise<Buffer> | undefined;
-function npmArchive() {
-  fixedNpm ??= readFile('/private/tmp/formicarium-u4-npm-11.19.0.tgz').catch(
-    () => fetchAsset(NPM_ASSET.url, ASSET_LIMITS.npmBytes),
-  );
-  return fixedNpm;
-}
-
-test('actual fixed official npm asset matches tracked URL integrity version and safe files', async () => {
-  const tracked = JSON.parse(
-    await readFile('.github/publication/trusted-policy.json', 'utf8'),
-  );
-  assert.deepEqual(tracked.npm, NPM_ASSET);
-  const bytes = await npmArchive();
-  verifyNpmIntegrity(bytes);
-  const files = npmFiles(bytes);
-  const existing = (await import(
-    pathToFileURL(resolve(process.cwd(), 'scripts/terrarium/coverage.js')).href
-  )) as typeof import('../../scripts/terrarium/coverage.js');
-  const isolated = (await import(
-    pathToFileURL(resolve(process.cwd(), 'scripts/release/inventory.js')).href
-  )) as typeof import('../../scripts/release/inventory.js');
-  assert.deepEqual(isolated.FILES, existing.FILES);
-  assert.deepEqual(isolated.REQUIRED_U1_REALMS, existing.REQUIRED_U1_REALMS);
-  assert.deepEqual(isolated.BROWSER_TITLES, existing.BROWSER_TITLES);
-  assert.equal(
-    JSON.parse(files.get('package/package.json')!.toString()).version,
-    '11.19.0',
-  );
-  assert.ok(files.has('package/bin/npm-cli.js'));
-  assert.ok(files.size <= 4096);
-});
-test('same length npm integrity mutation refuses before extraction', async () => {
-  const bytes = Buffer.from(await npmArchive());
-  bytes[0] ^= 1;
-  assert.throws(() => npmFiles(bytes), /INTEGRITY/);
-});
 test('stream boundary accepts exact cap and cancels cap plus one without trusting Content-Length', async (t) => {
   for (const extra of [0, 1])
     await t.test(

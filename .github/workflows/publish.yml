@@ -1,165 +1,138 @@
-{
-  "name": "Approved package publication",
-  "on": {
-    "push": {
-      "tags": [
-        "v*"
-      ]
-    }
-  },
-  "permissions": {
-    "contents": "read"
-  },
-  "concurrency": {
-    "group": "publication-${{ github.ref }}",
-    "cancel-in-progress": false
-  },
-  "jobs": {
-    "verify": {
-      "if": "github.event_name == 'push' && github.repository == 'aletheia-works/formicarium' && startsWith(github.ref, 'refs/tags/v')",
-      "runs-on": "ubuntu-latest",
-      "timeout-minutes": 30,
-      "permissions": {
-        "contents": "read",
-        "actions": "read",
-        "checks": "read"
-      },
-      "env": {
-        "GH_TOKEN": "${{ github.token }}",
-        "FORMICARIUM_RELEASE_INPUT_URL": "${{ vars.FORMICARIUM_RELEASE_INPUT_URL }}",
-        "FORMICARIUM_RELEASE_INPUT_SHA256": "${{ vars.FORMICARIUM_RELEASE_INPUT_SHA256 }}"
-      },
-      "steps": [
-        {
-          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
-          "with": {
-            "ref": "${{ github.sha }}",
-            "persist-credentials": false
-          }
-        },
-        {
-          "uses": "actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
-          "with": {
-            "node-version": "latest",
-            "check-latest": true,
-            "package-manager-cache": false
-          }
-        },
-        {
-          "uses": "oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6",
-          "with": {
-            "bun-version": "latest"
-          }
-        },
-        {
-          "run": "bun install --frozen-lockfile --ignore-scripts"
-        },
-        {
-          "run": "bun add --dev --no-save --ignore-scripts @biomejs/biome@latest typescript@latest"
-        },
-        {
-          "run": "bun run --bun build"
-        },
-        {
-          "run": "bun scripts/release/bundle.js verify \"$(command -v bun)\" \"$PWD/node_modules/@biomejs/biome/bin/biome\""
-        },
-        {
-          "run": "node .github/publication/runner.mjs fetch .artifacts/publication"
-        },
-        {
-          "run": "node .github/publication/runner.mjs gate .artifacts/publication"
-        },
-        {
-          "run": "node .github/publication/runner.mjs prepare-assets .artifacts/publication .artifacts/publication-assets"
-        },
-        {
-          "uses": "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
-          "with": {
-            "name": "publication-assets",
-            "path": ".artifacts/publication-assets/*",
-            "if-no-files-found": "error",
-            "retention-days": 1,
-            "include-hidden-files": false
-          }
-        }
-      ]
-    },
-    "publish": {
-      "if": "github.event_name == 'push' && github.repository == 'aletheia-works/formicarium' && startsWith(github.ref, 'refs/tags/v')",
-      "needs": "verify",
-      "runs-on": "ubuntu-latest",
-      "timeout-minutes": 30,
-      "environment": "release",
-      "permissions": {
-        "contents": "read",
-        "actions": "read",
-        "checks": "read",
-        "id-token": "write"
-      },
-      "env": {
-        "GH_TOKEN": "${{ github.token }}",
-        "FORMICARIUM_RELEASE_INPUT_URL": "${{ vars.FORMICARIUM_RELEASE_INPUT_URL }}",
-        "FORMICARIUM_RELEASE_INPUT_SHA256": "${{ vars.FORMICARIUM_RELEASE_INPUT_SHA256 }}",
-        "AIDLC_RELEASE_OPERATION": "publish"
-      },
-      "steps": [
-        {
-          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
-          "with": {
-            "ref": "${{ github.sha }}",
-            "persist-credentials": false
-          }
-        },
-        {
-          "uses": "actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
-          "with": {
-            "node-version": "latest",
-            "check-latest": true,
-            "package-manager-cache": false
-          }
-        },
-        {
-          "run": "node .github/publication/bootstrap.mjs publish"
-        }
-      ]
-    },
-    "release": {
-      "if": "github.event_name == 'push' && github.repository == 'aletheia-works/formicarium' && startsWith(github.ref, 'refs/tags/v')",
-      "needs": "publish",
-      "runs-on": "ubuntu-latest",
-      "timeout-minutes": 30,
-      "environment": "release",
-      "permissions": {
-        "contents": "write",
-        "actions": "read",
-        "checks": "read"
-      },
-      "env": {
-        "GH_TOKEN": "${{ github.token }}",
-        "FORMICARIUM_RELEASE_INPUT_URL": "${{ vars.FORMICARIUM_RELEASE_INPUT_URL }}",
-        "FORMICARIUM_RELEASE_INPUT_SHA256": "${{ vars.FORMICARIUM_RELEASE_INPUT_SHA256 }}",
-        "AIDLC_RELEASE_OPERATION": "release"
-      },
-      "steps": [
-        {
-          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
-          "with": {
-            "ref": "${{ github.sha }}",
-            "persist-credentials": false
-          }
-        },
-        {
-          "uses": "actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
-          "with": {
-            "node-version": "latest",
-            "check-latest": true,
-            "package-manager-cache": false
-          }
-        },
-        {
-          "run": "node .github/publication/bootstrap.mjs release"
-        }
-      ]
-    }
-  }
-}
+name: Approved package publication
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publication-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    if: github.event_name == 'push' && github.repository == 'aletheia-works/formicarium' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+      checks: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      FORMICARIUM_RELEASE_INPUT_URL: ${{ vars.FORMICARIUM_RELEASE_INPUT_URL }}
+      FORMICARIUM_RELEASE_INPUT_SHA256: ${{ vars.FORMICARIUM_RELEASE_INPUT_SHA256 }}
+    outputs:
+      version: ${{ steps.candidate.outputs.version }}
+      tag: ${{ steps.candidate.outputs.tag }}
+      dist-tag: ${{ steps.candidate.outputs.dist-tag }}
+      sha256: ${{ steps.candidate.outputs.sha256 }}
+      release-approved: ${{ steps.candidate.outputs.release-approved }}
+    steps:
+      - name: Checkout the release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: latest
+      - name: Install development dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: Download reviewed release inputs
+        run: bun scripts/release/publication-cli.ts fetch .artifacts/publication
+      - name: Verify candidate, CI, coverage and stable acceptance
+        id: candidate
+        run: bun scripts/release/publication-cli.ts prepare-artifact .artifacts/publication .artifacts/publication-package
+      - name: Transfer only the verified package
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: publication-package
+          path: .artifacts/publication-package/candidate.tgz
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    needs: verify
+    if: github.event_name == 'push' && github.repository == 'aletheia-works/formicarium' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: release
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      EXPECTED_SHA256: ${{ needs.verify.outputs.sha256 }}
+      DIST_TAG: ${{ needs.verify.outputs.dist-tag }}
+      NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
+    steps:
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: latest
+      - name: Setup Node for npm trusted publishing
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: latest
+          check-latest: true
+          package-manager-cache: false
+      - name: Download this run's verified package
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          name: publication-package
+          path: .artifacts/publication-package
+      - name: Verify package digest
+        id: digest
+        working-directory: .artifacts/publication-package
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_SHA256" =~ ^[a-f0-9]{64}$ ]]
+          printf '%s  candidate.tgz\n' "$EXPECTED_SHA256" | sha256sum --check --strict
+      - name: Publish the verified tarball with npm OIDC
+        working-directory: .artifacts/publication-package
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$DIST_TAG" == next || "$DIST_TAG" == latest ]]
+          bunx npm@latest publish ./candidate.tgz --provenance --access public --registry https://registry.npmjs.org/ --tag "$DIST_TAG" --ignore-scripts
+
+  release:
+    needs: [verify, publish]
+    if: github.event_name == 'push' && github.repository == 'aletheia-works/formicarium' && startsWith(github.ref, 'refs/tags/v') && needs.verify.outputs.release-approved == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: release
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      EXPECTED_SHA256: ${{ needs.verify.outputs.sha256 }}
+      RELEASE_TAG: ${{ needs.verify.outputs.tag }}
+      VERSION: ${{ needs.verify.outputs.version }}
+      DIST_TAG: ${{ needs.verify.outputs.dist-tag }}
+    steps:
+      - name: Download this run's verified package
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          name: publication-package
+          path: .artifacts/publication-package
+      - name: Verify package digest
+        id: digest
+        working-directory: .artifacts/publication-package
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_SHA256" =~ ^[a-f0-9]{64}$ ]]
+          printf '%s  candidate.tgz\n' "$EXPECTED_SHA256" | sha256sum --check --strict
+      - name: Create the approved GitHub release
+        working-directory: .artifacts/publication-package
+        shell: bash
+        run: |
+          set -euo pipefail
+          flags=(--verify-tag)
+          if [[ "$DIST_TAG" == next ]]; then flags+=(--prerelease); fi
+          gh release create "$RELEASE_TAG" ./candidate.tgz --repo "$GITHUB_REPOSITORY" --title "formicarium $VERSION" --notes "Reviewed package SHA256: $EXPECTED_SHA256" "${flags[@]}"

@@ -1,3 +1,4 @@
+import { parse } from 'yaml';
 import { requireCondition } from './evidence.ts';
 import type { PublicationIdentity } from './publication.ts';
 import { validatePublicationIdentity } from './publication.ts';
@@ -21,15 +22,17 @@ export function assertPublicationContext(
     'untrusted publication context',
   );
 }
-/** JSON is a YAML subset; validate the actual job graph and execution boundaries. */
+/** Validate the native Actions dependency and artifact boundaries. */
 export function validatePublishWorkflow(text: string) {
-  const w = JSON.parse(text);
+  const w = parse(text);
+  const same = (a: unknown, b: unknown) =>
+    JSON.stringify(a) === JSON.stringify(b);
   requireCondition(
-    JSON.stringify(w.on) === JSON.stringify({ push: { tags: ['v*'] } }),
+    same(w.on, { push: { tags: ['v*'] } }),
     'publication triggers differ',
   );
   requireCondition(
-    JSON.stringify(w.permissions) === JSON.stringify({ contents: 'read' }),
+    same(w.permissions, { contents: 'read' }),
     'global publication permissions differ',
   );
   requireCondition(
@@ -38,111 +41,155 @@ export function validatePublishWorkflow(text: string) {
     'publication concurrency differs',
   );
   requireCondition(
-    JSON.stringify(Object.keys(w.jobs).sort()) ===
-      JSON.stringify(['publish', 'release', 'verify']),
+    same(Object.keys(w.jobs).sort(), ['publish', 'release', 'verify']),
     'publication jobs differ',
   );
+  const origin =
+    "github.event_name == 'push' && github.repository == 'aletheia-works/formicarium' && startsWith(github.ref, 'refs/tags/v')";
   for (const [name, job] of Object.entries(w.jobs) as [string, any][]) {
     requireCondition(
       job['runs-on'] === 'ubuntu-latest' && job['timeout-minutes'] === 30,
       'publication runner/time limit differs',
     );
     const expected =
-      name === 'publish'
-        ? {
-            contents: 'read',
-            actions: 'read',
-            checks: 'read',
-            'id-token': 'write',
-          }
-        : name === 'release'
-          ? { contents: 'write', actions: 'read', checks: 'read' }
-          : { contents: 'read', actions: 'read', checks: 'read' };
-    requireCondition(
-      JSON.stringify(job.permissions) === JSON.stringify(expected),
-      'job permissions differ',
-    );
+      name === 'verify'
+        ? { contents: 'read', actions: 'read', checks: 'read' }
+        : name === 'publish'
+          ? { contents: 'read', 'id-token': 'write' }
+          : { contents: 'write' };
+    requireCondition(same(job.permissions, expected), 'job permissions differ');
     requireCondition(
       job.if ===
-        "github.event_name == 'push' && github.repository == 'aletheia-works/formicarium' && startsWith(github.ref, 'refs/tags/v')",
-      'job origin gate differs',
+        origin +
+          (name === 'release'
+            ? " && needs.verify.outputs.release-approved == 'true'"
+            : ''),
+      'job origin/approval gate differs',
     );
-    if (name !== 'verify')
-      requireCondition(
-        job.environment === 'release' &&
-          job.needs === (name === 'publish' ? 'verify' : 'publish'),
-        'publication environment/dependency differs',
-      );
     requireCondition(
       !JSON.stringify(job).match(
         /NODE_AUTH_TOKEN|NPM_TOKEN|_authToken|secrets\./,
       ),
       'token fallback refused',
     );
-    for (const step of job.steps)
+    for (const step of job.steps) {
       if (step.uses)
         requireCondition(
           /^[^\s]+@[a-f0-9]{40}$/.test(step.uses),
           'action not pinned',
         );
-    const checkout = job.steps.find((s: any) =>
-      s.uses?.startsWith('actions/checkout@'),
-    );
+      requireCondition(
+        step.if === undefined && step['continue-on-error'] === undefined,
+        'conditional publication step refused',
+      );
+    }
     requireCondition(
-      checkout?.with?.ref === '${{ github.sha }}' &&
-        checkout.with['persist-credentials'] === false,
-      'trusted exact tag checkout missing',
+      job['continue-on-error'] === undefined,
+      'failed gate bypass refused',
     );
-    const runs = job.steps
-      .filter((s: any) => s.run)
-      .map((s: any) => s.run) as string[];
+    const runs = job.steps.filter((s: any) => s.run);
     if (name === 'verify') {
       requireCondition(
-        runs.includes('bun install --frozen-lockfile --ignore-scripts') &&
-          runs.includes('bun run --bun build'),
-        'Bun verification tasks missing',
-      );
-      requireCondition(
-        runs.includes(
-          'node .github/publication/runner.mjs gate .artifacts/publication',
-        ) &&
-          runs.includes(
-            'node .github/publication/runner.mjs prepare-assets .artifacts/publication .artifacts/publication-assets',
-          ),
+        same(
+          runs.map((s: any) => s.run),
+          [
+            'bun install --frozen-lockfile --ignore-scripts',
+            'bun scripts/release/publication-cli.ts fetch .artifacts/publication',
+            'bun scripts/release/publication-cli.ts prepare-artifact .artifacts/publication .artifacts/publication-package',
+          ],
+        ) && runs[2].id === 'candidate',
         'publication gate missing',
       );
+      const checkout = job.steps.find((s: any) =>
+        s.uses?.startsWith('actions/checkout@'),
+      );
+      requireCondition(
+        checkout?.with?.ref === '${{ github.sha }}' &&
+          checkout.with['persist-credentials'] === false,
+        'trusted exact tag checkout missing',
+      );
+      for (const key of [
+        'version',
+        'tag',
+        'dist-tag',
+        'sha256',
+        'release-approved',
+      ])
+        requireCondition(
+          job.outputs?.[key] === '${{ steps.candidate.outputs.' + key + ' }}',
+          'verified output differs',
+        );
       const upload = job.steps.find((s: any) =>
         s.uses?.startsWith('actions/upload-artifact@'),
       );
       requireCondition(
-        upload?.with?.name === 'publication-assets' &&
-          upload.with.path === '.artifacts/publication-assets/*' &&
-          upload.with['if-no-files-found'] === 'error',
+        upload?.with?.name === 'publication-package' &&
+          upload.with.path === '.artifacts/publication-package/candidate.tgz' &&
+          upload.with['if-no-files-found'] === 'error' &&
+          job.steps.indexOf(upload) > job.steps.indexOf(runs[2]),
         'transfer artifact differs',
-      );
-      requireCondition(
-        !runs.some((r) =>
-          /npm publish|bootstrap.mjs (publish|release)/.test(r),
-        ),
-        'writer in verification refused',
       );
     } else {
       requireCondition(
-        runs.length === 1 &&
-          runs[0] === `node .github/publication/bootstrap.mjs ${name}`,
-        'unvalidated publication command/gate',
+        job.environment === 'release',
+        'publication environment differs',
       );
       requireCondition(
-        job.env?.AIDLC_RELEASE_OPERATION === name,
-        'publication operation differs',
+        same(job.needs, name === 'publish' ? 'verify' : ['verify', 'publish']),
+        'publication dependency differs',
+      );
+      const download = job.steps.find((s: any) =>
+        s.uses?.startsWith('actions/download-artifact@'),
       );
       requireCondition(
-        !job.steps.some(
-          (s: any) =>
-            s.uses && !/^(actions\/checkout|actions\/setup-node)@/.test(s.uses),
-        ),
-        'writer action refused',
+        download?.with?.name === 'publication-package' &&
+          download.with.path === '.artifacts/publication-package' &&
+          !download.with['run-id'] &&
+          !download.with['repository'] &&
+          !download.with['github-token'] &&
+          job.steps.indexOf(download) < job.steps.indexOf(runs[0]),
+        'same-run artifact required',
       );
+      requireCondition(
+        job.env.EXPECTED_SHA256 === '${{ needs.verify.outputs.sha256 }}' &&
+          job.env.DIST_TAG === '${{ needs.verify.outputs.dist-tag }}',
+        'verified identity output differs',
+      );
+      requireCondition(
+        runs.length === 2 &&
+          runs[0].id === 'digest' &&
+          runs[0].run.trim() ===
+            `set -euo pipefail
+[[ "$EXPECTED_SHA256" =~ ^[a-f0-9]{64}$ ]]
+printf '%s  candidate.tgz\\n' "$EXPECTED_SHA256" | sha256sum --check --strict`,
+        'artifact digest gate missing',
+      );
+      for (const step of runs)
+        requireCondition(
+          step.shell === 'bash' &&
+            step['working-directory'] === '.artifacts/publication-package',
+          'unvalidated publication directory',
+        );
+      const command =
+        name === 'publish'
+          ? `set -euo pipefail
+[[ "$DIST_TAG" == next || "$DIST_TAG" == latest ]]
+bunx npm@latest publish ./candidate.tgz --provenance --access public --registry https://registry.npmjs.org/ --tag "$DIST_TAG" --ignore-scripts`
+          : `set -euo pipefail
+flags=(--verify-tag)
+if [[ "$DIST_TAG" == next ]]; then flags+=(--prerelease); fi
+gh release create "$RELEASE_TAG" ./candidate.tgz --repo "$GITHUB_REPOSITORY" --title "formicarium $VERSION" --notes "Reviewed package SHA256: $EXPECTED_SHA256" "\${flags[@]}"`;
+      requireCondition(
+        runs[1].run.trim() === command,
+        'unvalidated publication command',
+      );
+      if (name === 'release') {
+        requireCondition(
+          job.env.RELEASE_TAG === '${{ needs.verify.outputs.tag }}' &&
+            job.env.VERSION === '${{ needs.verify.outputs.version }}',
+          'release identity differs',
+        );
+      }
     }
   }
   return w;

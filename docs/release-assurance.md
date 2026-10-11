@@ -15,7 +15,9 @@ node scripts/release/publication-cli.js plan <evidence-root> <request.json>
 
 identityの必須項目はrepository/workflow/environment/sourceCommit/version/tag/distTag。RCはversion=0.1.0-rc.1/tag=v0.1.0-rc.1/distTag=next、stableは0.1.0/v0.1.0/latest。sourceCommitは実承認対象のcommitを指定し、候補のprepare/validate成功は操作承認ではない。validateは元manifestを書換えず、実tgz SHAを持つ新結果を返す。`plan`はroot内の証拠を原SHAで読むだけで、公開しない。
 
-公開workflowはJSON形式の有効なYAMLとして保存し、実構造を`workflow.ts`で解析する。正確な二つの版タグのpushと公開repositoryだけを許可する。verifyはcontents:read、publishだけid-token:write、Releaseだけcontents:write。各jobは別のGitHub-hosted runnerで入力を再取得し、同じgateを再実行する。公開jobはgate直後に、再検査済みの同一tgzだけをnpmへ渡す。npmのproject/user/global configから長期tokenを拾わないよう専用cwdと空configを使い、npm_config環境値を除いてprovenanceを有効にする。
+公開workflowは他のrepositoryと同じYAML形式で、`v*` tagのpushと公開repositoryだけを入口にする。実行時に厳密なstable/RC版、tag、source SHAを照合する。verifyは読取権限だけで、Bunによる入力取得と既存の承認・候補CI・全realm coverage・stable受入れ検査を実行し、検証済みcandidate.tgzだけを標準artifactへ保存する。後続jobは同じrunのartifactをダウンロードし、verifyのSHA256出力と照合してからYAMLに明記した公開コマンドを実行する。publishだけid-token:write、Releaseだけcontents:writeを与え、environmentはreleaseを維持する。長期npm tokenは渡さず、bunxで最新npm CLIを起動してOIDC/provenance付きで同一tgzを公開する。生成runner、独自manifest、npm CLI archiveの固定供給は廃止した。
+
+検証設定は`scripts/release/publication-policy.json`に置く。writerEnabled=falseや独立確認していないproducer/workflow IDは拒否する。公開用artifactは検査成功時だけ作成され、Release用の操作承認がない場合はRelease jobを起動しない。失敗・不明な外部操作結果の自動再送は行わない。
 
 入力bundleの取得URLとSHA256はGitHubの`FORMICARIUM_RELEASE_INPUT_URL`/`FORMICARIUM_RELEASE_INPUT_SHA256`へ、具体的外部操作の承認後に設定する。bundleは`request.json`、`publication.json`、`candidate.tgz`とroot相対の証拠を含む。publication.jsonのtarball.pathはcandidate.tgz。requestはcandidate/index/evidenceIds/approvals/identity/publisherを指定する。固定24のうちpack外のU2/U3 source bytesは`sources/<fixed-inventory-path>`へ同梱し、各SHAを照合する。bundle取得は全体SHAを検査し、path逸脱/リンク/重複/.npmrcを拒否する。検証候補v9の古い証拠を新公開候補の成功へ付け替えない。
 

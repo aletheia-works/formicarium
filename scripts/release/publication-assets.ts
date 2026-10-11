@@ -7,16 +7,7 @@ export const ASSET_LIMITS = Object.freeze({
   inputBytes: 256 * 1024 * 1024 - 1,
   expandedBytes: 512 * 1024 * 1024,
   members: 8192,
-  npmBytes: 32 * 1024 * 1024,
-  npmExpandedBytes: 64 * 1024 * 1024,
-  npmMembers: 4096,
   metadataBytes: 8 * 1024 * 1024,
-});
-export const NPM_ASSET = Object.freeze({
-  version: '11.19.0',
-  url: 'https://registry.npmjs.org/npm/-/npm-11.19.0.tgz',
-  integrity:
-    'sha512-SDd/hHg3KqHE5Ht2NHWxNYNtqCQ2pXAPLl6OtQhPyED5PHsRfrOtO199MZTIG2cQoQ1ZRI9t28shrD+2cr3AAw==',
 });
 function ensure(value: unknown, code: string): asserts value {
   if (!value) throw Error(code);
@@ -156,14 +147,6 @@ export async function fetchAsset(
     });
   }
   return boundedBody(response, limit, timer);
-}
-export function verifyNpmIntegrity(bytes: Uint8Array) {
-  ensure(
-    bytes.byteLength <= ASSET_LIMITS.npmBytes &&
-      `sha512-${createHash('sha512').update(bytes).digest('base64')}` ===
-        NPM_ASSET.integrity,
-    'NPM_INTEGRITY_MISMATCH',
-  );
 }
 export function unpackTar(
   bytes: Uint8Array,
@@ -367,24 +350,4 @@ export function unpackZip(
   }
   ensure(cursor === end, 'UNSAFE_ZIP');
   return result;
-}
-export function npmFiles(bytes: Uint8Array) {
-  verifyNpmIntegrity(bytes);
-  const files = unpackTar(
-    bytes,
-    ASSET_LIMITS.npmExpandedBytes,
-    ASSET_LIMITS.npmMembers,
-  );
-  ensure(
-    [...files.keys()].every(
-      (path) => path === 'package' || path.startsWith('package/'),
-    ),
-    'NPM_PATH_MISMATCH',
-  );
-  ensure(
-    JSON.parse(files.get('package/package.json')?.toString() ?? '{}')
-      .version === NPM_ASSET.version && files.has('package/bin/npm-cli.js'),
-    'NPM_VERSION_MISMATCH',
-  );
-  return files;
 }

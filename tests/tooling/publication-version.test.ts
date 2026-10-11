@@ -22,7 +22,6 @@ import type {
   PublicationIdentity,
   PublicationRequest,
 } from '../../scripts/release/publication.js';
-import type { PublicationExecutor } from '../../scripts/release/publication-cli.js';
 
 const { gatePublication, publicationCli } = (await import(
   pathToFileURL(resolve(process.cwd(), 'scripts/release/publication-cli.js'))
@@ -204,14 +203,6 @@ async function bundle(t: TestContext, version = '0.1.0-rc.1') {
   };
   const boundary = await publicationBoundaryFixture(root, request);
   await save();
-  const calls: {
-    executable: string;
-    args: string[];
-    options: Parameters<PublicationExecutor>[2];
-  }[] = [];
-  const executor: PublicationExecutor = (executable, args, options) => {
-    calls.push({ executable, args: [...args], options });
-  };
   return {
     ...f,
     request,
@@ -221,8 +212,6 @@ async function bundle(t: TestContext, version = '0.1.0-rc.1') {
     pack,
     save,
     core,
-    calls,
-    executor,
     boundary,
     setEnvironment,
   };
@@ -390,7 +379,6 @@ test('historical RC identity and immutable approval fixtures retain their meanin
     (await gatePublication(f.root, f.boundary)).decision.allowed,
     true,
   );
-  assert.equal(f.calls.length, 0);
 });
 test('leading zeros ranges alternate prereleases metadata and malformed ordinals refuse', () => {
   for (const version of [
@@ -434,9 +422,11 @@ test('missing or version-mismatched operation approval invokes zero publication 
     else f.request.approvals[0]!.version = '1.2.3';
     await f.save();
     await assert.rejects(
-      publicationCli(['publish', f.root], f.executor, f.boundary),
+      publicationCli(
+        ['prepare-artifact', f.root, join(f.root, 'out')],
+        f.boundary,
+      ),
       /blocked/,
     );
-    assert.equal(f.calls.length, 0);
   }
 });

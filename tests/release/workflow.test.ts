@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import { parse, stringify } from 'yaml';
 import type { PublicationIdentity } from '../../scripts/release/publication.js';
 import {
   assertPublicationContext,
@@ -27,9 +28,9 @@ const context = {
   sha: identity.sourceCommit,
 };
 const alter = (change: (w: any) => void) => {
-  const w = JSON.parse(text);
+  const w = parse(text);
   change(w);
-  return JSON.stringify(w);
+  return stringify(w);
 };
 test('parse actual workflow and allow only exact approved tag origin', () => {
   assert.equal(
@@ -83,21 +84,16 @@ test('publisher environment and job dependencies are mandatory', () => {
     /dependency/,
   );
 });
-test('every job requires immediate evidence gate, independent of earlier success', () => {
+test('verification and both writers require their gate or artifact digest check', () => {
   for (const job of ['verify', 'publish', 'release'])
     assert.throws(
       () =>
         validatePublishWorkflow(
-          alter(
-            (w) =>
-              (w.jobs[job].steps = w.jobs[job].steps.filter(
-                (s: any) =>
-                  !(
-                    s.run?.includes('runner.mjs gate') ||
-                    s.run?.includes('bootstrap.mjs')
-                  ),
-              )),
-          ),
+          alter((w) => {
+            w.jobs[job].steps = w.jobs[job].steps.filter(
+              (s: any) => s.id !== (job === 'verify' ? 'candidate' : 'digest'),
+            );
+          }),
         ),
       /gate/,
     );
@@ -142,6 +138,51 @@ test('token fallback unpinned action and unvalidated tarball command rejected', 
           (w) => (w.jobs.publish.steps.at(-1).run = 'npm publish other.tgz'),
         ),
       ),
-    /unvalidated/,
+    /unvalidated|gate/,
   );
+});
+
+test('artifact transfer cannot precede validation or follow the digest check', () => {
+  for (const name of ['verify', 'publish', 'release']) {
+    assert.throws(
+      () =>
+        validatePublishWorkflow(
+          alter((w) => {
+            const steps = w.jobs[name].steps;
+            const index = steps.findIndex((s: any) =>
+              s.uses?.startsWith(
+                name === 'verify'
+                  ? 'actions/upload-artifact@'
+                  : 'actions/download-artifact@',
+              ),
+            );
+            const [transfer] = steps.splice(index, 1);
+            if (name === 'verify') steps.unshift(transfer);
+            else steps.push(transfer);
+          }),
+        ),
+      /artifact/,
+    );
+  }
+});
+test('cross-run artifacts, forged outputs and failed-step bypass are refused', () => {
+  for (const change of [
+    (w: any) => {
+      w.jobs.publish.steps.find((s: any) =>
+        s.uses?.startsWith('actions/download-artifact@'),
+      ).with['run-id'] = 'other-run';
+    },
+    (w: any) => {
+      w.jobs.verify.outputs.sha256 = 'forged';
+    },
+    (w: any) => {
+      w.jobs.publish.steps.find((s: any) => s.id === 'digest')[
+        'continue-on-error'
+      ] = true;
+    },
+  ])
+    assert.throws(
+      () => validatePublishWorkflow(alter(change)),
+      /artifact|output|conditional/,
+    );
 });

@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "writerEnabled": false,
+  "evidence": {
+    "repository": "aletheia-works/formicarium",
+    "workflowIdentity": ".github/workflows/candidate-verify.yml",
+    "workflowId": null,
+    "producerAppId": null,
+    "toolchainRevision": "bun1.4.2-node26.11.1",
+    "requiredChecks": ["candidate-required"],
+    "archiveRedirectHosts": []
+  }
+}
