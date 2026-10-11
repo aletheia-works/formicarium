@@ -1,0 +1,3 @@
+# Optional local overrides. Never put a token in this file.
+github_owner    = "aletheia-works"
+repository_name = "formicarium"

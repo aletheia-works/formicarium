@@ -7,3 +7,4 @@ bun = "latest"
 rust = { version = "stable", targets = "x86_64-unknown-linux-musl" }
 cmake = "latest"
 ninja = "latest"
+opentofu = "latest"

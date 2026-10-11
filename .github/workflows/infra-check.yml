@@ -1,0 +1,32 @@
+name: Infrastructure validation
+on:
+  pull_request:
+    paths:
+      - 'infra/github/**'
+      - '.github/workflows/*terraform*'
+      - '.github/workflows/tofu-fmt-autofix.yml'
+      - '.github/workflows/infra-check.yml'
+  push:
+    branches: [main]
+    paths: ['infra/github/**', '.github/workflows/infra-check.yml']
+permissions:
+  contents: read
+jobs:
+  validate:
+    name: Validate GitHub infrastructure
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: infra/github
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1
+        with:
+          tofu_version: latest
+          tofu_wrapper: false
+      - run: tofu init -backend=false -input=false -lockfile=readonly
+      - run: tofu fmt -check -recursive
+      - run: tofu validate
