@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import test from 'node:test';
 import { runTask, TASKS, taskArguments } from '../../scripts/ci/tasks.js';
@@ -105,4 +105,11 @@ test('dependency install scripts are disabled rather than trusting Bun defaults'
   assert.deepEqual(manifest.trustedDependencies, []);
   assert.match(manifest.packageManager, /^bun@\d+\.\d+\.\d+$/);
   assert.ok(taskArguments('install-frozen').includes('--ignore-scripts'));
+});
+
+test('CI file-task execution and cache references point to real files', async () => {
+  const workflow = await readFile(resolve('.github/workflows/ci.yml'), 'utf8');
+  const paths = [...new Set(workflow.match(/mise-tasks\/[a-zA-Z0-9_./-]+/g))];
+  assert.ok(paths.length >= 4);
+  for (const path of paths) await access(resolve(path));
 });

@@ -53,7 +53,7 @@ info_status=0
 load_session_info "$session" || info_status=$?
 [ "$info_status" = 0 ] || exit "$info_status"
 
-[ -f "$root/$GUEST_PATH" ] || { echo "error: $root/$GUEST_PATH がありません（bash mise-tasks/build.sh-guests $GUEST）" >&2; exit 1; }
+[ -f "$root/$GUEST_PATH" ] || { echo "error: $root/$GUEST_PATH がありません（bash mise-tasks/build/guests.sh $GUEST）" >&2; exit 1; }
 [ -f "$root/$SCRIPT" ] || { echo "error: $root/$SCRIPT がありません" >&2; exit 1; }
 [ -d "$root/$PROJECT_BASE" ] || { echo "error: $root/$PROJECT_BASE がありません" >&2; exit 1; }
 image=${FORMICARIUM_NATIVE_IMAGE:-busybox:latest}

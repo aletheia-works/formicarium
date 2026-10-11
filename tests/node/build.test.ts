@@ -1,7 +1,7 @@
 // FR1.1・FR1.2：blink の fork を固定したコミットで取得し、wasm にビルドできること。
 // pitchfork（intent 261005-pitchfork-on-blink の FR1.1・FR1.2）：dist/guests/pitchfork が
 // static な x86-64 の ELF で、取得したコミットと UI の node が記録され、ローカルパッチがないこと。
-// 前提：bash mise-tasks/build.sh-blink-wasm と bash mise-tasks/build.sh-guests pitchfork を実行済み
+// 前提：bash mise-tasks/build/blink-wasm.sh と bash mise-tasks/build/guests.sh pitchfork を実行済み
 //       （README の「テスト」を参照）。
 import assert from 'node:assert/strict';
 import { Buffer } from 'node:buffer';

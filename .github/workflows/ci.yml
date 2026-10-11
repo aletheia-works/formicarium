@@ -66,21 +66,21 @@ jobs:
             output: "dist/blink/"
             source: "blink.lock"
             lock: "mise-tasks/build/fetch-blink.sh"
-            script: "mise-tasks/build.sh-blink-wasm"
+            script: "mise-tasks/build/blink-wasm.sh"
           -
             component: "probe"
             image: "rust:alpine"
             output: "dist/guests/"
             source: "guest/probe/**"
             lock: "guest/probe/Cargo.lock"
-            script: "mise-tasks/build.sh-guests"
+            script: "mise-tasks/build/guests.sh"
           -
             component: "guests"
             image: "rust:alpine"
             output: "dist/guests/"
-            source: "mise-tasks/build.sh-guests"
+            source: "mise-tasks/build/guests.sh"
             lock: "scripts/lib/container.sh"
-            script: "mise-tasks/build.sh-guests"
+            script: "mise-tasks/build/guests.sh"
     env:
       FORMICARIUM_CONTAINER: "docker"
       FORMICARIUM_EMSDK_IMAGE: "emscripten/emsdk:latest"
@@ -155,11 +155,11 @@ jobs:
       -
         name: "Build wasm from the locked source"
         if: "matrix.component == 'wasm' && steps.product-cache.outputs.cache-hit != 'true'"
-        run: "bash mise-tasks/build.sh-blink-wasm"
+        run: "bash mise-tasks/build/blink-wasm.sh"
       -
         name: "Build static Linux probe guests"
         if: "matrix.component == 'probe' && steps.product-cache.outputs.cache-hit != 'true'"
-        run: "bash mise-tasks/build.sh-guests probe"
+        run: "bash mise-tasks/build/guests.sh probe"
       -
         name: "Verify BSF natively before trusting wasm tests"
         if: "matrix.component == 'probe'"
@@ -171,11 +171,11 @@ jobs:
         uses: "actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9" # v6.1.0
         with:
           path: "dist/guests/aube*"
-          key: "product-aube-${{ runner.os }}-${{ runner.arch }}-${{ steps.build-image.outputs.digest }}-${{ env.AUBE_REF }}-${{ hashFiles('mise-tasks/build.sh-guests', 'scripts/lib/container.sh') }}"
+          key: "product-aube-${{ runner.os }}-${{ runner.arch }}-${{ steps.build-image.outputs.digest }}-${{ env.AUBE_REF }}-${{ hashFiles('mise-tasks/build/guests.sh', 'scripts/lib/container.sh') }}"
       -
         name: "Build static Linux aube"
         if: "matrix.component == 'guests' && steps.aube-cache.outputs.cache-hit != 'true'"
-        run: "bash mise-tasks/build.sh-guests aube"
+        run: "bash mise-tasks/build/guests.sh aube"
       -
         name: "Save aube before downstream work can fail"
         if: "matrix.component == 'guests' && steps.aube-cache.outputs.cache-hit != 'true'"
@@ -190,11 +190,11 @@ jobs:
         uses: "actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9" # v6.1.0
         with:
           path: "dist/guests/pitchfork*"
-          key: "product-pitchfork-${{ runner.os }}-${{ runner.arch }}-${{ steps.build-image.outputs.ui-digest }}-${{ env.PITCHFORK_REF }}-${{ hashFiles('dist/guests/aube', 'mise-tasks/build.sh-guests', 'scripts/lib/container.sh') }}"
+          key: "product-pitchfork-${{ runner.os }}-${{ runner.arch }}-${{ steps.build-image.outputs.ui-digest }}-${{ env.PITCHFORK_REF }}-${{ hashFiles('dist/guests/aube', 'mise-tasks/build/guests.sh', 'scripts/lib/container.sh') }}"
       -
         name: "Build unpatched pitchfork with the latest UI Node"
         if: "matrix.component == 'guests' && steps.pitchfork-cache.outputs.cache-hit != 'true'"
-        run: "bash mise-tasks/build.sh-guests pitchfork"
+        run: "bash mise-tasks/build/guests.sh pitchfork"
       -
         name: "Save pitchfork before downstream tests can fail"
         if: "matrix.component == 'guests' && steps.pitchfork-cache.outputs.cache-hit != 'true'"
