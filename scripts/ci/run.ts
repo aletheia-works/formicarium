@@ -321,7 +321,9 @@ export async function runVerification(
     await command(
       'u1-browser',
       [
-        bun,
+        // Playwright cannot load these compiled coverage specs under Bun 1.4.3.
+        // Node is required here; ordinary browser suites continue to use Bun.
+        node,
         playwright,
         'test',
         '--config',

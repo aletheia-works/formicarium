@@ -296,9 +296,17 @@ async function evidenceFixture(t: TestContext) {
   };
   return { ...f, tracked, policy, envelope, observation };
 }
-test('actual tracked policy supplies successful candidate checks while unset external IDs fail closed', async (t) => {
+test('tracked required checks verify while unset external IDs fail closed', async (t) => {
   const f = await evidenceFixture(t);
-  assert.throws(() => publicationProducer(f.tracked), /incomplete/);
+  assert.throws(
+    () =>
+      publicationProducer({
+        ...f.tracked,
+        workflowId: null,
+        producerAppId: null,
+      }),
+    /incomplete/,
+  );
   assert.equal(
     (
       await verifyPublicationEvidence(
