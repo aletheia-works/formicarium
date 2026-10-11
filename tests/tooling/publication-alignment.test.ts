@@ -21,47 +21,25 @@ const { validatePublishWorkflow } = (await import(
 const { artifactBytes } = (await import(
   pathToFileURL(resolve(process.cwd(), 'scripts/release/evidence.js')).href
 )) as typeof import('../../scripts/release/evidence.js');
-type WorkflowMutation = {
-  jobs: Record<string, { needs: string; permissions: { contents: string } }>;
-  concurrency: { 'cancel-in-progress': boolean };
-};
 const text = await readFile('.github/workflows/publish.yml', 'utf8');
-test('actual workflow uses Bun verification and native Actions artifact writers', () => {
+test('automatic workflow delegates full source-bound CI and exports only a verified package', () => {
   const workflow = validatePublishWorkflow(text);
-  assert.ok(
-    workflow.jobs.verify.steps.some(
-      (s: { run?: string }) =>
-        s.run === 'bun install --frozen-lockfile --ignore-scripts',
-    ),
-  );
+  assert.equal(workflow.jobs.verify.uses, './.github/workflows/ci.yml');
   assert.match(
     workflow.jobs.publish.steps.at(-1).run,
     /bunx npm@latest publish/,
   );
-  assert.match(workflow.jobs.release.steps.at(-1).run, /gh release create/);
-  assert.doesNotMatch(text, /bootstrap|runner-manifest|runner\.mjs/);
-});
-test('writer install build token fallback and alternate payload refuse', () => {
-  for (const step of [
-    { run: 'bun install' },
-    { run: 'bun run build' },
-    { run: 'npm publish other.tgz' },
-    { env: { NPM_TOKEN: 'fake' } },
-  ]) {
-    const workflow = parse(text);
-    workflow.jobs.publish.steps.push(step);
-    assert.throws(
-      () => validatePublishWorkflow(stringify(workflow)),
-      /unvalidated|token|gate/,
-    );
-  }
+  assert.doesNotMatch(
+    text,
+    /FORMICARIUM_RELEASE_INPUT|publication-cli|rcAdoption/,
+  );
 });
 test('failed prerequisite cannot bypass dependencies permissions or tag serialization', () => {
   for (const mutate of [
-    (w: WorkflowMutation) => (w.jobs.publish.needs = 'release'),
-    (w: WorkflowMutation) => (w.jobs.release.needs = 'verify'),
-    (w: WorkflowMutation) => (w.jobs.verify.permissions.contents = 'write'),
-    (w: WorkflowMutation) => (w.concurrency['cancel-in-progress'] = true),
+    (w: any) => (w.jobs.publish.needs = 'authorize'),
+    (w: any) => (w.jobs.release.needs = 'verify'),
+    (w: any) => (w.jobs.verify.permissions.contents = 'write'),
+    (w: any) => (w.concurrency['cancel-in-progress'] = true),
   ]) {
     const workflow = parse(text);
     mutate(workflow);

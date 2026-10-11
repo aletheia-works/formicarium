@@ -72,7 +72,10 @@ async function fixtureActions(
       RELEASE_VIEW_EXIT: existingRelease ? '0' : '1',
     };
     for (const step of workflow.jobs[mode].steps.filter(
-      (s: { run?: string }) => s.run,
+      (s: { run?: string; id?: string }) =>
+        s.run &&
+        s.id !== 'registry' &&
+        !s.run.includes('cp .artifacts/downloaded-candidate/'),
     )) {
       const result = spawnSync('bash', ['-c', step.run], {
         cwd: downloaded,

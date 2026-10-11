@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "writerEnabled": true,
+  "writerEnabled": false,
   "evidence": {
     "repository": "aletheia-works/formicarium",
     "workflowIdentity": ".github/workflows/candidate-verify.yml",

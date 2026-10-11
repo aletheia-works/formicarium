@@ -61,6 +61,24 @@ export function dispatchedCandidateContext(context: {
   return context;
 }
 
+/** A stable tag runs fresh regression/coverage; it never re-labels PR evidence. */
+export function taggedCandidateContext(
+  context: { repository: string; commit: string; event: string; ref: string },
+  version: string,
+) {
+  if (
+    context.repository !== 'aletheia-works/formicarium' ||
+    context.event !== 'push' ||
+    context.ref !== `refs/tags/v${candidateVersion(version)}` ||
+    version.includes('-') ||
+    !/^[a-f0-9]{40}$/.test(context.commit)
+  )
+    throw Error(
+      'release candidate tag requires exact upstream stable version/source',
+    );
+  return context;
+}
+
 export function selectedCandidateVersion(
   packageVersion: string,
   requested: string,
@@ -110,6 +128,18 @@ export function validateReleaseCandidateContext(
 }
 
 async function eventContext() {
+  if (process.env.GITHUB_EVENT_NAME === 'push') {
+    const pkg = JSON.parse(await readFile('package.json', 'utf8'));
+    return taggedCandidateContext(
+      {
+        repository: process.env.GITHUB_REPOSITORY ?? '',
+        commit: process.env.GITHUB_SHA ?? '',
+        event: 'push',
+        ref: process.env.GITHUB_REF ?? '',
+      },
+      pkg.version,
+    );
+  }
   if (process.env.GITHUB_EVENT_NAME === 'workflow_dispatch')
     return dispatchedCandidateContext({
       repository: process.env.GITHUB_REPOSITORY ?? '',

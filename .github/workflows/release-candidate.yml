@@ -11,12 +11,26 @@ on:
         required: false
         type: string
         default: ''
+    outputs:
+      sha256:
+        value: ${{ jobs.verify.outputs.sha256 }}
+      version:
+        value: ${{ jobs.verify.outputs.version }}
+      dist-tag:
+        value: ${{ jobs.verify.outputs.dist-tag }}
+      artifact:
+        value: ${{ jobs.verify.outputs.artifact }}
 
 permissions:
   contents: read
 
 jobs:
   verify:
+    outputs:
+      sha256: ${{ steps.candidate.outputs.sha256 }}
+      version: ${{ steps.candidate.outputs.version }}
+      dist-tag: ${{ steps.candidate.outputs.dist-tag }}
+      artifact: release-candidate-${{ inputs.source-sha }}-${{ github.run_id }}-${{ github.run_attempt }}
     name: Candidate regression and coverage
     runs-on: ubuntu-latest
     timeout-minutes: 360
@@ -74,6 +88,18 @@ jobs:
           FORMICARIUM_CI_BUN: ${{ steps.bun.outputs.bun-path }}
         # The runner and instrumented Playwright suites use Node-specific APIs.
         run: GITHUB_SHA="$SOURCE_SHA" node scripts/ci/release-candidate.ts verify
+      - name: Export identity only after successful regression and coverage
+        id: candidate
+        run: |
+          bun - <<'JS'
+          import { readFileSync, appendFileSync } from 'node:fs';
+          import { createHash } from 'node:crypto';
+          const candidate = JSON.parse(readFileSync('.artifacts/release-candidate/candidate.json', 'utf8'));
+          const acceptance = JSON.parse(readFileSync('.artifacts/ci-results/acceptance.json', 'utf8'));
+          if (createHash('sha256').update(readFileSync('.artifacts/release-candidate/candidate.tgz')).digest('hex') !== candidate.tarball.sha256) throw Error('candidate tarball differs');
+          if (!acceptance.passed || acceptance.context.commit !== process.env.SOURCE_SHA || candidate.identity.sourceCommit !== process.env.SOURCE_SHA || acceptance.checks.some(c => c.exitCode !== 0 || c.timedOut || c.skipped !== 0) || acceptance.coverage.lines.pct < 80 || acceptance.coverage.files.length !== 24) throw Error('candidate verification incomplete');
+          appendFileSync(process.env.GITHUB_OUTPUT, `sha256=${candidate.tarball.sha256}\nversion=${candidate.identity.version}\ndist-tag=${candidate.identity.distTag}\n`);
+          JS
       - name: Keep candidate and measurement evidence from this run
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9

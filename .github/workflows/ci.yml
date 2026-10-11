@@ -1,5 +1,15 @@
 name: "CI"
 "on":
+  workflow_call:
+    outputs:
+      candidate-sha256:
+        value: ${{ jobs.release-candidate.outputs.sha256 }}
+      candidate-version:
+        value: ${{ jobs.release-candidate.outputs.version }}
+      candidate-dist-tag:
+        value: ${{ jobs.release-candidate.outputs.dist-tag }}
+      candidate-artifact:
+        value: ${{ jobs.release-candidate.outputs.artifact }}
   workflow_dispatch:
     inputs:
       candidate-version:
@@ -388,7 +398,7 @@ jobs:
           SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           required=false
-          if [ "$EVENT_NAME" = workflow_dispatch ]; then
+          if [ "$EVENT_NAME" = workflow_dispatch ] || [[ "${GITHUB_REF:-}" == refs/tags/v* ]]; then
             required=true
           fi
           if [ "$EVENT_NAME" = pull_request ]; then
@@ -405,7 +415,7 @@ jobs:
     uses: ./.github/workflows/release-candidate.yml
     with:
       source-sha: ${{ github.event.pull_request.head.sha || github.sha }}
-      candidate-version: ${{ inputs.candidate-version || '' }}
+      candidate-version: ${{ github.event_name == 'workflow_dispatch' && inputs.candidate-version || '' }}
   commit-format:
     runs-on: "ubuntu-latest"
     timeout-minutes: 10

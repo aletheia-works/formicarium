@@ -1,3 +1,5 @@
+> Historical 0.1.0 release evidence. Normal stable publication now follows docs/automated-releases.md; mandatory RC adoption and candidate-bound manual publication inputs described below are not the current stable workflow.
+
 # Release assurance
 
 ## 公開専用候補と実workflowの準備（2026-10-10）

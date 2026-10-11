@@ -5,6 +5,7 @@ import {
   dispatchedCandidateContext,
   releaseCandidateContext,
   selectedCandidateVersion,
+  taggedCandidateContext,
   validateReleaseCandidateContext,
 } from '../../scripts/ci/release-candidate.js';
 import type { InputManifest } from '../../scripts/ci/verification.js';
@@ -246,7 +247,7 @@ test('dispatch selects candidate verification and forwards only the observed sou
   );
   assert.equal(
     ci.jobs['release-candidate'].with['candidate-version'],
-    "${{ inputs.candidate-version || '' }}",
+    "${{ github.event_name == 'workflow_dispatch' && inputs.candidate-version || '' }}",
   );
   const reusable = parse(
     await readFile('.github/workflows/release-candidate.yml', 'utf8'),
@@ -254,5 +255,37 @@ test('dispatch selects candidate verification and forwards only the observed sou
   assert.equal(
     reusable.jobs.verify.env.CANDIDATE_VERSION,
     '${{ inputs.candidate-version }}',
+  );
+});
+
+test('stable tag measurement rejects RC, mismatched version, forks and unbound source', () => {
+  const context = {
+    repository: 'aletheia-works/formicarium',
+    commit: sha,
+    event: 'push',
+    ref: 'refs/tags/v0.2.1',
+  };
+  assert.deepEqual(taggedCandidateContext(context, '0.2.1'), context);
+  for (const mutation of [
+    { repository: 'Marukome0743/formicarium' },
+    { event: 'workflow_dispatch' },
+    { ref: 'refs/heads/main' },
+    { commit: '' },
+  ])
+    assert.throws(
+      () => taggedCandidateContext({ ...context, ...mutation }, '0.2.1'),
+      /upstream stable/,
+    );
+  assert.throws(
+    () => taggedCandidateContext(context, '0.2.0'),
+    /upstream stable/,
+  );
+  assert.throws(
+    () =>
+      taggedCandidateContext(
+        { ...context, ref: 'refs/tags/v0.2.1-rc.1' },
+        '0.2.1-rc.1',
+      ),
+    /upstream stable/,
   );
 });
