@@ -343,7 +343,12 @@ Bun runs dependency installation, build, lint, type checks, the development serv
 Node tests retain Node to verify the published Node consumer and Worker behavior.
 The wasm compiler image is `emscripten/emsdk:latest` in PR product tests.
 
-Product builds are cached by the resolved Docker image IDs and all locked core,
-guest and build-script inputs. CI pulls the current compiler images before
-looking up the cache, so a compiler update causes a fresh build. Native, Node
-and browser tests still run on every PR.
+Product builds use three parallel jobs: wasm, probe, and aube/pitchfork. Aube
+and pitchfork stay together because the pitchfork UI depends on aube and the
+builds share Cargo downloads. Each component is cached by resolved Docker image
+IDs and its build inputs; pitchfork also includes the actual aube bytes. CI
+pulls current compiler images before cache lookup. Native checks run before
+sharing artifacts, even on cache hits. Node, Chromium, Firefox and WebKit then
+run in four isolated matrix jobs, each with one worker and no retries. All
+matrix results must succeed for the existing product-tests/ci-required gates.
+Artifacts include source SHA, run ID and attempt to keep reruns isolated.
