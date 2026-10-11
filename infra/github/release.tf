@@ -1,7 +1,7 @@
 variable "release_automation_enabled" {
   description = "Enable release PR generation and tag/GitHub release creation"
   type        = bool
-  default     = false
+  default     = true
 }
 variable "weekly_release_merge_enabled" {
   description = "Enable weekly release PR auto-merge after required checks"

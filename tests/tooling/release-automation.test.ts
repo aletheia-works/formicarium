@@ -45,7 +45,7 @@ test('release baseline follows the published stable version and updates root ver
   const manifest = JSON.parse(
     readFileSync('.github/release-please-manifest.json', 'utf8'),
   );
-  assert.equal(manifest['.'], '0.1.0');
+  assert.match(manifest['.'], /^\d+\.\d+\.\d+$/);
   const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
   assert.equal(pkg.version, manifest['.']);
   assert.equal(existsSync('version.txt'), false);
