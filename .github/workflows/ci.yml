@@ -65,22 +65,22 @@ jobs:
             image: "emscripten/emsdk:latest"
             output: "dist/blink/"
             source: "blink.lock"
-            lock: "scripts/fetch-blink.sh"
-            script: "scripts/build-blink-wasm.sh"
+            lock: ".mise/tasks/fetch-blink"
+            script: ".mise/tasks/build-blink-wasm"
           -
             component: "probe"
             image: "rust:alpine"
             output: "dist/guests/"
             source: "guest/probe/**"
             lock: "guest/probe/Cargo.lock"
-            script: "scripts/build-guests.sh"
+            script: ".mise/tasks/build-guests"
           -
             component: "guests"
             image: "rust:alpine"
             output: "dist/guests/"
-            source: "scripts/build-guests.sh"
+            source: ".mise/tasks/build-guests"
             lock: "scripts/lib/container.sh"
-            script: "scripts/build-guests.sh"
+            script: ".mise/tasks/build-guests"
     env:
       FORMICARIUM_CONTAINER: "docker"
       FORMICARIUM_EMSDK_IMAGE: "emscripten/emsdk:latest"
@@ -155,11 +155,11 @@ jobs:
       -
         name: "Build wasm from the locked source"
         if: "matrix.component == 'wasm' && steps.product-cache.outputs.cache-hit != 'true'"
-        run: "bash scripts/build-blink-wasm.sh"
+        run: "bash .mise/tasks/build-blink-wasm"
       -
         name: "Build static Linux probe guests"
         if: "matrix.component == 'probe' && steps.product-cache.outputs.cache-hit != 'true'"
-        run: "bash scripts/build-guests.sh probe"
+        run: "bash .mise/tasks/build-guests probe"
       -
         name: "Verify BSF natively before trusting wasm tests"
         if: "matrix.component == 'probe'"
@@ -171,11 +171,11 @@ jobs:
         uses: "actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9" # v6.1.0
         with:
           path: "dist/guests/aube*"
-          key: "product-aube-${{ runner.os }}-${{ runner.arch }}-${{ steps.build-image.outputs.digest }}-${{ env.AUBE_REF }}-${{ hashFiles('scripts/build-guests.sh', 'scripts/lib/container.sh') }}"
+          key: "product-aube-${{ runner.os }}-${{ runner.arch }}-${{ steps.build-image.outputs.digest }}-${{ env.AUBE_REF }}-${{ hashFiles('.mise/tasks/build-guests', 'scripts/lib/container.sh') }}"
       -
         name: "Build static Linux aube"
         if: "matrix.component == 'guests' && steps.aube-cache.outputs.cache-hit != 'true'"
-        run: "bash scripts/build-guests.sh aube"
+        run: "bash .mise/tasks/build-guests aube"
       -
         name: "Save aube before downstream work can fail"
         if: "matrix.component == 'guests' && steps.aube-cache.outputs.cache-hit != 'true'"
@@ -190,11 +190,11 @@ jobs:
         uses: "actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9" # v6.1.0
         with:
           path: "dist/guests/pitchfork*"
-          key: "product-pitchfork-${{ runner.os }}-${{ runner.arch }}-${{ steps.build-image.outputs.ui-digest }}-${{ env.PITCHFORK_REF }}-${{ hashFiles('dist/guests/aube', 'scripts/build-guests.sh', 'scripts/lib/container.sh') }}"
+          key: "product-pitchfork-${{ runner.os }}-${{ runner.arch }}-${{ steps.build-image.outputs.ui-digest }}-${{ env.PITCHFORK_REF }}-${{ hashFiles('dist/guests/aube', '.mise/tasks/build-guests', 'scripts/lib/container.sh') }}"
       -
         name: "Build unpatched pitchfork with the latest UI Node"
         if: "matrix.component == 'guests' && steps.pitchfork-cache.outputs.cache-hit != 'true'"
-        run: "bash scripts/build-guests.sh pitchfork"
+        run: "bash .mise/tasks/build-guests pitchfork"
       -
         name: "Save pitchfork before downstream tests can fail"
         if: "matrix.component == 'guests' && steps.pitchfork-cache.outputs.cache-hit != 'true'"
@@ -207,8 +207,8 @@ jobs:
         run: |-
           cp fixtures/baseline/aube-1645.native.txt "$RUNNER_TEMP/aube.native.txt"
           cp fixtures/baseline/pitchfork-basic.native.txt "$RUNNER_TEMP/pitchfork.native.txt"
-          bash scripts/native-baseline.sh aube-1645 --check-reproducible
-          bash scripts/native-baseline.sh pitchfork-basic --check-reproducible
+          bash .mise/tasks/native-baseline aube-1645 --check-reproducible
+          bash .mise/tasks/native-baseline pitchfork-basic --check-reproducible
           diff -u "$RUNNER_TEMP/aube.native.txt" fixtures/baseline/aube-1645.native.txt
           diff -u "$RUNNER_TEMP/pitchfork.native.txt" fixtures/baseline/pitchfork-basic.native.txt
         if: "matrix.component == 'guests'"
@@ -301,7 +301,7 @@ jobs:
       -
         name: "Checkout the locked core for Node source checks"
         if: "matrix.suite == 'node'"
-        run: "bash scripts/fetch-blink.sh"
+        run: "bash .mise/tasks/fetch-blink"
       -
         name: "Run product regression tests on Node"
         run: "node --test --test-concurrency=1 tests/node/build.test.js tests/node/runner.test.js tests/node/probe.test.js tests/node/session.test.js tests/node/aube-1645.test.js tests/node/pitchfork-basic.test.js"

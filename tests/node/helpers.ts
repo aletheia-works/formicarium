@@ -71,7 +71,7 @@ export const PT_INTERP = 3;
 
 /**
  * ELF64 のヘッダとプログラムヘッダを読み、static かどうかを判定する
- * （scripts/build-guests.sh の check_static_elf と同じ判定）。ELF でなければ Error を投げる。
+ * （.mise/tasks/build-guests の check_static_elf と同じ判定）。ELF でなければ Error を投げる。
  * @param {Uint8Array} bytes ファイルの中身
  * @returns {{ elfClass: number, littleEndian: boolean, machine: number, programHeaderTypes: number[], isStatic: boolean }}
  */

@@ -1,7 +1,7 @@
 // FR1.1・FR1.2：blink の fork を固定したコミットで取得し、wasm にビルドできること。
 // pitchfork（intent 261005-pitchfork-on-blink の FR1.1・FR1.2）：dist/guests/pitchfork が
 // static な x86-64 の ELF で、取得したコミットと UI の node が記録され、ローカルパッチがないこと。
-// 前提：bash scripts/build-blink-wasm.sh と bash scripts/build-guests.sh pitchfork を実行済み
+// 前提：bash .mise/tasks/build-blink-wasm と bash .mise/tasks/build-guests pitchfork を実行済み
 //       （README の「テスト」を参照）。
 import assert from 'node:assert/strict';
 import { Buffer } from 'node:buffer';
@@ -93,7 +93,7 @@ describe('fork の取得（FR1.1）', () => {
         'commit=main',
       ),
     );
-    const result = runScript('scripts/fetch-blink.sh', {
+    const result = runScript('.mise/tasks/fetch-blink', {
       env: {
         BLINK_LOCK: badLock,
         BLINK_DEST: path.join(scratch, 'blink-bad-format'),
@@ -113,7 +113,7 @@ describe('fork の取得（FR1.1）', () => {
       ),
     );
     const dest = path.join(scratch, 'blink-missing-commit');
-    const result = runScript('scripts/fetch-blink.sh', {
+    const result = runScript('.mise/tasks/fetch-blink', {
       env: { BLINK_LOCK: missingLock, BLINK_DEST: dest },
     });
     assert.notEqual(result.status, 0);

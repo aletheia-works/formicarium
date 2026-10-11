@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# usage: bash scripts/build-blink-wasm.sh
+# usage: mise run build-blink-wasm
 # blink（fork）を Emscripten でビルドし、dist/blink/blink.mjs と blink.wasm を作る（FR1.2）。
 # インタプリタのみ（--disable-jit）、pthread あり（-sPROXY_TO_PTHREAD）。
 #
 # 手順：
-#   1. scripts/fetch-blink.sh で blink.lock のコミットを .vendor/blink に取得する
+#   1. .mise/tasks/fetch-blink で blink.lock のコミットを .vendor/blink に取得する
 #   2. emconfigure ./configure --disable-jit → emmake make で blink.a と blink.o を作る
 #   3. emcc でリンクして ES モジュール（blink.mjs）と wasm を出力する
 #
@@ -18,7 +18,7 @@
 # 開発用：BLINK_SRC に別のソースディレクトリ（作業中の fork のチェックアウト）を
 # 指定すると、取得を省いてそれをビルドする。
 set -euo pipefail
-root=$(cd "$(dirname "$0")/.." && pwd)
+root=$(cd "$(dirname "$0")/../.." && pwd)
 out="$root/dist/blink"
 mode=${FORMICARIUM_BUILD:-container}
 
@@ -54,7 +54,7 @@ if [ -n "${BLINK_SRC:-}" ]; then
   src=$(cd "$BLINK_SRC" && pwd)
   echo "note: BLINK_SRC=$src をビルドします（blink.lock は使いません）" >&2
 else
-  bash "$root/scripts/fetch-blink.sh"
+  bash "$root/.mise/tasks/fetch-blink"
   src="$root/.vendor/blink"
 fi
 if [ -n "${BLINK_SOURCE_COMMIT:-}" ]; then
@@ -98,7 +98,7 @@ rm -rf "$out"
 mkdir -p "$out"
 case $mode in
   container)
-    # shellcheck source=lib/container.sh
+    # shellcheck source=../../scripts/lib/container.sh
     . "$root/scripts/lib/container.sh"
     image=${FORMICARIUM_EMSDK_IMAGE:-"emscripten/emsdk:$(emsdk_version)"}
     echo "== blink を $image でビルドします"
@@ -114,7 +114,7 @@ case $mode in
     " "$rel_src"
     ;;
   host)
-    # shellcheck source=emscripten-env.sh
+    # shellcheck source=../../scripts/emscripten-env.sh
     . "$root/scripts/emscripten-env.sh"
     command -v make >/dev/null || { echo "error: GNU make がありません（FORMICARIUM_BUILD=container を使ってください）" >&2; exit 2; }
     tmp=$(mktemp -d)

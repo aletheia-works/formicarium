@@ -7,24 +7,3 @@ bun = "latest"
 rust = { version = "stable", targets = "x86_64-unknown-linux-musl" }
 cmake = "latest"
 ninja = "latest"
-
-[tasks.install-frozen]
-run = "bun scripts/ci/tasks.ts install-frozen"
-
-[tasks.build]
-run = "bun scripts/ci/tasks.ts build"
-
-[tasks.typecheck]
-run = "bun scripts/ci/tasks.ts typecheck"
-
-[tasks.check]
-run = "bun scripts/ci/tasks.ts lint"
-
-[tasks.test-light]
-run = "bun scripts/ci/tasks.ts test-light"
-
-[tasks.test-consumer]
-run = "bun scripts/ci/tasks.ts test-consumer"
-
-[tasks.verify-candidate]
-run = "bun scripts/ci/tasks.ts verify-candidate"

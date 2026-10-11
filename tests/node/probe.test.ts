@@ -1,6 +1,6 @@
 // FR3・FR4・FR5.1・FR5.2（Node.js）：probe の全項目が、Node.js の Worker 上の blink で PASS すること。
 // 項目ごとに 1 回ずつ blink を起動して確かめる（どの項目が通らないかを個別に示すため）。
-// 前提：bash scripts/build-blink-wasm.sh と bash scripts/build-guests.sh probe を実行済み。
+// 前提：bash .mise/tasks/build-blink-wasm と bash .mise/tasks/build-guests probe を実行済み。
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { describe, it } from 'node:test';

@@ -1,7 +1,7 @@
 // FR7.1（Node.js）：aube #1645 の手順を Node.js の Worker 上の blink で実行し、書き起こしが
 // native の基準値 fixtures/baseline/aube-1645.native.txt と一致すること。
-// 前提：bash scripts/build-blink-wasm.sh、bash scripts/build-guests.sh aube、
-//       bash scripts/native-baseline.sh を実行済み。
+// 前提：bash .mise/tasks/build-blink-wasm、bash .mise/tasks/build-guests aube、
+//       bash .mise/tasks/native-baseline を実行済み。
 // fixtures はテストの中で仮想ファイルシステムに写すだけで、書き換えない。
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

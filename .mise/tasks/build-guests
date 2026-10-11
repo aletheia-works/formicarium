@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# usage: bash scripts/build-guests.sh [probe|aube|pitchfork|all]
+# usage: mise run build-guests [probe|aube|pitchfork|all]
 # static-musl x86-64 のゲストをコンテナ（rust:alpine）でビルドし、dist/guests/ に置く。
 #   probe     : guest/probe の probe・hello・exit3
 #   aube      : aubepkg/aube の AUBE_REF（既定 v2.6.1）
@@ -11,8 +11,8 @@
 # コンテナは scripts/lib/container.sh の規則で選ぶ（wslc を優先し、使えなければ docker）。
 # cargo のレジストリとビルド先は名前付きボリュームに置く（2 回目以降を速くするため）。
 set -euo pipefail
-root=$(cd "$(dirname "$0")/.." && pwd)
-# shellcheck source=lib/container.sh
+root=$(cd "$(dirname "$0")/../.." && pwd)
+# shellcheck source=../../scripts/lib/container.sh
 . "$root/scripts/lib/container.sh"
 
 what=${1:-all}

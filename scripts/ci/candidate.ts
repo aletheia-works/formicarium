@@ -45,6 +45,7 @@ export async function candidateSourcePaths(root: string) {
     }
   }
   for (const directory of [
+    '.mise/tasks',
     'runtime',
     'scripts',
     'tests',

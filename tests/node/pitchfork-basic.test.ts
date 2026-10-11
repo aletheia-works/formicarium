@@ -1,8 +1,8 @@
 // FR6.1〜FR6.4（Node.js）：pitchfork-basic の 8 コマンドを Node.js の Worker 上の blink で順に実行し、
 // 書き起こしが native の基準値 fixtures/baseline/pitchfork-basic.native.txt と一致すること（FR6.2）、
 // 手順の間で状態が引き継がれること（FR6.3）。設定は runtime/registry.js の表から読む（FR4.1）。
-// 前提：bash scripts/build-blink-wasm.sh、bash scripts/build-guests.sh pitchfork、
-//       bash scripts/native-baseline.sh pitchfork-basic を実行済み。
+// 前提：bash .mise/tasks/build-blink-wasm、bash .mise/tasks/build-guests pitchfork、
+//       bash .mise/tasks/native-baseline pitchfork-basic を実行済み。
 // fixtures はテストの中で仮想ファイルシステムに写すだけで、書き換えない。
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

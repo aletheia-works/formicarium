@@ -1,8 +1,8 @@
 // FR6.1〜FR6.4（ブラウザ）：pitchfork-basic の 8 コマンドをブラウザ上の blink で順に実行し、
 // 書き起こしが native（x86-64 Linux）の基準値 fixtures/baseline/pitchfork-basic.native.txt と一致すること
 // （FR6.2）、手順の間で状態が引き継がれること（FR6.3）を、Chromium・Firefox・WebKit で確かめる。
-// 前提：bash scripts/build-blink-wasm.sh、bash scripts/build-guests.sh pitchfork、
-//       bash scripts/native-baseline.sh pitchfork-basic を実行済み。
+// 前提：bash .mise/tasks/build-blink-wasm、bash .mise/tasks/build-guests pitchfork、
+//       bash .mise/tasks/native-baseline pitchfork-basic を実行済み。
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';

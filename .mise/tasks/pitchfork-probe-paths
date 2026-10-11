@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# usage: bash scripts/pitchfork-probe-paths.sh [<session>]
+# usage: mise run pitchfork-probe-paths [<session>]
 # コード生成計画の Step 4（requirements.md の Assumptions の 2 件）を native で確かめるための調査用スクリプト。
 # 手順（既定は pitchfork-basic）を busybox のコンテナ（ネットワークなし）で native に実行し、
 # コマンドごとに次を dist/pitchfork-probe-paths/report.txt に書く。
@@ -10,10 +10,10 @@
 # 判定（persist の範囲を広げるか）は人が行う。書き込み先がすべて表の persist（/work と /root）
 # の下にあれば、今の範囲のままでよい。基準値（fixtures/baseline/）は書き換えない。
 set -euo pipefail
-root=$(cd "$(dirname "$0")/.." && pwd)
-# shellcheck source=lib/container.sh
+root=$(cd "$(dirname "$0")/../.." && pwd)
+# shellcheck source=../../scripts/lib/container.sh
 . "$root/scripts/lib/container.sh"
-# shellcheck source=lib/node.sh
+# shellcheck source=../../scripts/lib/node.sh
 . "$root/scripts/lib/node.sh"
 
 session=${1:-pitchfork-basic}
@@ -24,7 +24,7 @@ fi
 info_status=0
 load_session_info "$session" || info_status=$?
 [ "$info_status" = 0 ] || exit "$info_status"
-[ -f "$root/$GUEST_PATH" ] || { echo "error: $root/$GUEST_PATH がありません（bash scripts/build-guests.sh $GUEST）" >&2; exit 1; }
+[ -f "$root/$GUEST_PATH" ] || { echo "error: $root/$GUEST_PATH がありません（bash .mise/tasks/build-guests $GUEST）" >&2; exit 1; }
 image=${FORMICARIUM_NATIVE_IMAGE:-busybox:latest}
 
 body='

@@ -141,18 +141,18 @@ Windows では POSIX permission bits の検査だけを skip する。同じ検�
 ```bash
 mise run install-frozen
 mise run build                   # TypeScript を JavaScript にコンパイルする
-bash scripts/build-blink-wasm.sh   # blink.lock のコミットを取得し、dist/blink/blink.mjs と blink.wasm を作る
-bash scripts/build-guests.sh       # dist/guests/ に probe・hello・exit3・aube（v2.6.1）・pitchfork（v2.29.0）を作る（aube は 1 時間以上かかる）
-bash scripts/native-baseline.sh    # fixtures/baseline/aube-1645.native.txt（native の基準値）を作る
-bash scripts/native-baseline.sh pitchfork-basic --check-reproducible   # pitchfork の基準値（2 回作って一致を確かめる）
+mise run build-blink-wasm   # blink.lock のコミットを取得し、dist/blink/blink.mjs と blink.wasm を作る
+mise run build-guests       # dist/guests/ に probe・hello・exit3・aube（v2.6.1）・pitchfork（v2.30.1）を作る（aube は 1 時間以上かかる）
+mise run native-baseline    # fixtures/baseline/aube-1645.native.txt（native の基準値）を作る
+mise run native-baseline pitchfork-basic --check-reproducible   # pitchfork の基準値（2 回作って一致を確かめる）
 bun node_modules/@playwright/test/cli.js install chromium firefox webkit
 ```
 
-`bash scripts/fetch-blink.sh` は `blink.lock` のコミットだけを `.vendor/blink` に取得する。fork と upstream の差分は
+`mise run fetch-blink` は `blink.lock` のコミットだけを `.vendor/blink` に取得する。fork と upstream の差分は
 `git -C .vendor/blink diff <upstream_commit> <commit>`（値は `blink.lock`）で一覧できる。
 
-- probe だけを作り直すときは `bash scripts/build-guests.sh probe`（1 分ほど）。aube は入力が変わらない限り作り直さなくてよい。
-- pitchfork だけを作るときは `bash scripts/build-guests.sh pitchfork`（初回は 35 分ほど）。公式リポジトリ（jdx/pitchfork）の
+- probe だけを作り直すときは `mise run build-guests probe`（1 分ほど）。aube は入力が変わらない限り作り直さなくてよい。
+- pitchfork だけを作るときは `mise run build-guests pitchfork`（初回は 35 分ほど）。公式リポジトリ（jdx/pitchfork）の
   タグ `v2.30.1` を取得し、コミットを `dist/guests/pitchfork.commit` に記録する（`PITCHFORK_REF` で変えられる）。
   - release ビルドは web UI を埋め込むので、先に `ui/` を `dist/guests/aube` で `aube install --frozen-lockfile && aube run build`
     する。上流UIのNode実行には公式 `node:current-alpine` の最新系列を使う（`PITCHFORK_UI_NODE_IMAGE`で変更可能）
@@ -161,7 +161,7 @@ bun node_modules/@playwright/test/cli.js install chromium firefox webkit
   ビルド後、`dist/guests/` のすべてのゲストが static な x86-64 の ELF であること（`PT_INTERP` がないこと）を確かめる。
 - ゲスト・環境変数・手順の一覧は `runtime/registry.ts` の 1 か所にある。ゲストを足すときは、そこに 1 行足し、
   `build-guests.sh` の対象・fixture・基準値・テストを足す（[`docs/terrarium-integration.md`](docs/terrarium-integration.md) の 3 節）。
-- `bash scripts/native-baseline.sh [<手順>] [--check-reproducible]` は、表の手順（既定は `aube-1645`）の基準値を作る。
+- `mise run native-baseline [<手順>] [--check-reproducible]` は、表の手順（既定は `aube-1645`）の基準値を作る。
   手順の設定は `bun scripts/session-info.js <手順>` で表から読む（シェル補助はBunを優先し、必要時はNodeを使う）。
 - wasm メモリの上限は 1 GB（`-sMAXIMUM_MEMORY=1GB`）。WebKit がインスタンスごとに上限までメモリを確保するため、
   4 GB から下げた。1 GB を超えるメモリを使うゲストは動かない。
@@ -171,11 +171,11 @@ bun node_modules/@playwright/test/cli.js install chromium firefox webkit
 ### fork を直すとき
 
 1. `.vendor/blink-src`（fork のコピー）で修正する。この PoC では jj で管理している。
-2. `BLINK_SRC=.vendor/blink-src bash scripts/build-blink-wasm.sh` でビルドして試す（通常の取得経路は `checkout --force` と
+2. `BLINK_SRC=.vendor/blink-src mise run build-blink-wasm` でビルドして試す（通常の取得経路は `checkout --force` と
    clean を呼ぶので、ローカルの修正には使わない）。
 3. 修正を新しいコミットにして `formicarium-wasm` に push し、`blink.lock` の `commit=` を更新する。
    公開済みのコミットに変更が混ざらないように注意する（jj は作業中の変更を今のコミットに取り込むため、先に `jj new` しておく）。
-4. `bash scripts/fetch-blink.sh` と `bash scripts/build-blink-wasm.sh` でクリーンビルドし、全テストを実行する。
+4. `mise run fetch-blink` と `mise run build-blink-wasm` でクリーンビルドし、全テストを実行する。
 5. レビュー用に、差分の写しを `patches/` に置く。
 
 ## 保守 workflow
@@ -256,9 +256,9 @@ npx playwright test tests/browser/probe.spec.js tests/browser/aube-1645.spec.js 
 npx playwright test tests/browser/pitchfork-basic.spec.js   # pitchfork-basic（Chromium・Firefox・WebKit）
 ```
 
-pitchfork のテストの前提は `bash scripts/build-guests.sh pitchfork` と
-`bash scripts/native-baseline.sh pitchfork-basic --check-reproducible`。pitchfork が書き込む場所の調査
-（どのコマンドがどこに書くか、`status api` が何を返すか）は `bash scripts/pitchfork-probe-paths.sh` で native に確かめられる。
+pitchfork のテストの前提は `mise run build-guests pitchfork` と
+`mise run native-baseline pitchfork-basic --check-reproducible`。pitchfork が書き込む場所の調査
+（どのコマンドがどこに書くか、`status api` が何を返すか）は `mise run pitchfork-probe-paths` で native に確かめられる。
 
 Safari の代わりに Playwright の WebKit で確かめている。実機の Safari（macOS）での確認はまだしていない。
 
@@ -352,3 +352,20 @@ sharing artifacts, even on cache hits. Node, Chromium, Firefox and WebKit then
 run in four isolated matrix jobs, each with one worker and no retries. All
 matrix results must succeed for the existing product-tests/ci-required gates.
 Artifacts include source SHA, run ID and attempt to keep reruns isolated.
+
+## 開発タスクとスクリプトの配置
+
+実行用タスクは `.mise/tasks/` に置く。miseが自動検出するため、`mise.toml`への個別登録は不要。
+`mise tasks ls`で一覧を確認し、`mise run build-guests probe`のように引数を渡せる。
+固定依存の導入は `mise run install-frozen`（キャッシュなしは `--cacheless`）。
+通常の確認は `mise run check`、`mise run typecheck`、`mise run build`、`mise run test-light`。
+
+- `.mise/tasks/`: 開発タスク、wasm・ゲストのビルド、ソース取得、native基準値作成、書き込み先調査。
+- `scripts/lib/`と`scripts/emscripten-env.sh`: 複数タスクから読み込むコンテナ・環境設定。単独実行するタスクにはしない。
+- `scripts/ci/`: 候補入力の検証・証拠収集。`tasks.ts`はキャッシュなし導入の引数検証と既存CIの入口に限定し、通常のmiseタスクはBunへ直接渡す。
+- `scripts/package/`・`scripts/release/`・`scripts/terrarium/`・`scripts/guest-distribution/`: テストから使う検証・配布ロジック。YAMLへ複製せず、引き続き単体試験する。
+- `.github/workflows/`: PRイベント、matrix、キャッシュ、artifact、保守自動化の制御。製品ビルドはローカルと同じ `.mise/tasks/` の実装を実行する。
+
+生成された `.js`・`.js.map`は `mise run build` の出力で、管理対象のスクリプトではない。
+製品ビルドをCI専用YAMLへ移すとローカル再現性を失うため、共有する実行ファイルを1つに保つ。
+候補検証のソース一覧には `.mise/tasks/` も含め、タスク変更を検証対象から漏らさない。
