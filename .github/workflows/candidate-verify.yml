@@ -1,6 +1,8 @@
 name: Modernization candidate verification
 on:
   workflow_dispatch:
+env:
+  PLAYWRIGHT_SKIP_BROWSER_GC: '1'
 permissions:
   contents: read
 concurrency:
@@ -32,6 +34,8 @@ jobs:
           FORMICARIUM_MODERNIZATION_INPUT_URL: ${{ vars.FORMICARIUM_MODERNIZATION_INPUT_URL }}
           FORMICARIUM_MODERNIZATION_INPUT_SHA256: ${{ vars.FORMICARIUM_MODERNIZATION_INPUT_SHA256 }}
         run: python3 scripts/ci/install-modernization-inputs.py
+      - name: Install browsers matching the reviewed terrarium snapshot
+        run: node .ci-inputs/payload/.artifacts/ci-candidate/terrarium/packages/terrarium/node_modules/@playwright/test/cli.js install --with-deps chromium firefox webkit
       - name: Verify current source and consumer regressions sequentially
         env:
           FORMICARIUM_CI_BUN: ${{ steps.bun.outputs.bun-path }}

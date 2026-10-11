@@ -35,6 +35,81 @@ jobs:
       - run: node scripts/ci/tasks.ts build
       - name: Run light tests with the installed fixed Bun
         run: BUN_EXECUTABLE="$(command -v bun)" node scripts/ci/tasks.ts test-light
+  product-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    env:
+      FORMICARIUM_CONTAINER: docker
+      AUBE_REF: v2.7.0
+      PITCHFORK_REF: v2.30.1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '26.11.1'
+          package-manager-cache: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.4.2'
+      - run: bun install --frozen-lockfile --ignore-scripts
+      - run: bun run build
+      # The locked blink commit is supplied by a reviewed source bundle until
+      # it is available directly from the core repository. No built product
+      # or consumer dependencies from the archive are reused in this job.
+      - name: Fetch fixed core source input
+        env:
+          FORMICARIUM_MODERNIZATION_INPUT_URL: https://raw.githubusercontent.com/aletheia-works/formicarium/674a7f0a1b1736a2df61a994ab2dac29dddb8ace/modernization-inputs.tar.gz
+          FORMICARIUM_MODERNIZATION_INPUT_SHA256: 0b074f0ebc170fbabed0fbe1d8bfad9628247a4131f78223db8c343412c38730
+        run: python3 scripts/ci/install-modernization-inputs.py
+      - name: Prepare locked core source
+        run: |
+          mkdir -p .artifacts/ci-candidate
+          cp .ci-inputs/payload/.artifacts/ci-candidate/core-source.bundle .artifacts/ci-candidate/
+          node --input-type=module <<'JS'
+          import { readFileSync } from 'node:fs';
+          import { spawnSync } from 'node:child_process';
+          import { bootstrapCoreSource } from './scripts/ci/core-source.js';
+          const manifest = JSON.parse(readFileSync('.ci-inputs/manifest.json', 'utf8'));
+          await bootstrapCoreSource(process.cwd(), manifest, async (id, args) => {
+            const result = spawnSync(args[0], args.slice(1), { stdio: 'inherit' });
+            if (result.error) throw result.error;
+            if (result.status !== 0) throw new Error(`${id} failed: ${result.status}`);
+          });
+          JS
+      - name: Build wasm core and static Linux guests from source
+        run: |
+          bash scripts/build-blink-wasm.sh
+          bash scripts/build-guests.sh all
+      - name: Verify reproducible native baselines
+        run: |
+          cp fixtures/baseline/aube-1645.native.txt "$RUNNER_TEMP/aube.native.txt"
+          cp fixtures/baseline/pitchfork-basic.native.txt "$RUNNER_TEMP/pitchfork.native.txt"
+          bash scripts/native-baseline.sh aube-1645 --check-reproducible
+          bash scripts/native-baseline.sh pitchfork-basic --check-reproducible
+          diff -u "$RUNNER_TEMP/aube.native.txt" fixtures/baseline/aube-1645.native.txt
+          diff -u "$RUNNER_TEMP/pitchfork.native.txt" fixtures/baseline/pitchfork-basic.native.txt
+      - name: Run product regression tests on Node
+        run: node --test --test-concurrency=1 tests/node/build.test.js tests/node/runner.test.js tests/node/probe.test.js tests/node/session.test.js tests/node/aube-1645.test.js tests/node/pitchfork-basic.test.js
+      - name: Install browsers matching the project lockfile
+        run: bunx --no-install playwright install --with-deps chromium firefox webkit
+      - name: Run browser regression tests sequentially
+        run: bun run test:browser -- --workers=1 --retries=0
+      - name: Save build metadata and browser diagnostics
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: product-tests-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: |
+            dist/blink/build-info.json
+            dist/guests/*.commit
+            dist/guests/*.build-info
+            playwright-report/
+            test-results/
+          retention-days: 7
+          if-no-files-found: warn
   commit-format:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -68,7 +143,7 @@ jobs:
         run: node "$TRUSTED_VALIDATOR" "$BASE_SHA" "$HEAD_SHA"
   ci-required:
     if: always()
-    needs: [quality, commit-format]
+    needs: [quality, product-tests, commit-format]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -94,5 +169,6 @@ jobs:
       - name: Require successful quality and commit checks
         env:
           QUALITY_RESULT: ${{ needs.quality.result }}
+          PRODUCT_RESULT: ${{ needs.product-tests.result }}
           COMMIT_RESULT: ${{ needs.commit-format.result }}
-        run: test "$QUALITY_RESULT" = success && test "$COMMIT_RESULT" = success
+        run: test "$QUALITY_RESULT" = success && test "$COMMIT_RESULT" = success && test "$PRODUCT_RESULT" = success

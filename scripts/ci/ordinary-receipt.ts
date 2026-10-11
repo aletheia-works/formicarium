@@ -21,7 +21,7 @@ const observedJobs = JSON.parse(process.env.OBSERVED_JOBS ?? '{}') as Record<
   string,
   { result: string }
 >;
-const jobs = ['quality', 'commit-format'].map((name) => {
+const jobs = ['quality', 'product-tests', 'commit-format'].map((name) => {
   const state = observedJobs[name]?.result;
   if (!['success', 'failure', 'skipped', 'cancelled'].includes(state ?? ''))
     throw Error(`missing dependency job outcome: ${name}`);

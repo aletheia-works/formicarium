@@ -318,3 +318,20 @@ aidlc/                AI-DLC の作業記録（要件、計画、レビュー、
 ## License
 
 Apache License 2.0（blink の fork は ISC。[`docs/licenses.md`](docs/licenses.md) を参照）
+
+### PR product tests
+
+`ci.yml` runs on pull requests and pushes to `main`. In addition to lint,
+TypeScript checks and lightweight tests, `product-tests` builds the locked blink
+wasm core and probe/aube/pitchfork Linux guests from source, checks reproducible
+native transcripts against the committed baselines, then runs Node regressions
+and Chromium, Firefox and WebKit sequentially (one worker, no retries).
+`ci-required` requires the product job to succeed. Build metadata and Playwright
+failure diagnostics are retained for seven days. Jobs use read-only permissions
+and do not receive repository secrets.
+
+The temporary digest-pinned input archive supplies only the unavailable locked
+core source bundle to PR tests; its prebuilt products are not reused. Extended
+cross-repository consumer and coverage checks remain in `candidate-verify.yml`.
+That workflow installs browsers for both the root lockfile and the reviewed
+terrarium snapshot, whose Playwright versions may differ.
