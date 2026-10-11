@@ -6,8 +6,10 @@ GitHub Release. The tag triggers the existing verified npm OIDC publication.
 Release-please owns the changelog and release notes; publish.yml attaches the
 verified tarball to an existing release, retaining manual RC release support.
 
-The initial manifest/version.txt baseline is the published 0.1.0. The private
-root package version follows the same version; private remains true.
+The node release strategy uses package.json as the version source, matching
+vivarium. The initial manifest baseline is the published 0.1.0. Release-please
+updates package.json and creates the matching v<version> tag and GitHub Release.
+No version.txt is used. The root package remains private.
 
 ## Enablement
 

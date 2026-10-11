@@ -6,16 +6,9 @@
   "pull-request-header": "Release Please calculated this version from Conventional Commits. Candidate CI, coverage, RC acceptance and candidate-bound publication approval remain mandatory. A release PR does not authorize npm publication.",
   "packages": {
     ".": {
-      "release-type": "simple",
+      "release-type": "node",
       "component": "formicarium",
-      "include-component-in-tag": false,
-      "extra-files": [
-        {
-          "type": "json",
-          "path": "package.json",
-          "jsonpath": "$.version"
-        }
-      ]
+      "include-component-in-tag": false
     }
   }
 }

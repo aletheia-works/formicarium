@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { parse } from 'yaml';
 
@@ -46,10 +46,11 @@ test('release baseline follows the published stable version and updates root ver
     readFileSync('.github/release-please-manifest.json', 'utf8'),
   );
   assert.equal(manifest['.'], '0.1.0');
-  assert.equal(readFileSync('version.txt', 'utf8').trim(), manifest['.']);
-  assert.equal(config.packages['.']['release-type'], 'simple');
+  const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+  assert.equal(pkg.version, manifest['.']);
+  assert.equal(existsSync('version.txt'), false);
+  assert.equal(config.packages['.']['release-type'], 'node');
   assert.equal(config.packages['.'].component, 'formicarium');
-  assert.deepEqual(config.packages['.']['extra-files'], [
-    { type: 'json', path: 'package.json', jsonpath: '$.version' },
-  ]);
+  assert.equal(config.packages['.']['include-component-in-tag'], false);
+  assert.equal(config.packages['.']['extra-files'], undefined);
 });
