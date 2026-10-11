@@ -326,7 +326,7 @@ TypeScript checks and lightweight tests, `product-tests` builds the locked blink
 wasm core and probe/aube/pitchfork Linux guests from source, checks reproducible
 native transcripts against the committed baselines, then runs Node regressions
 and Chromium, Firefox and WebKit sequentially (one worker, no retries).
-`ci-required` requires the product job to succeed. Build metadata and Playwright
+`ci-required` requires the product job to succeed. Compiled products, build metadata and Playwright
 failure diagnostics are retained for seven days. Jobs use read-only permissions
 and do not receive repository secrets.
 
