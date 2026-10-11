@@ -86,7 +86,7 @@ Node.js の Worker と、COOP/COEP 付きのブラウザページ（Chromium・F
 | Docker Desktop または wslc | blink の wasm ビルド、ゲストのビルド、native の基準値 | wslc（`C:\Program Files\WSL\wslc.exe`）を優先し、動かなければ docker を使う。`FORMICARIUM_CONTAINER` で指定もできる |
 | emsdk | ローカルでの Emscripten（`FORMICARIUM_BUILD=host` のとき） | `~/AppData/Local/emsdk`（Windows）または `~/emsdk`。`git clone https://github.com/emscripten-core/emsdk && ./emsdk install latest && ./emsdk activate latest` |
 | Git、Git Bash | スクリプトの実行（Windows） | — |
-| Playwright のブラウザ | ブラウザのテストと計測 | `mise run install-frozen` → `node node_modules/@playwright/test/cli.js install chromium firefox webkit` |
+| Playwright のブラウザ | ブラウザのテストと計測 | `mise run install-frozen` → `bun node_modules/@playwright/test/cli.js install chromium firefox webkit` |
 
 Windows では、mise のツールは非対話シェルの PATH に載らない。`~/AppData/Local/mise/installs/<tool>/<version>/` の実体を直接呼ぶ。
 
@@ -117,7 +117,7 @@ commit形式は信頼済みbaseの`scripts/ci/commit-format.ts`で検査する�
 | lint | `mise run check` | `bun run check` | Biome |
 | typecheck | `mise run typecheck` | `bun run typecheck` | TypeScript |
 | build | `mise run build` | `bun run build` | tscとBun emitter |
-| test-light | `mise run test-light` | `bun run test:light` | Bun unit＋Node consumer/tooling |
+| test-light | `mise run test-light` | `bun run test:light` | Bun unit/tooling＋Node consumer/publication |
 | test-consumer | `mise run test-consumer` | `bun run test:consumer` | Node consumer、別途資産準備 |
 | verify-candidate | `mise run verify-candidate` | `bun run verify:candidate` | Node/browser/nativeと固定80%coverage |
 
@@ -136,7 +136,7 @@ bun run check:fix    # Biome の安全な自動修正
 
 Windows では POSIX permission bits の検査だけを skip する。同じ検査を Linux で実行することで権限の条件を確認する。外部の実配布資産に関するテストも、資産を未準備のときは未検証として表示する。
 
-`mise run test-consumer` は wasm・guest・検証済みの npm アーカイブ・独立した consumer を使うため、各テストの資産と環境変数を準備してから実行する。Playwright は `.spec.ts` を読み、3 ブラウザ・1 worker・再試行なしを維持する。失敗時には trace と screenshot を保存する。開発依存はtext `bun.lock`をコミットし、frozen導入でlockの変更を拒否する。導入scriptは全て無効化し、`trustedDependencies: []`でBunの既定許可にも頼らない。cacheなし確認は`node scripts/ci/tasks.ts install-frozen --cacheless`で実行する。Node向けconsumer・Worker・固有flagsをBun runtimeへ置換しない。
+`mise run test-consumer` は wasm・guest・検証済みの npm アーカイブ・独立した consumer を使うため、各テストの資産と環境変数を準備してから実行する。Playwright は `.spec.ts` を読み、3 ブラウザ・1 worker・再試行なしを維持する。失敗時には trace と screenshot を保存する。開発依存はtext `bun.lock`をコミットし、frozen導入でlockの変更を拒否する。導入scriptは全て無効化し、`trustedDependencies: []`でBunの既定許可にも頼らない。cacheなし確認は`bun scripts/ci/tasks.ts install-frozen --cacheless`で実行する。Node向けconsumer・Worker・固有flagsをBun runtimeへ置換しない。
 
 ```bash
 mise run install-frozen
@@ -145,7 +145,7 @@ bash scripts/build-blink-wasm.sh   # blink.lock のコミットを取得し、di
 bash scripts/build-guests.sh       # dist/guests/ に probe・hello・exit3・aube（v2.6.1）・pitchfork（v2.29.0）を作る（aube は 1 時間以上かかる）
 bash scripts/native-baseline.sh    # fixtures/baseline/aube-1645.native.txt（native の基準値）を作る
 bash scripts/native-baseline.sh pitchfork-basic --check-reproducible   # pitchfork の基準値（2 回作って一致を確かめる）
-node node_modules/@playwright/test/cli.js install chromium firefox webkit
+bun node_modules/@playwright/test/cli.js install chromium firefox webkit
 ```
 
 `bash scripts/fetch-blink.sh` は `blink.lock` のコミットだけを `.vendor/blink` に取得する。fork と upstream の差分は
@@ -155,14 +155,14 @@ node node_modules/@playwright/test/cli.js install chromium firefox webkit
 - pitchfork だけを作るときは `bash scripts/build-guests.sh pitchfork`（初回は 35 分ほど）。公式リポジトリ（jdx/pitchfork）の
   タグ `v2.30.1` を取得し、コミットを `dist/guests/pitchfork.commit` に記録する（`PITCHFORK_REF` で変えられる）。
   - release ビルドは web UI を埋め込むので、先に `ui/` を `dist/guests/aube` で `aube install --frozen-lockfile && aube run build`
-    する。UI に使う node はメジャー版 24 に固定し（`PITCHFORK_UI_NODE_MAJOR`）、違う版が入ったら止まる
+    する。上流UIのNode実行には公式 `node:current-alpine` の最新系列を使う（`PITCHFORK_UI_NODE_IMAGE`で変更可能）
   - 上流ソースを修正せずにビルドする。ソース変更が残るキャッシュは拒否する
   - UI に使った node の版と UI 成果物の sha256 を `dist/guests/pitchfork.build-info` に記録する
   ビルド後、`dist/guests/` のすべてのゲストが static な x86-64 の ELF であること（`PT_INTERP` がないこと）を確かめる。
 - ゲスト・環境変数・手順の一覧は `runtime/registry.ts` の 1 か所にある。ゲストを足すときは、そこに 1 行足し、
   `build-guests.sh` の対象・fixture・基準値・テストを足す（[`docs/terrarium-integration.md`](docs/terrarium-integration.md) の 3 節）。
 - `bash scripts/native-baseline.sh [<手順>] [--check-reproducible]` は、表の手順（既定は `aube-1645`）の基準値を作る。
-  手順の設定は `node scripts/session-info.js <手順>` で表から読む（node は PATH、`FORMICARIUM_NODE`、mise の順に探す）。
+  手順の設定は `bun scripts/session-info.js <手順>` で表から読む（シェル補助はBunを優先し、必要時はNodeを使う）。
 - wasm メモリの上限は 1 GB（`-sMAXIMUM_MEMORY=1GB`）。WebKit がインスタンスごとに上限までメモリを確保するため、
   4 GB から下げた。1 GB を超えるメモリを使うゲストは動かない。
 - `dist/blink/build-info.json` の `blinkSourceDirty` が `true` のビルド（未公開の修正を含む）では、
@@ -217,7 +217,7 @@ node runtime/node/run.js --copy-in fixtures/aube-local-deps:/work --cwd /work/ap
   --env AUBE_NO_UPDATE_CHECK=1 dist/guests/aube list
 
 # ブラウザで実行する（COOP/COEP 付きの開発用サーバー）
-node scripts/serve.js --port 8787
+bun scripts/serve.js --port 8787
 #   http://127.0.0.1:8787/runtime/web/index.html?guest=probe
 #   http://127.0.0.1:8787/runtime/web/index.html?session=aube-1645
 #   http://127.0.0.1:8787/runtime/web/index.html?session=pitchfork-basic
@@ -339,7 +339,7 @@ terrarium coverage workspace without changing the reviewed input snapshot.
 CI selects `ubuntu-latest`, Node `latest` and Bun `latest` on each run. Playwright, Biome and TypeScript
 are refreshed with `bun add --dev --no-save --ignore-scripts @playwright/test@latest @biomejs/biome@latest typescript@latest`,
 so tests use the latest release while preserving the committed dependency lock.
-Bun runs build, lint, type checks, helper scripts and browser tooling. Explicit
+Bun runs dependency installation, build, lint, type checks, the development server, general unit/tooling tests and browser tooling. Explicit
 Node tests retain Node to verify the published Node consumer and Worker behavior.
 The wasm compiler image is `emscripten/emsdk:latest` in PR product tests.
 

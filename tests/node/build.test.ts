@@ -217,7 +217,8 @@ describe('pitchfork ゲストのビルド（FR1.1・FR1.2）', () => {
       ).trim(),
     );
     assert.equal(fields.patch, undefined);
-    assert.match(fields['ui-node'], /^v24\.\d+\.\d+$/);
+    assert.match(fields['ui-node'], /^v\d+\.\d+\.\d+$/);
+    assert.ok(Number(fields['ui-node'].slice(1).split('.')[0]) >= 26);
     assert.match(fields['ui-index-sha256'], /^[0-9a-f]{64}$/);
   });
 });

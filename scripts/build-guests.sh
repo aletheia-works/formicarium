@@ -81,20 +81,18 @@ build_pitchfork() {
   # ui/dist/index.html がないと release で止まる）。UI のビルド手順は pitchfork の mise.toml の
   # build:ui と同じ `aube install && aube run build`。aube は dist/guests/aube（static-musl）を使い、
   # pnpm-lock.yaml に固定した依存だけを入れる（--frozen-lockfile）。pitchfork のソースは変えない。
-  # UI のビルドに使う node のメジャー版は pitchfork の mise.toml（node = "24"）に合わせて固定し、
-  # apk が別のメジャー版を入れたら止める。使った版・UI の成果物は pitchfork.build-info に記録する
-  # （pitchfork.commit は上流の HEAD）。
+  # 上流の UI build は Node を使う。公式 current-alpine image の musl binary を
+  # Rust container に渡し、Alpine の LTS package による旧版固定を避ける。
+  # 実際に使った版・UI の成果物は pitchfork.build-info に記録する。
   local aube_bin=dist/guests/aube
-  local node_major=${PITCHFORK_UI_NODE_MAJOR:-24}
-  [[ $node_major =~ ^[0-9]+$ ]] || { echo "error: PITCHFORK_UI_NODE_MAJOR は数字にしてください: $node_major" >&2; exit 2; }
   [ -f "$root/$aube_bin" ] || { echo "error: $aube_bin がありません（UI のビルドに使います）" >&2; exit 1; }
+  container_run "${PITCHFORK_UI_NODE_IMAGE:-node:current-alpine}" .artifacts/pitchfork-ui-node "
+    cp /usr/local/bin/node /out/node
+  " guest/probe/Cargo.toml
   container_run "$image" dist/guests "
-    apk add --no-cache musl-dev git perl make cmake nodejs >/dev/null
+    apk add --no-cache musl-dev git perl make cmake libstdc++ >/dev/null
+    install -m 0755 /work/.artifacts/pitchfork-ui-node/node /usr/local/bin/node
     node_version=\$(node --version)
-    case \$node_version in
-      v$node_major.*) ;;
-      *) echo \"error: UI のビルドには node $node_major が必要です（apk が入れたのは \${node_version}）\" >&2; exit 1 ;;
-    esac
     install -m 0755 /work/$aube_bin /usr/local/bin/aube
     src=/cache/pitchfork-src/$pitchfork_ref
     if [ ! -d \"\$src/.git\" ] || [ \"\$(git -C \"\$src\" remote get-url origin)\" != '$pitchfork_repo' ]; then
@@ -118,7 +116,7 @@ build_pitchfork() {
       echo \"ui-node=\$node_version\"
       echo \"ui-index-sha256=\$(sha256sum ui/dist/index.html | cut -d ' ' -f 1)\"
     } > /out/pitchfork.build-info
-  " guest/probe/Cargo.toml "$aube_bin"
+  " guest/probe/Cargo.toml "$aube_bin" .artifacts/pitchfork-ui-node/node
 }
 
 case $what in
