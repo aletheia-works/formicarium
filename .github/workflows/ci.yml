@@ -361,6 +361,41 @@ jobs:
           path: "dist/"
           retention-days: 7
           if-no-files-found: "error"
+  candidate-scope:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      required: ${{ steps.scope.outputs.required }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        if: github.event_name == 'pull_request'
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Select release PRs and candidate infrastructure changes
+        id: scope
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          required=false
+          if [ "$EVENT_NAME" = pull_request ]; then
+            git diff --name-only "$BASE_SHA" "$SOURCE_SHA" > "$RUNNER_TEMP/candidate-paths.txt"
+            if [[ "$HEAD_REF" == release-please--branches--main--components--formicarium ]] ||
+              grep -Eq '^(\.github/workflows/(ci|release-candidate)\.yml$|scripts/(ci|package)/|scripts/terrarium/coverage\.ts$|tests/(package/|terrarium/|tooling/release-candidate\.test\.ts$))' "$RUNNER_TEMP/candidate-paths.txt"; then
+              required=true
+            fi
+          fi
+          printf 'required=%s\n' "$required" >> "$GITHUB_OUTPUT"
+  release-candidate:
+    needs: [candidate-scope, product-build]
+    if: needs.candidate-scope.outputs.required == 'true'
+    uses: ./.github/workflows/release-candidate.yml
+    with:
+      source-sha: ${{ github.event.pull_request.head.sha }}
   commit-format:
     runs-on: "ubuntu-latest"
     timeout-minutes: 10
@@ -402,6 +437,8 @@ jobs:
       - "quality"
       - "product-tests"
       - "commit-format"
+      - "candidate-scope"
+      - "release-candidate"
     runs-on: "ubuntu-latest"
     timeout-minutes: 5
     steps:
@@ -433,4 +470,14 @@ jobs:
           QUALITY_RESULT: "${{ needs.quality.result }}"
           PRODUCT_RESULT: "${{ needs.product-tests.result }}"
           COMMIT_RESULT: "${{ needs.commit-format.result }}"
-        run: "test \"$QUALITY_RESULT\" = success && test \"$COMMIT_RESULT\" = success && test \"$PRODUCT_RESULT\" = success"
+          SCOPE_RESULT: "${{ needs.candidate-scope.result }}"
+          CANDIDATE_REQUIRED: "${{ needs.candidate-scope.outputs.required }}"
+          CANDIDATE_RESULT: "${{ needs.release-candidate.result }}"
+        run: |
+          test "$QUALITY_RESULT" = success && test "$COMMIT_RESULT" = success && test "$PRODUCT_RESULT" = success
+          test "$SCOPE_RESULT" = success
+          if [ "$CANDIDATE_REQUIRED" = true ]; then
+            test "$CANDIDATE_RESULT" = success
+          else
+            test "$CANDIDATE_REQUIRED" = false && test "$CANDIDATE_RESULT" = skipped
+          fi

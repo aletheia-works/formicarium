@@ -22,6 +22,8 @@
       "!fixtures",
       "!assets",
       "!.artifacts",
+      "!.ci-inputs",
+      "!.ci-fixtures",
       "!**/test-results",
       "!**/playwright-report",
       "!**/*.js",

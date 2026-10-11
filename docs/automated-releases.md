@@ -13,7 +13,8 @@ No version.txt is used. The root package remains private.
 
 ## Enablement
 
-Automation is disabled by default. Apply the infra/github plan only after
+Release PR generation is enabled in the current infrastructure defaults; weekly
+release merging remains disabled. Apply the infra/github plan only after
 reviewing the new labels and variables. Supply the existing organisation
 aletheia-works-bot credentials BOT_CLIENT_ID (variable) and BOT_PRIVATE_KEY
 (secret); do not put credentials in source control. The App needs Contents,
@@ -34,13 +35,34 @@ native/Node/browser regression, fixed-inventory coverage >=80%, published RC
 terrarium acceptance and stable/RC diff checks. Release-please cannot produce
 these external acceptance results or authorize publication.
 
-The release input URL/SHA variables still refer to the 0.1.0 input. Before a
-future release, regenerate candidate evidence for the exact tagged source and
-version and update the reviewed inputs. A stale input fails closed. Automatic
-candidate input generation is not implemented by these release workflows.
-Do not enable weekly merging while this preparation is manual: GitHub Release
-creation precedes npm verification, so an unprepared release can have a tag and
-GitHub Release while npm publication is blocked.
+The release PR runs the ordinary CI plus `release-candidate.yml`. The same CI
+run builds the locked core, stages the current package.json version, packs a
+public candidate without publishing it, and measures regression and fixed-24
+coverage against that exact tarball. The candidate, its SHA-bound manifest,
+logs, receipts and coverage are retained together as a run/attempt/head-bound
+Actions artifact. No version-specific input branch push or candidate input
+variable update is required.
+
+Candidate infrastructure changes also run this job so changes to the preparation
+or workflow are tested before merging. Other PRs skip the expensive candidate
+measurement. `ci-required` requires successful scope detection and, whenever
+selected, a successful candidate job; failure, cancellation or unexpected skip
+cannot satisfy the aggregate check.
+
+The external aube/pitchfork and terrarium consumer fixtures remain a reviewed,
+SHA-pinned input. Their historical source identity is retained in preparation.json;
+old test results are not imported. The package runtime, public manifest and core
+assets come from the current PR build. The independent product matrix also builds
+and tests current Linux guests. Frozen consumer measurement is not formal
+acceptance in the current terrarium repository.
+
+The publication gate remains separate. `publish.yml` and `release-preflight.yml`
+still consume reviewed publication inputs and independently verified candidate CI
+references. This PR check does not fabricate RC adoption, human approval, or make
+its artifact automatically trusted by the publication policy. Keep weekly merging
+disabled until the new candidate's RC acceptance and final reviewed publication
+inputs are ready. A changed main/tag SHA needs an updated binding and verification;
+PR evidence must not be silently relabelled to the merged commit.
 
 The current npm command does not retry publication of an existing version.
 Inspect the registry before recovering a failed run. No existing tag or release
@@ -56,7 +78,7 @@ workflow checks the digest and nonempty v4 state, refuses an existing CI state
 pointer, uploads `terraform-state`, and records LATEST_APPLY_RUN_ID. It does
 not run OpenTofu or modify infrastructure. Never pass credential-bearing state
 through workflow inputs: base64 is not encryption. Keep the local backup until
-the uploaded state is downloaded and compared. Automation remains disabled.
+the uploaded state is downloaded and compared. Seeding does not change release automation enablement.
 
 Dispatch `release-preflight.yml` on main after updating the reviewed release
 input URL/SHA. It uses the actual evidence gate, including independent API
@@ -66,3 +88,16 @@ has no publishing permissions and cannot export a publication package.
 A successful preflight is a readiness check, not a publication or tagging
 approval. Candidate input generation and terrarium acceptance remain external;
 these workflows do not fabricate approvals or reuse old version evidence.
+
+## Common PR workflows
+
+`claude-review.yml` follows terrarium's author-scoped review workflow and uses the
+shared `CLAUDE_CODE_OAUTH_TOKEN` secret. It reads the PR tree without running PR
+scripts; checkout credentials are not persisted. New `pull_request_target`
+workflows become active only after reaching the default branch. The organisation
+secret's sharing cannot be confirmed with the current CLI permissions.
+
+`test-lint-check.yml` follows the common mise task approach. `mise run lint:all`
+checks Biome, GitHub Actions YAML (actionlint), and maintained shell entry points
+(ShellCheck warning/error severity). Tools use latest versions; no formatter push
+or additional App permissions are introduced.

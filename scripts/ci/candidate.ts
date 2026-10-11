@@ -23,6 +23,7 @@ export async function candidateSourcePaths(root: string) {
     'playwright.config.ts',
     '.github/workflows/ci.yml',
     '.github/workflows/candidate-verify.yml',
+    '.github/workflows/release-candidate.yml',
   ];
   async function walk(directory: string) {
     for (const row of await readdir(resolve(root, directory), {

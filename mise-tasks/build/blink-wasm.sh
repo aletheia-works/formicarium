@@ -43,9 +43,9 @@ LINK_FLAGS=(
   -sEXPORT_ES6=1
   -sEXPORT_NAME=createBlink
   -sEXIT_RUNTIME=1
-  -sENVIRONMENT=web,worker,node
+  "-sENVIRONMENT=web,worker,node"
   -sFORCE_FILESYSTEM=1
-  -sEXPORTED_RUNTIME_METHODS=FS,ENV
+  "-sEXPORTED_RUNTIME_METHODS=FS,ENV"
 )
 # 診断用に、リンクのフラグを足せる（例：FORMICARIUM_EXTRA_LINK_FLAGS='-sASSERTIONS=1'）。
 # shellcheck disable=SC2206

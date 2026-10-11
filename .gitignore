@@ -107,3 +107,7 @@ node_modules/
 test-results/
 playwright-report/
 .artifacts/
+
+# Immutable external fixtures materialized by release candidate CI
+.ci-fixtures/
+/.ci-inputs/
