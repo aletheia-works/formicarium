@@ -176,9 +176,13 @@ printf '%s  candidate.tgz\\n' "$EXPECTED_SHA256" | sha256sum --check --strict`,
 [[ "$DIST_TAG" == next || "$DIST_TAG" == latest ]]
 bunx npm@latest publish ./candidate.tgz --provenance --access public --registry https://registry.npmjs.org/ --tag "$DIST_TAG" --ignore-scripts`
           : `set -euo pipefail
-flags=(--verify-tag)
-if [[ "$DIST_TAG" == next ]]; then flags+=(--prerelease); fi
-gh release create "$RELEASE_TAG" ./candidate.tgz --repo "$GITHUB_REPOSITORY" --title "formicarium $VERSION" --notes "Reviewed package SHA256: $EXPECTED_SHA256" "\${flags[@]}"`;
+if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+  gh release upload "$RELEASE_TAG" ./candidate.tgz --repo "$GITHUB_REPOSITORY"
+else
+  flags=(--verify-tag)
+  if [[ "$DIST_TAG" == next ]]; then flags+=(--prerelease); fi
+  gh release create "$RELEASE_TAG" ./candidate.tgz --repo "$GITHUB_REPOSITORY" --title "formicarium $VERSION" --notes "Reviewed package SHA256: $EXPECTED_SHA256" "\${flags[@]}"
+fi`;
       requireCondition(
         runs[1].run.trim() === command,
         'unvalidated publication command',

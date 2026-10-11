@@ -1,6 +1,6 @@
 {
   "name": "@aletheia-works/formicarium",
-  "version": "0.1.0-rc.1",
+  "version": "0.1.0",
   "private": true,
   "description": "blink（x86-64 Linux ユーザーモードエミュレータ）を wasm 上で動かす PoC",
   "license": "Apache-2.0",
@@ -73,7 +73,7 @@
     "preserve": "bun run build",
     "test:integration": "bun run build && node --test --test-concurrency=1 tests/package/*.test.js tests/terrarium/*.test.js",
     "test:node-unit": "node --test --test-concurrency=1 --test-skip-pattern=\"real Node |real generated loader mutation\" tests/package/core.test.js tests/package/worker-execution.test.js tests/package/node-api.test.js tests/package/node-worker.test.js tests/package/runner-ready.test.js tests/package/types.test.js tests/package/tooling.test.js tests/package/coverage.test.js tests/guest-distribution/*.test.js tests/terrarium/adapter.test.js tests/terrarium/coverage.test.js",
-    "test:tooling-bun": "bun test ./.build/tests/tooling/bun-tasks.test.js ./.build/tests/tooling/candidate-inputs.test.js ./.build/tests/tooling/quality-evidence.test.js"
+    "test:tooling-bun": "bun test ./.build/tests/tooling/bun-tasks.test.js ./.build/tests/tooling/candidate-inputs.test.js ./.build/tests/tooling/quality-evidence.test.js ./.build/tests/tooling/release-automation.test.js"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",

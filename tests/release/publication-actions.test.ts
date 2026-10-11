@@ -11,7 +11,11 @@ import { bundle, stableBundle } from './publication-alignment-fixture.js';
 
 const workflow = parse(await readFile('.github/workflows/publish.yml', 'utf8'));
 // Run the actual YAML shell steps. Only npm/GitHub network writes are replaced.
-async function fixtureActions(t: TestContext, stable = false) {
+async function fixtureActions(
+  t: TestContext,
+  stable = false,
+  existingRelease = false,
+) {
   const f = stable ? await stableBundle(t) : await bundle(t);
   const bin = join(f.root, 'bin');
   await mkdir(bin);
@@ -19,7 +23,7 @@ async function fixtureActions(t: TestContext, stable = false) {
   for (const name of ['bunx', 'gh']) {
     await writeFile(
       join(bin, name),
-      `#!${process.execPath}\nconst fs = require('node:fs');\nfs.appendFileSync(process.env.CALL_LOG, JSON.stringify({name:${JSON.stringify(name)}, args:process.argv.slice(2)})+'\\n');\nprocess.exit(Number(process.env.WRITE_EXIT ?? 0));\n`,
+      `#!${process.execPath}\nconst fs = require('node:fs');\nfs.appendFileSync(process.env.CALL_LOG, JSON.stringify({name:${JSON.stringify(name)}, args:process.argv.slice(2)})+'\\n');\nif (process.argv[2] === 'release' && process.argv[3] === 'view') process.exit(Number(process.env.RELEASE_VIEW_EXIT));\nprocess.exit(Number(process.env.WRITE_EXIT ?? 0));\n`,
       { mode: 0o755 },
     );
   }
@@ -65,6 +69,7 @@ async function fixtureActions(t: TestContext, stable = false) {
       RELEASE_TAG: outputs.tag,
       GITHUB_REPOSITORY: f.request.identity.repository,
       WRITE_EXIT: String(exit),
+      RELEASE_VIEW_EXIT: existingRelease ? '0' : '1',
     };
     for (const step of workflow.jobs[mode].steps.filter(
       (s: { run?: string }) => s.run,
@@ -158,7 +163,8 @@ test('Release YAML requires its approval and marks only RC as prerelease', async
     const { rm } = await import('node:fs/promises');
     await rm(join(f.root, 'out-release'), { recursive: true });
     await f.run('release');
-    const [call] = await f.calls();
+    const [view, call] = await f.calls();
+    assert.equal(view.args[1], 'view');
     assert.equal(call.name, 'gh');
     assert.deepEqual(call.args.slice(0, 6), [
       'release',
@@ -176,4 +182,23 @@ test('unknown npm result fails once and cannot automatically resend', async (t) 
   const f = await fixtureActions(t);
   await assert.rejects(f.run('publish', false, 23));
   assert.equal((await f.calls()).length, 1);
+});
+
+test('existing release-please release receives the verified asset without recreating notes', async (t) => {
+  const f = await fixtureActions(t, true, true);
+  f.request.approvals.push({
+    ...approval(f.c),
+    approvalId: 'release',
+    operation: 'create-github-release',
+    target: f.request.identity.repository,
+  });
+  await f.save();
+  await f.run('release');
+  const calls = await f.calls();
+  assert.deepEqual(
+    calls.map((c) => c.args[1]),
+    ['view', 'upload'],
+  );
+  assert.equal(calls[1].args[2], f.request.identity.tag);
+  assert.ok(!calls[1].args.includes('--clobber'));
 });
