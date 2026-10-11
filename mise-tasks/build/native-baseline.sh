@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+#MISE alias="native-baseline"
+#MISE description="native baseline"
 # usage: mise run native-baseline [<session>] [--check-reproducible]
 # 手順（runtime/registry.js の SESSIONS。既定は aube-1645）を、static-musl のゲスト
 # （dist/guests/<guest>）で x86-64 Linux のコンテナ上で native に実行し、書き起こしを
@@ -23,7 +25,7 @@ root=$(cd "$(dirname "$0")/../.." && pwd)
 . "$root/scripts/lib/node.sh"
 
 usage() {
-  echo "usage: bash .mise/tasks/native-baseline [<session>] [--check-reproducible]" >&2
+  echo "usage: bash mise-tasks/build/native-baseline.sh [<session>] [--check-reproducible]" >&2
   exit 2
 }
 
@@ -51,7 +53,7 @@ info_status=0
 load_session_info "$session" || info_status=$?
 [ "$info_status" = 0 ] || exit "$info_status"
 
-[ -f "$root/$GUEST_PATH" ] || { echo "error: $root/$GUEST_PATH がありません（bash .mise/tasks/build-guests $GUEST）" >&2; exit 1; }
+[ -f "$root/$GUEST_PATH" ] || { echo "error: $root/$GUEST_PATH がありません（bash mise-tasks/build.sh-guests $GUEST）" >&2; exit 1; }
 [ -f "$root/$SCRIPT" ] || { echo "error: $root/$SCRIPT がありません" >&2; exit 1; }
 [ -d "$root/$PROJECT_BASE" ] || { echo "error: $root/$PROJECT_BASE がありません" >&2; exit 1; }
 image=${FORMICARIUM_NATIVE_IMAGE:-busybox:latest}

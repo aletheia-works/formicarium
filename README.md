@@ -355,17 +355,21 @@ Artifacts include source SHA, run ID and attempt to keep reruns isolated.
 
 ## 開発タスクとスクリプトの配置
 
-実行用タスクは `.mise/tasks/` に置く。miseが自動検出するため、`mise.toml`への個別登録は不要。
+実行用タスクは `mise-tasks/` に置く。miseが自動検出するため、`mise.toml`への個別登録は不要。
 `mise tasks ls`で一覧を確認し、`mise run build-guests probe`のように引数を渡せる。
 固定依存の導入は `mise run install-frozen`（キャッシュなしは `--cacheless`）。
 通常の確認は `mise run check`、`mise run typecheck`、`mise run build`、`mise run test-light`。
 
-- `.mise/tasks/`: 開発タスク、wasm・ゲストのビルド、ソース取得、native基準値作成、書き込み先調査。
+- `mise-tasks/`: 開発タスク、wasm・ゲストのビルド、ソース取得、native基準値作成、書き込み先調査。
 - `scripts/lib/`と`scripts/emscripten-env.sh`: 複数タスクから読み込むコンテナ・環境設定。単独実行するタスクにはしない。
 - `scripts/ci/`: 候補入力の検証・証拠収集。`tasks.ts`はキャッシュなし導入の引数検証と既存CIの入口に限定し、通常のmiseタスクはBunへ直接渡す。
 - `scripts/package/`・`scripts/release/`・`scripts/terrarium/`・`scripts/guest-distribution/`: テストから使う検証・配布ロジック。YAMLへ複製せず、引き続き単体試験する。
-- `.github/workflows/`: PRイベント、matrix、キャッシュ、artifact、保守自動化の制御。製品ビルドはローカルと同じ `.mise/tasks/` の実装を実行する。
+- `.github/workflows/`: PRイベント、matrix、キャッシュ、artifact、保守自動化の制御。製品ビルドはローカルと同じ `mise-tasks/` の実装を実行する。
 
 生成された `.js`・`.js.map`は `mise run build` の出力で、管理対象のスクリプトではない。
 製品ビルドをCI専用YAMLへ移すとローカル再現性を失うため、共有する実行ファイルを1つに保つ。
-候補検証のソース一覧には `.mise/tasks/` も含め、タスク変更を検証対象から漏らさない。
+候補検証のソース一覧には `mise-tasks/` も含め、タスク変更を検証対象から漏らさない。
+
+配置の共通方針はvivarium・terrariumに合わせる。実行用シェルはルートの `mise-tasks/` に用途別（`build/`、`test/`、`ci/`、`diagnostics/`、`install/`）の `.sh` ファイルとして置き、説明は `#MISE description` で記載する。
+共有・検証ロジックは `scripts/`、回帰試験は `tests/`、手順・判断は `docs/`、CI制御は `.github/workflows/` に置く。製品固有の `runtime/`・`guest/` は役割を保つ。
+既存の `mise run build-guests` などはaliasで維持し、`mise run build:guests` のような用途別タスク名も使える。

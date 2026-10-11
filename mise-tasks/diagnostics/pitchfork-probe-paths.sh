@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+#MISE alias="pitchfork-probe-paths"
+#MISE description="pitchfork probe paths"
 # usage: mise run pitchfork-probe-paths [<session>]
 # コード生成計画の Step 4（requirements.md の Assumptions の 2 件）を native で確かめるための調査用スクリプト。
 # 手順（既定は pitchfork-basic）を busybox のコンテナ（ネットワークなし）で native に実行し、
@@ -24,7 +26,7 @@ fi
 info_status=0
 load_session_info "$session" || info_status=$?
 [ "$info_status" = 0 ] || exit "$info_status"
-[ -f "$root/$GUEST_PATH" ] || { echo "error: $root/$GUEST_PATH がありません（bash .mise/tasks/build-guests $GUEST）" >&2; exit 1; }
+[ -f "$root/$GUEST_PATH" ] || { echo "error: $root/$GUEST_PATH がありません（bash mise-tasks/build.sh-guests $GUEST）" >&2; exit 1; }
 image=${FORMICARIUM_NATIVE_IMAGE:-busybox:latest}
 
 body='

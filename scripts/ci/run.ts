@@ -238,7 +238,10 @@ export async function runVerification(
     ]),
   );
   await bootstrapCoreSource(root, manifest, command);
-  await command('core-source-provenance', ['bash', '.mise/tasks/fetch-blink']);
+  await command('core-source-provenance', [
+    'bash',
+    'mise-tasks/build/fetch-blink.sh',
+  ]);
   results.push(
     await command('node-regression', [
       node,
@@ -278,7 +281,7 @@ export async function runVerification(
         session === 'aube-1645' ? 'native-aube' : 'native-pitchfork',
         [
           'bash',
-          '.mise/tasks/native-baseline',
+          'mise-tasks/build/native-baseline.sh',
           session,
           '--check-reproducible',
         ],

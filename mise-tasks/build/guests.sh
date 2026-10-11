@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+#MISE alias="build-guests"
+#MISE description="build guests"
 # usage: mise run build-guests [probe|aube|pitchfork|all]
 # static-musl x86-64 のゲストをコンテナ（rust:alpine）でビルドし、dist/guests/ に置く。
 #   probe     : guest/probe の probe・hello・exit3

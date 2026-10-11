@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
+#MISE alias="build-blink-wasm"
+#MISE description="build blink wasm"
 # usage: mise run build-blink-wasm
 # blink（fork）を Emscripten でビルドし、dist/blink/blink.mjs と blink.wasm を作る（FR1.2）。
 # インタプリタのみ（--disable-jit）、pthread あり（-sPROXY_TO_PTHREAD）。
 #
 # 手順：
-#   1. .mise/tasks/fetch-blink で blink.lock のコミットを .vendor/blink に取得する
+#   1. mise-tasks/build/fetch-blink.sh で blink.lock のコミットを .vendor/blink に取得する
 #   2. emconfigure ./configure --disable-jit → emmake make で blink.a と blink.o を作る
 #   3. emcc でリンクして ES モジュール（blink.mjs）と wasm を出力する
 #
@@ -54,7 +56,7 @@ if [ -n "${BLINK_SRC:-}" ]; then
   src=$(cd "$BLINK_SRC" && pwd)
   echo "note: BLINK_SRC=$src をビルドします（blink.lock は使いません）" >&2
 else
-  bash "$root/.mise/tasks/fetch-blink"
+  bash "$root/mise-tasks/build/fetch-blink.sh"
   src="$root/.vendor/blink"
 fi
 if [ -n "${BLINK_SOURCE_COMMIT:-}" ]; then
