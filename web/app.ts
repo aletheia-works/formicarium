@@ -1,4 +1,4 @@
-import { errorText } from '../contracts.js';
+import { errorText } from '../runtime/contracts.js';
 // ページのスクリプト。crossOriginIsolated を表示し、URL のパラメータで選んだゲストを
 // Worker で実行して、結果を <pre id="output"> と data-exit-code に出す（FR2.2）。
 //

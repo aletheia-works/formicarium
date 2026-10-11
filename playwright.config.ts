@@ -26,7 +26,7 @@ export default defineConfig({
   },
   webServer: {
     command: `"${process.execPath}" scripts/serve.js --port ${port}`,
-    url: `http://127.0.0.1:${port}/runtime/web/index.html`,
+    url: `http://127.0.0.1:${port}/web/index.html`,
     reuseExistingServer: !process.env.CI,
     timeout: 30 * 1000,
   },

@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 
 // Keep generated browser modules next to their sources so static URLs and
 // package staging share the same layout. These outputs are ignored by SCM.
-for (const directory of ['runtime', 'scripts', 'integration', 'tests']) {
+for (const directory of ['runtime', 'web', 'scripts', 'integration', 'tests']) {
   await cp(resolve('.build', directory), resolve(directory), {
     recursive: true,
     filter: (source) => !source.endsWith('.ts'),
@@ -13,8 +13,8 @@ for (const directory of ['runtime', 'scripts', 'integration', 'tests']) {
 
 // This worker is registered as a classic script; do not add the ESM marker.
 await writeFile(
-  resolve('runtime/web/coi-sw.js'),
-  (await readFile(resolve('.build/runtime/web/coi-sw.js'), 'utf8')).replace(
+  resolve('web/coi-sw.js'),
+  (await readFile(resolve('.build/web/coi-sw.js'), 'utf8')).replace(
     /^export \{\};\r?\n?/m,
     '',
   ),

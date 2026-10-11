@@ -7,12 +7,12 @@ import {
   parseSessionScript,
   toSessionSteps,
 } from '../../../runtime/session.js';
-import { GUEST_ENV, GUESTS, SESSIONS } from '../../../runtime/web/sessions.js';
+import { GUEST_ENV, GUESTS, SESSIONS } from '../../../web/sessions.js';
 
 // Match the real Worker before importing the generated core.
 delete (Atomics as { waitAsync?: typeof Atomics.waitAsync }).waitAsync;
 const root = new URL('../../../', import.meta.url);
-const sessionBase = new URL('runtime/web/sessions.js', root);
+const sessionBase = new URL('web/sessions.js', root);
 let sequence = 0;
 function event(phase: string, details: object = {}) {
   self.postMessage({

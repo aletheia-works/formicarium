@@ -20,7 +20,7 @@ import type { Browser } from '@playwright/test';
 import { errorText } from '../runtime/contracts.js';
 import { runInWorker } from '../runtime/node/host.js';
 import { parseSessionScript, toSessionSteps } from '../runtime/session.js';
-import { GUEST_ENV } from '../runtime/web/sessions.js';
+import { GUEST_ENV } from '../web/sessions.js';
 import type { TimingRun } from './lib/timings.js';
 import {
   COMMANDS,
@@ -183,11 +183,11 @@ async function measureBrowser(
   try {
     const version = await runPage(
       browser,
-      `${base}/runtime/web/index.html?guest=aube&arg=--version`,
+      `${base}/web/index.html?guest=aube&arg=--version`,
     );
     const sessionResult = await runPage(
       browser,
-      `${base}/runtime/web/index.html?session=aube-1645`,
+      `${base}/web/index.html?session=aube-1645`,
     );
     return {
       environment: {

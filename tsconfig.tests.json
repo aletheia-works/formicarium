@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": { "noUncheckedIndexedAccess": false },
-  "include": ["tests/**/*.ts", "runtime/web/globals.d.ts"],
+  "include": ["tests/**/*.ts", "web/globals.d.ts"],
   "exclude": ["tests/package/types-invalid.ts"]
 }

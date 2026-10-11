@@ -114,6 +114,6 @@ server.on('error', (error) => {
 });
 server.listen(options.port, options.host, () => {
   console.log(
-    `serving ${root} at http://${options.host}:${options.port}/runtime/web/index.html`,
+    `serving ${root} at http://${options.host}:${options.port}/web/index.html`,
   );
 });

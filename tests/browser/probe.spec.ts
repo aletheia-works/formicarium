@@ -30,13 +30,13 @@ async function waitForResult(page: Page) {
 }
 
 test('ページが crossOriginIsolated になる', async ({ page }) => {
-  await page.goto('/runtime/web/index.html?guest=hello');
+  await page.goto('/web/index.html?guest=hello');
   await expect(page.getByTestId('isolated')).toHaveText('true');
   expect(await page.evaluate(() => crossOriginIsolated)).toBe(true);
 });
 
 test('hello ゲストが起動して終了コード 0 を返す', async ({ page }) => {
-  await page.goto('/runtime/web/index.html?guest=hello&arg=from-browser');
+  await page.goto('/web/index.html?guest=hello&arg=from-browser');
   const result = await waitForResult(page);
   expect(result.error).toBeUndefined();
   expect(result.exitCode).toBe(0);
@@ -51,7 +51,7 @@ test('hello ゲストが起動して終了コード 0 を返す', async ({ page 
 });
 
 test('終了コード 3 のゲストの終了コードが伝わる', async ({ page }) => {
-  await page.goto('/runtime/web/index.html?guest=exit3');
+  await page.goto('/web/index.html?guest=exit3');
   const result = await waitForResult(page);
   expect(result.exitCode).toBe(3);
   await expect(page.getByTestId('output')).toHaveAttribute(
@@ -98,7 +98,7 @@ test('診断: ゲスト待機期限切れでも途中結果を保存できる', 
 });
 
 test('一覧にないゲストは実行せずにエラーを表示する', async ({ page }) => {
-  await page.goto('/runtime/web/index.html?guest=../../etc/passwd');
+  await page.goto('/web/index.html?guest=../../etc/passwd');
   const result = await waitForResult(page);
   expect(result.error).toMatch(/unknown guest/);
   await expect(page.getByTestId('output')).not.toHaveAttribute(

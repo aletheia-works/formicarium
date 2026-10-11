@@ -57,7 +57,7 @@ formicarium の PoC（2026-10-05 完了）で定めた非機能要件と品質�
 | 項目 | 状態 | 根拠 |
 |---|---|---|
 | blink の取得元 | jart/blink の fork（`aletheia-works/blink`）だけを使い、コミットを `blink.lock` で固定する。マルウェア混入の履歴がある fork（webix、portabox、lanmower/blink）は使わない | `blink.lock`、`scripts/fetch-blink.sh`（コミットが一致しなければ止まる） |
-| ブラウザで実行するもの | ゲストと手順は許可リストに載ったものだけ。URL のパラメータは許可リストと照合してから使う | `runtime/web/sessions.mjs` |
+| ブラウザで実行するもの | ゲストと手順は許可リストに載ったものだけ。URL のパラメータは許可リストと照合してから使う | `web/sessions.js` |
 | ネットワーク | ブラウザ版はゲストのネットワークを使わない（`socket()` は `EAFNOSUPPORT`） | fork の `50bc466` |
 | 秘密情報 | ビルドにも実行にも使わない。fork への push だけに GitHub の認証が要る | `build-instructions.md` |
 | 依存の脆弱性 | 依存は `@playwright/test` だけ。`npm audit` で 0 件（2026-10-05 に再確認） | 確認方法は `construction/build-and-test/security-test-instructions.md` |

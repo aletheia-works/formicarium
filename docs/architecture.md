@@ -8,10 +8,10 @@ formicarium は、改変していない x86-64 Linux のバイナリ（static-mu
 
 ```mermaid
 flowchart TB
-  subgraph Page["ブラウザのページ（runtime/web/app.ts）"]
+  subgraph Page["ブラウザのページ（web/app.ts）"]
     UI["URL の検証（sessions.ts の許可リスト）と結果の表示"]
   end
-  subgraph RW["実行用 Worker（runtime/web/worker.ts）"]
+  subgraph RW["実行用 Worker（web/worker.ts）"]
     IO["guest-io.ts：ゲストと入力の配置、出力の取得、手順の実行"]
     FS["Emscripten の FS（MEMFS ＋ hard link と flock の拡張）"]
   end
@@ -39,7 +39,8 @@ pthread からのファイル操作はそこへの代行依頼になる。Node.j
 | コアの記述子 | `runtime/core.ts` | ビルド物の場所と、コアに渡すコマンドラインの組み立て | ここだけがコアを知る |
 | 入出力の共通部 | `runtime/guest-io.ts`、`runtime/session.ts` | ゲストと入力の配置、stdout・stderr・終了コードの取得、手順の実行と書き起こし | なし（Emscripten の FS API だけ） |
 | Node.js の実行環境 | `runtime/node/` | CLI、`worker_threads` の Worker | なし |
-| ブラウザの実行環境 | `runtime/web/`、`scripts/serve.ts` | ページ、実行用 Worker、許可リスト、COOP/COEP（サーバーか service worker） | なし |
+| 配布用ブラウザAPI | `runtime/web/` | 公開API、package用 Worker | なし |
+| 検証用Web UI | `web/`、`scripts/serve.ts` | ページ、検証用 Worker、許可リスト、COOP/COEP（サーバーか service worker） | なし |
 | コア | `blink.lock` → `.vendor/blink` → `dist/blink/` | x86-64 の解釈実行と Linux のシステムコールのエミュレート | — |
 
 コアは「wasm モジュール 1 つ＋起動用の JS（Emscripten の MODULARIZE 形式）」という境界でだけ扱う。将来、コアを

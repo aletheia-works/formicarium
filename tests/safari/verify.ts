@@ -741,7 +741,7 @@ async function main() {
         throw new Error('owned server/driver exited during startup');
       try {
         const [http, status] = await Promise.all([
-          fetch(`${pageBase}/runtime/web/index.html`, {
+          fetch(`${pageBase}/web/index.html`, {
             signal: AbortSignal.timeout(1000),
           }),
           fetch(`${base}/status`, { signal: AbortSignal.timeout(1000) }),
@@ -841,7 +841,7 @@ async function main() {
         ).toString('utf8');
       }
       await webdriver('POST', `/session/${session}/url`, {
-        url: `${pageBase}/runtime/web/index.html?session=no-such-session`,
+        url: `${pageBase}/web/index.html?session=no-such-session`,
       });
       const stages: { name: string; rect: Rect }[] = [];
       async function capture(name: string) {
@@ -1005,7 +1005,7 @@ async function main() {
             'POST',
             `/session/${session}/url`,
             {
-              url: `${pageBase}/runtime/web/index.html?session=no-such-session`,
+              url: `${pageBase}/web/index.html?session=no-such-session`,
             },
             Math.max(1, deadline - Date.now()),
           );
@@ -1137,7 +1137,7 @@ async function main() {
           await webdriver(
             'POST',
             `/session/${session}/url`,
-            { url: `${pageBase}/runtime/web/index.html?${item.query}` },
+            { url: `${pageBase}/web/index.html?${item.query}` },
             Math.min(30_000, item.limit),
           );
           while (Date.now() - started < item.limit) {

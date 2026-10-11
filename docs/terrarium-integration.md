@@ -14,7 +14,7 @@ terrarium には入口が 3 つあります（terrarium の README、ドキュ�
 
 | 観点 | 案 A：`runtime/` をライブラリとして読み込む | 案 B：formicarium のページを iframe で埋め込む |
 |---|---|---|
-| 形 | terrarium の `terminal.mjs`（または `<terrarium-terminal>`）が、ツールごとの `<tool>.js`/`<tool>.wasm` の代わりに `runtime/guest-io.mjs` の `runGuest`／`runSession` と `runtime/core.mjs` のコアを Worker で呼ぶ | terrarium のページに `runtime/web/index.html?session=...` を iframe で置き、結果（書き起こし）を受け取る |
+| 形 | terrarium の `terminal.mjs`（または `<terrarium-terminal>`）が、ツールごとの `<tool>.js`/`<tool>.wasm` の代わりに `runtime/guest-io.mjs` の `runGuest`／`runSession` と `runtime/core.mjs` のコアを Worker で呼ぶ | terrarium のページに `web/index.html?session=...` を iframe で置き、結果（書き起こし）を受け取る |
 | 端末の操作感 | terrarium の端末をそのまま使える。1 コマンドごとに `runGuest` を呼び、`persist` の中身を次へ渡す（今の `runSession` と同じ仕組み） | 今の formicarium のページには対話的な入力がない。`postMessage` で 1 コマンドずつ受け付ける口を新しく作る必要がある |
 | 分離 | terrarium のページと同じ権限で動く（terrarium の要素と同じ扱い） | 別のオリジンに置けば分離できる。ただし COOP/COEP の下の iframe は `allow="cross-origin-isolated"` と、CORP か `credentialless`（Chromium のみ）が要る（terrarium の README、ドキュメント根拠） |
 | 配布 | `runtime/` の 4 ファイル（`core.mjs`、`guest-io.mjs`、`session.mjs`、`registry.mjs`）と `dist/blink/`、ゲストのバイナリを terrarium の `web/` から配る | formicarium のページをそのまま配る。terrarium 側の変更は小さい |
@@ -54,7 +54,7 @@ pitchfork を足すのに変えた formicarium のファイルです。2 つ目�
 | テスト | `tests/node/pitchfork-basic.test.mjs`、`tests/browser/pitchfork-basic.spec.mjs` | 書き起こしの一致と状態の引き継ぎ | 要る |
 | 作り替え（初回だけ） | `runtime/session.mjs` | `cat` の手順、`sh -c` と同じ引数の分割、ツール名の受け取り | 不要 |
 | 作り替え（初回だけ） | `runtime/guest-io.mjs` | `runSession` の `cat` のステップ | 不要 |
-| 作り替え（初回だけ） | `runtime/web/sessions.mjs`、`runtime/web/worker.mjs` | 表から一覧を作る、手順ごとのツール名と `persist` | 不要 |
+| 作り替え（初回だけ） | `web/sessions.js`、`web/worker.js` | 表から一覧を作る、手順ごとのツール名と `persist` | 不要 |
 | 作り替え（初回だけ） | `scripts/native-baseline.sh`、`scripts/session-info.mjs`（新規）、`scripts/lib/node.sh`（新規） | 手順名を引数で受け取り、表から設定を得る。再現性の確認 | 不要 |
 
 次のゲストからは、ビルドの対象・表の 1 行・fixture・基準値・テストの 5 か所で済む見込みです（推測。2 つ目のゲストで確かめる）。
@@ -64,7 +64,7 @@ blink の fork とコアの記述子（`runtime/core.mjs`）は、今回変え�
 ## 4. 制約
 
 - **COOP/COEP**：コアは pthread（`SharedArrayBuffer`）を使うので、ページは cross-origin isolated でなければならない。
-  ヘッダーを付けられない配信先では `runtime/web/coi-sw.js`（service worker）で付ける（README、ドキュメント根拠）。
+  ヘッダーを付けられない配信先では `web/coi-sw.js`（service worker）で付ける（README、ドキュメント根拠）。
   terrarium も同じ制約を持っており、`web/coi-serviceworker.js` がある（ドキュメント根拠）
 - **ネットワークなし**：ブラウザ版のゲストにはネットワークがない。fork は inet の `socket()` を `EAFNOSUPPORT` で拒否する
   （NFR3、`docs/architecture.md`）。aube は更新の確認を `AUBE_NO_UPDATE_CHECK=1` で止めている。

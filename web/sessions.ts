@@ -5,10 +5,10 @@ import {
   GUESTS as GUEST_TABLE,
   NAME,
   SESSIONS as SESSION_TABLE,
-} from '../registry.js';
+} from '../runtime/registry.js';
 
 /** このファイルからプロジェクトのルートへの相対パス */
-const FROM_HERE = '../../';
+const FROM_HERE = '../';
 
 /** ?guest=<name> で選べるゲスト（dist/guests/ のビルド物） */
 export const GUESTS = Object.freeze(
@@ -22,7 +22,7 @@ export const GUESTS = Object.freeze(
 
 /**
  * ゲストごとの環境変数（runtime/registry.js の env）。Node.js のテストと
- * scripts/native-baseline.sh も同じ表の値を使う。
+ * mise-tasks/build/native-baseline.sh も同じ表の値を使う。
  */
 export const GUEST_ENV = Object.freeze(
   Object.fromEntries(

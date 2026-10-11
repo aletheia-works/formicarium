@@ -22,7 +22,7 @@ const baseline = normalizeTranscript(
 );
 
 test('aube #1645 の書き起こしが native と一致する', async ({ page }) => {
-  await page.goto('/runtime/web/index.html?session=aube-1645');
+  await page.goto('/web/index.html?session=aube-1645');
   await page.waitForFunction(
     () => window.formicariumResult !== undefined,
     null,
@@ -43,7 +43,7 @@ test('aube #1645 の書き起こしが native と一致する', async ({ page })
 });
 
 test('一覧にない手順は実行しない', async ({ page }) => {
-  await page.goto('/runtime/web/index.html?session=no-such-session');
+  await page.goto('/web/index.html?session=no-such-session');
   await page.waitForFunction(() => window.formicariumResult !== undefined);
   const result = await page.evaluate(() => window.formicariumResult!);
   expect(result.error).toMatch(/unknown session/);

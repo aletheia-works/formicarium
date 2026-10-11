@@ -53,7 +53,7 @@ test('core exit notification is exactly once before the next factory', async ({
   };
   const result = await (async () => {
     try {
-      await page.goto('/runtime/web/index.html?session=no-such-session');
+      await page.goto('/web/index.html?session=no-such-session');
       await page.waitForFunction(() =>
         window.formicariumResult?.error?.includes('unknown session'),
       );

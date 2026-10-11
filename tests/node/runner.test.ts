@@ -12,7 +12,7 @@ import {
   GUESTS as GUEST_TABLE,
   SESSIONS as SESSION_TABLE,
 } from '../../runtime/registry.js';
-import { parseRunRequest, SESSIONS } from '../../runtime/web/sessions.js';
+import { parseRunRequest, SESSIONS } from '../../web/sessions.js';
 import { missingArtifacts, root } from './helpers.js';
 
 const TIMEOUT_MS = 5 * 60 * 1000;
@@ -75,7 +75,7 @@ describe('Node.js ランナー（runtime/node/run.js）', () => {
   });
 });
 
-describe('ブラウザ用の手順の定義（runtime/web/sessions.js）', () => {
+describe('ブラウザ用の手順の定義（web/sessions.js）', () => {
   it('診断フラグ -s をゲストと手順へ伝達する', () => {
     assert.deepEqual(
       parseRunRequest(new URLSearchParams('guest=probe&core-flag=-s')),

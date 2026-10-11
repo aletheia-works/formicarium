@@ -62,7 +62,7 @@ test('original Worker syscall diagnosis (collection only)', async ({
     isolated: boolean;
     visibility: string;
     userAgent: string;
-    result?: import('../../runtime/web/globals.js').BrowserOutcome;
+    result?: import('../../web/globals.js').BrowserOutcome;
   };
   let observation: Observation | undefined;
   const reserve = (text: string) => {
@@ -99,7 +99,7 @@ test('original Worker syscall diagnosis (collection only)', async ({
       'd8ec13b28acbd3c5bec833ca8cfa3d4d0612e46d5537080ada8c44d69e2b1fc9',
     );
     await page.goto(
-      `/runtime/web/index.html?session=pitchfork-basic${traced ? '&core-flag=-s' : ''}`,
+      `/web/index.html?session=pitchfork-basic${traced ? '&core-flag=-s' : ''}`,
       { timeout: 30_000 },
     );
     for (;;) {
@@ -292,7 +292,7 @@ test('opt-in Firefox pitchfork boundary diagnosis (collection only)', async ({
     JSON.stringify(identity, null, 2),
     'application/json',
   );
-  await page.goto('/runtime/web/index.html?session=no-such-session');
+  await page.goto('/web/index.html?session=no-such-session');
   await page.waitForFunction(() =>
     window.formicariumResult?.error?.includes('unknown session'),
   );

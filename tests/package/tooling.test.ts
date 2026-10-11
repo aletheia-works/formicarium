@@ -50,7 +50,7 @@ test('coverage refuses a missing test selector', () => {
 test('emitted isolation worker remains a classic script and installs all handlers', async () => {
   const handlers: string[] = [];
   const source = await readFile(
-    new URL('../../runtime/web/coi-sw.js', import.meta.url),
+    new URL('../../web/coi-sw.js', import.meta.url),
     'utf8',
   );
   const script = new Script(source);

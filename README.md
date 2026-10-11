@@ -72,7 +72,8 @@ Node.js の Worker と、COOP/COEP 付きのブラウザページ（Chromium・F
 | コアの記述子 | `runtime/core.js` | ここだけがコアを知る（ビルド物の場所、コマンドラインの組み立て方） |
 | 入出力の共通部 | `runtime/guest-io.js`、`runtime/session.js` | なし（Emscripten の FS API だけを使う） |
 | Node.js の実行環境 | `runtime/node/` | なし |
-| ブラウザの実行環境 | `runtime/web/`、`scripts/serve.js` | なし |
+| 配布用ブラウザAPI | `runtime/web/` | なし |
+| 検証用Web UI | `web/`、`scripts/serve.js` | なし |
 | コア（blink の fork） | `blink.lock` → `.vendor/blink` → `dist/blink/` | — |
 
 置き換えるときは、`runtime/core.ts` に paludarium の記述子を足し、`dist/` にそのビルド物を置く。
@@ -218,13 +219,13 @@ node runtime/node/run.js --copy-in fixtures/aube-local-deps:/work --cwd /work/ap
 
 # ブラウザで実行する（COOP/COEP 付きの開発用サーバー）
 bun scripts/serve.js --port 8787
-#   http://127.0.0.1:8787/runtime/web/index.html?guest=probe
-#   http://127.0.0.1:8787/runtime/web/index.html?session=aube-1645
-#   http://127.0.0.1:8787/runtime/web/index.html?session=pitchfork-basic
+#   http://127.0.0.1:8787/web/index.html?guest=probe
+#   http://127.0.0.1:8787/web/index.html?session=aube-1645
+#   http://127.0.0.1:8787/web/index.html?session=pitchfork-basic
 ```
 
 ページは `crossOriginIsolated` を表示し、結果を `<pre id="output" data-testid="output">` と `data-exit-code` 属性に出す。
-ヘッダーを設定できない配信先（GitHub Pages など）では、`runtime/web/coi-sw.js`（service worker）が COOP/COEP を付ける。
+ヘッダーを設定できない配信先（GitHub Pages など）では、`web/coi-sw.js`（service worker）が COOP/COEP を付ける。
 
 診断用に `--core-flag -s`（blink のシステムコール記録）と `--core-flag -e`（ログを stderr に出す）を渡せる。
 ブラウザでは URL に `&core-flag=-s` を付ける（`-e` は自動で付く）。
@@ -232,7 +233,7 @@ bun scripts/serve.js --port 8787
 Git Bash では、`--copy-in fixtures/...:/work` の `/work` が Windows のパスに書き換えられてしまう。
 `MSYS_NO_PATHCONV=1 node runtime/node/run.js ...` のように、変換を止めて実行する。
 
-ブラウザの実行用 Worker（`runtime/web/worker.js`）は、コアを読み込む前に `Atomics.waitAsync` を無効にしている。
+ブラウザの実行用 Worker（`web/worker.js`）は、コアを読み込む前に `Atomics.waitAsync` を無効にしている。
 WebKit で Emscripten の代行依頼の通知が取りこぼされ、ゲスト全体が止まることがあったため（`docs/results/failures.md` の L-3）。
 
 aube は `--version` や `install` のたびに registry へ更新の確認をしに行く。ブラウザにはネットワークがなく、条件を

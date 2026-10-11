@@ -40,7 +40,7 @@ test('pitchfork-basic の書き起こしが native と一致し、状態が引�
 }) => {
   // 1 回の実行に、読み込みと判定の余裕を足した値をこのテストの上限にする（TIMEOUT_MS は tests/shared/pitchfork-basic.js の BROWSER_TIMEOUT_MS）
   test.setTimeout(TIMEOUT_MS + 60 * 1000);
-  await page.goto('/runtime/web/index.html?session=pitchfork-basic');
+  await page.goto('/web/index.html?session=pitchfork-basic');
   await page.waitForFunction(
     () => window.formicariumResult !== undefined,
     null,

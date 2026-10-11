@@ -1,15 +1,20 @@
-import type { LegacyEntry, ModuleFactory } from '../contracts.js';
-import { errorText } from '../contracts.js';
+import type { LegacyEntry, ModuleFactory } from '../runtime/contracts.js';
+import { errorText } from '../runtime/contracts.js';
 // ブラウザの Worker。コア（blink）を読み込み、ゲストを実行して結果をページに返す（FR2.2）。
 // コアの pthread は、この Worker からさらに Worker として起動される。
 // メッセージ：{type:'stdout'|'stderr', text} を逐次、最後に {type:'done', ...} か {type:'error', message}。
-import { defaultCore } from '../core.js';
-import { GUEST_DIR, GuestRunError, runGuest, runSession } from '../guest-io.js';
+import { defaultCore } from '../runtime/core.js';
+import {
+  GUEST_DIR,
+  GuestRunError,
+  runGuest,
+  runSession,
+} from '../runtime/guest-io.js';
 import {
   formatTranscript,
   parseSessionScript,
   toSessionSteps,
-} from '../session.js';
+} from '../runtime/session.js';
 import { GUEST_ENV, GUESTS, SESSIONS } from './sessions.js';
 
 // Emscripten は Atomics.waitAsync があると、このスレッドへの代行依頼（ファイル操作など）を
@@ -40,7 +45,7 @@ async function fetchText(relative: string) {
 }
 
 async function loadCore() {
-  const url = new URL(`../../${defaultCore.loaderPath}`, import.meta.url);
+  const url = new URL(`../${defaultCore.loaderPath}`, import.meta.url);
   const { default: createModule } = await import(url.href);
   return createModule;
 }
