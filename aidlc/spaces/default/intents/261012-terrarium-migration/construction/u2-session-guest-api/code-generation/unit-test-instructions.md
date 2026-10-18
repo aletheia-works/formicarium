@@ -24,6 +24,13 @@ node node_modules/@playwright/test/cli.js test --config tests/migration-session/
 第一者配布JS固定inventory全ファイル、全realmを集約しline coverage≥80%。既存回帰はU2 completion側で1回ずつ逐次実行し、Unit test指示へ全体suiteのbare commandを混ぜない。timeout 600秒probe/840秒browser aube、probe8、native一致、wasm1GB、1worker/retry0を維持する。
 同一source/pack/inventoryのU2暫定証拠を保存する。旧16JS/26pack・署名付きCIは履歴として保持し、現在21JS/31packのCI成功とは扱わない。U3 installは既存コードがあるが正式受入れ未完了、U4 commandは今後の作業として区別する。B1完全受入れへ昇格しない。実機Safari、現在sourceの未実施CIは未検証と記載する。
 
+## 新しい土台（upstreamのmain）での確認（2026-10-18、5回目の再開、追加Step 20–24）
+下の各節のv8・v10の証拠、旧verification-command.txt、`ci.ts`・`migration-session-u2.yml` による確認は、古い土台・古いtoolchainの履歴として扱い、新しい土台の根拠にしない。main sessionで1つずつ実行する。
+1. Step 20の再現試験：`tests/migration-session/completion.test.ts` に、coverageのreportの件数が `FIRST_PARTY_JS.length` と違うときの拒否と、同じときの受付けを確かめる試験を加える。`mise run build` のあと `node --test --test-concurrency=1 tests/migration-session/completion.test.js` で、直す前の失敗を観測し、直したあと同じコマンドで成功を確かめる（`node` はmiseの実体のpathで呼ぶ）。
+2. `mise run lint:all`、`mise run typecheck`、`mise run build`、`mise run test:light`。
+3. `mise run migration-session-unit`。候補・独立consumer・guestの準備（`FORMICARIUM_CANDIDATE` など）が要る試験は、準備できた場合だけ実行し、できない場合は理由を書いて未検証とする。
+4. intentの検証コマンド `mise run typecheck && mise run build && mise run test:light && mise run migration-preflight-unit && mise run migration-preflight-current-unit && mise run migration-guest-build-unit && mise run showcase-unit` は、checkpointの確認でAI-DLCが実行する。
+
 ## U4の作業を戻した後の確認（2026-10-17、2回目の再開、追加Step 14–15）
 新しい試験は追加しない。U2の製品コードは変わっていないため、今回は記録の更新と独立レビューを行う。checkpointの確認には、intentに記録された検証コマンド（人間が承認したU1の試験を今のsourceで実行するコマンド）を使い、mainが実行する。最終的なsource（U4を含む）でのU2の単体・browser・consumer・coverageの確認は、U4の作業がすべて終わった後に、U1〜U4のまとめた確認の中で行う。
 

@@ -48,7 +48,9 @@
     {
       "id": "FR6",
       "status": "GAP",
-      "target": "scripts/migration-install/ci.ts"
+      "target": "scripts/migration-install/completion.ts",
+      "related": ["scripts/migration-install/actual-site.ts"],
+      "note": "新しい土台（main 2a79860）の受入入口。旧土台の scripts/migration-install/ci.ts・ci-inputs.ts・.github/workflows/migration-install-u3.yml・ci/migration-install はPR #32で退役済みで、旧targetは履歴。actual-siteの作成手段とCI証拠（observed-ci-summary）の作り手が追跡コードにないため、verified-with-ciの完了とU3正式受入は未成立（GAP維持）。U1〜U4のまとめた最終確認とterrariumの受入で決める。"
     },
     {
       "id": "BR3.1",
@@ -183,7 +185,8 @@
     {
       "id": "NFR8.1",
       "status": "GAP",
-      "target": "scripts/migration-install/ci.ts"
+      "target": "scripts/migration-install/completion.ts",
+      "note": "source/pack/候補とCI証拠の対応付けは completion.ts の照合が担う。旧targetの scripts/migration-install/ci.ts はPR #32で退役済み。CI証拠の作り手がないため新しい土台では未成立（GAP維持）。"
     },
     {
       "id": "NFR8.2",

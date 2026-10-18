@@ -1,0 +1,24 @@
+{
+  "stage": "code-generation",
+  "unit": "u7-showcase-guests",
+  "version": 1,
+  "writes": [
+    { "path": ".github/workflows/showcase.yml" },
+    { "path": ".gitignore" },
+    { "path": "README.md" },
+    { "path": "biome.json" },
+    { "path": "package.json" },
+    { "path": "mise-tasks/showcase/" },
+    { "path": "showcase/README.md" },
+    { "path": "showcase/allowed-sources.json" },
+    { "path": "showcase/b1-pack.json" },
+    { "path": "showcase/package.json" },
+    { "path": "showcase/tools.json" },
+    { "path": "showcase/trusted-callers.json" },
+    { "path": "showcase/tsconfig.json" },
+    { "path": "showcase/builders/" },
+    { "path": "showcase/fixtures/" },
+    { "path": "showcase/scripts/" },
+    { "path": "showcase/tests/" }
+  ]
+}

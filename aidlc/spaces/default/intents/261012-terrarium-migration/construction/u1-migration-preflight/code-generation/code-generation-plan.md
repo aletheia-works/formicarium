@@ -2,9 +2,9 @@
 
 ## Summary
 
-- Builds: 5回目の再開（Steps 24–25）。共有の `scripts/package/coverage.ts` のPlaywright suiteの許可リストへの `command` の追加（1行）を、U1の変更として引き受け、最終sourceでの36試行とv11の成功を記録する。
-- Touches: U1の記録（code-summary）。コードの変更（1行）と、その試験（U4のacceptance）は、mainのworking copyにある。
-- Tests: 新しい試験は追加しない。mainで、U4・U3のacceptanceとpackageのcoverage試験82件pass、最後のまとめた確認（36試行、U3・U4の受入、v11）がすべて成功。独立レビューと、intentの検証コマンドによるcheckpointの確認を行う。
+- Builds: 新しい土台（upstreamのmain `bbf97ba6`）への合わせ（Steps 26–30）。`tests/terrarium/current-candidate.test.ts` の期待値24を `PACKAGE_FILES.length`（33件）と比べる形に直し、`scripts/terrarium/coverage.ts` の古い件数のコメントを直す。U1の記録（code-summary・source-manifest）を、mainにあるものだけを根拠にするよう書き直す。
+- Touches: `tests/terrarium/current-candidate.test.ts`・`scripts/terrarium/coverage.ts`（どちらもmainへのPR）と、U1の記録（code-summary・source-manifest）。
+- Tests: 直す前に `tests/terrarium/current-candidate.test.js` の失敗を観測し、直したあと成功を確かめる。`lint:all`・`typecheck`・`build`・`test:light`・U1の単体とcurrent-unitを1つずつ実行し、独立レビューとintentの検証コマンドによるcheckpointの確認を行う。
 
 ## Sources and Boundaries
 
@@ -105,7 +105,19 @@ U4の作業がすべて終わった後に、最終的なsourceで、36試行とc
 - U1のcurrent completion v11：入力 `current-recovery-input-20261017-v11.json`（SHA256 d0798e289bb017cc17bae5e95788dcea0cdcf8bde0041d2292afdf46ab758a6f）、20工程pass、report `current-completion-64f021b6-7aba-46dd-acb3-265040ada0fb/current-local-verification-report.json`（SHA256 387549e63296321962b83a062b1d2535e9c04c852783230afff5a6ec5021d486）、verifyは `verified:true`・`currentSourceVerified:true`。pendingは、署名付きCIとU4のB1（U4の受入ではB1の31 checkがpass済み。CIは未実施）。
 
 - [x] Step 24: 上の変更をU1の変更として確かめ、U1の記録（code-summary）に書く。許可リストに1つ加えただけで、空・重複・未知のsuiteの拒否と、suite registryの完全一致の判定は変えていないことを、fileを読んで確かめる。v11の結果を記録する（v10は履歴）。（NFR8）
-- [ ] Step 25: 独立レビューを受ける。そのあと、intentに記録された検証コマンドでcheckpointを確かめる。
+- [x] Step 25: 独立レビューを受ける。そのあと、intentに記録された検証コマンドでcheckpointを確かめる。（このレビューと確認は、下の「新しい土台への合わせ」のStep 30で行う。）
+
+## 今回の再開（2026-10-18）：新しい土台（upstreamのmain）への合わせ
+
+人間の指示（「upstream/mainの変更に合わせて下さい」）で、U1〜U4のコードをupstreamのmainの上へ移し、PR aletheia-works/formicarium#29（merge `f5bc078c`）で取り込んだ。その後、#31（U5・U7）、#32（U2〜U4のfork受入workflow・U3/U4の入力bundle・CI専用scriptの削除）、#33（記録）もmergeされ、mainは `bbf97ba6` になった。upstreamのmainでは、生成JS（`*.js`）と `.github/publication/` を追跡せず、taskは `mise.toml` ではなくpackage.jsonの `migration:preflight:*` のscriptと `mise-tasks/migration/preflight-*.sh` に置く。intentの検証コマンドは、人間の承認で `mise run typecheck && mise run build && mise run test:light && mise run migration-preflight-unit && mise run migration-preflight-current-unit && mise run migration-guest-build-unit && mise run showcase-unit` に変えた。
+
+新しい土台で取り直したレビュー（review-14、NOT-READY）の指摘のうち、次を直す（人間の指示：「U1の計画を新しい土台に合わせて直して承認を取り、current-candidate.test.tsの修正をPRにし、U1の記録を書き直して」）。ほかの持越しの指摘（R-02・R-07・R-11・R-13・R-14・R-19）は、この再開では扱わない。
+
+- [x] Step 26: `tests/terrarium/current-candidate.test.ts` の87行目 `assert.equal(manifest.files.length, 24)` を、`PACKAGE_FILES.length`（いまは33件）と比べる形に直す（Critical、R-16）。先に `tests/terrarium/current-candidate.test.ts` を実行して、期待値24で失敗することを観測し、直したあと同じ試験が成功することを確かめる。この試験を実行するcommandと、その前提（候補・資産の準備が要るか）を記録する。
+- [x] Step 27: `scripts/terrarium/coverage.ts` の33行目のコメントの古い件数（twenty-one）を、件数を書かない表現に直す（R-17）。動きは変えない。
+- [x] Step 28: U1の記録を新しい土台に合わせて書き直す（Major、R-12、R-18）。`code-summary.md` のStatus行と、Step 18・Step 20・Step 22の記述から、mainにないもの（`.github/publication/runner.mjs`、`runner-manifest.json`、`HISTORICAL_PACKAGE_FILES`、`publication-alignment.test.ts` の23件・33fileの判定）を根拠にした主張を、古い土台での履歴として区別し、新しい土台での状態（いまのfileで確かめられること）を書く。Step 18の `tests/package/public.test.ts` の項目は、U2が引き受けると直す。
+- [x] Step 29: `source-manifest.json` を、いまU1の内容を持つfileに合わせる。U1の内容がない `mise.toml` と `.gitignore` を外し、U1のtaskの実体の `mise-tasks/migration/preflight-*.sh` と `package.json` を加える。Step 26・Step 27で変えたfileを含める。
+- [ ] Step 30: main sessionで1つずつ、`mise run lint:all`、`mise run typecheck`、`mise run build`、`mise run test:light`、`mise run migration-preflight-unit`、`mise run migration-preflight-current-unit` とStep 26の試験を実行する。そのあと独立レビューを受け、intentに記録された検証コマンドでcheckpointを確かめる。Step 26・Step 27のコードの変更は、mainへのPRにする（push・PRの作成は人間の指示に含まれる）。
 
 ## Testing Contract
 
@@ -114,7 +126,7 @@ U4の作業がすべて終わった後に、最終的なsourceで、36試行とc
   "version": 1,
   "methodology": "test-after",
   "source": "team",
-  "ordering": "通常の実装は各テスト可能な層の実装後にテストを作成・実行し、不具合修正は再現テストの失敗を観測して修正後に同じテストの成功を確認する。",
+  "ordering": "通常の新規実装は各テスト可能な層を実装した後にその層のテストを作成・実行し、不具合修正は再現テストの失敗を先に観測してから修正し同じテストの成功を確認する。（人間の回答 Q3）",
   "scope": "classic",
   "test_strategy": "standard",
   "project_type": "brownfield",
@@ -125,7 +137,7 @@ U4の作業がすべて終わった後に、最終的なsourceで、36試行とc
     },
     {
       "layer": "team",
-      "text": "- **Methodology**: test-after\n- **Ordering**: 通常の実装は各テスト可能な層の実装後にテストを作成・実行し、不具合修正は再現テストの失敗を観測して修正後に同じテストの成功を確認する。\n- ビルドとテストはmain sessionで逐次実行する。Node向けconsumer、Worker、process.execPath、Node専用flagの意味を確認し、Bunへ一括置換しない。Bun実行を採る箇所は実結果で互換性を確認する（未検証）。\n- 既存Biome・TypeScript・Playwright・node:testを証拠として使う。通常PR/main CIは固定候補入力を要求しない軽量経路から整備し、重いnative/ブラウザ回帰・配布coverageは別の明示経路へ対応づける（提案）。軽量CI成功だけで全受入れを通過したと扱わない。\n- 統合前CIと第一者配布JS固定一覧の行coverage80%以上を維持する。未収集ファイルを分母から消さず、Worker/別process/realmも記録し、欠落・skipを成功へ置換しない。\n- probe600秒、aubeブラウザ840秒、1worker、retryなし、probe8項目合格、native出力一致、wasm1GBを維持する。未変更aubeは再ビルドせず、計測時に重い処理を並行しない。新規コア回帰はnative Linuxでも確認する。実機Safariは未検証のまま区別する。"
+      "text": "- **Methodology**: test-after\n- **Ordering**: 通常の新規実装は各テスト可能な層を実装した後にその層のテストを作成・実行し、不具合修正は再現テストの失敗を先に観測してから修正し同じテストの成功を確認する。（人間の回答 Q3）\n- node:test と Playwright の既存結合テストを利用する（検証済み：package.json scripts、code-quality-assessment.md）。今回の成功結果・coverage 値は未検証。\n- classic の追加条件は行 coverage 80%以上と統合前 CI 実行（ドキュメント根拠：org.md Testing Posture）。基準を下げて通過させない。\n- coverage の技術提案（未実装・未検証）：第一者が保守する配布 JS 全体（既存 runtime の未変更ファイル、共通処理、公開 API、Node/browser Worker adapter を含む）の一覧を事前に固定し、未実行ファイルも分母に含める。tests、生成 blink JS/wasm、第三者/vendor、ゲスト ELF、.d.ts、デモ・開発専用 scripts は理由を明示して対象外とし、資産・型・回帰検証を別途行う。設計で配布対象を確定し、閾値達成のために除外を変更しない。\n- Worker/ブラウザ内の計測を収集・マージし、対象一覧と照合して欠落を検出する。未収集ファイルを分母から外さず0%または未測定として失敗／未検証を報告する。計測方式は担当者が未importファイル・別process/realmを含む試験を観測して選ぶ。対象一覧、除外理由、行数、レポート、実行コマンドを CI 成果物へ残す。ブランチ coverage の新しい数値条件は追加しない。\n- 既存上限は probe 600秒、aube ブラウザ840秒、1worker、retryなし、probe 8項目全通過、native 出力一致、wasm 1GB。テストは main session が逐次実行する（人間の指示：AGENTS.md）。\n- aube はソースが変わっていなければ再ビルドしない。計測は重い並行処理なしで行う。新しいコア不具合の回帰 probe は native Linux でも確認する。\n- npm tarball の import/Worker/型/wasm・notices・build-info の同梱確認は設計候補（推測・未検証）。ゲストと fixture は terrarium 側の ref 別配布という既存意図を維持する。"
     }
   ],
   "obligations": {
@@ -169,8 +181,8 @@ U4の作業がすべて終わった後に、最終的なsourceで、36試行とc
       "Documentation and traceability."
     ]
   },
-  "input_sha256": "sha256:c174dde61b23d97d1733ad98b91568ee85c7de913db166d498965b6845a4c286",
-  "contract_sha256": "sha256:10b6f50c2e853225a46984ab35ccfb615ca938fd59f89dd0c81174ba91834d14"
+  "input_sha256": "sha256:dd7d634a9c475bfe0b7fdd87b1566bd3f238a9b0ead389ae268b08de9bf333f2",
+  "contract_sha256": "sha256:ce013e1551c9c06de1a756c04942d606c8dffe82caf0ae8422f95df28968c638"
 }
 ```
 

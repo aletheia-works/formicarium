@@ -50,6 +50,15 @@ v8入力SHA `25d44cb9c6def3cdc65317d76add2ecb90b5010fc05f4e097f982cdf98655bd0` �
 3. 旧v6の完了確認結果はsourceの一致が確認できるまで現在の完了証拠へ転用しない。不一致の場合は固定入力・候補・必要な全工程の再実行案を具体化し、新完了確認コマンドを人間へ提示して承認を得る。
 4. 生記録と現sourceの照合を独立レビューへ渡す。失敗・不足証拠を成功へ置換せず停止する。U3の新起動台帳修正はU1の復旧へ混ぜない。
 
+### 新しい土台（upstreamのmain）での確認（2026-10-18）
+
+upstreamのmainでは生成JSを追跡しないので、上の「生成JSのレビュー復旧」の `.gitignore` と `jj file track` の手順は履歴として扱い、実行しない。main sessionで1つずつ実行する。
+
+1. `mise run lint:all`、`mise run typecheck`、`mise run build`、`mise run test:light`。
+2. `mise run migration-preflight-unit`、`mise run migration-preflight-current-unit`。
+3. `tests/terrarium/current-candidate.test.ts` の修正（計画のStep 26）は、`mise run build` のあと `node --test --test-concurrency=1 tests/terrarium/current-candidate.test.js` で、直す前の失敗と直したあとの成功を観測する。この試験はpackage.jsonの `test:integration`（`tests/package/*.test.js tests/terrarium/*.test.js`）にも含まれる。
+4. intentの検証コマンド `mise run typecheck && mise run build && mise run test:light && mise run migration-preflight-unit && mise run migration-preflight-current-unit && mise run migration-guest-build-unit && mise run showcase-unit` は、checkpointの確認でAI-DLCが実行する。
+
 証拠集計・取得検証・実行計測の3部品各5–8件以上、baseline境界の結合試験を追加。正常入力と少なくとも2種の失敗/edgeを各部品で確認。digest/ELF/metadata/path/link/duplicate/truncated/サイズ+1/deadline/abort/HTTP/redirect/36行欠落/重複/3000境界を含む。模擬fetchと極小archiveを使い大容量fixtureを不用意に保存しない。
 
 性能trialのELF/wasm/APIは実物、coverage instrumentationなし。coverageは別に固定配布JS全一覧を分母として80%以上を照合し、Worker/別realm欠落を拒否。既存回帰のprobe600s/8項目、aube840s、native完全一致/wasm1GB/worker1/retry0を維持。未変更aubeを再buildせず、未実行は理由付き未検証として停止する。

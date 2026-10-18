@@ -1,6 +1,28 @@
 # U1 Code Summary
 
-Status: v10（最新toolchainでのU1/U2の確認）は、Step 16の修正とU4の共有fileの変更より前のsourceの履歴である。修正後のsourceでの36試行とv11は、まだ実施していない。新しい読取り専用の検証コマンドは人間の承認済み。R-01は修正済み。独立レビュー・正式checkpoint受入は未完。R-02は未解消。
+Status: いまの土台はupstreamのmain `bbf97ba6` である。v10は履歴。古い土台の最終sourceでの36試行とv11（Step 24の節）は成功済みだが、古い土台での結果であり、新しい土台のsourceの成功証拠としては使わない。署名付きCIとU4のB1統合受入は未実施。新しい土台での修正（Steps 26〜29）は下の節のとおりで、Step 30のうちlint・typecheck・build・test:light・U1の単体2種・Step 26の試験の結果は下に記録した。独立レビュー、intentの検証コマンドによるcheckpoint、mainへのPRは未完。R-02・R-07・R-11・R-13・R-14・R-19は持越し。
+
+## 新しい土台（upstreamのmain `bbf97ba6`）への合わせ：Steps 26〜29（2026-10-18）
+
+upstreamのmainでは、生成JS（`*.js`）と `.github/publication/` を追跡しない。U1のtaskは `mise.toml` ではなく、package.jsonの `migration:preflight:*`（unit・browser・verify・current-unit・completion）と `mise-tasks/migration/preflight-*.sh` にある（fileを読んで確認）。
+
+- Step 26（review-14の指摘、Critical）：`tests/terrarium/current-candidate.test.ts` の87行目 `assert.equal(manifest.files.length, 24)` を `assert.equal(manifest.files.length, PACKAGE_FILES.length)` にした（`PACKAGE_FILES` は14行目で `scripts/package/stage-package.js` からimport済み）。
+  - 試験のcommand：`mise run build` のあと `<node> --test --test-concurrency=1 tests/terrarium/current-candidate.test.js`（`<node>` は `mise which node` が示す `/Users/mutoakio/.local/share/mise/installs/node/latest/bin/node`、v26.12.0）。前提：候補・資産の準備は要らない。試験はtmpdirにfixtureを作るだけである。package.jsonの `test:integration`（`tests/package/*.test.js tests/terrarium/*.test.js`）にも含まれる。
+  - 直す前（検証済み）：`✖ current supplier rejects count and duplicate inventories`、`AssertionError [ERR_ASSERTION]: Expected values to be strictly equal: 33 !== 24`、`ℹ tests 7`・`ℹ pass 6`・`ℹ fail 1`。
+  - 直したあと（検証済み、再build後）：`✔ current supplier rejects count and duplicate inventories`、`ℹ tests 7`・`ℹ pass 7`・`ℹ fail 0`・`ℹ skipped 0`。
+  - 判定は変えていない：この行のあとの `verifyInstalledPackage` による照合、`files.slice(1)` の拒否、改変の拒否のassertはそのままである。なお、fixtureの `manifest.files` は `PACKAGE_FILES.map(...)` から作るので、この行は件数の二重管理をやめただけで、件数そのものを独立に検査する行ではない。実際の配布件数（23件・33file）は `tests/package/pack.test.ts` の36〜37行目が検査している。
+- Step 27（review-14の指摘、Minor）：`scripts/terrarium/coverage.ts` の33行目のコメント「the current twenty-one-file distribution denominator」を「the current distribution denominator」にした。コメントだけで、動きは変えていない。
+- Step 28：この節とStatus行を書き直した。下のStep 18・20・22の節に、新しい土台での状態を書き足した。古い土台の記述は履歴として残す。
+- Step 29：source-manifest.jsonから、U1の内容を持たない `mise.toml` と `.gitignore` を外した（いまの `mise.toml` は `[tools]` だけで、`.gitignore` にStep 13の例外2行は無い）。U1のtaskの実体の `mise-tasks/migration/preflight-browser.sh`・`preflight-completion.sh`・`preflight-current-unit.sh`・`preflight-unit.sh`・`preflight-verify.sh` と `package.json` を加えた。Step 26・27のfileは既にclaimしている。読み直して、96件のpathがすべて実在することを確かめた。
+- Step 30のうち、委任先で1つずつ実行した結果（2026-10-18、検証済み、Node v26.12.0）：
+  - `mise run lint:all`：exit 0。`Checked 376 files`、`Found 48 warnings.`・`Found 47 infos.`、errorは0。変更した2fileに診断は無い。
+  - `mise run typecheck`：exit 0。
+  - `mise run build`：exit 0。
+  - `mise run test:light`：exit 0。bun test 71 pass/0 fail（7file）、bun test 37 pass/0 fail（5file）、node-unit 125件中 pass 123・fail 0・skipped 2（`test:node-unit` の既存の `--test-skip-pattern="real Node |real generated loader mutation"` による）、release＋publication 130 pass/0 fail/0 skip。
+  - `mise run migration-preflight-unit`：exit 0、57 pass・0 fail・0 skip。
+  - `mise run migration-preflight-current-unit`：exit 0、21 pass・0 fail・0 skip。
+  - Step 26の試験（`tests/terrarium/current-candidate.test.js`）：exit 0、7 pass・0 fail・0 skip。
+  - 未実施：`test:integration` 全体、独立レビュー、intentの検証コマンドによるcheckpoint、push・PR（mainが行う）。CIはまだ動いていない。
 
 ## 共有coverageのsuiteの許可リストの引受けと、最終sourceの結果：Step 24（2026-10-17）
 
@@ -18,8 +40,11 @@ Status: v10（最新toolchainでのU1/U2の確認）は、Step 16の修正とU4�
 - fileを読んで確認：この試験は、`PACKAGE_FILES`（`scripts/package/stage-package.ts`、33件）からfixtureのmanifestを作り、`verifyInstalledPackage` で照合する。変えたのは件数の確認（`manifest.files.length`）だけで、`verifyInstalledPackage` の照合、改変の拒否、そのあとの各assertは変えていない。
 - mainの観測（証明書なし、Node v26.12.0）：U3の候補で build・typecheck・test-light（194・237件pass）・test-consumer（205件pass）・migration-session-unit（46件）・migration-install-unit（74件）。候補を作り直したあと、U4の候補で test-consumer（205件）・migration-command-unit（94件）。どれもfail・skip 0。
 - source-manifest.json：このfileと生成JSは既にclaimしている。追加はない。
+- 新しい土台での状態（2026-10-18）：上の「期待値を33へ直した」は古い土台での履歴である。upstreamのmainのこのfileは期待値が24で、試験は失敗していた。Step 26で `PACKAGE_FILES.length` と比べる形に直し、失敗と成功を観測した（上のSteps 26〜29の節）。
 
 ## 公開用inventoryの更新の引受け：Step 20（2026-10-17）
+
+新しい土台での状態（2026-10-18）：この節の記述は古い土台での履歴である。upstreamのmainには、`.github/publication/runner.mjs`・`runner-manifest.json`・`bootstrap.mjs`（`.github/publication/` が無い）、`scripts/release/inventory.ts` の `HISTORICAL_PACKAGE_FILES` と `HISTORICAL_U1_JS`、`tests/tooling/publication-alignment.test.ts` の「23件・33file」の期待値と配布用inventoryとの `deepEqual` が無い。したがって、下の「公開の境界」（`HISTORICAL_PACKAGE_FILES` にないfileを含むpackを「U2 publication missing module coverage; U4/B1 evidence required」で拒否する）と「23件のpackはU4/B1の証拠なしには公開されない」は、新しい土台のsourceに対する根拠にならないので取り下げる。いまのfileで確かめたこと（fileの読取り）：`scripts/release/inventory.ts` は `HISTORICAL_FIRST_PARTY_JS`（14件）と `FIRST_PARTY_JS`（23件、`runtime/command-parse.js`・`runtime/command.js` を含む）、`PACKAGE_FILES`（`FIRST_PARTY_JS` と10file）を持ち、`FIRST_PARTY_JS` の23件は `scripts/package/stage-package.ts` の `FIRST_PARTY_JS` と同じ順で一致する（`diff` で差なし）。いまの `publication-alignment.test.ts` は、workflowの委譲・前提失敗・dist tag・改変された入力の拒否を試験する4件で、件数の期待値を持たない。新しい土台の公開の境界を確かめる試験と結果は、この再開では示していない（未検証）。
 
 最後のまとめた確認のD2（U3の受入）が、`test-light` でpublication-alignmentの2件（21件・31file前提）のために止まった。人間が承認した修正案（U4の `publication-inventory-23-proposal.md`）に従い、U4の項目7で次を変えた。U1もclaimするfileなので、U1の変更として引き受けた。
 - `scripts/release/inventory.ts`：`FIRST_PARTY_JS` に `runtime/command-parse.js`・`runtime/command.js` を、配布用inventoryと同じ位置に加えた（23件、`PACKAGE_FILES` は33file）。`HISTORICAL_U1_JS`（14件）・`HISTORICAL_PACKAGE_FILES`（24件）は変えていない。
@@ -37,7 +62,8 @@ U4の追加Step項目4で、U1がclaimする試験fileが変わった。人間�
 - `tests/package/coverage.test.ts`：固定inventoryを21件から23件にし、名前の一覧に `command`・`command-parse` を加えた。
 - `tests/terrarium/coverage.test.ts`：現在の配布JSの組み立てを23件にした（変数名 `currentTwentyOne` を `currentTwentyThree` に変えた）。
 - 差分は、件数と名前の一覧だけである。実際の配布一覧（`FIRST_PARTY_JS`）に合わせただけで、assertの種類、拒否の条件、coverageの判定は変えていない（`jj diff --from 7c7ceaf4` で確認）。
-- `tests/package/public.test.ts`（root exportの一覧に `createCommandSession` を加えた）は、U2がclaimするfileである。U1のsource-manifestには加えず、U2のやり直しで引き受ける。
+- `tests/package/public.test.ts`（root exportの一覧に `createCommandSession` を加えた）は、U2がclaimするfileである。U1はこの項目を引き受けない。U1のsource-manifestには加えず、U2のやり直しで引き受ける（計画のStep 18の括弧書きにあるこの項目も、U2が引き受ける）。
+- 新しい土台での状態（2026-10-18、fileの読取り）：`tests/package/pack.test.ts` の36〜37行目は `FIRST_PARTY_JS.length` 23・`PACKAGE_FILES.length` 33、`tests/package/coverage.test.ts` の832・1017行目は23件で、名前の一覧に `command`・`command-parse` がある。`tests/terrarium/coverage.test.ts` は `currentTwentyThree` を23件とし、426〜427行目に `command-parse`・`command` がある。`tests/package/public.test.ts` の9行目に `createCommandSession` がある。旧版との差分の出力は保存されておらず、新しい土台でも旧版との比較はしていない（未検証）。
 - mainの観測：package・terrariumの試験44件、U4の新しい候補での `pack.test.ts` 7件がpass（fail・skipは0）。
 
 ## 再レビュー指摘の修正：Step 16（2026-10-17）

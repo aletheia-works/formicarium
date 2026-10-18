@@ -59,7 +59,7 @@
 
 
 
-- **Construction Verification Command**: /Users/mutoakio/.local/share/mise/installs/node/26.12.0/bin/node .artifacts/migration-guest-build/verify-final-u5.mjs .artifacts/migration-guest-build/final-u5-binding-71e0ef92.json 6a5ac9ee2b23575b7a2294017fe0c4b5f70be391b65b64b199ecc548ad078ef3
+- **Construction Verification Command**: mise run typecheck && mise run build && mise run test:light && mise run migration-preflight-unit && mise run migration-preflight-current-unit && mise run migration-guest-build-unit && mise run showcase-unit
 
 
 
@@ -205,15 +205,34 @@
 
 
 
-- **Active Unit**: u7-showcase-guests
 
-- **Unit Stage**: code-generation
 
-- **Unit State**: paused
 
-- **Unit Pause Reason**: Step 9の受入は人間の回答（Q1: CIで受入）によりCIで行う。push・PR・mergeは個別承認が必要
 
-- **Unit Next Action**: push・PR・mergeの実コマンドを提示して承認を受け、CIのshowcase verifyで受入を確かめてからStep 9・12・13を仕上げる
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## Phase Progress
 <!-- Status values: Pending, Active, Verified, Skipped -->
@@ -276,7 +295,7 @@ Per unit: [TBD]
 - **Current Stage**: functional-design
 - **Next Stage**: nfr-requirements
 - **Status**: Running
-- **Last Updated**: 2026-10-18T03:11:05Z
+- **Last Updated**: 2026-10-18T13:58:47Z
 
 - **Construction Autonomy Mode**: autonomous
 

@@ -1,5 +1,25 @@
 # U4 command 単体・統合試験手順
 
+## 新しい土台（upstreamのmain）での確認（2026-10-18、追加Step 11–16）
+
+新しい試験は加えない。U4の製品コード・受入の入口のコードは変えない。下の各節の、`scripts/migration-command/ci.ts`・`ci-inputs.ts`、`.github/workflows/migration-command-u4.yml`、`.github/publication`、生成JSの追跡、署名付きCIを使う手順は、古い土台で行った手順の履歴であり、新しい土台では実行しない。新しい土台では、生成JSは追跡されず、`mise run build` が作る。taskは `mise-tasks/migration/command-*.sh` が `bun run migration:command:*` を呼ぶ。
+
+mainで1つずつ実行する。
+1. `mise run lint:all`
+2. `mise run typecheck`
+3. `mise run build`
+4. `mise run test:light`
+5. `mise run migration-command-stage`（新しい土台のsourceでU4の候補を作る。base revisionは `FORMICARIUM_SESSION_SOURCE` に40桁で渡す）。作った候補の `package.manifest.json` を `FORMICARIUM_CANDIDATE` に、その候補のtarballを入れたリポジトリ外の独立consumerを `FORMICARIUM_CONSUMER` に、固定guest（`.artifacts/u2-release-inputs/aube-v2.7.0/aube`）を `FORMICARIUM_SESSION_GUEST` に設定する。
+6. `mise run migration-command-unit`（件数とfail・cancel・skip・TODO 0を記録する）
+7. `mise run migration-command-browser`（3browser、1worker・retry0）
+8. `FORMICARIUM_COMMAND_LOCAL_ONLY=1 mise run migration-command-completion`。`U2_ACTUAL_SITE` に手元の `.artifacts/migration-install/actual-site` を渡し、`requireInstallActualSite` が固定11ファイルを検査する。`dist/guests/` のpitchforkは今のmainの手順で作ったもの（パッチなし、UI node 26以上）を使う（U3の確認で作り直し済み）。36試行のための証明書の一時登録・削除はkeychainの信頼設定の変更なので、wrapperを人間がターミナルで実行し、終わったら削除・未登録を確かめる。結果は `local-provisional`（`acceptancePassed=false`、`b1.formal=false`）であり、正式受入でもB1の正式な行でもない。
+
+準備できない入力や、実行できない工程は、未検証として記録する。install180秒、非download中央値3000ms、probe600秒、aube840秒、1worker・retry0、23JS全realmの行coverage 80%、容量上限は変えない。actual-siteとCI証拠を作る手段は追跡コードにないため、`verified-with-ci` の完了・B1の正式な行・U4の正式受入は、U1〜U4のまとめた最終確認とterrariumの受入で行う。
+
+---
+
+以下は古い土台での手順の履歴である。
+
 ## 実行時点
 
 U4の製品コードと試験は未実装で、以下の実行結果はすべて未検証である。U3までの成功（CI 38948209404、U3完了確認）はU3の証拠であり、U4の成功として扱わない。全build・testはmain sessionで一つずつ実行する。

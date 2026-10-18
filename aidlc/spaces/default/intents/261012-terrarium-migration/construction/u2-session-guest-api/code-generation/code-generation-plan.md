@@ -2,9 +2,9 @@
 
 ## Summary
 
-- Builds: 4回目の再開（追加Step 18–19）。review-08のR-09（`resolvePath` のJSDoc）とR-10（検証記録の記述）を直し、functional-designで追加したBR2.12をtraceabilityとcode-summaryへつなぐ。
-- Touches: `runtime/session-port.ts` のJSDocだけ（振る舞いは変えない）と、U2の記録（code-summary.md、current-recovery-verification.md、traceability.json）。
-- Tests: 新しい試験は追加しない。mainで `mise run build` と `reservation.test.js` を逐次実行して記録する。2回目の独立レビューと、intentの検証コマンドによるcheckpointの確認を行う。最終的なsourceでのU1〜U4のまとめた確認は、U4の作業の後に行う。
+- Builds: 新しい土台（upstreamのmain `bbf97ba6`）への合わせ（追加Step 20–24）。`scripts/migration-session/completion.ts` のcoverageの件数の固定（16件）を、配布一覧 `FIRST_PARTY_JS` の件数と比べる形に直す。U2の記録（traceability・code-summary・計画の古い記述）を、mainにあるものだけを根拠にするよう直す。
+- Touches: `scripts/migration-session/completion.ts`（と、件数を確かめる試験 `tests/migration-session/completion.test.ts`。どちらもmainへのPR）と、U2の記録（traceability.json・code-summary.md・source-manifest.json）。
+- Tests: 先に、completionが件数の不一致で拒否されることを再現する試験を書いて失敗を観測し、直したあと成功を確かめる。`lint:all`・`typecheck`・`build`・`test:light`・`migration-session-unit` を1つずつ実行し、独立レビューとintentの検証コマンドによるcheckpointの確認を行う。
 
 ## 対象と前提
 FR2/FR5/FR6、BR2.1–BR2.11、U2 NFR2.1/2.2/3.1–3.5/4.1/4.2/6.1/8.1/8.2を実装する。User Storiesは省略されており、直接FR/BR/NFRで追跡する。
@@ -61,7 +61,7 @@ U4の追加Step項目3・4で、U2がclaimするfileが変わった。人間の�
 - `tests/migration-install/lifecycle.test.ts` の模擬portへの `resolvePath` の追加はU3のfileなので、U3のやり直しで引き受ける。
 
 - [x] Step 16: 上の変更をU2の変更として確かめ、U2の記録（code-summary.md、source-manifest.json、traceability.json）に書く。`resolvePath` が既存のC02/C03の振る舞いと公開API（package exportにSessionPortを出さないこと）を変えないこと、`normalizePath` の拒否条件を緩めていないこと、試験の期待値は実際の配布一覧に合わせただけで判定条件を緩めていないことを、file を読んで確かめる。mainで `tests/migration-session/reservation.test.js` と `tests/package/public.test.js` を逐次実行し、件数とfail・skip 0を記録する。最終的なsourceでのU1〜U4のまとめた確認はU4の後に行い、それまではv10を変更後のsourceの成功証拠として扱わない。（FR5/NFR8）
-- [x] Step 17: 独立レビューを受ける。そのあと、intentに記録された検証コマンドでU2のcheckpointを確かめ、通常の単位完了承認を自動で進める。（NFR2/8）
+- [ ] Step 17: 独立レビューを受ける。そのあと、intentに記録された検証コマンドでU2のcheckpointを確かめ、通常の単位完了承認を自動で進める。（NFR2/8）
 
 ## 追加Step：review-08の指摘の修正（2026-10-17、4回目の再開）
 
@@ -74,7 +74,19 @@ review-08（READY）のR-08〜R-10を直す。人間が承認した修正案 `u2
   - mainで `mise run build` と `node --test --test-concurrency=1 tests/migration-session/reservation.test.js` を逐次実行し、件数とfail・skip 0を記録する。
 Step 18はmainで実施済み（build exit 0、reservation試験12件pass、fail・skip 0）。前の試行ではreview-08でレビューを使い切っていたため、エンジンがレビューの依頼を拒否した。人間の判断で、レビューのためにcode-generationをもう一度開き直した（2026-10-17）。計画の内容は変えていない。
 
-- [ ] Step 19: 2回目の独立レビューを受ける。そのあと、intentに記録された検証コマンドでU2のcheckpointを確かめ、通常の単位完了承認を自動で進める。（NFR2/8）
+- [ ] Step 19: 2回目の独立レビューを受ける。そのあと、intentに記録された検証コマンドでU2のcheckpointを確かめ、通常の単位完了承認を自動で進める。（NFR2/8）（このレビューとcheckpointは、下の「新しい土台への合わせ」のStep 24で行う。Step 17のcheckpointの確認も、ここに含める。）
+
+## 追加Step：新しい土台（upstreamのmain）への合わせ（2026-10-18、5回目の再開）
+
+人間の指示（「upstream/mainの変更に合わせて下さい」）で、U1〜U4のコードをupstreamのmainへ移した（PR aletheia-works/formicarium#29、merge `f5bc078c`）。その後、#31・#32・#33がmergeされ、mainは `bbf97ba6` になった。#32で、U2の受入workflow（`.github/workflows/migration-session-u2.yml`）・CI専用の `scripts/migration-session/ci.ts`・`tests/migration-session/ci.test.ts` のCI専用の試験を消した。`ci-core.ts`・`ci-inputs.ts`・`ci/migration-session/` は、showcaseのworkflowが使うので残る。upstreamのmainでは、生成JSと `.github/publication/` を追跡せず、taskはpackage.jsonの `migration:session:*` と `mise-tasks/migration/session-*.sh` に置く。intentの検証コマンドは、人間の承認で `mise run typecheck && mise run build && mise run test:light && mise run migration-preflight-unit && mise run migration-preflight-current-unit && mise run migration-guest-build-unit && mise run showcase-unit` に変えた。
+
+新しい土台で取り直したレビュー（review-10、READY、Major 1・Minor 5）の指摘を、人間の指示（「U2のコード生成を開き直して、計画を新しい土台に合わせて承認を取り、completion.tsの修正をPRにして、記録を直して」）で直す。
+
+- [x] Step 20: `scripts/migration-session/completion.ts` の251行目 `report.files.length !== 16` を、`FIRST_PARTY_JS.length`（いまは23件）と比べる形に直す（R-06）。先に `tests/migration-session/completion.test.ts` に、coverageのreportの件数が配布一覧と違うときに `U2 current candidate coverage incomplete` で拒否し、同じときに受け付けることを確かめる試験を加え、直す前の失敗を観測する。直したあと同じ試験が成功することを確かめる。
+- [x] Step 21: `traceability.json` のNFR8.2の対象を、消した `scripts/migration-session/ci.ts` から、mainにありnoticesの同梱を決める `scripts/package/stage-package.ts` に直す（review-10のMajor）。ほかの対象がすべてmainにあることを確かめる。
+- [x] Step 22: `code-summary.md` の、`ci.ts`・`migration-session-u2.yml`・`.github/publication/`・16JSの記述を、古い土台の履歴として区別し、新しい土台での状態（いまのfileで確かめられること）を書く（review-10のMinor）。上の「検証と停止条件」のv8の証拠と旧verification-command.txtは、古い土台・古いtoolchainの履歴であり、新しい土台での確認はintentの新しい検証コマンドで行うと書く（R-05）。
+- [x] Step 23: `source-manifest.json` に、Step 20で変えたfileが含まれていることを確かめる。U2の内容がない `mise.toml` を外し、U2のtaskの実体の `mise-tasks/migration/session-*.sh` を加える。
+- [ ] Step 24: main sessionで1つずつ、`mise run lint:all`、`mise run typecheck`、`mise run build`、`mise run test:light`、`mise run migration-session-unit`（候補・consumerの準備が要るなら、その準備と、準備できない場合は未検証として記録する）とStep 20の試験を実行する。そのあと独立レビューを受け、intentの検証コマンドでcheckpointを確かめる。Step 20のコードの変更は、mainへのPRにする（push・PRの作成は人間の指示に含まれる）。
 
 ## 検証と停止条件
 各層のtest-after順序、main sessionでの逐次実行、既存品質基準を維持する。今回の変更は記録の整合であり、新規の実装追従テストは追加しない。
@@ -89,7 +101,7 @@ U3 installと共有SHA256性能改善は実装済みであり、U3の正式受�
   "version": 1,
   "methodology": "test-after",
   "source": "team",
-  "ordering": "通常の実装は各テスト可能な層の実装後にテストを作成・実行し、不具合修正は再現テストの失敗を観測して修正後に同じテストの成功を確認する。",
+  "ordering": "通常の新規実装は各テスト可能な層を実装した後にその層のテストを作成・実行し、不具合修正は再現テストの失敗を先に観測してから修正し同じテストの成功を確認する。（人間の回答 Q3）",
   "scope": "classic",
   "test_strategy": "standard",
   "project_type": "brownfield",
@@ -100,7 +112,7 @@ U3 installと共有SHA256性能改善は実装済みであり、U3の正式受�
     },
     {
       "layer": "team",
-      "text": "- **Methodology**: test-after\n- **Ordering**: 通常の実装は各テスト可能な層の実装後にテストを作成・実行し、不具合修正は再現テストの失敗を観測して修正後に同じテストの成功を確認する。\n- ビルドとテストはmain sessionで逐次実行する。Node向けconsumer、Worker、process.execPath、Node専用flagの意味を確認し、Bunへ一括置換しない。Bun実行を採る箇所は実結果で互換性を確認する（未検証）。\n- 既存Biome・TypeScript・Playwright・node:testを証拠として使う。通常PR/main CIは固定候補入力を要求しない軽量経路から整備し、重いnative/ブラウザ回帰・配布coverageは別の明示経路へ対応づける（提案）。軽量CI成功だけで全受入れを通過したと扱わない。\n- 統合前CIと第一者配布JS固定一覧の行coverage80%以上を維持する。未収集ファイルを分母から消さず、Worker/別process/realmも記録し、欠落・skipを成功へ置換しない。\n- probe600秒、aubeブラウザ840秒、1worker、retryなし、probe8項目合格、native出力一致、wasm1GBを維持する。未変更aubeは再ビルドせず、計測時に重い処理を並行しない。新規コア回帰はnative Linuxでも確認する。実機Safariは未検証のまま区別する。"
+      "text": "- **Methodology**: test-after\n- **Ordering**: 通常の新規実装は各テスト可能な層を実装した後にその層のテストを作成・実行し、不具合修正は再現テストの失敗を先に観測してから修正し同じテストの成功を確認する。（人間の回答 Q3）\n- node:test と Playwright の既存結合テストを利用する（検証済み：package.json scripts、code-quality-assessment.md）。今回の成功結果・coverage 値は未検証。\n- classic の追加条件は行 coverage 80%以上と統合前 CI 実行（ドキュメント根拠：org.md Testing Posture）。基準を下げて通過させない。\n- coverage の技術提案（未実装・未検証）：第一者が保守する配布 JS 全体（既存 runtime の未変更ファイル、共通処理、公開 API、Node/browser Worker adapter を含む）の一覧を事前に固定し、未実行ファイルも分母に含める。tests、生成 blink JS/wasm、第三者/vendor、ゲスト ELF、.d.ts、デモ・開発専用 scripts は理由を明示して対象外とし、資産・型・回帰検証を別途行う。設計で配布対象を確定し、閾値達成のために除外を変更しない。\n- Worker/ブラウザ内の計測を収集・マージし、対象一覧と照合して欠落を検出する。未収集ファイルを分母から外さず0%または未測定として失敗／未検証を報告する。計測方式は担当者が未importファイル・別process/realmを含む試験を観測して選ぶ。対象一覧、除外理由、行数、レポート、実行コマンドを CI 成果物へ残す。ブランチ coverage の新しい数値条件は追加しない。\n- 既存上限は probe 600秒、aube ブラウザ840秒、1worker、retryなし、probe 8項目全通過、native 出力一致、wasm 1GB。テストは main session が逐次実行する（人間の指示：AGENTS.md）。\n- aube はソースが変わっていなければ再ビルドしない。計測は重い並行処理なしで行う。新しいコア不具合の回帰 probe は native Linux でも確認する。\n- npm tarball の import/Worker/型/wasm・notices・build-info の同梱確認は設計候補（推測・未検証）。ゲストと fixture は terrarium 側の ref 別配布という既存意図を維持する。"
     }
   ],
   "obligations": {
@@ -144,7 +156,7 @@ U3 installと共有SHA256性能改善は実装済みであり、U3の正式受�
       "Documentation and traceability."
     ]
   },
-  "input_sha256": "sha256:c174dde61b23d97d1733ad98b91568ee85c7de913db166d498965b6845a4c286",
-  "contract_sha256": "sha256:10b6f50c2e853225a46984ab35ccfb615ca938fd59f89dd0c81174ba91834d14"
+  "input_sha256": "sha256:dd7d634a9c475bfe0b7fdd87b1566bd3f238a9b0ead389ae268b08de9bf333f2",
+  "contract_sha256": "sha256:ce013e1551c9c06de1a756c04942d606c8dffe82caf0ae8422f95df28968c638"
 }
 ```

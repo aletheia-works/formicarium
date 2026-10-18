@@ -1,5 +1,24 @@
 # U3 install 単体・統合試験手順
 
+## 新しい土台（upstreamのmain）での確認（2026-10-18、追加Step 20–25）
+新しい試験は加えない。U3の製品コード・受入の入口のコードは変えない。下の各節（Node 24.21.0の実体path、`ci-inputs.js`、`ci/migration-install`、workflowを使う手順）は、古い土台で行った手順の履歴であり、新しい土台では実行しない。新しい土台では、生成JSは追跡されず、`mise run build` が作る。taskは `mise-tasks/migration/install-*.sh` が `bun run migration:install:*` を呼ぶ。
+
+mainで1つずつ実行する。
+1. `mise run lint:all`
+2. `mise run typecheck`
+3. `mise run build`
+4. `mise run test:light`
+5. `mise run migration-install-stage`（新しい土台のsourceでU3の候補を作る）。作った候補の `package.manifest.json` を `FORMICARIUM_CANDIDATE` に、独立consumerを `FORMICARIUM_CONSUMER` に、固定guestを `FORMICARIUM_SESSION_GUEST` に設定する。
+6. `mise run migration-install-unit`（8個の個別試験。件数とfail・cancel・skip・TODO 0を記録する）
+7. `mise run migration-install-browser`（Node以外の3browser、1worker・retry0）
+8. `FORMICARIUM_INSTALL_LOCAL_ONLY=1 mise run migration-install-completion`。actual-siteは手元の `.artifacts/migration-install/actual-site` を使い、`requireInstallActualSite` が固定11ファイルを検査する。36試行の前に、証明書の一時登録の実コマンドを示して承認を得る。終わったら削除・未登録を確かめる。結果は `local-provisional-report.json`（`acceptancePassed=false`）であり、正式受入ではない。
+
+準備できない入力や、承認を得られない工程は、未検証として記録する。install180秒、非download中央値3000ms、probe600秒、aube840秒、1worker・retry0、23JS全realmの行coverage 80%、容量上限は変えない。actual-siteとCI証拠を作る手段は追跡コードにないため、`verified-with-ci` の完了とU3の正式受入は、U1〜U4のまとめた最終確認とterrariumの受入で行う。
+
+---
+
+**ここから下は旧土台（PR #29より前）の手順の履歴であり、新しい土台では実行しない。** `scripts/migration-install/ci.ts`・`ci-inputs.ts`（`prepare-site`・`inspect-site`・`prepare`・`inspect`・`restore`）、`ci/migration-install/`、`.github/workflows/migration-install-u3.yml` はPR #32で退役した。Node 24.21.0の実体path、全21JS・全18工程の件数、`mise run test-light` などのtask名も旧土台のものである（いまは配布JS 23件・PACKAGE_FILES 33件、taskは `mise-tasks/migration/install-*.sh` → `bun run migration:install:*`）。
+
 ## 今回の再開（2026-10-17、追加Step 12–13）
 新しい試験は追加しない。U3の製品コードは変わっていないので、今回は記録の更新と独立レビューを行う。checkpointの確認には、intentに記録された検証コマンド（人間が承認した、U1の試験を今のsourceで実行するコマンド）を使い、mainが実行する。最終的なsource（U4を含む）での、U3の単体・browser・consumer・coverage・正式36試行・専用CIの確認は、U4の作業がすべて終わった後に、U1〜U4のまとめた確認の中で行う。下の各節は、それより前の手順として残す。
 
@@ -222,7 +241,7 @@ consumer: 同一tarballの公開export/型、Node・3browserで正常installと�
   "version": 1,
   "methodology": "test-after",
   "source": "team",
-  "ordering": "通常の実装は各テスト可能な層の実装後にテストを作成・実行し、不具合修正は再現テストの失敗を観測して修正後に同じテストの成功を確認する。",
+  "ordering": "通常の新規実装は各テスト可能な層を実装した後にその層のテストを作成・実行し、不具合修正は再現テストの失敗を先に観測してから修正し同じテストの成功を確認する。（人間の回答 Q3）",
   "scope": "classic",
   "test_strategy": "standard",
   "project_type": "brownfield",
@@ -233,7 +252,7 @@ consumer: 同一tarballの公開export/型、Node・3browserで正常installと�
     },
     {
       "layer": "team",
-      "text": "- **Methodology**: test-after\n- **Ordering**: 通常の実装は各テスト可能な層の実装後にテストを作成・実行し、不具合修正は再現テストの失敗を観測して修正後に同じテストの成功を確認する。\n- ビルドとテストはmain sessionで逐次実行する。Node向けconsumer、Worker、process.execPath、Node専用flagの意味を確認し、Bunへ一括置換しない。Bun実行を採る箇所は実結果で互換性を確認する（未検証）。\n- 既存Biome・TypeScript・Playwright・node:testを証拠として使う。通常PR/main CIは固定候補入力を要求しない軽量経路から整備し、重いnative/ブラウザ回帰・配布coverageは別の明示経路へ対応づける（提案）。軽量CI成功だけで全受入れを通過したと扱わない。\n- 統合前CIと第一者配布JS固定一覧の行coverage80%以上を維持する。未収集ファイルを分母から消さず、Worker/別process/realmも記録し、欠落・skipを成功へ置換しない。\n- probe600秒、aubeブラウザ840秒、1worker、retryなし、probe8項目合格、native出力一致、wasm1GBを維持する。未変更aubeは再ビルドせず、計測時に重い処理を並行しない。新規コア回帰はnative Linuxでも確認する。実機Safariは未検証のまま区別する。"
+      "text": "- **Methodology**: test-after\n- **Ordering**: 通常の新規実装は各テスト可能な層を実装した後にその層のテストを作成・実行し、不具合修正は再現テストの失敗を先に観測してから修正し同じテストの成功を確認する。（人間の回答 Q3）\n- node:test と Playwright の既存結合テストを利用する（検証済み：package.json scripts、code-quality-assessment.md）。今回の成功結果・coverage 値は未検証。\n- classic の追加条件は行 coverage 80%以上と統合前 CI 実行（ドキュメント根拠：org.md Testing Posture）。基準を下げて通過させない。\n- coverage の技術提案（未実装・未検証）：第一者が保守する配布 JS 全体（既存 runtime の未変更ファイル、共通処理、公開 API、Node/browser Worker adapter を含む）の一覧を事前に固定し、未実行ファイルも分母に含める。tests、生成 blink JS/wasm、第三者/vendor、ゲスト ELF、.d.ts、デモ・開発専用 scripts は理由を明示して対象外とし、資産・型・回帰検証を別途行う。設計で配布対象を確定し、閾値達成のために除外を変更しない。\n- Worker/ブラウザ内の計測を収集・マージし、対象一覧と照合して欠落を検出する。未収集ファイルを分母から外さず0%または未測定として失敗／未検証を報告する。計測方式は担当者が未importファイル・別process/realmを含む試験を観測して選ぶ。対象一覧、除外理由、行数、レポート、実行コマンドを CI 成果物へ残す。ブランチ coverage の新しい数値条件は追加しない。\n- 既存上限は probe 600秒、aube ブラウザ840秒、1worker、retryなし、probe 8項目全通過、native 出力一致、wasm 1GB。テストは main session が逐次実行する（人間の指示：AGENTS.md）。\n- aube はソースが変わっていなければ再ビルドしない。計測は重い並行処理なしで行う。新しいコア不具合の回帰 probe は native Linux でも確認する。\n- npm tarball の import/Worker/型/wasm・notices・build-info の同梱確認は設計候補（推測・未検証）。ゲストと fixture は terrarium 側の ref 別配布という既存意図を維持する。"
     }
   ],
   "obligations": {
@@ -277,8 +296,8 @@ consumer: 同一tarballの公開export/型、Node・3browserで正常installと�
       "Documentation and traceability."
     ]
   },
-  "input_sha256": "sha256:c174dde61b23d97d1733ad98b91568ee85c7de913db166d498965b6845a4c286",
-  "contract_sha256": "sha256:10b6f50c2e853225a46984ab35ccfb615ca938fd59f89dd0c81174ba91834d14"
+  "input_sha256": "sha256:dd7d634a9c475bfe0b7fdd87b1566bd3f238a9b0ead389ae268b08de9bf333f2",
+  "contract_sha256": "sha256:ce013e1551c9c06de1a756c04942d606c8dffe82caf0ae8422f95df28968c638"
 }
 ```
 

@@ -2,8 +2,8 @@
 
 ## Summary
 
-- Builds: `showcase/` に、最新の安定版のaube・pitchfork・Biomeを解決・取得（又はsource build）・検証し、catalogとC09の候補を作る仕組みと、Node・3ブラウザの `--version` 受入、公開importの境界の機械検査を作る。専用workflow `showcase.yml` と、repositoryの保護のOpenTofu（`infra/github/`、未適用）も作る。
-- Touches: 新規は `showcase/`（package.json・tsconfig.json・設定data・demo fixture・scripts・tests・README.md）、`.github/workflows/showcase.yml`、`infra/github/`。変更は `mise.toml`（showcaseのtask）、`.gitignore`（showcaseの生成物）、`biome.json`（showcaseの制限import）、`README.md`（showcaseの案内1節）。本体の `runtime/`・`types/`・配布物・既存の試験は変えない。
+- Builds: `showcase/` に、最新の安定版のaube・pitchfork・Biomeを解決・取得（又はsource build）・検証し、catalogとC09の候補を作る仕組みと、Node・3ブラウザの `--version` 受入、公開importの境界の機械検査を作る。専用workflow `showcase.yml` も作る。repositoryの保護は、upstreamの既存の `infra/github/` が管理しているので、新しくは作らない。
+- Touches: 新規は `showcase/`（package.json・tsconfig.json・設定data・demo fixture・scripts・tests・README.md）、`.github/workflows/showcase.yml`、`mise-tasks/showcase/*.sh`。変更は `package.json`（`showcase:*` のscript）、`.gitignore`（showcaseの生成物）、`biome.json`（showcaseの制限import）、`README.md`（showcaseの案内1節）。本体の `runtime/`・`types/`・配布物・既存の試験は変えない。
 - Tests: 設定・解決・取得と展開・source buildとbuildKey・再利用・catalogとpack・候補・境界・mode条件の単体試験（各部品5–8件、計約55件、showcaseのscriptの行coverage80%以上）と、境界の違反fixtureの試験。受入はNode・Chromium・Firefox・WebKit×3ツールの12行。push・CI・Release・OpenTofuの適用は別途承認する。
 
 ## 前提と境界
@@ -23,6 +23,15 @@
 2. NFR Design 2回目のMinor：candidateIdからrun固有の記録（`provenance.reusedFromRun`、runのid・attempt）を除く（Step 7）。`distribute` をmainのU8 workflowに限る条件をworkflowの中で確かめる（Step 9・Step 10）。候補artifactの中身とB1 packの取得元（`showcase/b1-pack.json`）を定める（Step 6・Step 7）。
 3. Infrastructure Design 2回目のMinor：terrariumの `main.tf` はrulesetの `import` blockを持たず、stateの正本はCI artifactであった。formicariumの `infra/github/` では、rulesetを含む全資源の `import` 手順と、stateを失ったときの手順をREADMEに書く（Step 11）。「最後に配布可能な候補を作ったrunからの日数」は `candidate` jobのjob summaryに書く（`actions: read` はQ4=Aで承認済みの範囲で、`candidate` jobにも加える）（Step 7・Step 10）。前のcommitへの切戻しは、U8から `mode: distribute` で呼ぶ必要があることをREADMEのRollbackに書く（Step 11）。
 
+## upstreamの規約への合わせ（2026-10-18）
+
+Step 1–8・10・11は古い土台の上で実装した。その後、人間の指示（「upstream/mainの変更に合わせて下さい」）で、upstreamのmainの上へ移し、PR aletheia-works/formicarium#31（merge `880cfd4a`）で取り込んだ。そのとき次の点を変えた。
+
+- taskは `mise.toml` ではなく、package.jsonの `showcase:*` のscriptと、それを呼ぶ `mise-tasks/showcase/*.sh`（alias `showcase-*`）に置く。`showcase/tests/runner-ready.test.ts` はpackage.jsonのscriptを読み、Nodeは `showcase/package.json` の `engines`（`>=26.12.0`）と照合する（upstreamの `mise.toml` は `node = "latest"`）。
+- `infra/github/` は作らない。mainのrulesetとworkflowの既定の権限は、upstreamの既存の `infra/github/` が管理している（必須checkは `quality`・`commit-format`・`ci-required`・`check / Commitlint`）。
+- `showcase/tests/workflow.test.ts` のActionの版の照合は、upstreamの `ci.yml` の引用符つきの `uses:` も読む。
+- Step 9の受入は、人間の回答（Q1：CIで受入）どおり、merge後のmainへのpushで動いた `showcase.yml`（run 39113037176、`880cfd4a`）で行った。
+
 ## Testing Contract
 
 ```json
@@ -30,7 +39,7 @@
   "version": 1,
   "methodology": "test-after",
   "source": "team",
-  "ordering": "通常の実装は各テスト可能な層の実装後にテストを作成・実行し、不具合修正は再現テストの失敗を観測して修正後に同じテストの成功を確認する。",
+  "ordering": "通常の新規実装は各テスト可能な層を実装した後にその層のテストを作成・実行し、不具合修正は再現テストの失敗を先に観測してから修正し同じテストの成功を確認する。（人間の回答 Q3）",
   "scope": "classic",
   "test_strategy": "standard",
   "project_type": "brownfield",
@@ -41,7 +50,7 @@
     },
     {
       "layer": "team",
-      "text": "- **Methodology**: test-after\n- **Ordering**: 通常の実装は各テスト可能な層の実装後にテストを作成・実行し、不具合修正は再現テストの失敗を観測して修正後に同じテストの成功を確認する。\n- ビルドとテストはmain sessionで逐次実行する。Node向けconsumer、Worker、process.execPath、Node専用flagの意味を確認し、Bunへ一括置換しない。Bun実行を採る箇所は実結果で互換性を確認する（未検証）。\n- 既存Biome・TypeScript・Playwright・node:testを証拠として使う。通常PR/main CIは固定候補入力を要求しない軽量経路から整備し、重いnative/ブラウザ回帰・配布coverageは別の明示経路へ対応づける（提案）。軽量CI成功だけで全受入れを通過したと扱わない。\n- 統合前CIと第一者配布JS固定一覧の行coverage80%以上を維持する。未収集ファイルを分母から消さず、Worker/別process/realmも記録し、欠落・skipを成功へ置換しない。\n- probe600秒、aubeブラウザ840秒、1worker、retryなし、probe8項目合格、native出力一致、wasm1GBを維持する。未変更aubeは再ビルドせず、計測時に重い処理を並行しない。新規コア回帰はnative Linuxでも確認する。実機Safariは未検証のまま区別する。"
+      "text": "- **Methodology**: test-after\n- **Ordering**: 通常の新規実装は各テスト可能な層を実装した後にその層のテストを作成・実行し、不具合修正は再現テストの失敗を先に観測してから修正し同じテストの成功を確認する。（人間の回答 Q3）\n- node:test と Playwright の既存結合テストを利用する（検証済み：package.json scripts、code-quality-assessment.md）。今回の成功結果・coverage 値は未検証。\n- classic の追加条件は行 coverage 80%以上と統合前 CI 実行（ドキュメント根拠：org.md Testing Posture）。基準を下げて通過させない。\n- coverage の技術提案（未実装・未検証）：第一者が保守する配布 JS 全体（既存 runtime の未変更ファイル、共通処理、公開 API、Node/browser Worker adapter を含む）の一覧を事前に固定し、未実行ファイルも分母に含める。tests、生成 blink JS/wasm、第三者/vendor、ゲスト ELF、.d.ts、デモ・開発専用 scripts は理由を明示して対象外とし、資産・型・回帰検証を別途行う。設計で配布対象を確定し、閾値達成のために除外を変更しない。\n- Worker/ブラウザ内の計測を収集・マージし、対象一覧と照合して欠落を検出する。未収集ファイルを分母から外さず0%または未測定として失敗／未検証を報告する。計測方式は担当者が未importファイル・別process/realmを含む試験を観測して選ぶ。対象一覧、除外理由、行数、レポート、実行コマンドを CI 成果物へ残す。ブランチ coverage の新しい数値条件は追加しない。\n- 既存上限は probe 600秒、aube ブラウザ840秒、1worker、retryなし、probe 8項目全通過、native 出力一致、wasm 1GB。テストは main session が逐次実行する（人間の指示：AGENTS.md）。\n- aube はソースが変わっていなければ再ビルドしない。計測は重い並行処理なしで行う。新しいコア不具合の回帰 probe は native Linux でも確認する。\n- npm tarball の import/Worker/型/wasm・notices・build-info の同梱確認は設計候補（推測・未検証）。ゲストと fixture は terrarium 側の ref 別配布という既存意図を維持する。"
     }
   ],
   "obligations": {
@@ -85,8 +94,8 @@
       "Documentation and traceability."
     ]
   },
-  "input_sha256": "sha256:c174dde61b23d97d1733ad98b91568ee85c7de913db166d498965b6845a4c286",
-  "contract_sha256": "sha256:10b6f50c2e853225a46984ab35ccfb615ca938fd59f89dd0c81174ba91834d14"
+  "input_sha256": "sha256:dd7d634a9c475bfe0b7fdd87b1566bd3f238a9b0ead389ae268b08de9bf333f2",
+  "contract_sha256": "sha256:ce013e1551c9c06de1a756c04942d606c8dffe82caf0ae8422f95df28968c638"
 }
 ```
 
@@ -102,8 +111,8 @@
 - [x] Step 6: catalogと本体のpackを `showcase/scripts/catalog.ts`・`showcase/scripts/pack.ts` に実装する。catalogはC04の `GuestCatalog`（`defaults` に解決した版、URLは配布時のsame-originの相対path）で生成し、公開の `createInstaller` に渡して受理を確かめる。packは、`verify` では同じcommitで `npm pack` を作ってSHA256を記録し、`distribute` では `showcase/b1-pack.json` が指すReleaseの資産（pack・C06の証拠）を取得して、C06の `packSha256` と照合する。どちらも `showcase/node_modules/@aletheia-works/formicarium` へ、SHA256の照合後に展開する。実装後に `showcase/tests/catalog.test.ts`・`showcase/tests/pack.test.ts` を作成・実行する：catalogの受理、catalog 4MiBの上限、`verify` のpack、`distribute` で `b1-pack.json` が `null` のときの `b1-pack-unavailable`、SHA256不一致の `b1-pack-mismatch`、C06の証拠のpackSha256との不一致。（NFR3.5、NFR5.3）
 - [x] Step 7: 候補とmanifestを `showcase/scripts/candidate.ts` に実装する。C09の `ShowcaseCandidateManifest` に、付加field `formicariumSourceCommit`・`distributable`、`resolvedTools[].provenance`（資産URL・最終URL・download digest・attestationの有無・`note`・`reusedFromRun`）を加える。candidateIdは、自分自身、logの時刻、run固有の記録（`provenance.reusedFromRun`、runのid・attempt）を除いた入力identityの正規化digestにする。`fixtureInventorySha256` は `showcase/fixtures/` のcanonicalな一覧のdigest。候補の中身は、`manifest.json`・`catalog.json`・guestのELFとbuild-info・受入log・licenseとnotices・`resolutions.json`。job summaryに「最後に `distributable: true` の候補を作ったrunからの日数」を書く関数も、ここに置く。実装後に `showcase/tests/candidate.test.ts` を作成・実行する：同じ入力で同じcandidateId、`reusedFromRun` やrun idだけ違っても同じcandidateId、入力1つ（pack・catalog・fixture・resolvedTools・`distributable`）の変更で別のcandidateId、`verify` は常に `distributable: false`、受入の12行が1行でも欠ければ候補を作らない、日数の計算（前の配布可能なrunがない場合を含む）。（NFR2.2、NFR5.1、NFR5.2、NFR5.3）
 - [x] Step 8: 境界の機械検査を `showcase/scripts/boundary.ts` と、`biome.json` の `showcase/**` への `noRestrictedImports` に実装する。showcaseのimportは `@aletheia-works/formicarium`・`/node`・`/browser` とNodeの組込みだけを許し、本体への相対path・package内部のpathを拒否する。本体の `runtime/`・`types/`・`scripts/` に `showcase/` への参照がないこと、showcaseが `fixtures/`（回帰用）・vivariumのrecipe-owned fixtureを参照しないことを調べる。実装後に `showcase/tests/boundary.test.ts` と、違反fixture（`showcase/tests/boundary-fixtures/` の、内部import・逆依存・fixture共有を1件ずつ入れたもの）を作成・実行する：違反ごとに失敗すること、違反のない現在のtreeで成功すること、Biomeの規則が内部importを拒否すること。（NFR3.6、NFR2.1）
-- [ ] Step 9: 公開APIによる受入。`showcase/scripts/accept-node.ts`（公開の `/node` の `createSession` と `createCommandSession` で `install <tool>` と `<tool> --version`。catalogのURLはjob専用のCAで動くlocal HTTPSのserverへ向け、`NODE_EXTRA_CA_CERTS` でそのCAだけを信頼する。CAとkeyは作業場所に作り、終了時に消す）と、`showcase/tests/accept.spec.ts`・`showcase/tests/playwright.config.ts`（Chromium・Firefox・WebKit、workers 1、retries 0、timeout 840s。候補をsame-originで配り、COIと既存のCSP〈blob・wasm〉、Workerを保つ。公開の `/browser` と `createCommandSession` で同じ確認）を作る。12行（3ツール×4環境）それぞれで、stdoutの版が `resolutions.json` のtagと一致すること、取得の時間と `--version` までの時間（ms）、環境（Node・Playwright・browserの観測した版）を受入logに記録する。Safari実機は未検証と記録する。`mode` の受付条件（入力 `mode`、`github.event_name`、`github.ref`、`github.workflow_ref` と `trusted-callers.json`）は `showcase/scripts/mode.ts` に実装し、`showcase/tests/mode.test.ts` で、直接の `workflow_dispatch`・`push`・`pull_request` では `distribute` を拒否し、mainのU8 workflowからの `schedule`・`workflow_dispatch` だけを受け付けることを試験する。実装後に、ローカルで公式資産のaubeとBiomeの受入（Node・3ブラウザ）を実行する。pitchforkはCIでbuildしたものだけで受入する（ローカルでは未検証と記録する）。（NFR2.2、NFR4.2、NFR6.1、NFR8.1）
+- [x] Step 9: 公開APIによる受入。`showcase/scripts/accept-node.ts`（公開の `/node` の `createSession` と `createCommandSession` で `install <tool>` と `<tool> --version`。catalogのURLはjob専用のCAで動くlocal HTTPSのserverへ向け、`NODE_EXTRA_CA_CERTS` でそのCAだけを信頼する。CAとkeyは作業場所に作り、終了時に消す）と、`showcase/tests/accept.spec.ts`・`showcase/tests/playwright.config.ts`（Chromium・Firefox・WebKit、workers 1、retries 0、timeout 840s。候補をsame-originで配り、COIと既存のCSP〈blob・wasm〉、Workerを保つ。公開の `/browser` と `createCommandSession` で同じ確認）を作る。12行（3ツール×4環境）それぞれで、stdoutの版が `resolutions.json` のtagと一致すること、取得の時間と `--version` までの時間（ms）、環境（Node・Playwright・browserの観測した版）を受入logに記録する。Safari実機は未検証と記録する。`mode` の受付条件（入力 `mode`、`github.event_name`、`github.ref`、`github.workflow_ref` と `trusted-callers.json`）は `showcase/scripts/mode.ts` に実装し、`showcase/tests/mode.test.ts` で、直接の `workflow_dispatch`・`push`・`pull_request` では `distribute` を拒否し、mainのU8 workflowからの `schedule`・`workflow_dispatch` だけを受け付けることを試験する。実装後に、ローカルで公式資産のaubeとBiomeの受入（Node・3ブラウザ）を実行する。pitchforkはCIでbuildしたものだけで受入する（ローカルでは未検証と記録する）。（NFR2.2、NFR4.2、NFR6.1、NFR8.1）
 - [x] Step 10: workflow `.github/workflows/showcase.yml` を作る。`cicd-pipeline.md` の契機・mode・job（`resolve` 10分、`acquire` 180分、`catalog` 15分、`accept` 60分、`candidate` 10分）・権限（既定 `contents: read`、`acquire`・`catalog`・`candidate` だけ `actions: read`）・concurrency（PRだけcancel-in-progress）・artifact（中間は1日、候補は既定の期限）・出力（`candidate-id`・`distributable`）に従う。`actions/checkout` は `persist-credentials: false`、Actionはcommit SHAで参照する（既存の `.github/workflows/ci.yml` と同じ版）。source buildの工程には `GITHUB_TOKEN` を渡さない。各jobはjob summaryに工程・入力のdigest・結果・原因codeを書き、tokenとresponseの全文は書かない。workflowの静的な検査（権限・契機・SHA参照・`persist-credentials`）を `showcase/tests/workflow.test.ts` で作成・実行する。（NFR4.1、NFR5.1、NFR5.2、NFR8.1、NFR8.2）
-- [x] Step 11: repositoryの保護のOpenTofuと文書。`infra/github/`（`versions.tf` は `backend "local"`、`main.tf` にmainのruleset〈PR必須、承認数0、code owner reviewは必須にしない、管理者roleの常時bypass、削除・force pushの禁止、linear history、署名必須、review threadの解決必須、必須checkは `ci-required`〉とActionsの設定〈forkのPRのworkflowは外部の協力者すべてに承認、`GITHUB_TOKEN` の既定権限は読取り〉、全資源の `import` block、`.gitignore` でstateを除外）と `infra/github/README.md`（planとapplyは管理者の人間のfine-grained tokenで手元で行う、importの手順、stateを失ったときの作り直し、providerで扱えない設定の画面の手順と読取りの確認）を作る。適用はしない。`showcase/README.md` に、構成、ツールの追加の手順、`mode`、B1のpackのReleaseの作り方（承認後に人間が作る）、月1回のscheduleの無効化の確認、Rollback（前のcommitへの切戻しはU8から `distribute` で呼ぶ）、Safari実機が未検証であることを書く。本体の `README.md` にshowcaseの案内を1節だけ加える。`tofu fmt -check` と `tofu validate`（providerの取得が要る場合は、その前に確認する）を実行する。（NFR3.1、NFR8.1、NFR8.2）
-- [ ] Step 12: ローカルの確認を逐次実行する。`mise run check`（Biome）、`mise run showcase-typecheck`、`mise run showcase-unit`（showcaseのscriptの行coverage80%以上）、`mise run showcase-boundary`、本体の `mise run test-light` と `mise run typecheck`（本体が変わっていないことの確認）、Step 9のローカル受入。その後にだけ、push・CI（`showcase.yml` の `verify` の1回）の実コマンドを提示して承認を待つ。B1のpackのRelease作成とOpenTofuの適用は、さらに別の承認とする。失敗した場合は、基準を変えずに停止し、修正案を示す。（NFR2.1、NFR2.2）
-- [ ] Step 13: 追跡と要約。`code-summary.md`・`traceability.json`・`source-manifest.json` を仕上げる。生成物（`showcase/node_modules/`・`showcase/.work/`）は入れない。（FR13、FR14）
+- [x] Step 11: repositoryの保護のOpenTofuと文書（OpenTofuは、upstreamへ合わせたときに取り下げた。上の「upstreamの規約への合わせ」を参照）。`infra/github/`（`versions.tf` は `backend "local"`、`main.tf` にmainのruleset〈PR必須、承認数0、code owner reviewは必須にしない、管理者roleの常時bypass、削除・force pushの禁止、linear history、署名必須、review threadの解決必須、必須checkは `ci-required`〉とActionsの設定〈forkのPRのworkflowは外部の協力者すべてに承認、`GITHUB_TOKEN` の既定権限は読取り〉、全資源の `import` block、`.gitignore` でstateを除外）と `infra/github/README.md`（planとapplyは管理者の人間のfine-grained tokenで手元で行う、importの手順、stateを失ったときの作り直し、providerで扱えない設定の画面の手順と読取りの確認）を作る。適用はしない。`showcase/README.md` に、構成、ツールの追加の手順、`mode`、B1のpackのReleaseの作り方（承認後に人間が作る）、月1回のscheduleの無効化の確認、Rollback（前のcommitへの切戻しはU8から `distribute` で呼ぶ）、Safari実機が未検証であることを書く。本体の `README.md` にshowcaseの案内を1節だけ加える。`tofu fmt -check` と `tofu validate`（providerの取得が要る場合は、その前に確認する）を実行する。（NFR3.1、NFR8.1、NFR8.2）
+- [x] Step 12: ローカルの確認を逐次実行する。`mise run lint:all`（Biome・actionlint・ShellCheck）、`mise run showcase-typecheck`、`mise run showcase-unit`（showcaseのscriptの行coverage80%以上）、`mise run showcase-boundary`、本体の `mise run test:light` と `mise run typecheck`（本体が変わっていないことの確認）。CIの受入（Step 9）の結果と合わせて記録する。B1のpackのRelease作成は、別の承認とする。失敗した場合は、基準を変えずに停止し、修正案を示す。（NFR2.1、NFR2.2）
+- [x] Step 13: 追跡と要約。`code-summary.md`・`traceability.json`・`source-manifest.json` を仕上げる。生成物（`showcase/node_modules/`・`showcase/.work/`）は入れない。（FR13、FR14）

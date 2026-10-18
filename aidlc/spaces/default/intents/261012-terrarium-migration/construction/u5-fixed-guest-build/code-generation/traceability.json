@@ -26,97 +26,97 @@
     {
       "id": "FR7",
       "status": "OK",
-      "target": "proposals/vivarium/u5/tools/fixed-guest-builder/src/declaration.ts, src/key.ts, src/reuse.ts, src/release.ts; tests/declaration.test.ts, tests/key.test.ts, tests/reuse.test.ts, tests/release.test.ts; vivarium runs 39076793651 and 39079897400 (compiled=false)"
+      "target": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/declaration.ts, src/key.ts, src/reuse.ts, src/release.ts; aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/declaration.test.ts, tests/key.test.ts, tests/reuse.test.ts, tests/release.test.ts; upstream runs 39076793651 and 39079897400 (compiled=false)"
     },
     {
       "id": "FR8",
       "status": "OK",
-      "target": "src/artifact.ts (build-info, catalog), src/bump.ts, src/cli.ts; tests/artifact.test.ts, tests/bump.test.ts; .github/workflows/fixed-guest-bump.yml"
+      "target": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/artifact.ts (build-info, catalog), src/bump.ts, src/cli.ts; aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/artifact.test.ts, tests/bump.test.ts; aletheia-works/vivarium@71e0ef92:.github/workflows/fixed-guest-bump.yml"
     },
     {
       "id": "FR9",
       "status": "OK",
-      "target": "scripts/migration-guest-build/verify.ts; tests/migration-guest-build/verify.test.ts; vivarium runs 39073445357 and 39077142098; .artifacts/migration-guest-build/release-39076401324 and release-39079705708 formicarium-evidence.json (--version exit 0)"
+      "target": "formicarium: scripts/migration-guest-build/verify.ts, scripts/migration-guest-build/assets.ts, tests/migration-guest-build/verify.test.ts, mise-tasks/migration/guest-build-unit.sh, mise-tasks/migration/guest-build-verify.sh; upstream runs 39073445357 and 39077142098 and Releases from runs 39076401324 and 39079705708. 新しい土台での `mise run migration-guest-build-unit` と保存済みRelease 2組に対する `mise run migration-guest-build-verify` は Step 22（この記録の作成時点では未実行）。.artifacts/migration-guest-build/ は追跡されない手元の記録"
     },
     {
       "id": "NFR2.1",
       "status": "OK",
-      "target": "formicarium test:light and type-checks unchanged and green; distributed JS not changed by U5"
+      "target": "formicarium: U5 は配布JSを変えない（scripts/migration-guest-build/*、tests/migration-guest-build/* は配布対象外）。新しい土台での `mise run typecheck`・`mise run build`・`mise run test:light` は Step 22（未実行）"
     },
     {
       "id": "NFR2.2",
       "status": "OK",
-      "target": ".github/workflows/test-fixed-guest-builder.yml; tools/fixed-guest-builder/bunfig.toml (coverageThreshold lines 0.8); vivarium lint:all and ci:fixed-guest-builder exit 0"
+      "target": "aletheia-works/vivarium@71e0ef92:.github/workflows/test-fixed-guest-builder.yml; aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/bunfig.toml (coverageThreshold lines 0.8); upstream bun test 158 pass, line coverage 98.43% (review-02); formicarium では再実行しない"
     },
     {
       "id": "NFR3.1",
       "status": "OK",
-      "target": "src/declaration.ts; tests/declaration.test.ts"
+      "target": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/declaration.ts; aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/declaration.test.ts"
     },
     {
       "id": "NFR3.2",
       "status": "OK",
-      "target": "src/source.ts (verifyReachable, GIT_NO_LAZY_FETCH); tests/source.test.ts (fork-only commit refused)"
+      "target": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/source.ts (verifyReachable, GIT_NO_LAZY_FETCH), src/lockfile.ts (dependency git reachability); aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/source.test.ts (fork-only commit refused), tests/lockfile.test.ts"
     },
     {
       "id": "NFR3.3",
       "status": "OK",
-      "target": "src/artifact.ts (parseUniqueJson, limits, canonical build-info); tests/artifact.test.ts"
+      "target": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/artifact.ts (parseUniqueJson, limits, canonical build-info); aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/artifact.test.ts; formicarium: scripts/migration-guest-build/verify.ts (checkSet: limits, canonical build-info)"
     },
     {
       "id": "NFR3.4",
       "status": "OK",
-      "target": "src/source.ts (applyPatches), src/key.ts (sourcePatches in the key); tests/source.test.ts, tests/key.test.ts"
+      "target": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/source.ts (applyPatches), src/key.ts (sourcePatches in the key); aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/source.test.ts, tests/key.test.ts"
     },
     {
       "id": "NFR3.5",
       "status": "OK",
-      "target": "src/bump.ts (git ls-remote); tests/bump.test.ts"
+      "target": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/bump.ts (git ls-remote); aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/bump.test.ts"
     },
     {
       "id": "NFR4.1",
       "status": "OK",
-      "target": "src/deadline.ts, src/process.ts; tests/deadline.test.ts, tests/pipeline.test.ts (TIMEOUT)"
+      "target": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/deadline.ts, src/process.ts; aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/deadline.test.ts, tests/pipeline.test.ts (TIMEOUT)"
     },
     {
       "id": "NFR4.2",
       "status": "OK",
-      "target": "src/monitor.ts, src/http.ts; tests/monitor.test.ts, tests/reuse.test.ts; receipts record source and dependency sizes"
+      "target": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/monitor.ts, src/http.ts; aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/monitor.test.ts, tests/reuse.test.ts; receipts record source and dependency sizes"
     },
     {
       "id": "NFR5.1",
       "status": "OK",
-      "target": "src/busy.ts, src/build.ts (finalizeArtifacts), workflow concurrency groups; tests/busy.test.ts, tests/build.test.ts, tests/workflows.test.ts"
+      "target": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/busy.ts, src/build.ts (finalizeArtifacts); aletheia-works/vivarium@71e0ef92:.github/workflows/fixed-guest-build.yml, fixed-guest-release.yml, fixed-guest-bump.yml (concurrency groups); aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/busy.test.ts, tests/build.test.ts, tests/workflows.test.ts"
     },
     {
       "id": "NFR5.2",
       "status": "OK",
-      "target": "src/key.ts, src/reuse.ts, src/release.ts (NOT_REPRODUCIBLE); vivarium reuse runs 39076793651 and 39079897400"
+      "target": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/key.ts, src/reuse.ts, src/release.ts (NOT_REPRODUCIBLE); upstream reuse runs 39076793651 and 39079897400"
     },
     {
       "id": "NFR5.3",
       "status": "OK",
-      "target": "src/release.ts; Releases guest-biome-15432368… and guest-biome-4751f68d…"
+      "target": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/release.ts; upstream Releases guest-biome-15432368… and guest-biome-4751f68d…"
     },
     {
       "id": "NFR5.4",
       "status": "OK",
-      "target": "src/build.ts (mbx), fixed-guest-build.yml cache steps; runs 39073445357 (mbx on) and 39080082205 (mbx off) give the same ELF 3d7e7e8c…; the reference.mbxCacheRestored value in the two published build-infos is unreliable (counted after compile; baseline restore was a miss). Fixed to count before any container runs and to record mbxCacheKeys, via a vivarium PR"
+      "target": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/build.ts, src/pipeline.ts (mbx; mbxCacheRestored counted before any container runs and mbxCacheKeys recorded, PR #536); aletheia-works/vivarium@71e0ef92:.github/workflows/fixed-guest-build.yml (cache steps); upstream runs 39073445357 (mbx on) and 39080082205 (mbx off) give the same ELF 3d7e7e8c…. 制限：公開済み2件の build-info の reference.mbxCacheRestored は compile 後に数えた値で信用できない（baseline の復元は miss）。#536 より前の run なので mbxCacheKeys も無い"
     },
     {
       "id": "NFR8.1",
       "status": "OK",
-      "target": "workflow permissions (tests/workflows.test.ts), fixed-guest-release environment and checkApprovalGate (tests/release.test.ts); approvals.json of release runs"
+      "target": "aletheia-works/vivarium@71e0ef92:.github/workflows/fixed-guest-*.yml (permissions); aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/workflows.test.ts; fixed-guest-release environment and checkApprovalGate (aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/release.ts, tests/release.test.ts); approvals of release runs 39076401324 and 39079705708"
     },
     {
       "id": "NFR8.2",
       "status": "OK",
-      "target": ".artifacts/migration-guest-build/verify-final-u5.mjs and verify-final-u5.test.mjs; U1 baseline branch already removed, no duplicate builder upstream"
+      "target": "新しい土台：intent の検証コマンド（`mise run migration-guest-build-unit` を含む）と Step 22 の照合（formicarium: scripts/migration-guest-build/verify.ts、mise-tasks/migration/guest-build-unit.sh、mise-tasks/migration/guest-build-verify.sh、tests/migration-guest-build/verify.test.ts）。どちらもこの記録の作成時点では未実行。.artifacts/migration-guest-build/verify-final-u5.mjs と135件の binding は古い土台での完了確認の履歴で、追跡されない（.gitignore の .artifacts/）。U1 baseline branch already removed, no duplicate builder upstream"
     },
     {
       "id": "NFR8.3",
       "status": "OK",
-      "target": "src/cli.ts (secret redaction); tests/cli.test.ts; README rollback section"
+      "target": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/cli.ts (secret redaction), src/process.ts (token withheld from child processes); aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/cli.test.ts, tests/process.test.ts; aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/README.md (rollback section)"
     }
   ]
 }

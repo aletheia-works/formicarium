@@ -1,9 +1,11 @@
 # U3 install 実装計画
 
 ## Summary
-- Builds: 3回目の再開（追加Step 16–19）。review-05のR-10（U3の受入入口がU4の `stage.ts` をimportし、moduleが循環して依存が逆向き）とR-11（reportのunitが固定）を、修正案の案Aで直す。受入の規則はU3側に置き、U4の候補のsource一覧は呼出し側から受け取る。
-- Touches: `scripts/migration-install/stage.ts`・`completion.ts`・`coverage.ts`・`measure.ts` と生成JS、`tests/migration-install/acceptance.test.ts` と生成JS、U3の記録。U4のfileは変えない（U4側の呼出しの変更はU4の計画で行う）。
-- Tests: 先に再現試験を書いてfailを観測し、直してからpassを確かめる（acceptance・lifecycle、fail・skip 0）。独立レビューと、intentの検証コマンドによるcheckpointの確認を行う。最終的なsourceでのU3の正式36試行・専用CIは、U4の後にまとめて行う。
+- Builds: 4回目の再開（追加Step 20–25）。U3の記録を新しい土台（upstreamのmain `2a79860`）に合わせ、review-07のR-16〜R-20を直す。受入の方法は人間が選んだ「ローカル暫定＋最終確認へ」とする（2026-10-18）。U3の製品コード・受入の入口のコードは変えない。
+- Touches: U3の記録（この計画、`unit-test-instructions.md`、`code-summary.md`、`traceability.json`、`source-manifest.json`）。working copyに残る、gitignoreされた古い生成物 `scripts/migration-install/ci.js`・`ci-inputs.js` を消す（追跡されたfileは変えない）。
+- Tests: 新しい試験は加えない。mainで、lint・typecheck・build・test-light・`mise run migration-install-unit`・`mise run migration-install-browser` を1つずつ実行する。そのあと、手元のactual-siteと `FORMICARIUM_INSTALL_LOCAL_ONLY=1` で暫定の完了確認（全工程とローカル36試行）を行う。証明書の一時登録は、実コマンドを示して承認を得てから行う。U3の正式受入は、U1〜U4のまとめた最終確認とterrariumの受入で行う。
+
+前々回（review-05の修正、追加Step 16–19）の要約：review-05のR-10（U3の受入入口がU4の `stage.ts` をimportし、moduleが循環して依存が逆向き）とR-11（reportのunitが固定）を、修正案の案Aで直した。受入の規則はU3側に置き、U4の候補のsource一覧は呼出し側から受け取る。
 
 前回（toolchain更新）の要約：開発toolchainを最新版（Node.js 26.12.0、Bun 1.4.3、Playwright 1.64.1＝Firefox 157.0）へ全リポジトリで一貫更新し、CI正式36試行のBiome/Firefox中央値3000ms超過を新toolchainで再判定した。触ったのはmise.toml、package.json/bun.lock、scripts/ci/tasks.tsのTOOLCHAIN、U2/U3 ci.ts、各workflow・maintenance/publication policyとrunner、README、版を照合する試験とfixture、固定CI入力。試験は旧版の照合が失敗するREDとGREEN、test-light、全18工程・21JS全realm coverage80%以上、ローカル正式36試行、署名付きCI。
 
@@ -14,17 +16,17 @@ U2完了済み証拠は保持し、U3の成功証拠として流用しない。A
 
 ## Steps
 Steps 1–7は既存実装の履歴として保持する。本再開での修正はStep 8のCI入力・skip拒否と、Steps 9–11の現在候補に対する受入れに限定する。共有SHA256・公開API・製品の容量や時間の基準は変更しない。
-- [x] Step 1: 構成とrunner確認。既存tsconfig.json/tsconfig.tests.jsonとBunビルド、node:test、Playwrightを調査し、tests/migration-install/runner-ready.test.tsを作成する。ビルド後、専用runner-ready.test.jsを最初に実行して、Node24・ESM・独立consumer入力・テスト探索範囲を確認する。新規テストを走らせる前に実行可能性を観測し記録する。mise.tomlに専用タスクを宣言する。
-- [x] Step 2: カタログ層をruntime/install-catalog.tsへ実装後、tests/migration-install/catalog.test.tsを作成・実行する。全字段・canonical metadata・深いsnapshot・既定/厳密選択・長さ/サイズ・URLを検証する。Nodeではoriginのない相対URLをINVALID_INPUTとしてfetch前に拒否し、ブラウザではdocument originだけを使う。BR3.1/3.2、D1。
-- [x] Step 3: runtime/install-transfer.tsを実装後、tests/migration-install/transfer.test.tsを作成・実行する。HTTPS/credential omit、Node全redirect検査最大5、ブラウザredirect:error、128MiB実受信上限、宣言値整合、120秒deadline、download SHAを検証する。未知長progress total=null、ネットワーク失敗にretry/fallbackを付けない。BR3.4/3.6、D2。
-- [x] Step 4: runtime/install-archive.tsを実装後、tests/migration-install/archive.test.tsを作成・実行する。DecompressionStream gzipと独立tar scannerを採用し、Node/3ブラウザの実在機能を確認する。512byte header/checksum/numeric/padding/end/trailing、全entry検査、256MiB展開総量、4096entry、4096byte path、1MiB metadataを維持する。USTARと実アセットが必要とするGNU/PAXを限定対応し、未知形式/sparse/deviceを拒否する。duplicate/traversal/link graph cycle/欠落/root逸脱/選択非regularを拒否する。ホストFSへ展開しない。BR3.5、D3。機能不足が判明したら設計変更を黙って行わず確認する。
-- [x] Step 5: runtime/install-lifecycle.tsとruntime/install.tsを実装後、tests/migration-install/lifecycle.test.tsとpublic.test.tsを作成・実行する。既存runtime/session-port.tsのacquire/install reservation・epoch・signal・commitGuest/releaseとC03 validateGuestを使い、public registerへの再入を避ける。install180秒deadline、chunk yield、同期validation前後チェック、最初のterminal理由、finally cleanup、旧guest保持とatomic commitを検証する。progress callback例外/reentry/terminal後通知も検証する。既存portに変更が必要なら最小変更をruntime/session-port.tsと対応U2テストに限定し、二重所有を作らない。BR3.3/3.6–3.9、D4/D5。
-- [x] Step 6: runtime/public.tsとtypes/index.d.tsへC04 createInstaller・Catalog・Progress・InstallResultを公開する。公開entry点は増やさずinternal portは非公開。実装後にtests/migration-install/types-valid.ts、types-invalid.ts、consumer.test.ts、consumer.spec.ts、playwright.config.tsを作成する。偽造session、mutation、BUSY、cancel/reset/dispose、失敗再install、成功置換を独立tarballのNode/Chromium/Firefox/WebKitで確認する。BR3.1/3.3/3.7/3.8、FR4/FR5/FR6。
-- [x] Step 7: 追加の性能改善。performance-recovery-proposal.mdの36試行未達（Biome/Firefox中央値3435.58ms、validate中央値2636.46ms）に対応し、runtime/guest-validation.tsのguestSha256に限定して、64byte blockごとの状態8要素のdestructuringと配列・entries iteratorによる更新を、8個の直接読み出し・直接更新へ置き換える。64round、全block、padding/endianness、全ELF hash、所有copy、metadata/buildKey照合、同期C03とprivate brandを維持する。U2共有ソースと生成JSをU3の個別source claimへ含め、共有C03回帰と独立レビューを行う。実装後にtests/migration-install/hash-regression.test.tsとhash-regression.spec.tsを作成し、独立Node crypto/WebCryptoで既知vector、空入力、55/56/63/64/65byte境界、複数block、binary、offset付きUint8Arrayを照合する。既存C03異常入力/偽造handle拒否・copy保護とNode/3browser consumerも再検証する。tests/migration-install/browser-modules.d.tsに必要なSHA試験用型宣言を追加し、playwright.config.ts、mise.toml、runner-ready.test.ts、scripts/migration-install/ci.ts/completion.tsとそのacceptance.test.tsの個別パスを新しい8件の単体・2本のブラウザspecへ整合する。runtime共有最適化以外のアルゴリズム変更やhash省略は加えない。効果不足は確認する。
-- [x] Step 8: 配布と検証入口を実装する。package.json、scripts/package/stage-package.ts、scripts/package/coverage-inventory.jsonを新規runtime5件と生成JSに整合する。scripts/migration-install/stage.ts、completion.ts、coverage.ts、measure.ts、ci.ts、ci-inputs.tsと生成JS、ci/migration-install/inputs.bundle.json、.github/workflows/migration-install-u3.ymlを専用入口として作る。既存U2入口の証拠形式・同一入力復元を利用するが、U3専用inventory/identity/全工程一覧を再生成する。重複実装を避けるため共通化が必要ならscripts/migration-session/stage.ts、completion.ts、coverage.ts、ci.ts、ci-inputs.tsの内部関数抽出に限定しU2互換を回帰検証する。mise.tomlのmigration-install-unit/browser/stage/completion/measureタスクは個別パスを指定する。型invalid fixtureをtsconfig.tests.jsonの通常buildから除外し、専用型検証で明示実行する。
-- [x] Step 9: 正式受入れを逐次実行する。新しい全第一者JS固定一覧を分母に、未収集ファイルも残し、Node/Worker/別process/browser全realmの生coverageを収集して行coverage80%以上を検証する。既存probe8項目・native一致・wasm1GB・waitAsync削除を維持する。probe600秒/aube840秒、1worker、retry0。36試行は既存固定assetと同一origin HTTPSミラーで、非ダウンロード中央値3秒以下を確認し、download SHA処理時間を非download側へ計上する。計測に重い処理を並行しない。localhost証明書登録/削除が必要なら指紋と実コマンドを提示して承認を受け、finallyで削除する。
-- [x] Step 10: U3専用候補をローカルに準備し、固定core SHA・全source inventory・tarball SHAを一致させる。署名付きjj pushと1回のCI試行は具体的コマンド提示後の個別承認を待つ。CIは実Bun絶対パス/版を確認しBUN_EXECUTABLEを設定、固定coreをローカルobject入力から復元する。GitHub署名Verified、head/run attempt、生artifact ZIP・全realm・coverage・同一候補を検証する。既存U2成功runは代用しない。
-- [x] Step 11: README.md、docs/install-api.md、code-summary.md、traceability.jsonを作成し、生成JSを内容変更せずjj追跡する。レビューsource-manifestは個別実ファイルを列挙し、未意図の.js.mapを混入させない。独立最終レビューを行う。全工程が成功した新規U3結果の生ログとsource/CIを固定する短い完了確認コマンドを作成・改変拒否も検証し、実コマンドを提示して承認を待つ。承認後の正式確認成功で通常完了へ進む。
+- [ ] Step 1: 構成とrunner確認。既存tsconfig.json/tsconfig.tests.jsonとBunビルド、node:test、Playwrightを調査し、tests/migration-install/runner-ready.test.tsを作成する。ビルド後、専用runner-ready.test.jsを最初に実行して、Node24・ESM・独立consumer入力・テスト探索範囲を確認する。新規テストを走らせる前に実行可能性を観測し記録する。mise.tomlに専用タスクを宣言する。
+- [ ] Step 2: カタログ層をruntime/install-catalog.tsへ実装後、tests/migration-install/catalog.test.tsを作成・実行する。全字段・canonical metadata・深いsnapshot・既定/厳密選択・長さ/サイズ・URLを検証する。Nodeではoriginのない相対URLをINVALID_INPUTとしてfetch前に拒否し、ブラウザではdocument originだけを使う。BR3.1/3.2、D1。
+- [ ] Step 3: runtime/install-transfer.tsを実装後、tests/migration-install/transfer.test.tsを作成・実行する。HTTPS/credential omit、Node全redirect検査最大5、ブラウザredirect:error、128MiB実受信上限、宣言値整合、120秒deadline、download SHAを検証する。未知長progress total=null、ネットワーク失敗にretry/fallbackを付けない。BR3.4/3.6、D2。
+- [ ] Step 4: runtime/install-archive.tsを実装後、tests/migration-install/archive.test.tsを作成・実行する。DecompressionStream gzipと独立tar scannerを採用し、Node/3ブラウザの実在機能を確認する。512byte header/checksum/numeric/padding/end/trailing、全entry検査、256MiB展開総量、4096entry、4096byte path、1MiB metadataを維持する。USTARと実アセットが必要とするGNU/PAXを限定対応し、未知形式/sparse/deviceを拒否する。duplicate/traversal/link graph cycle/欠落/root逸脱/選択非regularを拒否する。ホストFSへ展開しない。BR3.5、D3。機能不足が判明したら設計変更を黙って行わず確認する。
+- [ ] Step 5: runtime/install-lifecycle.tsとruntime/install.tsを実装後、tests/migration-install/lifecycle.test.tsとpublic.test.tsを作成・実行する。既存runtime/session-port.tsのacquire/install reservation・epoch・signal・commitGuest/releaseとC03 validateGuestを使い、public registerへの再入を避ける。install180秒deadline、chunk yield、同期validation前後チェック、最初のterminal理由、finally cleanup、旧guest保持とatomic commitを検証する。progress callback例外/reentry/terminal後通知も検証する。既存portに変更が必要なら最小変更をruntime/session-port.tsと対応U2テストに限定し、二重所有を作らない。BR3.3/3.6–3.9、D4/D5。
+- [ ] Step 6: runtime/public.tsとtypes/index.d.tsへC04 createInstaller・Catalog・Progress・InstallResultを公開する。公開entry点は増やさずinternal portは非公開。実装後にtests/migration-install/types-valid.ts、types-invalid.ts、consumer.test.ts、consumer.spec.ts、playwright.config.tsを作成する。偽造session、mutation、BUSY、cancel/reset/dispose、失敗再install、成功置換を独立tarballのNode/Chromium/Firefox/WebKitで確認する。BR3.1/3.3/3.7/3.8、FR4/FR5/FR6。
+- [ ] Step 7: 追加の性能改善。performance-recovery-proposal.mdの36試行未達（Biome/Firefox中央値3435.58ms、validate中央値2636.46ms）に対応し、runtime/guest-validation.tsのguestSha256に限定して、64byte blockごとの状態8要素のdestructuringと配列・entries iteratorによる更新を、8個の直接読み出し・直接更新へ置き換える。64round、全block、padding/endianness、全ELF hash、所有copy、metadata/buildKey照合、同期C03とprivate brandを維持する。U2共有ソースと生成JSをU3の個別source claimへ含め、共有C03回帰と独立レビューを行う。実装後にtests/migration-install/hash-regression.test.tsとhash-regression.spec.tsを作成し、独立Node crypto/WebCryptoで既知vector、空入力、55/56/63/64/65byte境界、複数block、binary、offset付きUint8Arrayを照合する。既存C03異常入力/偽造handle拒否・copy保護とNode/3browser consumerも再検証する。tests/migration-install/browser-modules.d.tsに必要なSHA試験用型宣言を追加し、playwright.config.ts、mise.toml、runner-ready.test.ts、scripts/migration-install/ci.ts/completion.tsとそのacceptance.test.tsの個別パスを新しい8件の単体・2本のブラウザspecへ整合する。runtime共有最適化以外のアルゴリズム変更やhash省略は加えない。効果不足は確認する。
+- [ ] Step 8: 配布と検証入口を実装する。package.json、scripts/package/stage-package.ts、scripts/package/coverage-inventory.jsonを新規runtime5件と生成JSに整合する。scripts/migration-install/stage.ts、completion.ts、coverage.ts、measure.ts、ci.ts、ci-inputs.tsと生成JS、ci/migration-install/inputs.bundle.json、.github/workflows/migration-install-u3.ymlを専用入口として作る。既存U2入口の証拠形式・同一入力復元を利用するが、U3専用inventory/identity/全工程一覧を再生成する。重複実装を避けるため共通化が必要ならscripts/migration-session/stage.ts、completion.ts、coverage.ts、ci.ts、ci-inputs.tsの内部関数抽出に限定しU2互換を回帰検証する。mise.tomlのmigration-install-unit/browser/stage/completion/measureタスクは個別パスを指定する。型invalid fixtureをtsconfig.tests.jsonの通常buildから除外し、専用型検証で明示実行する。
+- [ ] Step 9: 正式受入れを逐次実行する。新しい全第一者JS固定一覧を分母に、未収集ファイルも残し、Node/Worker/別process/browser全realmの生coverageを収集して行coverage80%以上を検証する。既存probe8項目・native一致・wasm1GB・waitAsync削除を維持する。probe600秒/aube840秒、1worker、retry0。36試行は既存固定assetと同一origin HTTPSミラーで、非ダウンロード中央値3秒以下を確認し、download SHA処理時間を非download側へ計上する。計測に重い処理を並行しない。localhost証明書登録/削除が必要なら指紋と実コマンドを提示して承認を受け、finallyで削除する。
+- [ ] Step 10: U3専用候補をローカルに準備し、固定core SHA・全source inventory・tarball SHAを一致させる。署名付きjj pushと1回のCI試行は具体的コマンド提示後の個別承認を待つ。CIは実Bun絶対パス/版を確認しBUN_EXECUTABLEを設定、固定coreをローカルobject入力から復元する。GitHub署名Verified、head/run attempt、生artifact ZIP・全realm・coverage・同一候補を検証する。既存U2成功runは代用しない。
+- [ ] Step 11: README.md、docs/install-api.md、code-summary.md、traceability.jsonを作成し、生成JSを内容変更せずjj追跡する。レビューsource-manifestは個別実ファイルを列挙し、未意図の.js.mapを混入させない。独立最終レビューを行う。全工程が成功した新規U3結果の生ログとsource/CIを固定する短い完了確認コマンドを作成・改変拒否も検証し、実コマンドを提示して承認を待つ。承認後の正式確認成功で通常完了へ進む。
 
 ## 今回のCI入力・受入入口修正
 
@@ -138,8 +140,8 @@ U3のレビューの後に、U3がclaimする共有fileが変わった。理由�
 
 人間の承認により、intentの検証コマンドは、U1の試験を今のsourceで実行するコマンドに置き換わった。前の検証コマンド（`verify-toolchain-u3.mjs`）は、封印したsourceとの一致を求めるので、今のsourceでは通らない（330件のはずが334件になる）。U3の受入（CI 38948209404と、正式36試行）は、U4の作業を戻す前のsourceに結び付いている。最終的なsource（U4を含む）での、U3の正式36試行・専用CI・完了確認と、新しい検証コマンドは、U4の作業がすべて終わった後に、U1〜U4のまとめた確認の中で行う。
 
-- [x] Step 12: U3の記録（code-summary.md）に、今回の変更と、U3の製品コードが変わっていないことを書く。追加されたexport・型・配布一覧が、C04の `createInstaller` とその型を変えないことも確かめて書く。U3の受入がU4前のsourceに結び付いていることと、最終的な確認はU4の後に行うこと、それまではU3の受入結果を変更後のsourceの成功証拠として扱わないことを明記する。（FR4/NFR8）
-- [x] Step 13: 独立レビューを受ける。そのあと、intentに記録された検証コマンドでU3のcheckpointを確かめ、通常の単位完了承認を自動で進める。
+- [ ] Step 12: U3の記録（code-summary.md）に、今回の変更と、U3の製品コードが変わっていないことを書く。追加されたexport・型・配布一覧が、C04の `createInstaller` とその型を変えないことも確かめて書く。U3の受入がU4前のsourceに結び付いていることと、最終的な確認はU4の後に行うこと、それまではU3の受入結果を変更後のsourceの成功証拠として扱わないことを明記する。（FR4/NFR8）
+- [ ] Step 13: 独立レビューを受ける。そのあと、intentに記録された検証コマンドでU3のcheckpointを確かめ、通常の単位完了承認を自動で進める。
 
 ## 追加Step：U4の変更のうち、U3のfileに当たるものを引き受ける（2026-10-17、2回目の再開）
 
@@ -149,14 +151,14 @@ U4の追加Step項目3・4で、U3がclaimするfileが変わった。人間の�
 - 項目4（試験）：`tests/migration-install/consumer.test.ts`・`consumer.spec.ts`・`hash-regression.spec.ts` は、候補のunitとして `u3-install` か `u4-command` を受け付ける。`tsconfig.tests.json` は、通常のbuildから `tests/migration-command/types-invalid.ts` も除外する。
 - `tests/package/coverage.test.ts` の件数（23件）と名前の一覧は、U1のStep 18・U2のStep 16と同じ変更である。
 
-- [x] Step 14: 上の変更をU3の変更として確かめ、U3の記録（code-summary.md、source-manifest.json、traceability.json）に書く。fileを読んで、次を確かめる。
+- [ ] Step 14: 上の変更をU3の変更として確かめ、U3の記録（code-summary.md、source-manifest.json、traceability.json）に書く。fileを読んで、次を確かめる。
   - 受け付けるunitを広げても、拒否の条件を緩めていないこと。ほかのunit・欠落・skip・不一致は従来どおり拒否する。U3の候補は従来どおりU3のsource一覧と照合する。
   - 配布JSの件数の照合は、実際の一覧（`FIRST_PARTY_JS`）に合わせただけであること。coverageの分母から未収集のfileを除かず、80%の基準も変えていないこと。
   - U3の入口がU4の `scripts/migration-command/stage.ts` をimportするという、unitの依存の向きを記録する。U3単独の受入の判定は、この関数のU3の分岐だけを使う。
   - 模擬portの `resolvePath` は呼ばれたら失敗するので、installの経路がpathの解決を使わないことを試験が引き続き確かめること。
   - mainで `mise run build` のあと、`node --test --test-concurrency=1 tests/migration-install/lifecycle.test.js tests/migration-install/acceptance.test.js` を逐次実行し、件数とfail・skip 0を記録する。
   - 最終的なsourceでのU3の正式36試行・専用CI・完了確認は、U4の後に、U1〜U4のまとめた確認の中で行う。それまでは、U3の受入結果を変更後のsourceの成功証拠として扱わない。（FR4/FR6/NFR8）
-- [x] Step 15: 独立レビューを受ける。そのあと、intentに記録された検証コマンドでU3のcheckpointを確かめ、通常の単位完了承認を自動で進める。
+- [ ] Step 15: 独立レビューを受ける。そのあと、intentに記録された検証コマンドでU3のcheckpointを確かめ、通常の単位完了承認を自動で進める。
 
 ## 追加Step：review-05の指摘の修正（2026-10-17、3回目の再開）
 
@@ -164,20 +166,40 @@ review-05（READY）のR-10（Major）とR-11（Minor）を直す。人間は修
 
 確認済みの呼出し（fileの読取り）：U4は、`scripts/migration-command/ci.ts`・`completion.ts`・`b1.ts` からU3の `completion.js` の関数をimportする。U4の `completion.ts` は、U3の `scripts/migration-install/measure.js` を子processのCLIとして起動する（`command('measure', ...)`）。U4の `coverage.ts` は、U3の `INSTALL_REALMS` だけを使う。
 
-- [x] Step 16: 先に再現試験を書き、failを観測する（`tests/migration-install/acceptance.test.ts`）。
+- [ ] Step 16: 先に再現試験を書き、failを観測する（`tests/migration-install/acceptance.test.ts`）。
   - U3の受入入口（`scripts/migration-install/completion.ts`・`coverage.ts`・`measure.ts`）が、`scripts/migration-command/` のmoduleをimportしないこと（sourceを読んで確かめる試験）。
   - U3の関数に `u4-command` の候補を渡したとき、呼出し側がsource一覧を渡さなければ拒否すること。
   - U3のCLI（`completion.js`・`measure.js`）は、`u3-install` の候補だけを受け付けること。
   - reportに候補のunit（`candidate.unit`）が入り、`laterUnits` の文言が候補のunitに合うこと（R-11）。
   - mainで `mise run build` のあと `node --test --test-concurrency=1 tests/migration-install/acceptance.test.js` を実行し、追加した試験のfailを観測する。意図したfail以外の失敗が出たら、止めて報告する。
-- [x] Step 17: 直す（R-10・R-11）。
+- [ ] Step 17: 直す（R-10・R-11）。
   - U3の `scripts/migration-install/stage.ts` に、受け入れるunitの一覧（`u3-install`・`u4-command`）を置く。U3の候補には、従来どおり `installSourceInventory` を使う。
   - U3の `checkInstallCandidate`・`measureInstall`・coverageの照合関数は、`u4-command` の候補に使うsource一覧を、呼出し側から引数（option）で受け取る。渡されなければ拒否する。U3の入口から `scripts/migration-command/` へのimportをなくす。
   - reportに `candidate.unit` を書き、`laterUnits` を候補のunitに合わせる。
   - U4側の呼出しの変更（`commandSourceInventory` を渡すこと、U3のmeasure CLIの代わりにU4の薄いCLIで同じ関数を呼ぶこと）は、U4のfileなので、U4の計画（再承認を受ける予定）に1項目として加え、そちらで行う。U3のこのStepでは、U4のfileを変えない。そのため、U4の試験・入口は、U4の計画の項目を実施するまで、U4の候補では動かない。これはU4の作業の途中の状態として扱う。
   - mainで `mise run build` のあと、`node --test --test-concurrency=1 tests/migration-install/acceptance.test.js tests/migration-install/lifecycle.test.js` を逐次実行し、Step 16の試験を含めてpassし、fail・skip 0であることを確かめる。
-- [x] Step 18: U3の記録（code-summary.md、source-manifest.json、traceability.json）を更新する。`scripts/migration-install/stage.ts` と生成JSのclaimを確かめ、足りなければ足す。
-- [ ] Step 19: 独立レビューを受ける（この試行のやり直しのレビューはreview-05で使ったため、人間の依頼として記録する）。そのあと、intentに記録された検証コマンドでU3のcheckpointを確かめ、通常の単位完了承認を自動で進める。最終的なsourceでのU3の正式36試行・専用CI・完了確認は、U4の後に、U1〜U4のまとめた確認の中で行う。
+- [ ] Step 18: U3の記録（code-summary.md、source-manifest.json、traceability.json）を更新する。`scripts/migration-install/stage.ts` と生成JSのclaimを確かめ、足りなければ足す。
+- [ ] Step 19: 独立レビューを受ける（この試行のやり直しのレビューはreview-05で使ったため、人間の依頼として記録する）。そのあと、intentに記録された検証コマンドでU3のcheckpointを確かめ、通常の単位完了承認を自動で進める。最終的なsourceでのU3の正式36試行・専用CI・完了確認は、U4の後に、U1〜U4のまとめた確認の中で行う。（注：このあとコードをupstreamのmainへ移したため、checkpointの承認は新しい土台で下のStep 20–25の後に行う。）
+
+## 追加Step：新しい土台（upstreamのmain）への合わせ（2026-10-18、4回目の再開）
+
+人間の指示（「upstream/mainの変更に合わせて下さい」）で、U1〜U4のコードをupstreamのmainへ移した（PR aletheia-works/formicarium#29、merge `f5bc078c`）。その後、#31〜#35がmergeされ、mainは `2a79860` になった。
+- #32で、U3の受入workflow（`.github/workflows/migration-install-u3.yml`）、CI専用の `scripts/migration-install/ci.ts`・`ci-inputs.ts`、固定CI入力 `ci/migration-install/` を消した。実配信siteの固定11ファイルの一覧と検査は `scripts/migration-install/actual-site.ts` に残る。
+- upstreamのmainでは、生成JSと `.github/publication/` を追跡しない。taskはpackage.jsonの `migration:install:*` と `mise-tasks/migration/install-*.sh` に置く。toolchainの版はmainの規約（#33のBun CI）に従う。
+- 配布JSは `FIRST_PARTY_JS` の23件、package fileは `PACKAGE_FILES` の33件。
+- intentの検証コマンドは、人間の承認で `mise run typecheck && mise run build && mise run test:light && mise run migration-preflight-unit && mise run migration-preflight-current-unit && mise run migration-guest-build-unit && mise run showcase-unit` に変わった。
+- `source-manifest.json` は、追跡されたfileだけ（144件→69件）に直した。
+
+新しい土台で取り直したレビュー（review-07、READY、Major 2・Minor 3）を、人間の指示（「U3のコード生成を開き直して、計画を新しい土台に合わせて承認を取り、受入方法（actual-siteの復元とCI証拠の出所）を決めて、記録を直して」）で直す。
+
+受入の方法（人間が決めた、2026-10-18）：古い土台での正式受入（CI run 38948209404、正式36試行）は、古いsource・古いtoolchainの履歴として残し、新しい土台の成功証拠へ付け替えない。新しい土台では、手元に残るactual-site（`.artifacts/migration-install/actual-site`、`requireInstallActualSite` が固定11ファイルのbyte数・SHA256を検査する）を使い、`FORMICARIUM_INSTALL_LOCAL_ONLY=1` で暫定の完了確認だけを行う。その結果は `acceptancePassed=false`（`local-provisional`）であり、U3の正式受入ではない。actual-siteを作る手段とCI証拠（`observed-ci-summary`）を作る手段は追跡コードに作り直さない。U3の正式受入は、U1〜U4のまとめた最終確認とterrariumの受入で行う。
+
+- [ ] Step 20: 記録を新しい土台に合わせる（R-16）。`code-summary.md`・`unit-test-instructions.md`・`traceability.json` の、`ci.ts`・`ci-inputs.ts`・`migration-install-u3.yml`・`ci/migration-install`・生成JSの追跡・21JS・Node 24.21.0の実体pathの記述を、古い土台の履歴として区別する。新しい土台の状態（いまのfileで確かめられること）と、上の受入の方法を書く。`traceability.json` のFR6の対象を、消した `scripts/migration-install/ci.ts` から、mainにある受入の入口 `scripts/migration-install/completion.ts`（と `actual-site.ts`）に直し、ほかの対象がすべてmainにあることを確かめる。上のSteps 8–11と各追加Step 8の、CI入力・workflowを作る・実行する記述は、古い土台で実施した履歴として残し、書き換えない。
+- [ ] Step 21: 受入の必須入力2つ（R-17）を、上の受入の方法として記録する。`code-summary.md` に、(a) actual-siteは手元の検査済みのcopyだけがあり、clean checkoutから作る手段がないこと、(b) CI証拠の作り手がないため、非localの完了（`verified-with-ci`）は今は成立しないこと、(c) その2つを最終確認で決めることを書く。
+- [ ] Step 22: `source-manifest.json` を直す（R-18）。U3のtaskの実体 `mise-tasks/migration/install-browser.sh`・`install-completion.sh`・`install-measure.sh`・`install-stage.sh`・`install-unit.sh` と、U3の受入の入口 `scripts/migration-install/actual-site.ts` を加える。U3の内容がない `mise.toml` を外す。古い土台のtoolchain更新（追加Step 8）でclaimした共有file（`ci/migration-session/**`、`bun.lock`、`scripts/ci/*`、`scripts/release/publication-evidence.ts`、`.github/workflows/*`、`tests/package/runner-ready.test.ts`、`tests/fixtures/timings-valid.json`、`tests/tooling/*`）は、新しい土台ではmainの規約（#33）がその版を決めているので、fileを読んでU3が書いた内容が残っていないことを確かめてから外す。残っているfileは外さず、理由を `code-summary.md` に書く。
+- [ ] Step 23: working copyの古い生成物を消す（R-19）。`installSourceInventory` はdirectoryを走査するので、gitignoreされた古い `scripts/migration-install/ci.js`・`ci-inputs.js`（対応する `.ts` がない）がsourceIdentityに入る。2つを消し、`scripts/migration-install`・`tests/migration-install` に、対応する追跡 `.ts` のない `.js` が残っていないことを確かめる。コードは変えない。`installSourceInventory` が追跡の有無を見ないことと、`checkInstallCandidate` 127行の固定値 `FIRST_PARTY_JS.length !== 23`（R-20。いまの値は正しく、同じ行の一覧の照合と重なる）は、残余リスクとして `code-summary.md` に書き、配布一覧が変わるときに直す。
+- [x] Step 24: mainで1つずつ、`mise run lint:all`、`mise run typecheck`、`mise run build`、`mise run test:light` を実行する。続いて、新しい土台のsourceでU3の候補を作り（`mise run migration-install-stage`）、その候補と独立consumerで `mise run migration-install-unit`・`mise run migration-install-browser` を実行し、件数とfail・skip 0を記録する。そのあと、手元のactual-siteと `FORMICARIUM_INSTALL_LOCAL_ONLY=1` で `mise run migration-install-completion`（全工程・23JS全realmのcoverage 80%以上・ローカル36試行）を実行する。36試行の証明書の一時登録・削除は、実コマンドを示して承認を得てから行い、終わったら削除・未登録を確かめる。承認を得られない、または入力を準備できないときは、その工程を未検証として記録する。install180秒、非download中央値3000ms、probe600秒、aube840秒、1worker・retry0、容量上限は変えない。
+- [ ] Step 25: 独立レビューを受ける。そのあと、intentの検証コマンドでU3のcheckpointを確かめ、通常の単位完了承認を進める。コードの変更はないので、PRは作らない（記録はU1・U2・U7の記録と一緒に、後でまとめる）。
 
 ## テスト設計と追跡（共通）
 CatalogResolver、AssetTransfer、ArchiveInspector、OperationLifetime、ProgressReporterは各5–8以上の意味のあるケース。SessionPort/validateGuest境界と独立consumerを統合テストで確認する。定数を読み返すだけのテストではなく、境界直前/超過、正しいarchiveと不正archive、race時の状態・旧guest・後始末を観測する。
@@ -192,7 +214,7 @@ FR4→Steps2–7、FR5→Steps5–7、FR1→Steps7/9–11、FR6→Steps6–11。
   "version": 1,
   "methodology": "test-after",
   "source": "team",
-  "ordering": "通常の実装は各テスト可能な層の実装後にテストを作成・実行し、不具合修正は再現テストの失敗を観測して修正後に同じテストの成功を確認する。",
+  "ordering": "通常の新規実装は各テスト可能な層を実装した後にその層のテストを作成・実行し、不具合修正は再現テストの失敗を先に観測してから修正し同じテストの成功を確認する。（人間の回答 Q3）",
   "scope": "classic",
   "test_strategy": "standard",
   "project_type": "brownfield",
@@ -203,7 +225,7 @@ FR4→Steps2–7、FR5→Steps5–7、FR1→Steps7/9–11、FR6→Steps6–11。
     },
     {
       "layer": "team",
-      "text": "- **Methodology**: test-after\n- **Ordering**: 通常の実装は各テスト可能な層の実装後にテストを作成・実行し、不具合修正は再現テストの失敗を観測して修正後に同じテストの成功を確認する。\n- ビルドとテストはmain sessionで逐次実行する。Node向けconsumer、Worker、process.execPath、Node専用flagの意味を確認し、Bunへ一括置換しない。Bun実行を採る箇所は実結果で互換性を確認する（未検証）。\n- 既存Biome・TypeScript・Playwright・node:testを証拠として使う。通常PR/main CIは固定候補入力を要求しない軽量経路から整備し、重いnative/ブラウザ回帰・配布coverageは別の明示経路へ対応づける（提案）。軽量CI成功だけで全受入れを通過したと扱わない。\n- 統合前CIと第一者配布JS固定一覧の行coverage80%以上を維持する。未収集ファイルを分母から消さず、Worker/別process/realmも記録し、欠落・skipを成功へ置換しない。\n- probe600秒、aubeブラウザ840秒、1worker、retryなし、probe8項目合格、native出力一致、wasm1GBを維持する。未変更aubeは再ビルドせず、計測時に重い処理を並行しない。新規コア回帰はnative Linuxでも確認する。実機Safariは未検証のまま区別する。"
+      "text": "- **Methodology**: test-after\n- **Ordering**: 通常の新規実装は各テスト可能な層を実装した後にその層のテストを作成・実行し、不具合修正は再現テストの失敗を先に観測してから修正し同じテストの成功を確認する。（人間の回答 Q3）\n- node:test と Playwright の既存結合テストを利用する（検証済み：package.json scripts、code-quality-assessment.md）。今回の成功結果・coverage 値は未検証。\n- classic の追加条件は行 coverage 80%以上と統合前 CI 実行（ドキュメント根拠：org.md Testing Posture）。基準を下げて通過させない。\n- coverage の技術提案（未実装・未検証）：第一者が保守する配布 JS 全体（既存 runtime の未変更ファイル、共通処理、公開 API、Node/browser Worker adapter を含む）の一覧を事前に固定し、未実行ファイルも分母に含める。tests、生成 blink JS/wasm、第三者/vendor、ゲスト ELF、.d.ts、デモ・開発専用 scripts は理由を明示して対象外とし、資産・型・回帰検証を別途行う。設計で配布対象を確定し、閾値達成のために除外を変更しない。\n- Worker/ブラウザ内の計測を収集・マージし、対象一覧と照合して欠落を検出する。未収集ファイルを分母から外さず0%または未測定として失敗／未検証を報告する。計測方式は担当者が未importファイル・別process/realmを含む試験を観測して選ぶ。対象一覧、除外理由、行数、レポート、実行コマンドを CI 成果物へ残す。ブランチ coverage の新しい数値条件は追加しない。\n- 既存上限は probe 600秒、aube ブラウザ840秒、1worker、retryなし、probe 8項目全通過、native 出力一致、wasm 1GB。テストは main session が逐次実行する（人間の指示：AGENTS.md）。\n- aube はソースが変わっていなければ再ビルドしない。計測は重い並行処理なしで行う。新しいコア不具合の回帰 probe は native Linux でも確認する。\n- npm tarball の import/Worker/型/wasm・notices・build-info の同梱確認は設計候補（推測・未検証）。ゲストと fixture は terrarium 側の ref 別配布という既存意図を維持する。"
     }
   ],
   "obligations": {
@@ -247,8 +269,8 @@ FR4→Steps2–7、FR5→Steps5–7、FR1→Steps7/9–11、FR6→Steps6–11。
       "Documentation and traceability."
     ]
   },
-  "input_sha256": "sha256:c174dde61b23d97d1733ad98b91568ee85c7de913db166d498965b6845a4c286",
-  "contract_sha256": "sha256:10b6f50c2e853225a46984ab35ccfb615ca938fd59f89dd0c81174ba91834d14"
+  "input_sha256": "sha256:dd7d634a9c475bfe0b7fdd87b1566bd3f238a9b0ead389ae268b08de9bf333f2",
+  "contract_sha256": "sha256:ce013e1551c9c06de1a756c04942d606c8dffe82caf0ae8422f95df28968c638"
 }
 ```
 

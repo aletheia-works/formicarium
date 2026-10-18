@@ -30,6 +30,6 @@
     { "id": "NFR4.2", "status": "OK", "target": "tests/migration-session/reservation.test.ts" },
     { "id": "NFR6.1", "status": "OK", "target": "tests/migration-session/consumer.spec.ts" },
     { "id": "NFR8.1", "status": "OK", "target": "scripts/migration-session/stage.ts" },
-    { "id": "NFR8.2", "status": "OK", "target": "scripts/migration-session/ci.ts" }
+    { "id": "NFR8.2", "status": "OK", "target": "scripts/package/stage-package.ts" }
   ]
 }

@@ -29,7 +29,7 @@ mise run showcase-stage
 node --test --test-concurrency=1 --experimental-test-coverage --test-coverage-include='showcase/scripts/**' --test-coverage-lines=80 showcase/tests/runner-ready.test.ts showcase/tests/config.test.ts showcase/tests/resolve.test.ts showcase/tests/acquire.test.ts showcase/tests/archive.test.ts showcase/tests/build-key.test.ts showcase/tests/build.test.ts showcase/tests/reuse.test.ts showcase/tests/catalog.test.ts showcase/tests/pack.test.ts showcase/tests/candidate.test.ts showcase/tests/boundary.test.ts showcase/tests/mode.test.ts showcase/tests/workflow.test.ts
 ```
 
-`mise run showcase-unit` は、このcommandと同じものを宣言する。
+`mise run showcase-unit` は、package.jsonの `showcase:unit` のscript（このcommandと同じもの）を `mise-tasks/showcase/unit.sh` から呼ぶ。ほかの `showcase-*` のtaskも、同じ形で `showcase:*` のscriptを呼ぶ。
 
 4. 型検査：
 

@@ -1,5 +1,65 @@
 # U3 install コード実装・検証概要
 
+## 4回目の再開：新しい土台（upstreamのmain `2a79860`）への合わせ（2026-10-18、Steps 20–23）
+
+review-07のR-16〜R-20を、記録の更新と古い生成物の削除だけで直した。U3の製品コード（`runtime/install*.ts` ほか）と受入の入口のコード（`scripts/migration-install/*.ts`）は変えていない（`git status --short -- runtime types scripts tests mise-tasks package.json docs README.md` は出力なし）。lint・build・試験・候補作成・完了確認（Step 24）とレビュー（Step 25）はmain sessionが行う。この節の作成時点では、新しい土台でのU3の試験・coverage・36試行はどれも未実行（未検証）である。
+
+**この節より下（3回目の再開以前の各節、Status、Files Created or Modified、Candidate and Evidence Boundary など）は、古い土台の履歴である。** そこに出てくる `scripts/migration-install/ci.ts`・`ci-inputs.ts`、`.github/workflows/migration-install-u3.yml`、`ci/migration-install/`、生成JSのjj追跡、全21JS・31packファイル・全18工程、Node 24.21.0の実体path、CI run 38948209404・正式36試行・`verify-toolchain-u3.mjs` の完了確認は、古いsource・古いtoolchainに結び付いたもので、新しい土台の成功証拠へ付け替えない。
+
+### 新しい土台の状態（fileで確かめたこと、検証済み）
+- `git ls-files`：`scripts/migration-install` は `actual-site.ts`・`completion.ts`・`coverage.ts`・`measure.ts`・`stage.ts` の5件。`ci.ts`・`ci-inputs.ts`・`.github/workflows/migration-install-u3.yml`・`ci/migration-install/` はない（PR #32で退役）。追跡される `.js` はない（`.gitignore` 9行 `/scripts/**/*.js`）。生成JSは `mise run build` が作る。
+- task：`mise-tasks/migration/install-{unit,browser,stage,completion,measure}.sh` が `bun run migration:install:*` を呼び、package.json 95–99行がその実体（unitは8個の個別試験、browserは2specを `--workers=1 --retries=0`）。
+- 配布：`scripts/package/stage-package.ts` の `FIRST_PARTY_JS` は23件（`runtime/command-parse.js`・`command.js` を含む）、`PACKAGE_FILES` は33件。
+- `completion.ts`：127行は `FIRST_PARTY_JS.length !== 23`、423行は `FIRST_PARTY_JS.length`、unitは `INSTALL_REGRESSION_UNITS` 経由。U3の入口に `scripts/migration-command/` のimportはない。
+- `traceability.json`：FR6とNFR8.1の対象を、退役した `scripts/migration-install/ci.ts` から、mainにある受入の入口 `scripts/migration-install/completion.ts` に直した（FR6には `actual-site.ts` を関連として付けた）。どちらもGAPのまま。ほかの対象（runtime 6件、`scripts/migration-install/{completion,coverage,measure}.ts`、`tests/migration-install/*` 6件）と、NFR2.2の検証欄にある `scripts/package/coverage.ts`・`scripts/migration-session/coverage.ts`・`tests/package/coverage.test.ts`・`tests/migration-install/acceptance.test.ts` は、すべて `git ls-files` で追跡されている。`.artifacts/` のpathは手元の旧証拠で、追跡対象ではない。
+
+### 受入の方法（人間が決めた、2026-10-18）と必須入力（R-17）
+古い土台での正式受入（CI run 38948209404、正式36試行）は、古いsource・古いtoolchainの履歴として残す。新しい土台では、手元のactual-siteと `FORMICARIUM_INSTALL_LOCAL_ONLY=1` で暫定の完了確認だけを行う。その結果は `status: 'local-provisional'`・`acceptancePassed: false`（`completion.ts` 441・453行）であり、U3の正式受入ではない。
+- (a) actual-site：`requireInstallActualSite`（`actual-site.ts` 164–172行）は、`U2_ACTUAL_SITE` が `.artifacts/migration-install/actual-site` と一致することを求め、固定11ファイルのbyte数・SHA256・余分なfile/directoryなしを検査するだけである。手元には検査済みのcopyだけがあり、clean checkoutから11ファイルを作る手段（旧 `ci-inputs.ts` の prepare-site・restore、`ci/migration-install` の固定bundle）は追跡コードにない。
+- (b) CI証拠：非localの完了（`verified-with-ci`）は `FORMICARIUM_INSTALL_CI_EVIDENCE` の `recordKind: 'observed-ci-summary'` を求める（`completion.ts` 360–381行）。追跡コードで `observed-ci-summary` を扱うのは、`scripts/migration-install/completion.ts`・`scripts/migration-command/completion.ts`・`scripts/migration-session/completion.ts` の検査側だけで、書く側（旧 `ci.ts` とworkflow）はない。したがって、新しい土台では `verified-with-ci` の完了は今は成立しない。
+- (c) この2つ（actual-siteの作り方と、CI証拠の作り手または非local受入の要件）は、U1〜U4のまとめた最終確認とterrariumの受入で決める。基準は緩めない。それまでU3は受入未了である。
+
+### 未再確認の項目（R-09の残り）
+U3は、最終確認まで新しい土台で未再確認である。Step 13・15・19の「intentの検証コマンドでcheckpointを確かめる」は、intentの検証コマンド（typecheck・build・test:light・`migration-preflight-unit`・`migration-preflight-current-unit`・`migration-guest-build-unit`・`showcase-unit`）を今のsourceで実行するもので、U3の `migration-install-*` を一つも実行しない。U3の受入証拠ではない。残る2点は次のとおり（どちらも未実測）。
+- 候補の `sourceFiles`・`sourceIdentity`：今のsourceは封印済み候補（330件・`54da5b22…`）と一致しない。新しい土台の候補はStep 24で作り直す。
+- `runtime/command.js`・`command-parse.js` を分母に入れた23JS全realmのcoverageが80%以上か。
+
+### `source-manifest.json`（R-18）：69件 → 46件
+追加した6件：`scripts/migration-install/actual-site.ts`、`mise-tasks/migration/install-browser.sh`・`install-completion.sh`・`install-measure.sh`・`install-stage.sh`・`install-unit.sh`。46件すべてが `git ls-files --error-unmatch` で追跡対象であることを確かめた。
+
+外した29件と理由（fileを読んで、U3が書いた内容が残っていないことを確かめた）：
+- `mise.toml`：U3のtaskはない（`node = "latest"`・`bun = "latest"` だけ。U3のtaskは `mise-tasks/` にある）。
+- `scripts/ci/tasks.ts`・`scripts/ci/ordinary-receipt.ts`：`TOOLCHAIN = { bun: 'latest', node: 'latest' }`・`expectedToolchain: { node: 'latest', bun: 'latest', ... }` で、U3が書いた版の固定（Node 26.12.0・Bun 1.4.3）は残っていない。
+- `scripts/release/publication-evidence.ts`：toolchainRevisionは `bun1.4.2-node26.11.1`（54行）で、U3が書いた `bun1.4.3-node26.12.0` ではない。
+- `.github/workflows/ci.yml`・`verify.yml`・`candidate-verify.yml`・`publish.yml`、`tests/package/runner-ready.test.ts`、`tests/tooling/bun-tasks.test.ts`・`quality-evidence.test.ts`：PR #29（U1〜U4を移した変更、`f5bc078`）で変わっておらず、最後の変更はmainのPR #24・#25・#27。版の文字列は、U3の値がない（`quality-evidence.test.ts` は `bun1.4.2-node26.11.1-lockdigest`）か、mainが先に入れた値（`bun-tasks.test.ts` の `1.4.3`、PR #24）である。
+- `ci/migration-session/payload/*.bin` 18件：blink・guest・固定入力のbinaryで、U3が書いた内容ではない。U3の追跡コードはこれらを読まない（`ci/migration-session` を読むのは U2の `scripts/migration-session/ci-inputs.ts`・`tests/migration-session/ci.test.ts` と `.github/workflows/showcase.yml`）。
+
+外さずに残した3件と理由：
+- `ci/migration-session/inputs.bundle.json`：source一覧の行に、U3の `runtime/install-archive.ts`・`install-catalog.ts`・`install-lifecycle.ts`・`install-transfer.ts`・`install.ts`（と生成JS）のSHA256がある（184–223行）。`runtime/install.ts` と `install-archive.ts` の値は今のfileと一致した。U3の製品コードが変わるとこのfileも変わるので、U3が書いた内容が残っているとみなした。ほかのunitのsource-manifestはこのfileをclaimしていない。
+- `bun.lock`：U3の古い土台のtoolchain更新で入れた `"@playwright/test": "1.64.1"`（9行）と、U3が引き受けた `@types/node` `^26.6.5`（12行）が残る（PR #29のdiffで確認）。
+- `tests/fixtures/timings-valid.json`：U3のtoolchain更新で入れた `"node": "26.12.0"`（17行）が残る（PR #29のdiffで確認）。
+
+### 古い生成物の削除（R-19）と残余リスク（R-19・R-20）
+- gitignoreされた古い生成物 `scripts/migration-install/ci.js` と `ci-inputs.js`（`git check-ignore` で `.gitignore` 9行に一致、対応する `.ts` なし）を `rm` で消した。消したあと、`scripts/migration-install` と `tests/migration-install` のすべての `.js` に、追跡される同名の `.ts` があることを `git ls-files` とdirectoryの一覧で確かめた。`ci.js.map`・`ci-inputs.js.map` は残っている（計画の対象外。`installSourceInventory` の正規表現 `/\.(?:ts|js|json)$/` に一致しないので、sourceIdentityには入らない）。
+- 残余リスク（R-19）：`installSourceInventory`（`stage.ts` 16–41行）はdirectoryを走査し、追跡の有無を見ない。gitignoreされた生成物や消したsourceの残骸があると、同じ追跡sourceでも手元と他環境でsourceIdentityが食い違う。コードは変えていない。
+- 残余リスク（R-20）：`checkInstallCandidate` 127行の固定値 `FIRST_PARTY_JS.length !== 23` は、いまの値（23）では正しく、同じ条件の122–123行の一覧の照合（`distributionInventory` と `FIRST_PARTY_JS` の集合比較）と重なる。配布一覧が変わるときに直す。
+
+### Step 24：新しい土台での確認（2026-10-18、main sessionが1つずつ実行、検証済み）
+- `mise run lint:all` exit 0（エラーなし。警告48件・情報47件は既存）。`mise run typecheck` exit 0。`mise run build` exit 0。
+- buildが `.build/scripts/migration-install/` に残っていた古い `ci.js`・`ci-inputs.js`（とmap）を `scripts/` へcopyし直していた（`scripts/emit.ts` 7行の `cp`）。`.build` 側の4件と `scripts/migration-install/ci.js.map`・`ci-inputs.js.map` も、R-19の古い生成物として消した（すべてgitignore対象）。再buildのあと、`scripts/migration-install` と `.build/scripts/migration-install` に `ci*` は0件。
+- `mise run test:light` exit 0：bun 71件・37件pass、node 125件中123pass・fail 0・skip 2（既存）、tooling 130件pass。
+- 候補：`FORMICARIUM_SESSION_SOURCE=2a79860351b7bdeabff8b3424393694943a6a6bb mise run migration-install-stage` exit 0。`.artifacts/migration-install/candidate-61e88833-7976-49e7-80b8-4e436ab2be03/package.manifest.json`（33ファイル、sourceIdentity `4208c338…85e0`、pack SHA256 `430189e8…6625`）。独立consumerは `/private/tmp/formicarium-u3-consumer-20261018`（この候補のtarballをnpmで入れた）。固定guestは `.artifacts/u2-release-inputs/aube-v2.7.0/aube`。
+- `mise run migration-install-unit` exit 0：74件pass、fail・cancel・skip・TODO 0。
+- `mise run migration-install-browser` exit 0：45件pass（Chromium・Firefox・WebKit、1worker・retry0）。
+- 暫定の完了確認：`.artifacts/migration-install/tls-20261018/run-local-provisional-completion.sh` を人間がターミナルで実行した（ログインkeychainへの一時的な信頼の登録は人間が承認。有効期限1日のlocalhost証明書、SHA256 `c2afea8e…5795`）。
+  - 1回目は第10工程（`tests/node/build.test.js` ほか）で28件中1件failで止まった（ログ `completion-attempt1-stale-pitchfork.console.log`、出力 `completion-44d4ed35…`）。原因は手元の `dist/guests/pitchfork` が古い土台のビルド（2026-10-08、musl ioctlパッチあり、UI node v24.18.1）で、mainのPR #10でパッチを外した後の試験（`tests/node/build.test.ts` 219行 `fields.patch === undefined`、UI node 26以上）に合わないことだった。U3のコードの問題ではない。
+  - 人間の判断で、pitchforkを今のmainの手順で作り直した（`FORMICARIUM_CONTAINER=docker mise run build-guests pitchfork`。このMacには `timeout` がなく、`scripts/lib/container.sh` の自動検出ではdockerを選べないため明示した）。build-infoはパッチなし・UI node v26.11.1。aubeは作り直していない。作り直した後、同じ第10工程は28件pass・fail 0・skip 0、`--check` も候補と一致した。
+  - 2回目は全19工程exit 0（出力 `.artifacts/migration-install/completion-2163fcab-89b4-40ea-87e2-75733d610c0a`）。`local-provisional-report.json`：`status: 'local-provisional'`、`localPassed: true`、`acceptancePassed: false`、blockerは `new U3 signed CI not independently verified`、実機Safariは未検証。
+  - coverage：23JS、1495 realm、行2055中1776（86.42%）、基準80% passed、未実行0%のfileなし。
+  - 36試行：passed、基準3000ms。非download中央値の最大はBiome/Firefoxの2588.50ms（aube/Firefox 1696.96ms、ほかは1100ms以下）。
+  - 終了後、証明書はkeychainにない（`security find-certificate` exit 44）。
+- これはU3の暫定の確認であり、正式受入ではない。正式受入（actual-siteの作り方とCI証拠）は、U1〜U4のまとめた最終確認とterrariumの受入で決める。
+
 ## 3回目の再開：review-05の指摘の修正（2026-10-17、Steps 16–18）
 
 人間が選んだ修正案 `u3-acceptance-dependency-proposal.md` の案Aで、R-10（Major）とR-11（Minor）を直した。拒否の条件、U3の製品コード、品質基準は変えていない。

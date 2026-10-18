@@ -4,18 +4,6 @@
   "version": 1,
   "writes": [
     {
-      "path": ".github/publication/bootstrap.mjs"
-    },
-    {
-      "path": ".github/publication/runner-manifest.json"
-    },
-    {
-      "path": ".github/publication/runner.mjs"
-    },
-    {
-      "path": ".gitignore"
-    },
-    {
       "path": "docs/results/terrarium-migration-preflight-evidence/acceptance-assembly.json"
     },
     {
@@ -190,7 +178,22 @@
       "path": "integration/vivarium/preflight/build-baseline.sh"
     },
     {
-      "path": "mise.toml"
+      "path": "mise-tasks/migration/preflight-browser.sh"
+    },
+    {
+      "path": "mise-tasks/migration/preflight-completion.sh"
+    },
+    {
+      "path": "mise-tasks/migration/preflight-current-unit.sh"
+    },
+    {
+      "path": "mise-tasks/migration/preflight-unit.sh"
+    },
+    {
+      "path": "mise-tasks/migration/preflight-verify.sh"
+    },
+    {
+      "path": "package.json"
     },
     {
       "path": "scripts/migration-preflight/assets.ts"
@@ -203,9 +206,6 @@
     },
     {
       "path": "scripts/migration-preflight/current-completion.ts"
-    },
-    {
-      "path": "scripts/migration-preflight/current-coverage.js"
     },
     {
       "path": "scripts/migration-preflight/current-coverage.ts"
@@ -229,19 +229,10 @@
       "path": "scripts/migration-preflight/verify.ts"
     },
     {
-      "path": "scripts/package/coverage.js"
-    },
-    {
       "path": "scripts/package/coverage.ts"
     },
     {
-      "path": "scripts/release/inventory.js"
-    },
-    {
       "path": "scripts/release/inventory.ts"
-    },
-    {
-      "path": "scripts/terrarium/coverage.js"
     },
     {
       "path": "scripts/terrarium/coverage.ts"
@@ -260,9 +251,6 @@
     },
     {
       "path": "tests/migration-preflight/consumer.spec.ts"
-    },
-    {
-      "path": "tests/migration-preflight/current-completion.test.js"
     },
     {
       "path": "tests/migration-preflight/current-completion.test.ts"
@@ -289,31 +277,16 @@
       "path": "tests/migration-preflight/verify.test.ts"
     },
     {
-      "path": "tests/package/coverage.test.js"
-    },
-    {
       "path": "tests/package/coverage.test.ts"
-    },
-    {
-      "path": "tests/package/pack.test.js"
     },
     {
       "path": "tests/package/pack.test.ts"
     },
     {
-      "path": "tests/terrarium/coverage.test.js"
-    },
-    {
       "path": "tests/terrarium/coverage.test.ts"
     },
     {
-      "path": "tests/terrarium/current-candidate.test.js"
-    },
-    {
       "path": "tests/terrarium/current-candidate.test.ts"
-    },
-    {
-      "path": "tests/tooling/publication-alignment.test.js"
     },
     {
       "path": "tests/tooling/publication-alignment.test.ts"

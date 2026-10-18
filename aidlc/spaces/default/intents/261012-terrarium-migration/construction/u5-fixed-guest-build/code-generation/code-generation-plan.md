@@ -2,6 +2,7 @@
 
 ## Summary
 
+- 今回の再開（2026-10-18、追加Step 18–23）：U5の記録を新しい土台（formicariumのupstream main `2a79860`）に合わせ、review-03のR-10〜R-14を直す。記録を「上流vivariumの本体（builderとworkflow。aletheia-works/vivarium mainのmerge `71e0ef92`）」と「formicarium側の確認（`scripts/migration-guest-build/`、`tests/migration-guest-build/`、`mise-tasks/migration/guest-build-*.sh`、package.jsonの `migration:guest-build:*`）」に分ける（人間の指示）。U5のcodeは変えない。触るのはU5の記録（この計画、`unit-test-instructions.md`、`code-summary.md`、`traceability.json`、`source-manifest.json`）だけ。mainでlint・typecheck・build・test:light・`mise run migration-guest-build-unit` と、保存済みのRelease 2組に対する `verify.ts` の照合を1つずつ実行する。下の各行は、それより前の要約（古い土台の履歴）である。
 - Builds: vivariumの固定guestのbuilder。宣言の検証、sourceの取得と確認、key、取得の監視、containerでのbuild、成果物の検証、Releaseへの書込み、bump-upstreamを作り、3つのworkflowで動かす。あわせて、formicariumで成果物を照合する入口を作る。
 - Touches: formicariumの `proposals/vivarium/u5/`（vivariumへ反映する案。新しいpackage `tools/fixed-guest-builder/`、workflow 4つ、mise.tomlとdependabotとinfra/githubとAGENTS.mdへの追記の案）、`scripts/migration-guest-build/`、`tests/migration-guest-build/`、`biome.json`（案のdirectoryを検査の対象から外す1行）。formicariumの `mise.toml` と `tsconfig.json` は変えない。vivariumへの反映・PR・merge・CIの起動は、別に承認を受ける。
 - Tests: builderの各部品の単体試験（部品ごとに5–8件以上、formicariumの照合を含め計約100件。bun test）と、workflowの静的な試験、formicariumの照合の試験。そのうえで、vivariumのCIでbaselineとfixをbuildし、Releaseへの保存、同じkeyの再利用、mbxありとなしの比較を行う。
@@ -33,23 +34,23 @@ vivariumのfileは、formicariumでは `proposals/vivarium/u5/` の下に、viva
 
 ## Steps
 
-- [x] Step 1: 構成とrunnerの確認。開発に使う各toolが最新版かを確かめる（Bun、Node、TypeScript、Biome、mbx、ShellCheck、actionlint、使うActionのcheckout・cache/restore・cache/save・upload-artifact・download-artifact・create-github-app-token）。開始時の版と、古いものがあればその差分を報告する。biome 2405c762 と f79f85d5 の `rust-toolchain` を読み、指定の版のRustのimageのdigestを調べて記録する（U1の1.98.1は履歴として扱う）。標準のUbuntuのrunnerの最新のlabelを確かめる。`proposals/vivarium/u5/tools/fixed-guest-builder/` にpackage.json・tsconfig.json・bunfig.toml・bun.lockを作り、`tests/runner-ready.test.ts` を最初に実行して、bun testが動くことと、そのcommandを `unit-test-instructions.md` に記録する。（NFR2.2）
-- [x] Step 2: 宣言とURLの検証を `src/declaration.ts` に実装する。許可一覧（設定file `allowlist.json`）、URLの正規化（`.git`・末尾の `/`・小文字）、userinfo・host・port・query・fragmentの拒否、40桁の小文字16進のcommit、branch名だけの宣言の拒否、`reference` を入力にしないこと。実装後に `tests/declaration.test.ts` を作って実行する。（NFR3.1、D1）
-- [x] Step 3: sourceの取得と確認を `src/source.ts` に実装する。blobなしclone（repository自身のbranchとtagだけ）、commitがそのcloneにあることの確認、SHAで直接fetchしないこと、checkout、`.gitmodules` の拒否、sourcePatchesの適用。実装後に `tests/source.test.ts` を作って実行する。localのbare repositoryを2つ使い、別のrepositoryにだけあるcommitで始まらないことを確かめる。（NFR3.2、NFR3.4、D1）
-- [x] Step 4: 取得元の検査とkeyを `src/lockfile.ts` と `src/key.ts` に実装する。`Cargo.lock` の必須、`source` の許可（crates.ioと許可一覧のgit依存）、`.cargo/config.toml` の置換と別のregistryの拒否、`[patch]` の許可一覧外の拒否、正規化したJSONのSHA256によるkey（D2の入力だけ。runnerの部品のSHA256は参考欄）。実装後に `tests/lockfile.test.ts` と `tests/key.test.ts` を作って実行する。入力を1つ変えるとkeyが変わること、runnerの部品を変えてもkeyが変わらないことを確かめる。（NFR3.4、NFR5.2、D2）
-- [x] Step 5: 取得の監視と期限を `src/monitor.ts` と `src/deadline.ts` に実装する。directoryの大きさを一定の間隔で測り、上限を超えたらprocess groupを終了させる。期限切れ・取消のときはprocess groupの終了とstagingの除去を待つ。retryはしない。上限と間隔は注入できるようにする。実装後に `tests/monitor.test.ts` と `tests/deadline.test.ts` を作って実行する。小さい上限で、上限の値は受理し、+1で打ち切ることを確かめる。（NFR4.1、NFR4.2、D3、D4）
-- [x] Step 6: containerでのbuildを `src/build.ts` と `container/build.sh` に実装する。imageをdigestでpullして照合、`rustc -vV`・`cargo -V` の記録、`rust-toolchain` との照合（反映事項1）、diskの空き20GiBの事前確認、`cargo fetch --locked` の監視、networkを切った `--offline --locked` のbuild、stagingでの作成と原子的な確定、mbxの `RUSTC_WRAPPER`。docker・mbxのcommandは注入できるようにする。実装後に `tests/build.test.ts` を作って実行する。偽のdockerで、digestの不一致・版の不一致・diskの不足・途中の失敗でstagingが残らないことを確かめる。（NFR4.1、NFR5.1、NFR5.4、D4、D5）
-- [x] Step 7: 成果物の検証と再利用の取得を `src/artifact.ts` と `src/reuse.ts` に実装する。ELF 128MiB・build-info 1MiB・catalog 4MiBの上限（値は受理、+1は拒否）、重複keyの拒否、未知fieldの許容、C07とC03の必須identity。Releaseからの取得はC11（HTTPS、credentialなし、redirectは5回まで各hopを検査、streamの累積で制限、retryなし）。再利用のときは `compiled=false` と同じdigestを記録する。実装後に `tests/artifact.test.ts` と `tests/reuse.test.ts` を作って実行する。fetchを注入し、境界値と+1、redirectの不正、HTTPの失敗、digestの不一致を確かめる。（NFR3.3、NFR4.2、NFR5.2、FR7、FR8）
-- [x] Step 8: Releaseへの書込みとbusyの確認を `src/release.ts` と `src/busy.ts` に実装する。C12の操作計画（`ExternalOperation`）の作成と照合、計画のSHA256と `inputDigests` とartifactの照合、draft → 取得し直してdigestを検証 → publish、途中で失敗したdraftの作り直し、公開済みなら検証だけ（反映事項2）、組の欠けや `buildKey` の不一致は「使えない」、ELFの違いは「再現しない」、公開済みのものを消さない・上書きしないこと。busyは同じworkflowの実行中・待機中のrunをAPIで確かめる。実装後に `tests/release.test.ts` と `tests/busy.test.ts` を作って実行する。偽のGitHub APIを使う。（NFR5.1、NFR5.3、NFR8.1、D6、C12）
-- [x] Step 9: bump-upstreamを `src/bump.ts` に実装する。`git ls-remote` でbranchを直接解決し、D1の確認を通し、commit・時刻・branch名を記録して宣言を更新する。PRの情報は使わない。PRの作成はworkflowで `bot-pull-request` に任せる。実装後に `tests/bump.test.ts` を作って実行する。localのrepositoryで、解決の結果の記録と、PRの情報だけでは更新しないことを確かめる。（NFR3.5、FR8、D7）
-- [x] Step 10: CLIの入口を `src/cli.ts` に実装する（build・release・bumpの3つのsubcommand。workflowから呼ぶ）。秘密を出さないこと、終了codeと原因の記録。実装後に `tests/cli.test.ts` を作って実行する。（NFR8.3、D9）
-- [x] Step 11: workflowと設定。`proposals/vivarium/u5/.github/workflows/` に `fixed-guest-build.yml`・`fixed-guest-release.yml`・`fixed-guest-bump.yml` を作る。どれもmainでのworkflow_dispatchだけで、`github.ref` の確認、repositoryの確認（反映事項4）、Infrastructure Designの権限表、それぞれのconcurrency group（`cancel-in-progress: false`）、SHAで固定したAction、cacheの保存はmainのbuildだけ、`persist-credentials: false`、job timeout（4時間＋後片付け）を入れる。あわせて、mise.toml・dependabot.yml・Biome・ShellCheckへの追記と、`infra/github/main.tf` へのenvironmentの定義を、差分の案として作る。実装後に `tests/workflows.test.ts` を作って実行する（Bun.YAMLで読み、権限・起動条件・SHAの固定・concurrency・ifの条件を確かめる）。actionlintとShellCheckも実行する。（NFR8.1、NFR5.1、D5–D7）
-- [x] Step 12: formicariumの照合の入口を `scripts/migration-guest-build/verify.ts` に作る。Releaseの3つ（または保存したfile）を取得し、digest・build-info・`buildKey`・C07のidentityを照合し、formicariumのNode版の公開APIで `--version` を実行して記録する。再利用の証拠（`compiled=false`、同じdigest）も照合する。実装後に `tests/migration-guest-build/verify.test.ts` を作って実行する。改変・欠落・別のkey・別のrepositoryの成果物を拒否することを確かめる。試験は `node --test --test-concurrency=1 tests/migration-guest-build/verify.test.js` で直接実行する（mise.tomlには宣言しない）。（FR9、NFR8.2、NFR2.1）
-- [x] Step 13: 文書と追跡。packageの `README.md` に、使い方、許可一覧の変え方、上限、承認の流れ、切り戻しを書く。`proposals/vivarium/u5/HANDOFF.md` に、vivariumへ反映するfileの一覧とSHA256、vivariumで実行する検査のcommandを書く。生成したfileは内容を変えずにjjで追跡する。（NFR8.3）
-- [x] Step 14: vivariumへの反映。vivariumのセッションへの依頼文を示す。vivariumのセッションは、forkのbranchにfileを反映し、`mise run lint:all`・型検査・試験を実行して結果を報告する。上流へのPRの作成は、実際の内容を示して別に承認を受ける。mainへのmerge、environmentの作成（`tofu apply` を含む）、Actionsの設定は、書込み権限のある人が行う。その後、environmentの承認の画面の表示を確かめる（反映事項3）。（NFR2.2、NFR8.1）
-- [x] Step 15: vivariumのCIでの受入。起動の前に、実際の入力とActionsの分数・cacheの残りを示して承認を受ける。起動は書込み権限のある人が行う。順に、baseline（Biome 2405c762）のbuild → C12の計画を示して承認 → Releaseへの書込み → 同じkeyの再利用 → fix（JamBalaya56562/biome f79f85d5）で同じ流れ → mbxありとなしで同じELF digestになることの比較、を行う。各runの直後に、REST（run・jobs・artifacts・Release）とartifactのZIPのdigest・sizeを取得して保存する。sourceと依存の大きさ、時間、cacheの大きさを記録し、上限の半分を超えたら報告する。失敗したら基準を変えずに止め、修正案を示す。（FR7–FR9、NFR3.2、NFR4.1、NFR5.1–NFR5.4）
-- [x] Step 16: formicariumでの照合。`scripts/migration-guest-build/verify.ts` で、2つのcommitの成果物の `--version` の成功・digest・build-info・再利用を照合する。U1のbaselineの試行のfile（forkのbranchにだけある）は、正式な経路があることを確かめたうえで、整理の案を示す。（FR9、NFR8.2）
-- [x] Step 17: 独立した最終レビューを行う。その後、U5の成果物・CIの証拠・scriptのSHA256を固定した、読取専用の短い完了確認のcommandを作り、改変した証拠を拒否することを試験する。実際のcommandを示して承認を受け、承認後の正式な確認が成功したら通常の完了へ進む。code-summary.mdとtraceability.jsonはこのStepで仕上げる。（NFR8.2、FR9）
+- [ ] Step 1: 構成とrunnerの確認。開発に使う各toolが最新版かを確かめる（Bun、Node、TypeScript、Biome、mbx、ShellCheck、actionlint、使うActionのcheckout・cache/restore・cache/save・upload-artifact・download-artifact・create-github-app-token）。開始時の版と、古いものがあればその差分を報告する。biome 2405c762 と f79f85d5 の `rust-toolchain` を読み、指定の版のRustのimageのdigestを調べて記録する（U1の1.98.1は履歴として扱う）。標準のUbuntuのrunnerの最新のlabelを確かめる。`proposals/vivarium/u5/tools/fixed-guest-builder/` にpackage.json・tsconfig.json・bunfig.toml・bun.lockを作り、`tests/runner-ready.test.ts` を最初に実行して、bun testが動くことと、そのcommandを `unit-test-instructions.md` に記録する。（NFR2.2）
+- [ ] Step 2: 宣言とURLの検証を `src/declaration.ts` に実装する。許可一覧（設定file `allowlist.json`）、URLの正規化（`.git`・末尾の `/`・小文字）、userinfo・host・port・query・fragmentの拒否、40桁の小文字16進のcommit、branch名だけの宣言の拒否、`reference` を入力にしないこと。実装後に `tests/declaration.test.ts` を作って実行する。（NFR3.1、D1）
+- [ ] Step 3: sourceの取得と確認を `src/source.ts` に実装する。blobなしclone（repository自身のbranchとtagだけ）、commitがそのcloneにあることの確認、SHAで直接fetchしないこと、checkout、`.gitmodules` の拒否、sourcePatchesの適用。実装後に `tests/source.test.ts` を作って実行する。localのbare repositoryを2つ使い、別のrepositoryにだけあるcommitで始まらないことを確かめる。（NFR3.2、NFR3.4、D1）
+- [ ] Step 4: 取得元の検査とkeyを `src/lockfile.ts` と `src/key.ts` に実装する。`Cargo.lock` の必須、`source` の許可（crates.ioと許可一覧のgit依存）、`.cargo/config.toml` の置換と別のregistryの拒否、`[patch]` の許可一覧外の拒否、正規化したJSONのSHA256によるkey（D2の入力だけ。runnerの部品のSHA256は参考欄）。実装後に `tests/lockfile.test.ts` と `tests/key.test.ts` を作って実行する。入力を1つ変えるとkeyが変わること、runnerの部品を変えてもkeyが変わらないことを確かめる。（NFR3.4、NFR5.2、D2）
+- [ ] Step 5: 取得の監視と期限を `src/monitor.ts` と `src/deadline.ts` に実装する。directoryの大きさを一定の間隔で測り、上限を超えたらprocess groupを終了させる。期限切れ・取消のときはprocess groupの終了とstagingの除去を待つ。retryはしない。上限と間隔は注入できるようにする。実装後に `tests/monitor.test.ts` と `tests/deadline.test.ts` を作って実行する。小さい上限で、上限の値は受理し、+1で打ち切ることを確かめる。（NFR4.1、NFR4.2、D3、D4）
+- [ ] Step 6: containerでのbuildを `src/build.ts` と `container/build.sh` に実装する。imageをdigestでpullして照合、`rustc -vV`・`cargo -V` の記録、`rust-toolchain` との照合（反映事項1）、diskの空き20GiBの事前確認、`cargo fetch --locked` の監視、networkを切った `--offline --locked` のbuild、stagingでの作成と原子的な確定、mbxの `RUSTC_WRAPPER`。docker・mbxのcommandは注入できるようにする。実装後に `tests/build.test.ts` を作って実行する。偽のdockerで、digestの不一致・版の不一致・diskの不足・途中の失敗でstagingが残らないことを確かめる。（NFR4.1、NFR5.1、NFR5.4、D4、D5）
+- [ ] Step 7: 成果物の検証と再利用の取得を `src/artifact.ts` と `src/reuse.ts` に実装する。ELF 128MiB・build-info 1MiB・catalog 4MiBの上限（値は受理、+1は拒否）、重複keyの拒否、未知fieldの許容、C07とC03の必須identity。Releaseからの取得はC11（HTTPS、credentialなし、redirectは5回まで各hopを検査、streamの累積で制限、retryなし）。再利用のときは `compiled=false` と同じdigestを記録する。実装後に `tests/artifact.test.ts` と `tests/reuse.test.ts` を作って実行する。fetchを注入し、境界値と+1、redirectの不正、HTTPの失敗、digestの不一致を確かめる。（NFR3.3、NFR4.2、NFR5.2、FR7、FR8）
+- [ ] Step 8: Releaseへの書込みとbusyの確認を `src/release.ts` と `src/busy.ts` に実装する。C12の操作計画（`ExternalOperation`）の作成と照合、計画のSHA256と `inputDigests` とartifactの照合、draft → 取得し直してdigestを検証 → publish、途中で失敗したdraftの作り直し、公開済みなら検証だけ（反映事項2）、組の欠けや `buildKey` の不一致は「使えない」、ELFの違いは「再現しない」、公開済みのものを消さない・上書きしないこと。busyは同じworkflowの実行中・待機中のrunをAPIで確かめる。実装後に `tests/release.test.ts` と `tests/busy.test.ts` を作って実行する。偽のGitHub APIを使う。（NFR5.1、NFR5.3、NFR8.1、D6、C12）
+- [ ] Step 9: bump-upstreamを `src/bump.ts` に実装する。`git ls-remote` でbranchを直接解決し、D1の確認を通し、commit・時刻・branch名を記録して宣言を更新する。PRの情報は使わない。PRの作成はworkflowで `bot-pull-request` に任せる。実装後に `tests/bump.test.ts` を作って実行する。localのrepositoryで、解決の結果の記録と、PRの情報だけでは更新しないことを確かめる。（NFR3.5、FR8、D7）
+- [ ] Step 10: CLIの入口を `src/cli.ts` に実装する（build・release・bumpの3つのsubcommand。workflowから呼ぶ）。秘密を出さないこと、終了codeと原因の記録。実装後に `tests/cli.test.ts` を作って実行する。（NFR8.3、D9）
+- [ ] Step 11: workflowと設定。`proposals/vivarium/u5/.github/workflows/` に `fixed-guest-build.yml`・`fixed-guest-release.yml`・`fixed-guest-bump.yml` を作る。どれもmainでのworkflow_dispatchだけで、`github.ref` の確認、repositoryの確認（反映事項4）、Infrastructure Designの権限表、それぞれのconcurrency group（`cancel-in-progress: false`）、SHAで固定したAction、cacheの保存はmainのbuildだけ、`persist-credentials: false`、job timeout（4時間＋後片付け）を入れる。あわせて、mise.toml・dependabot.yml・Biome・ShellCheckへの追記と、`infra/github/main.tf` へのenvironmentの定義を、差分の案として作る。実装後に `tests/workflows.test.ts` を作って実行する（Bun.YAMLで読み、権限・起動条件・SHAの固定・concurrency・ifの条件を確かめる）。actionlintとShellCheckも実行する。（NFR8.1、NFR5.1、D5–D7）
+- [ ] Step 12: formicariumの照合の入口を `scripts/migration-guest-build/verify.ts` に作る。Releaseの3つ（または保存したfile）を取得し、digest・build-info・`buildKey`・C07のidentityを照合し、formicariumのNode版の公開APIで `--version` を実行して記録する。再利用の証拠（`compiled=false`、同じdigest）も照合する。実装後に `tests/migration-guest-build/verify.test.ts` を作って実行する。改変・欠落・別のkey・別のrepositoryの成果物を拒否することを確かめる。試験は `node --test --test-concurrency=1 tests/migration-guest-build/verify.test.js` で直接実行する（mise.tomlには宣言しない）。（FR9、NFR8.2、NFR2.1）
+- [ ] Step 13: 文書と追跡。packageの `README.md` に、使い方、許可一覧の変え方、上限、承認の流れ、切り戻しを書く。`proposals/vivarium/u5/HANDOFF.md` に、vivariumへ反映するfileの一覧とSHA256、vivariumで実行する検査のcommandを書く。生成したfileは内容を変えずにjjで追跡する。（NFR8.3）
+- [ ] Step 14: vivariumへの反映。vivariumのセッションへの依頼文を示す。vivariumのセッションは、forkのbranchにfileを反映し、`mise run lint:all`・型検査・試験を実行して結果を報告する。上流へのPRの作成は、実際の内容を示して別に承認を受ける。mainへのmerge、environmentの作成（`tofu apply` を含む）、Actionsの設定は、書込み権限のある人が行う。その後、environmentの承認の画面の表示を確かめる（反映事項3）。（NFR2.2、NFR8.1）
+- [ ] Step 15: vivariumのCIでの受入。起動の前に、実際の入力とActionsの分数・cacheの残りを示して承認を受ける。起動は書込み権限のある人が行う。順に、baseline（Biome 2405c762）のbuild → C12の計画を示して承認 → Releaseへの書込み → 同じkeyの再利用 → fix（JamBalaya56562/biome f79f85d5）で同じ流れ → mbxありとなしで同じELF digestになることの比較、を行う。各runの直後に、REST（run・jobs・artifacts・Release）とartifactのZIPのdigest・sizeを取得して保存する。sourceと依存の大きさ、時間、cacheの大きさを記録し、上限の半分を超えたら報告する。失敗したら基準を変えずに止め、修正案を示す。（FR7–FR9、NFR3.2、NFR4.1、NFR5.1–NFR5.4）
+- [ ] Step 16: formicariumでの照合。`scripts/migration-guest-build/verify.ts` で、2つのcommitの成果物の `--version` の成功・digest・build-info・再利用を照合する。U1のbaselineの試行のfile（forkのbranchにだけある）は、正式な経路があることを確かめたうえで、整理の案を示す。（FR9、NFR8.2）
+- [ ] Step 17: 独立した最終レビューを行う。その後、U5の成果物・CIの証拠・scriptのSHA256を固定した、読取専用の短い完了確認のcommandを作り、改変した証拠を拒否することを試験する。実際のcommandを示して承認を受け、承認後の正式な確認が成功したら通常の完了へ進む。code-summary.mdとtraceability.jsonはこのStepで仕上げる。（NFR8.2、FR9）
 
 ## 2026-10-17の追記：共有fileの変更を戻し、案の置き場所を移す（人間の回答「A」）
 
@@ -89,6 +90,27 @@ Step 17の最終レビュー（READY、Major 1・Minor 6）を受けて、人間
 
 レビューの後でcodeが変わったため、人間の指示でcode-generationを開き直した。この計画の再承認のあとで、今のcodeに対してレビューを受け直し、完了の手続きを進める。build・試験・CIは、すでに終わったものを使う。
 
+## 追加Step：新しい土台への合わせと、記録の分け直し（2026-10-18、人間の指示）
+
+人間の指示（「upstream/mainの変更に合わせて下さい」）で、U1〜U4・U7のcodeをformicariumのupstream mainへ移した（PR aletheia-works/formicarium#29〜#35）。今のmainは `2a79860` である。U5のformicarium側の確認は、PR #31（`880cfd4`）でmainに入った。
+- formicariumのmainでは、生成JSを追跡しない。U5のtaskは `mise-tasks/migration/guest-build-unit.sh`・`guest-build-verify.sh` が、package.jsonの `migration:guest-build:unit`・`migration:guest-build:verify` を呼ぶ。上のStep 12・追記の「mise.tomlには宣言しない」「直接のcommandで実行する」は古い土台の履歴である。
+- `proposals/vivarium/u5/` は、formicariumで追跡されておらず、今のworking copyでは空である。U5の本体（`tools/fixed-guest-builder/` とworkflow 4つ）は、上流の aletheia-works/vivarium のmain（PR #531・#533〜#536、merge `71e0ef92`）にある。上のSteps 1–11・13–15と追記の、`proposals/vivarium/u5/` で作る・試験する・実行する記述は、案の置き場所での履歴であり、書き換えない。
+- `biome.json` の `!!proposals/vivarium/u5` の1行は、今のmainには無い。`biome.json` はU5の変更ではない。
+- intentの検証コマンドは、人間の承認で `mise run typecheck && mise run build && mise run test:light && mise run migration-preflight-unit && mise run migration-preflight-current-unit && mise run migration-guest-build-unit && mise run showcase-unit` に変わった。古い完了確認のcommand（`.artifacts/migration-guest-build/verify-final-u5.mjs` と135件のbinding）は `proposals/vivarium/u5/` の52件を読むので、今のworking copyでは使えない（推測。実行しない）。古い土台の完了確認の履歴として残す。
+
+新しい土台で取り直したレビュー（review-03、NOT-READY、Major 3・Minor 2）を、人間の指示（「U5のコード生成を開き直して、計画を新しい土台に合わせて承認を取り、記録を上流vivariumの本体とformicarium側の確認に分けて直して」）で直す。
+
+証拠の分け方（この再開で決める記録の形）：
+- 上流vivariumの本体：上流のmerge `71e0ef92` と、保存済みの記録（`.artifacts/migration-guest-build/upstream-commit-71e0ef92.json`・`upstream-tree-71e0ef92.json`・`upstream-compare-f1bf9058-71e0ef92.json`）、CIのrun（39073445357、39076793651、39077142098、39079897400、39080082205）とRelease 2組（`release-39076401324`・`release-39079705708`）。builderの試験（158件・行98.43%）は上流で行ったもので、formicariumでは再実行しない。
+- formicarium側の確認：`scripts/migration-guest-build/verify.ts`・`assets.ts`、`tests/migration-guest-build/verify.test.ts`、task 2件とpackage.jsonの2行。新しい土台で、試験と、保存済みのRelease 2組に対する照合をやり直す。
+
+- [x] Step 18: 記録を2つに分けて直す（R-10）。`code-summary.md`・`traceability.json` を、上の「証拠の分け方」に合わせて書き直す。`proposals/vivarium/u5/` をformicariumの中にある前提で書いた記述は、案の置き場所での履歴と明記する。`traceability.json` の対象は、上流の本体は上流の場所（`aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/...` の形）、formicarium側は追跡されたfileに直し、formicariumで追跡されていないpathを、formicariumのfileとして指さない。`unit-test-instructions.md` は計画作成時に新しい節を足してあるので、変えない。
+- [x] Step 19: 完了確認の記録を直す（R-11）。`code-summary.md` の冒頭と `traceability.json` のNFR8.2の、`verify-final-u5.mjs` と135件のbindingを、古い土台での完了確認の履歴とする。新しい土台では、intentの検証コマンド（`migration-guest-build-unit` を含む）と、Step 22の照合をU5のformicarium側の証拠とする。R-08の古い数値（146件・98.36%・131件・51件・「mergeは未」）を、158件・98.43%・135件・52件・「#536で71e0ef92にmerge済み」に揃える。
+- [x] Step 20: `source-manifest.json` を直す（R-12）。formicarium側のU5のfile（`scripts/migration-guest-build/assets.ts`・`verify.ts`、`tests/migration-guest-build/verify.test.ts`、`mise-tasks/migration/guest-build-unit.sh`・`guest-build-verify.sh`、`package.json`）にする。`biome.json` は外す。`package.json` は共有fileで、U5の内容は `migration:guest-build:*` の2行だけであることを `code-summary.md` に書く。
+- [x] Step 21: Minorを記録する（R-13・R-14）。`assets.ts` の `nodeAssets` が `tests/package/fixtures.ts` の `developmentAssets` と重なり、試験を通らないこと、`checkSet` が `dependencies` の無いbuild-infoで `INVALID_INPUT` でなく `TypeError` になることを、残余リスクとして `code-summary.md` に書く。codeは変えない（直すかどうかは別に決める）。R-03・R-05〜R-07・R-09（上流のfileの指摘）は、上流の残余リスクとして持ち越す。
+- [x] Step 22: mainで1つずつ、`mise run lint:all`、`mise run typecheck`、`mise run build`、`mise run test:light`、`mise run migration-guest-build-unit` を実行し、件数とfail・skip 0を記録する。そのあと、保存済みのRelease 2組（baselineとfix）に対して、`mise run migration-guest-build-verify`（`verify.ts`。引数は保存済みの `baseline-reuse-evidence.json`・`fix-reuse-evidence.json` と同じtool・key・repository・commit・receipt）を、新しい出力pathへ実行する。結果が保存済みの照合と一致することを確かめる（`--version` の成功・digest・build-info・`buildKey`・再利用）。Releaseの再取得・CI・上流への書込みはしない。入力が足りない場合は、その照合を未検証として記録する。
+- [ ] Step 23: 独立レビューを受ける。そのあと、intentの検証コマンドでU5のcheckpointを確かめ、通常の単位完了承認を進める。codeの変更はないので、PRは作らない（記録はU1〜U4・U7の記録と一緒に、後でまとめる）。
+
 ## テスト設計と追跡
 
 部品ごとの試験数（Standard、各5–8件以上）：declaration 8、source 7、lockfile 6、key 6、monitor 6、deadline 5、build 8、artifact 8、reuse 6、release 8、busy 5、bump 6、cli 5、workflows 8、formicariumのverify 7を目安にする（計約100件）。境界値と+1、拒否したときに状態が変わらないこと、途中で失敗したときの後片付けを確かめる。定数を読み返すだけの試験は書かない。builderのpackageの行coverageは80%以上とする（bun test --coverage）。formicariumの既存の試験と配布JSのcoverageは変えずに維持する。
@@ -113,7 +135,7 @@ Step 17の最終レビュー（READY、Major 1・Minor 6）を受けて、人間
   "version": 1,
   "methodology": "test-after",
   "source": "team",
-  "ordering": "通常の実装は各テスト可能な層の実装後にテストを作成・実行し、不具合修正は再現テストの失敗を観測して修正後に同じテストの成功を確認する。",
+  "ordering": "通常の新規実装は各テスト可能な層を実装した後にその層のテストを作成・実行し、不具合修正は再現テストの失敗を先に観測してから修正し同じテストの成功を確認する。（人間の回答 Q3）",
   "scope": "classic",
   "test_strategy": "standard",
   "project_type": "brownfield",
@@ -124,7 +146,7 @@ Step 17の最終レビュー（READY、Major 1・Minor 6）を受けて、人間
     },
     {
       "layer": "team",
-      "text": "- **Methodology**: test-after\n- **Ordering**: 通常の実装は各テスト可能な層の実装後にテストを作成・実行し、不具合修正は再現テストの失敗を観測して修正後に同じテストの成功を確認する。\n- ビルドとテストはmain sessionで逐次実行する。Node向けconsumer、Worker、process.execPath、Node専用flagの意味を確認し、Bunへ一括置換しない。Bun実行を採る箇所は実結果で互換性を確認する（未検証）。\n- 既存Biome・TypeScript・Playwright・node:testを証拠として使う。通常PR/main CIは固定候補入力を要求しない軽量経路から整備し、重いnative/ブラウザ回帰・配布coverageは別の明示経路へ対応づける（提案）。軽量CI成功だけで全受入れを通過したと扱わない。\n- 統合前CIと第一者配布JS固定一覧の行coverage80%以上を維持する。未収集ファイルを分母から消さず、Worker/別process/realmも記録し、欠落・skipを成功へ置換しない。\n- probe600秒、aubeブラウザ840秒、1worker、retryなし、probe8項目合格、native出力一致、wasm1GBを維持する。未変更aubeは再ビルドせず、計測時に重い処理を並行しない。新規コア回帰はnative Linuxでも確認する。実機Safariは未検証のまま区別する。"
+      "text": "- **Methodology**: test-after\n- **Ordering**: 通常の新規実装は各テスト可能な層を実装した後にその層のテストを作成・実行し、不具合修正は再現テストの失敗を先に観測してから修正し同じテストの成功を確認する。（人間の回答 Q3）\n- node:test と Playwright の既存結合テストを利用する（検証済み：package.json scripts、code-quality-assessment.md）。今回の成功結果・coverage 値は未検証。\n- classic の追加条件は行 coverage 80%以上と統合前 CI 実行（ドキュメント根拠：org.md Testing Posture）。基準を下げて通過させない。\n- coverage の技術提案（未実装・未検証）：第一者が保守する配布 JS 全体（既存 runtime の未変更ファイル、共通処理、公開 API、Node/browser Worker adapter を含む）の一覧を事前に固定し、未実行ファイルも分母に含める。tests、生成 blink JS/wasm、第三者/vendor、ゲスト ELF、.d.ts、デモ・開発専用 scripts は理由を明示して対象外とし、資産・型・回帰検証を別途行う。設計で配布対象を確定し、閾値達成のために除外を変更しない。\n- Worker/ブラウザ内の計測を収集・マージし、対象一覧と照合して欠落を検出する。未収集ファイルを分母から外さず0%または未測定として失敗／未検証を報告する。計測方式は担当者が未importファイル・別process/realmを含む試験を観測して選ぶ。対象一覧、除外理由、行数、レポート、実行コマンドを CI 成果物へ残す。ブランチ coverage の新しい数値条件は追加しない。\n- 既存上限は probe 600秒、aube ブラウザ840秒、1worker、retryなし、probe 8項目全通過、native 出力一致、wasm 1GB。テストは main session が逐次実行する（人間の指示：AGENTS.md）。\n- aube はソースが変わっていなければ再ビルドしない。計測は重い並行処理なしで行う。新しいコア不具合の回帰 probe は native Linux でも確認する。\n- npm tarball の import/Worker/型/wasm・notices・build-info の同梱確認は設計候補（推測・未検証）。ゲストと fixture は terrarium 側の ref 別配布という既存意図を維持する。"
     }
   ],
   "obligations": {
@@ -168,7 +190,7 @@ Step 17の最終レビュー（READY、Major 1・Minor 6）を受けて、人間
       "Documentation and traceability."
     ]
   },
-  "input_sha256": "sha256:c174dde61b23d97d1733ad98b91568ee85c7de913db166d498965b6845a4c286",
-  "contract_sha256": "sha256:10b6f50c2e853225a46984ab35ccfb615ca938fd59f89dd0c81174ba91834d14"
+  "input_sha256": "sha256:dd7d634a9c475bfe0b7fdd87b1566bd3f238a9b0ead389ae268b08de9bf333f2",
+  "contract_sha256": "sha256:ce013e1551c9c06de1a756c04942d606c8dffe82caf0ae8422f95df28968c638"
 }
 ```

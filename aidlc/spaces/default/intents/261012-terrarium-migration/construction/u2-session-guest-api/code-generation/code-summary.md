@@ -1,5 +1,47 @@
 # U2 code summary（2026-10-16 再開）
 
+## 5回目の再開：新しい土台（upstreamのmain `bbf97ba6`）への合わせ（2026-10-18、Steps 20–24）
+
+この節が、今の状態を書いた節である。下の節は古い土台・古いtoolchainの履歴であり、新しい土台での根拠にしない。
+
+### 変えたfile
+- `scripts/migration-session/completion.ts`（R-06）：coverage reportの件数の検査が `report.files.length !== 16` で固定されていた。これを `FIRST_PARTY_JS.length`（今は23件）と比べる形に直した。
+- **承認済みの計画との差**：直す前に、この検査を export した関数 `assertSessionCoverageReport(report, candidateSha256)` へ切り出した（判定は変えず、拒否のメッセージも `U2 current candidate coverage incomplete` のまま）。検査は `runSessionCompletion` の中にあり、試験から確かめるには今のsourceに合う候補・consumer・guestが要るためである。`runSessionCompletion` は、切り出した関数を同じ位置で呼ぶ。main sessionが、この進め方を承認した。
+- `tests/migration-session/completion.test.ts`：3件を加えた。
+  - 件数が `FIRST_PARTY_JS` と同じreportを受け付けること。
+  - 16件・1件少ない・1件多いreportを拒否すること。
+  - passed false、threshold 79、別のpackのSHAを拒否すること（今までの条件を緩めていないことを確かめる）。
+- `traceability.json`：NFR8.2の対象を、消した `scripts/migration-session/ci.ts` から `scripts/package/stage-package.ts` に変えた（このfileの `PACKAGE_FILES` に `LICENSE`・`THIRD_PARTY_NOTICES.md` がある）。ほかの14件の対象を含め、15件の対象fileがすべてあることを確かめた。
+- `source-manifest.json`：U2の内容がない `mise.toml` を外した（`migration-session` のtaskがない）。U2のtaskの実体である `mise-tasks/migration/session-{browser,completion,stage,unit}.sh` を加えた。Step 20で変えた2つのfileは、すでに一覧にある。
+
+### 新しい土台での状態（今のfileで確かめた）
+- #32で、`scripts/migration-session/ci.ts`・`.github/workflows/migration-session-u2.yml` は消えた。`ci-core.ts`・`ci-inputs.ts` は残る。`.github/publication/` は、このrepoにない（追跡もされていない）。
+- 配布JSは23件（`scripts/package/stage-package.ts` の `FIRST_PARTY_JS`）。下の節にある「16JS」「21JS」は、古い土台の時点の件数である。
+- U2のtaskは、package.jsonの `migration:session:{unit,browser,stage,completion}` と `mise-tasks/migration/session-*.sh` にある。
+- R-05について：計画の「検証と停止条件」にあるv8の証拠と旧 `verification-command.txt` は、古い土台・古いtoolchainの履歴である。下の節のv10・v4〜v7と、`ci.ts`・`migration-session-u2.yml` による確認も同じく履歴である。新しい土台での確認は、intentの新しい検証コマンド `mise run typecheck && mise run build && mise run test:light && mise run migration-preflight-unit && mise run migration-preflight-current-unit && mise run migration-guest-build-unit && mise run showcase-unit` で行う。
+
+### 観測結果（main session、2026-10-18、Node v26.12.0、1つずつ実行）
+- 直す前（RED）：`mise run build` exit 0。そのあと `node --test --test-concurrency=1 tests/migration-session/completion.test.js` を実行し、9件のうちpass 7・fail 2・skip 0。
+  - fail：`completion accepts a coverage report that covers every distributed JS file`（Got unwanted exception "U2 current candidate coverage incomplete"）
+  - fail：`completion refuses a coverage report whose file count differs from the distribution inventory`（Missing expected exception）
+- 直した後（GREEN）：`mise run build` exit 0。同じコマンドで9件pass、fail・skip 0。
+- `mise run lint:all`：exit 0（warning 48・info 47、エラーなし）。変えた2つのfileには、info 2件がある。どちらも変えていない行（completion.tsのreceiptと `incomplete.json` の書出しの `+ '\n'`）の `useTemplate` である。
+- `mise run typecheck`：exit 0。`mise run build`：exit 0。
+- `mise run test:light`：exit 0。
+  - 1つ目のsuiteは125件で、pass 123・fail 0・skip 2。skipした2件は、前からある既知のもので、成功には数えない（`actual official aube release supply ...` と `actual latest pitchfork patched static musl supply ...`。どちらも「Actual release assets absent」）。
+  - 2つ目のsuiteは130件で、すべてpass。fail・skip 0。
+- `mise run migration-session-unit`：exit 0。46件pass、fail・skip 0。使った入力は次のとおり。
+  - `FORMICARIUM_CANDIDATE`：`.artifacts/migration-command/candidate-a7e27b2d-…/package.manifest.json`（unit u4-command、0.3.0、33件）
+  - `FORMICARIUM_CONSUMER`：`/private/tmp/formicarium-b1-consumer-20261018`
+  - `FORMICARIUM_SESSION_GUEST`：`.artifacts/u2-release-inputs/aube-v2.7.0/aube`
+  - 候補の33件のうち28件（配布JS 23件・型3件・LICENSE・NOTICES）は、今のworkspaceのfileとSHA256が同じ。違う5件（assets 3件・README.md・package.json）は、stagingがbuild出力や版から作るものである。この候補は、Step 20の変更より前に作られた。ただし、Step 20で変えた2つのfileはpackageに入らない。
+- Step 20の試験の再実行：9件pass、fail・skip 0。
+
+### 未検証・まだしていないこと
+- `mise run migration-session-browser`、coverage付きの `migration-session-completion`、intentの検証コマンド：今回は実行していない。
+- 独立レビュー、checkpoint、push、PR：main sessionが行う。Step 24のboxは未チェックのまま残した。
+- 実機Safari：未検証。
+
 ## 4回目の再開：review-08の指摘の修正（2026-10-17、Step 18）
 
 人間が承認した修正案 `u2-resolvepath-contract-proposal.md`（案A）に従い、review-08のR-08〜R-10を直した。
