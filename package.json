@@ -100,7 +100,9 @@
     "migration:command:unit": "node --test --test-concurrency=1 tests/migration-command/runner-ready.test.js tests/migration-command/parse.test.js tests/migration-command/dispatch.test.js tests/migration-command/public.test.js tests/migration-command/consumer.test.js tests/migration-command/acceptance.test.js",
     "migration:command:browser": "node node_modules/@playwright/test/cli.js test tests/migration-command/consumer.spec.ts --config tests/migration-command/playwright.config.ts --workers=1 --retries=0",
     "migration:command:stage": "node scripts/migration-command/stage.js",
-    "migration:command:completion": "node scripts/migration-command/completion.js"
+    "migration:command:completion": "node scripts/migration-command/completion.js",
+    "migration:guest-build:unit": "node --test --test-concurrency=1 tests/migration-guest-build/verify.test.js",
+    "migration:guest-build:verify": "node scripts/migration-guest-build/verify.js"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",
