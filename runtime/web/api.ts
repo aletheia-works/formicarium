@@ -249,9 +249,11 @@ export async function createSession(
     options && typeof options === 'object' && !Array.isArray(options),
     'session options must be an object',
   );
+  // The default is the import-free bundle of package-worker.js: WebKit refuses
+  // some Worker module imports under service-worker cross-origin isolation.
   const assets = validateAssets(
     options.assets ??
-      packageAssets(new URL('./package-worker.js', import.meta.url)),
+      packageAssets(new URL('./package-worker.bundle.js', import.meta.url)),
   );
   return createLifecycle(new SessionState(options), {
     assets,

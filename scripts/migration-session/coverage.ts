@@ -11,6 +11,8 @@ export const SESSION_REALMS = Object.freeze({
     'same installed U2 pack validates official guest and runs owned copy after mutation': 17,
     'browser guest, fixture and forged handle refusals preserve session state': 0,
     'browser registration and direct run share BUSY, reset cancels and dispose is terminal': 17,
+    // One aube run (17) plus the plain baseline, main probe and child probe.
+    'default bundle Worker and its em-pthread children share one URL and lack Atomics.waitAsync': 20,
   },
 });
 

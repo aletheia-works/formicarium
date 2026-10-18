@@ -59,6 +59,165 @@ test('same installed U2 pack validates official guest and runs owned copy after 
   expect(result.data).toBe(7);
   expect(result.hardlinks).toBe(true);
 });
+test('default bundle Worker and its em-pthread children share one URL and lack Atomics.waitAsync', async ({
+  page,
+}) => {
+  // 1. A real default-session run records every Worker the page starts.
+  const run = await page.evaluate(async (expected) => {
+    const api = await import('/runtime/public.js');
+    const { createSession } = await import('/runtime/web/api.js');
+    const started: { url: string; name: string | null }[] = [];
+    const Original = Worker;
+    globalThis.Worker = class extends Original {
+      constructor(...args: ConstructorParameters<typeof Worker>) {
+        started.push({
+          url: String(new URL(args[0], location.href)),
+          name: args[1]?.name ?? null,
+        });
+        super(...args);
+      }
+    };
+    try {
+      const bytes = new Uint8Array(
+        await (await fetch('/preflight/guest')).arrayBuffer(),
+      );
+      const handle = api.validateGuest(bytes, expected);
+      const session = await createSession();
+      try {
+        const result = await api.runValidatedGuest(session, handle, {
+          args: ['--version'],
+        });
+        return { started, exit: result.exitCode };
+      } finally {
+        await session.dispose();
+      }
+    } finally {
+      globalThis.Worker = Original;
+    }
+  }, structuredClone(input.expected));
+  const defaultURL = new URL(
+    '/runtime/web/package-worker.bundle.js',
+    server.url,
+  ).href;
+  expect(run.exit).toBe(0);
+  expect(run.started[0]).toEqual({ url: defaultURL, name: null });
+  const children = run.started.slice(1);
+  expect(children.length).toBeGreaterThan(0);
+  for (const child of children)
+    expect(child).toEqual({ url: defaultURL, name: 'em-pthread' });
+
+  // 2. The default URL as the main Worker: once it has answered (so the bundle
+  // has been evaluated), Atomics.waitAsync is absent in that Worker realm.
+  // The Worker is found by its name, not its URL: the coverage run starts every
+  // page Worker through its collector script, which then imports this URL.
+  const probeName = 'waitasync-main-probe';
+  const baseline = await page.evaluate(
+    async ({ url, name }) => {
+      const plain = new Worker(
+        URL.createObjectURL(
+          new Blob(['postMessage(typeof Atomics.waitAsync)'], {
+            type: 'text/javascript',
+          }),
+        ),
+        { type: 'module' },
+      );
+      const plainWaitAsync = await new Promise<string>((resolve) => {
+        plain.addEventListener('message', ({ data }) => resolve(data), {
+          once: true,
+        });
+      });
+      plain.terminate();
+      const worker = new Worker(url, { type: 'module', name });
+      Reflect.set(globalThis, 'bundleWorker', worker);
+      const reply = await new Promise<{ type: string; code: string }>(
+        (resolve, reject) => {
+          const timer = setTimeout(
+            () => reject(Error('no Worker reply')),
+            10000,
+          );
+          worker.addEventListener(
+            'message',
+            ({ data }) => {
+              clearTimeout(timer);
+              resolve(data);
+            },
+            { once: true },
+          );
+          worker.postMessage({ type: 'not-a-run' });
+        },
+      );
+      return { plainWaitAsync, reply };
+    },
+    { url: defaultURL, name: probeName },
+  );
+  expect(baseline.reply).toMatchObject({ type: 'error', code: 'EXECUTION' });
+  const inspected: string[] = [];
+  for (const worker of page.workers()) {
+    const found = await worker
+      .evaluate(
+        (name) => (self.name === name ? typeof Atomics.waitAsync : null),
+        probeName,
+      )
+      .catch(() => null); // a Worker that closed meanwhile is not the probe
+    if (found !== null) inspected.push(found);
+  }
+  expect(inspected).toEqual(['undefined']);
+  const mainWaitAsync = inspected[0];
+  await page.evaluate(() =>
+    (Reflect.get(globalThis, 'bundleWorker') as Worker).terminate(),
+  );
+
+  // 3. The default URL as an em-pthread child: its own core-bootstrap path
+  // imports the blob module, which reports what the core loader would see.
+  const child = await page.evaluate(async (url) => {
+    const probe = URL.createObjectURL(
+      new Blob(
+        [
+          "postMessage({ type: 'inspection', waitAsync: typeof Atomics.waitAsync, name: self.name })",
+        ],
+        { type: 'text/javascript' },
+      ),
+    );
+    const worker = new Worker(url, { type: 'module', name: 'em-pthread' });
+    try {
+      return await new Promise<{ type: string; waitAsync?: string }>(
+        (resolve, reject) => {
+          const timer = setTimeout(
+            () => reject(Error('no child Worker reply')),
+            10000,
+          );
+          worker.addEventListener('message', ({ data }) => {
+            clearTimeout(timer);
+            resolve(data);
+          });
+          worker.postMessage({
+            type: 'core-bootstrap',
+            descriptor: { moduleURL: probe, bootstrapURL: url, resourceId: 1 },
+          });
+        },
+      );
+    } finally {
+      worker.terminate();
+      URL.revokeObjectURL(probe);
+    }
+  }, defaultURL);
+  expect(child).toEqual({
+    type: 'inspection',
+    waitAsync: 'undefined',
+    name: 'em-pthread',
+  });
+  console.log(
+    JSON.stringify({
+      browser: test.info().project.name,
+      defaultURL,
+      childWorkers: children.length,
+      childURLsEqualDefault: children.every((c) => c.url === defaultURL),
+      plainWorkerWaitAsync: baseline.plainWaitAsync,
+      mainBundleWaitAsync: mainWaitAsync,
+      childBundleWaitAsyncAtCoreImport: child.waitAsync,
+    }),
+  );
+});
 test('browser guest, fixture and forged handle refusals preserve session state', async ({
   page,
 }) => {

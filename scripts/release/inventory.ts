@@ -47,6 +47,7 @@ export const FIRST_PARTY_JS = Object.freeze([
 ]);
 export const PACKAGE_FILES = Object.freeze([
   ...FIRST_PARTY_JS,
+  'runtime/web/package-worker.bundle.js',
   'types/index.d.ts',
   'types/node.d.ts',
   'types/browser.d.ts',

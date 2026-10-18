@@ -10,6 +10,7 @@ import {
 import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { errorCode } from '../../runtime/contracts.js';
+import { WORKER_BUNDLE } from './worker-bundle.js';
 
 export const FIRST_PARTY_JS = Object.freeze([
   'runtime/contracts.js',
@@ -38,6 +39,8 @@ export const FIRST_PARTY_JS = Object.freeze([
 ]);
 export const PACKAGE_FILES = Object.freeze([
   ...FIRST_PARTY_JS,
+  // Generated from FIRST_PARTY_JS; coverage counts it against those files.
+  WORKER_BUNDLE,
   'types/index.d.ts',
   'types/node.d.ts',
   'types/browser.d.ts',

@@ -31,6 +31,7 @@
     "runtime/node/package-worker.js",
     "runtime/web/api.js",
     "runtime/web/package-worker.js",
+    "runtime/web/package-worker.bundle.js",
     "types/",
     "assets/",
     "LICENSE",

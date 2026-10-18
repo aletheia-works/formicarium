@@ -1,5 +1,6 @@
 import { cp, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { buildWorkerBundle } from './package/worker-bundle.js';
 
 // Keep generated browser modules next to their sources so static URLs and
 // package staging share the same layout. These outputs are ignored by SCM.
@@ -19,3 +20,6 @@ await writeFile(
     '',
   ),
 );
+
+// Browsers start the import-free Worker; build it from the copied modules.
+buildWorkerBundle({ root: resolve('.') });

@@ -18,6 +18,12 @@ import coverageLibrary from 'istanbul-lib-coverage';
 import type { CounterRow, DigestRow, Realm } from '../coverage-types.js';
 import { compiledTestConfig } from '../playwright-build-config.js';
 import { FIRST_PARTY_JS, PACKAGE_FILES, sha256 } from './stage-package.js';
+import {
+  buildWorkerBundle,
+  WORKER_BUNDLE,
+  WORKER_BUNDLE_ENTRY,
+  workerBundleSources,
+} from './worker-bundle.js';
 
 const { createCoverageMap } = coverageLibrary;
 
@@ -227,6 +233,23 @@ export function mergeRealms(
   };
 }
 
+/**
+ * The generated Worker bundle is rebuilt from the instrumented originals, so the
+ * statements it runs count for those runtime/*.js files. Its source map must name
+ * only fixed-inventory files, and the package Worker when that entry has code.
+ */
+async function instrumentWorkerBundle(source: string, out: string) {
+  buildWorkerBundle({ root: out });
+  const sources = await workerBundleSources(out);
+  if (sources.some((path) => !FIRST_PARTY_JS.includes(path)))
+    throw Error('Worker bundle includes a module outside the fixed inventory');
+  if (
+    (await readFile(resolve(source, WORKER_BUNDLE_ENTRY))).length > 0 &&
+    !sources.includes(WORKER_BUNDLE_ENTRY)
+  )
+    throw Error('Worker bundle source map omits the package Worker');
+}
+
 /** Produce a separate instrumented copy; real archive bytes are never modified. */
 export async function instrumentPackage({
   source,
@@ -262,8 +285,10 @@ export async function instrumentPackage({
         statementMapSha256: sha256(JSON.stringify(file.statementMap)),
       });
       await writeFile(destination, text);
-    } else await copyFile(resolve(source, path), destination);
+    } else if (path !== WORKER_BUNDLE)
+      await copyFile(resolve(source, path), destination);
   }
+  await instrumentWorkerBundle(source, out);
   const layout = counterLayout(metadata);
   const bridge = bridgeSource(layout);
   const workerSize = createRealm(layout, 'size').buffer.byteLength;
