@@ -1,0 +1,126 @@
+{
+  "stage": "code-generation",
+  "unit": "u3-maintenance-workflows",
+  "upstream_ids": [
+    "FR4",
+    "FR5",
+    "FR6",
+    "FR7",
+    "FR9",
+    "NFR1",
+    "NFR2",
+    "NFR3",
+    "NFR4",
+    "NFR5",
+    "NFR1.1",
+    "NFR1.2",
+    "NFR2.1",
+    "NFR2.2",
+    "NFR2.3",
+    "NFR3.1",
+    "NFR3.2",
+    "NFR3.3",
+    "NFR4.1",
+    "NFR5.1",
+    "NFR5.2",
+    "NFR5.3"
+  ],
+  "coverage": [
+    { "id": "NFR1", "status": "OK", "target": "scripts/maintenance/bundle.ts" },
+    { "id": "NFR2", "status": "OK", "target": ".github/workflows/maintenance.yml" },
+    { "id": "NFR3", "status": "OK", "target": "scripts/maintenance/operations.ts" },
+    { "id": "NFR4", "status": "OK", "target": "tests/tooling/maintenance-integration.test.ts" },
+    { "id": "NFR5", "status": "OK", "target": "scripts/maintenance/receipt.ts" },
+    {
+      "id": "FR4",
+      "status": "OK",
+      "target": ".github/workflows/pr-labels.yml"
+    },
+    {
+      "id": "FR5",
+      "status": "OK",
+      "target": "scripts/maintenance/receipt.ts"
+    },
+    {
+      "id": "FR6",
+      "status": "OK",
+      "target": "scripts/maintenance/reproduce.ts"
+    },
+    {
+      "id": "FR7",
+      "status": "OK",
+      "target": "scripts/maintenance/operations.ts"
+    },
+    {
+      "id": "FR9",
+      "status": "OK",
+      "target": "README.md"
+    },
+    {
+      "id": "NFR1.1",
+      "status": "OK",
+      "target": "tests/tooling/maintenance-wiring.test.ts"
+    },
+    {
+      "id": "NFR1.2",
+      "status": "OK",
+      "target": "scripts/maintenance/reproduce.ts"
+    },
+    {
+      "id": "NFR2.1",
+      "status": "OK",
+      "target": "scripts/maintenance/runner.ts"
+    },
+    {
+      "id": "NFR2.2",
+      "status": "OK",
+      "target": "scripts/maintenance/operations.ts"
+    },
+    {
+      "id": "NFR2.3",
+      "status": "OK",
+      "target": "scripts/maintenance/reproduce.ts"
+    },
+    {
+      "id": "NFR3.1",
+      "status": "OK",
+      "target": "scripts/maintenance/github.ts"
+    },
+    {
+      "id": "NFR3.2",
+      "status": "OK",
+      "target": "scripts/maintenance/operations.ts"
+    },
+    {
+      "id": "NFR3.3",
+      "status": "OK",
+      "target": "tests/tooling/maintenance-operations.test.ts"
+    },
+    {
+      "id": "NFR4.1",
+      "status": "OK",
+      "target": "tests/tooling/maintenance-integration.test.ts"
+    },
+    {
+      "id": "NFR5.1",
+      "status": "OK",
+      "target": "scripts/maintenance/receipt.ts"
+    },
+    {
+      "id": "NFR5.2",
+      "status": "OK",
+      "target": "scripts/maintenance/archive.ts"
+    },
+    {
+      "id": "NFR5.3",
+      "status": "OK",
+      "target": "README.md"
+    }
+  ],
+  "verification": "verification/local-observations.md",
+  "limitations": [
+    "OK means implemented and locally observed; it does not assert external deployment, real GitHub CI or runtime coverage acceptance.",
+    "Real GitHub CI, fixed distribution JS line coverage >=80%, all realm receipts, external App/protection configuration and actual atomic API operations remain unverified."
+  ]
+}
+

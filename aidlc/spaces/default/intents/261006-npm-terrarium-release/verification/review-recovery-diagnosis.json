@@ -1,0 +1,25 @@
+{
+  "observedAt": "2026-10-08",
+  "status": "awaiting-human-policy-selection",
+  "unit": "u1-runtime-package",
+  "observations": [
+    "checkpoint status: ready=false; current artifact/source-bound terminal review evidence is required",
+    "review-brief: README.md changed after review; guard policy relaxed permits continuing to a gate",
+    "review iteration 2 refused: advisory review budget is 1",
+    "stage approval refused: u3-terrarium-integration and u4-release-assurance remain incomplete",
+    "doctor --verbose: 0 problems; runtime and project version 2.10.0",
+    "update --check failed: Sigstore verifier could not initialize; no update applied"
+  ],
+  "documentedRecovery": {
+    "protocol": ".codex/aidlc-common/protocols/stage-protocol-reviewer.md",
+    "lines": "226-241",
+    "strict": "stale terminal evidence permits exactly one recovery review at the next ordinal",
+    "relaxed": "no recovery review is requested; completion accepts changes"
+  },
+  "proposedAction": "Human selects guard policy strict, then request the bounded U1 recovery review, verify the checkpoint, and obtain actual skeleton approval before resuming U3 evidence integration.",
+  "limitations": [
+    "Strict recovery has not yet been executed or verified.",
+    "No framework implementation, review record, checkpoint proof or approval was rewritten.",
+    "U3 resumed; terrarium evidence integration remains incomplete."
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "stage": "code-generation",
+  "unit": "u3-maintenance-workflows",
+  "writes": [
+    {
+      "path": "scripts/maintenance/github.ts"
+    },
+    {
+      "path": "scripts/maintenance/archive.ts"
+    },
+    {
+      "path": "scripts/maintenance/receipt.ts"
+    },
+    {
+      "path": "scripts/maintenance/reproduce.ts"
+    },
+    {
+      "path": "scripts/maintenance/operations.ts"
+    },
+    {
+      "path": "scripts/maintenance/runner.ts"
+    },
+    {
+      "path": "scripts/maintenance/metadata.ts"
+    },
+    {
+      "path": "scripts/maintenance/bundle.ts"
+    },
+    {
+      "path": "tests/tooling/maintenance-acquisition.test.ts"
+    },
+    {
+      "path": "tests/tooling/maintenance-reproduction.test.ts"
+    },
+    {
+      "path": "tests/tooling/maintenance-operations.test.ts"
+    },
+    {
+      "path": "tests/tooling/maintenance-wiring.test.ts"
+    },
+    {
+      "path": "tests/tooling/maintenance-integration.test.ts"
+    },
+    {
+      "path": ".github/maintenance/policy.json"
+    },
+    {
+      "path": ".github/maintenance/label-rules.json"
+    },
+    {
+      "path": ".github/maintenance/runner.mjs"
+    },
+    {
+      "path": ".github/workflows/maintenance.yml"
+    },
+    {
+      "path": ".github/workflows/pr-labels.yml"
+    },
+    {
+      "path": "renovate.json"
+    },
+    {
+      "path": "README.md"
+    }
+  ]
+}
+

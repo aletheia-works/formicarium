@@ -1,0 +1,236 @@
+--- a/core/tools/aidlc-state.ts
++++ b/core/tools/aidlc-state.ts
+@@ -2674,7 +2674,9 @@
+           AIDLC_PROJECT_DIR: pd,
+           [ROUTE_CHECK_ENV]: "1",
+           ...(stateSessionOverride
+-            ? { AIDLC_SESSION_OVERRIDE: stateSessionOverride }
++            ? { AIDLC_SESSION_OVERRIDE: stateSessionOverride,
++                ...(stateSessionOverride === process.env.CODEX_THREAD_ID
++                  ? { AIDLC_SESSION_OVERRIDE_SOURCE: "payload" } : {}) }
+             : {}),
+       },
+       timeout: DEFAULT_SUBPROCESS_TIMEOUT_MS,
+@@ -2761,7 +2763,9 @@
+           AIDLC_PROJECT_DIR: pd,
+           [ROUTE_CHECK_ENV]: "1",
+           ...(stateSessionOverride
+-            ? { AIDLC_SESSION_OVERRIDE: stateSessionOverride }
++            ? { AIDLC_SESSION_OVERRIDE: stateSessionOverride,
++                ...(stateSessionOverride === process.env.CODEX_THREAD_ID
++                  ? { AIDLC_SESSION_OVERRIDE_SOURCE: "payload" } : {}) }
+             : {}),
+       },
+       timeout: DEFAULT_SUBPROCESS_TIMEOUT_MS,
+--- a/core/tools/aidlc-orchestrate.ts
++++ b/core/tools/aidlc-orchestrate.ts
+@@ -661,7 +661,9 @@
+     ...process.env,
+     ...extra,
+     ...(engineSessionId
+-      ? { AIDLC_SESSION_OVERRIDE: engineSessionId }
++      ? { AIDLC_SESSION_OVERRIDE: engineSessionId,
++          ...(engineSessionId === process.env.CODEX_THREAD_ID
++            ? { AIDLC_SESSION_OVERRIDE_SOURCE: "payload" } : {}) }
+       : {}),
+   };
+ }
+--- a/core/tools/aidlc-lib.ts
++++ b/core/tools/aidlc-lib.ts
+@@ -19562,7 +19562,8 @@
+     newestSourceFingerprint !== null &&
+     newestSourceFingerprint !== UNBINDABLE_FINGERPRINT &&
+     currentSourceFingerprint !== null &&
+-    !sameWorkspaceSource(newestSourceFingerprint, currentSourceFingerprint);
++    !sameWorkspaceSource(newestSourceFingerprint, currentSourceFingerprint) &&
++    workspaceSourceChangedPaths(projectDir, stage.slug, newestSourceFingerprint, currentSourceState)?.length !== 0;
+   // An unbindable boundary or an unreadable workspace is not a change: strict
+   // holds it stale, relaxed and off say once that it could not be checked. A
+   // moved fingerprint is the governed drift.
+@@ -20131,6 +20132,7 @@
+ const SOURCE_FINGERPRINT_HARD_EXCLUDED_NAMES = [
+   ".cache",
+   ".git",
++  ".jj",
+   ".gradle",
+   ".mypy_cache",
+   ".next",
+@@ -20312,6 +20314,10 @@
+   };
+   const kept: WorkspaceSourceListing = new Map();
+   for (const [key, entry] of recorded) {
++    // A tsc output beside its still-bound TS input is build evidence, not a
++    // second authored source. Current generated outputs are verified separately.
++    const tsInput = key.replace(/\.js(?:\.map)?$/, ".ts");
++    if (!current.has(key) && tsInput !== key && current.has(tsInput) && /^100(?:644|755) /.test(entry)) continue;
+     if (!current.has(key) && (sourcePathExcludedSinceRecorded(key, entry) || underDotnetOutput(key))) continue;
+     kept.set(key, entry);
+   }
+@@ -20324,6 +20330,9 @@
+   const path = separator === -1 ? key : key.slice(separator + 1);
+   const parts = path.split("/");
+   return (
++    parts.slice(0, -1).some((part) =>
++      SOURCE_FINGERPRINT_HARD_EXCLUDED_DIRS.has(part) ||
++      SOURCE_FINGERPRINT_CONDITIONAL_DIRS.has(part)) ||
+     sourceFingerprintHardExcludedFile(parts[parts.length - 1]) ||
+     parts.slice(0, -1).includes(SOURCE_FINGERPRINT_PYCACHE_DIR) ||
+     // The current walk lists it wherever the shell rule does not apply, so a
+@@ -20331,6 +20340,22 @@
+     (separator <= 0 && aidlcRootSettingsExcluded(path, true))
+   );
+ }
++
++function isAdjacentTypeScriptOutput(dir: string, name: string): boolean {
++  if (!/\.js(?:\.map)?$/.test(name)) return false;
++  const js = name.replace(/\.map$/, "");
++  const ts = js.replace(/\.js$/, ".ts");
++  try {
++    for (const file of [ts, js, `${js}.map`]) {
++      const stat = lstatSync(join(dir, file));
++      if (!stat.isFile() || stat.isSymbolicLink()) return false;
++    }
++    const map = JSON.parse(readFileSync(join(dir, `${js}.map`), "utf8"));
++    return map.version === 3 && Array.isArray(map.sources) &&
++      map.file === js && map.sources.length === 1 && typeof map.sources[0] === "string" && basename(map.sources[0]) === ts &&
++      readFileSync(join(dir, js), "utf8").trimEnd().endsWith(`//# sourceMappingURL=${js}.map`);
++  } catch { return false; }
++}
+ const SOURCE_FINGERPRINT_HARD_EXCLUDED_GLOBS =
+   SOURCE_FINGERPRINT_HARD_EXCLUDED_NAMES.map(
+     (name) => `:(glob)**/${name}/**`,
+@@ -20342,6 +20367,8 @@
+ // in .aidlc-source-paths.json; registered paths are content-bound regardless of
+ // extension or binary/text encoding.
+ const SOURCE_FINGERPRINT_CONDITIONAL_NAMES = [
++  ".artifacts",
++  ".build",
+   "build",
+   "coverage",
+   "dist",
+@@ -22854,6 +22881,7 @@
+           continue;
+         }
+         if (exactPathExcluded(childRel)) continue;
++        if (!registeredPathRelevant(childRegistryRel) && isAdjacentTypeScriptOutput(dir, entry.name)) continue;
+         if (
+           rel === "" &&
+           excludedTopLevel.has(entry.name) &&
+--- a/harness/codex/hooks/aidlc-codex-adapter.ts
++++ b/harness/codex/hooks/aidlc-codex-adapter.ts
+@@ -242,7 +242,8 @@
+ // stdin and would replay the FIRST compaction's (stale) workflow context.
+ // The compact render is read-only (source=compact emits no audit row), so
+ // re-running a true duplicate is harmless while replaying a stale one is not.
+-const bypassReplay = target === "session-start" && codex.source === "compact";
++const bypassReplay = target === "continue-workflow" ||
++  (target === "session-start" && codex.source === "compact");
+ 
+ const DEDUPE_ROOT = join(
+   tmpdir(),
+--- a/tests/unit/t149-codex-hook-adapter.test.ts
++++ b/tests/unit/t149-codex-hook-adapter.test.ts
+@@ -79,6 +79,7 @@
+   seededAuditDir,
+   seededRecordDir,
+   seededStateFile,
++  seedBoltDag,
+ } from "../harness/fixtures.ts";
+ import { envWithoutCommandOnPath } from "../harness/test-command-paths.ts";
+ 
+@@ -756,6 +757,8 @@
+           env: {
+             ...process.env,
+             AIDLC_SKIP_ARTIFACT_GUARD: "1",
++            // This fixture isolates human presence; it does not generate prose.
++            AIDLC_SKIP_SUMMARY_CONFIRMATION_GUARD: "1",
+             AIDLC_ALLOW_DIRECT_STATE_TRANSITIONS: "1",
+             AIDLC_SKIP_HUMAN_PRESENCE_GUARD: undefined,
+             AIDLC_UNATTENDED: undefined,
+@@ -940,6 +943,22 @@
+     }
+   });
+ 
++  test("Codex thread identity survives a state route subprocess with another mapped ancestor", () => {
++    const dir = scratchProject(true);
++    try {
++      seedBoltDag(dir, ["alpha"]);
++      writeSessionBinding(dir, "current-codex-thread", DEFAULT_SPACE, DEFAULT_RECORD_DIR, "switch");
++      writeSessionPidEntry(dir, process.pid, "previous-codex-thread");
++      const result = spawnSync("bun", [join(dir, ".codex", "tools", "aidlc-state.ts"), "unit", "start", "--stage", "functional-design", "--unit", "alpha", "--project-dir", dir], {
++        cwd: dir, encoding: "utf8", env: { ...process.env, CODEX_THREAD_ID: "current-codex-thread", AIDLC_SESSION_OVERRIDE: undefined, AIDLC_SESSION_OVERRIDE_SOURCE: undefined, CLAUDE_PROJECT_DIR: undefined },
++      });
++      const text = `${result.stdout ?? ""}${result.stderr ?? ""}`;
++      expect(text).not.toContain("Session override");
++      expect(text).toContain("the engine currently routes");
++      expect(text).not.toContain('"emitted":"UNIT_STARTED"');
++    } finally { rmSync(dir, { recursive: true, force: true }); }
++  });
++
+   test("0d: Codex's own session names are protected like the session override", () => {
+     const guard = readFileSync(join(REPO_ROOT, "core", "hooks", "runtime-integrity.ts"), "utf-8");
+     expect(guard).toContain('"CODEX_THREAD_ID",');
+@@ -1509,6 +1528,19 @@
+     } finally {
+       rmSync(dir, { recursive: true, force: true });
+     }
++  });
++
++  test("stop rechecks live progress after identical input instead of replaying a stale block", () => {
++    const dir = scratchProject(true);
++    try {
++      const payload = withCwd(FIXTURES.stop, dir);
++      expect(JSON.parse(runAdapter(dir, "continue-workflow", payload).stdout).decision).toBe("block");
++      const stateFile = seededStateFile(dir);
++      rmSync(stateFile);
++      const result = runAdapter(dir, "continue-workflow", payload);
++      expect(result.code).toBe(0);
++      expect(result.stdout.trim()).toBe("");
++    } finally { rmSync(dir, { recursive: true, force: true }); }
+   });
+ 
+   test("11a: two compact starts with a state change between them render FRESH context (replay-cache exemption)", () => {
+--- /dev/null
++++ b/tests/unit/t-formicarium-source-recovery.test.ts
+@@ -0,0 +1,41 @@
++import { afterEach, expect, test } from "bun:test";
++import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
++import { tmpdir } from "node:os";
++import { join } from "node:path";
++import { recordedSourceListingUnderCurrentBoundary, workspaceSourceState } from "../../core/tools/aidlc-lib.ts";
++const dirs: string[] = [];
++afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true }); });
++test("jj and generated output churn does not alter source, real source still does", () => {
++  const dir = mkdtempSync(join(tmpdir(), "aidlc-formicarium-regression-")); dirs.push(dir);
++  writeFileSync(join(dir, "main.ts"), "export const n=1;\n");
++  const before = workspaceSourceState(dir)!.fingerprint;
++  for (const name of [".jj", ".artifacts", ".build"]) {
++    mkdirSync(join(dir, name)); writeFileSync(join(dir, name, "output"), "old");
++    expect(workspaceSourceState(dir)!.fingerprint).toBe(before);
++    writeFileSync(join(dir, name, "output"), "new");
++    expect(workspaceSourceState(dir)!.fingerprint).toBe(before);
++  }
++  writeFileSync(join(dir, "main.ts"), "export const n=2;\n");
++  expect(workspaceSourceState(dir)!.fingerprint).not.toBe(before);
++});
++test("old regular output listing migrates without hiding symlinks or current registered files", () => {
++  const old = new Map([["\0.jj/store/head", "100644 hash"], ["\0.artifacts/output", "100644 hash"], ["\0.build/output", "100644 hash"], ["\0.build/link", "120000 hash"], ["\0main.ts", "100644 hash"]]);
++  const current = new Map([["\0.artifacts/output", "100644 registered"], ["\0main.ts", "100644 hash"]]);
++  const kept = recordedSourceListingUnderCurrentBoundary(old, current);
++  expect([...kept.keys()]).toEqual(["\0.artifacts/output", "\0.build/link", "\0main.ts"]);
++});
++test("adjacent tsc outputs stay outside source; malformed maps and explicit registration remain bound", () => {
++  const dir = mkdtempSync(join(tmpdir(), "aidlc-ts-output-regression-")); dirs.push(dir);
++  writeFileSync(join(dir, "main.ts"), "export const n=1;\n");
++  const before = workspaceSourceState(dir)!.fingerprint;
++  writeFileSync(join(dir, "main.js"), "export const n=1;\n//# sourceMappingURL=main.js.map\n");
++  writeFileSync(join(dir, "main.js.map"), JSON.stringify({version:3,file:"main.js",sources:["main.ts"],mappings:""}));
++  expect(workspaceSourceState(dir)!.fingerprint).toBe(before);
++  writeFileSync(join(dir, "main.js.map"), "{}");
++  expect(workspaceSourceState(dir)!.fingerprint).not.toBe(before);
++  writeFileSync(join(dir, "main.js.map"), JSON.stringify({version:3,file:"main.js",sources:["main.ts"],mappings:""}));
++  writeFileSync(join(dir, ".aidlc-source-paths.json"), JSON.stringify({version:1,paths:["main.js"]}));
++  const registered = workspaceSourceState(dir)!.fingerprint;
++  writeFileSync(join(dir, "main.js"), "export const n=2;\n//# sourceMappingURL=main.js.map\n");
++  expect(workspaceSourceState(dir)!.fingerprint).not.toBe(registered);
++});

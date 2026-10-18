@@ -1,0 +1,185 @@
+{
+  "stage": "code-generation",
+  "unit": "u3-terrarium-integration",
+  "version": 1,
+  "writes": [
+    {
+      "path": "docs/terrarium-integration.md"
+    },
+    {
+      "path": "scripts/terrarium/coverage.ts"
+    },
+    {
+      "path": "scripts/terrarium/evidence.ts"
+    },
+    {
+      "path": "scripts/terrarium/prepare.ts"
+    },
+    {
+      "path": "tests/terrarium/adapter.test.ts"
+    },
+    {
+      "path": "tests/terrarium/assets.test.ts"
+    },
+    {
+      "path": "tests/terrarium/consumer.spec.ts"
+    },
+    {
+      "path": "tests/terrarium/coverage.test.ts"
+    },
+    {
+      "path": "tests/terrarium/playwright.config.ts"
+    },
+    {
+      "path": "tests/terrarium/serve.ts"
+    },
+    {
+      "repo": "terrarium",
+      "path": "mise.toml"
+    },
+    {
+      "repo": "terrarium",
+      "path": "packages/terrarium/README.md"
+    },
+    {
+      "repo": "terrarium",
+      "path": "packages/terrarium/e2e/formicarium-iframe.spec.ts"
+    },
+    {
+      "repo": "terrarium",
+      "path": "packages/terrarium/e2e/formicarium-serve.ts"
+    },
+    {
+      "repo": "terrarium",
+      "path": "packages/terrarium/e2e/formicarium-terminal.spec.ts"
+    },
+    {
+      "repo": "terrarium",
+      "path": "packages/terrarium/e2e/host/formicarium/element.html"
+    },
+    {
+      "repo": "terrarium",
+      "path": "packages/terrarium/e2e/host/formicarium/iframe.html"
+    },
+    {
+      "repo": "terrarium",
+      "path": "packages/terrarium/package.json"
+    },
+    {
+      "repo": "terrarium",
+      "path": "packages/terrarium/playwright.formicarium.config.ts"
+    },
+    {
+      "repo": "terrarium",
+      "path": "packages/terrarium/src/formicarium-session.ts"
+    },
+    {
+      "repo": "terrarium",
+      "path": "packages/terrarium/src/terminal.ts"
+    },
+    {
+      "repo": "terrarium",
+      "path": "packages/terrarium/tests/formicarium-assets.test.ts"
+    },
+    {
+      "repo": "terrarium",
+      "path": "packages/terrarium/tests/formicarium-catalog.test.ts"
+    },
+    {
+      "repo": "terrarium",
+      "path": "packages/terrarium/tests/formicarium-session.test.ts"
+    },
+    {
+      "repo": "terrarium",
+      "path": "scripts/assemble-pages.sh"
+    },
+    {
+      "repo": "terrarium",
+      "path": "scripts/stage-formicarium.mjs"
+    },
+    {
+      "repo": "terrarium",
+      "path": "web/terminal.mjs"
+    },
+    {
+      "repo": "terrarium",
+      "path": "packages/terrarium/bun.lock"
+    },
+    {
+      "repo": "terrarium",
+      "path": "packages/terrarium/src/generated/"
+    },
+    {
+      "repo": "terrarium",
+      "path": ".site/"
+    },
+    {
+      "repo": "terrarium",
+      "path": "packages/terrarium/node_modules/@aletheia-works/formicarium/"
+    },
+    {
+      "path": ".artifacts/u3-package-v1/"
+    },
+    {
+      "path": ".artifacts/u3-coverage-v1/"
+    },
+    {
+      "path": ".artifacts/u3-guest-distribution/site-v3/"
+    },
+    {
+      "repo": "terrarium",
+      "path": "integration/formicarium-inputs.json"
+    },
+    {
+      "repo": "terrarium",
+      "path": ".vendor/formicarium-inputs-repair-v1/"
+    },
+    {
+      "repo": "terrarium",
+      "path": ".vendor/site-formicarium/"
+    },
+    {
+      "repo": "terrarium",
+      "path": "packages/terrarium/dist/"
+    },
+    {
+      "path": "scripts/terrarium/coverage.js"
+    },
+    {
+      "path": "scripts/terrarium/evidence.js"
+    },
+    {
+      "path": "scripts/terrarium/prepare.js"
+    },
+    {
+      "path": "tests/terrarium/adapter.test.js"
+    },
+    {
+      "path": "tests/terrarium/assets.test.js"
+    },
+    {
+      "path": "tests/terrarium/consumer.spec.js"
+    },
+    {
+      "path": "tests/terrarium/coverage.test.js"
+    },
+    {
+      "path": "tests/terrarium/playwright.config.js"
+    },
+    {
+      "path": "tests/terrarium/serve.js"
+    },
+    {
+      "path": ".artifacts/u3-inputs-repair-v1/"
+    },
+    {
+      "path": ".artifacts/u3-coverage-repair-v2/"
+    },
+    {
+      "path": ".artifacts/u3-browser-red-repair-v1/"
+    },
+    {
+      "path": ".artifacts/u3-identity-repair-v1/"
+    }
+  ]
+}

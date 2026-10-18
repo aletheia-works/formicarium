@@ -1,0 +1,80 @@
+{
+  "stage": "code-generation",
+  "unit": "u4-release-assurance",
+  "version": 1,
+  "writes": [
+    { "path": "scripts/release/publication.ts" },
+    { "path": "scripts/release/publication-cli.ts" },
+    { "path": "scripts/release/workflow.ts" },
+    { "path": "tests/release/publication.test.ts" },
+    { "path": "tests/release/publication-cli.test.ts" },
+    { "path": "tests/release/workflow.test.ts" },
+    { "path": ".github/workflows/publish.yml" },
+    {
+      "path": "scripts/coverage-types.ts"
+    },
+    {
+      "path": "scripts/terrarium/coverage.ts"
+    },
+    {
+      "path": "tests/terrarium/coverage.test.ts"
+    },
+    {
+      "path": "scripts/release/types.ts"
+    },
+    {
+      "path": "scripts/release/evidence.ts"
+    },
+    {
+      "path": "scripts/release/decision.ts"
+    },
+    {
+      "path": "scripts/release/collect.ts"
+    },
+    {
+      "path": "tests/release/fixtures.ts"
+    },
+    {
+      "path": "tests/release/evidence.test.ts"
+    },
+    {
+      "path": "tests/release/decision.test.ts"
+    },
+    {
+      "path": "tests/release/collect.test.ts"
+    },
+    {
+      "path": "docs/release-assurance.md"
+    },
+    {
+      "path": "scripts/build-guests.sh"
+    },
+    {
+      "path": "tests/node/build.test.ts"
+    },
+    {
+      "path": "fixtures/baseline/pitchfork-basic.native.txt"
+    },
+    {
+      "path": ".github/workflows/verify.yml"
+    },
+    {
+      "path": "scripts/ci/verification.ts"
+    },
+    {
+      "path": "scripts/ci/bundle.ts"
+    },
+    {
+      "path": "scripts/ci/run.ts"
+    },
+    {
+      "path": "scripts/ci/core-source.ts"
+    },
+    {
+      "path": "scripts/ci/install-inputs.py"
+    },
+    {
+      "path": "tests/ci/verification.test.ts"
+    }
+  ]
+}

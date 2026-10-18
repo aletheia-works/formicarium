@@ -1,59 +1,97 @@
-# Code Generation Plan — U3 Terrarium Integration
+# Code Generation Plan — U3 Owner Result Acceptance
 
-## Sources
+## Summary
 
-- エンジン run-stage: code-generation / u3-terrarium-integration。主担当 TerrariumIntegration、US4.1・US4.2、C4/C5。
-- 承認済み inception/{units-generation/unit-of-work.md,unit-of-work-story-map.md,contract-design/contract-summary.md,user-stories/stories.md,requirements-analysis/requirements.md}。
-- 読取観測: sibling terrarium の AGENTS.md、memory/project.md、package.json、src/{session,catalog,terminal,index,npm}.ts、web/terminal.mjs、scripts/{assemble-pages,stage-web}.sh、playwright.config.ts、e2e/serve.ts、tests/catalog.test.ts、mise.toml。
-- 基準 commit: 60dd0dc448f3a67d226dc8a3c6b3afcf4709823d。作業開始時に jj で基準・現作業差分を保存し、既存の変更を上書きしない。
-- 検証済み U2: aube v2.7.0 / d36fec01764689ef6d99a5e43de98925b571d67f、pitchfork v2.30.0 / 60e97b1c39183d56e2124f84f9a68ad550fc4011。native と U1 Worker の --version 成功。aube は公式musl配布を再利用、pitchfork は承認済み一行muslパッチを適用してビルド。
-- U2 候補 .artifacts/u2-guest-distribution/site-v2 は全3refの資産を持つ。既存ref維持の producer と再測定の collector に R-01/R-02 Major が残る。今回の新規測定の成功とは別に、公開前の未解消事項として保持する。
+Builds: 既存U3成果を保持した要件対応の補完、保存証拠の再照合、代替coverage出力先の計画整合。
+Touches: U3の計画・試験指示・要件対応・完了資料と新規verification。製品・外部owner・既存候補・証拠は保持する。
+Tests: 保存Node48件・bridge6件・固定24JS coverageの同一性照合、代替入力条件の確認、正式レビューとチェックポイント検証。
 
-## Scope and Ownership
+## Current Recovery Plan — 2026-10-10, Steps13–17
 
-既存 terrarium のリンク、要素、run()、iframe、xterm UIを共通runtimeへ接続する。アプリケーション変更は /Users/mutoakio/Documents/terrarium に直接適用する。実装前に具体的な下記パスを対象とするホスト書込み権限を取得する。承認済み元ファイルの別名複製による置換や模擬端末だけでの完了は行わない。
+今回のRequest Changesに対する実行対象はStep13–17のみ。下記Step1–12、旧Current Repairとその出力先は過去の実装・測定履歴として保持し、再実装・再生成する指示ではない。今回の計画承認後に着手する。
 
-| Repository | Planned paths | Purpose |
-|---|---|---|
-| terrarium | packages/terrarium/src/formicarium-session.ts (new) | C1 public APIだけを使うcommand adapter。既存 exported Session/Tool は保持 |
-| terrarium | packages/terrarium/src/terminal.ts | legacy対象guestロードをC3 + adapterへ接続、ready/events/queue/dispose |
-| terrarium | web/terminal.mjs | queryとexact-origin iframe、隔離不成立の原因通知 |
-| terrarium | packages/terrarium/package.json, bun.lock | ローカルpackを通常dependencyとして導入、開発段階の未公開版を明記 |
-| terrarium | scripts/assemble-pages.sh, scripts/stage-formicarium.mjs (new), mise.toml | 同一packのWorker/loader/wasm/build-infoとU2 resolverを配信配置、unit-scopedタスク |
-| terrarium | packages/terrarium/tests/formicarium-{session,catalog,assets}.test.ts (new) | public adapter/selection/asset boundary |
-| terrarium | packages/terrarium/e2e/formicarium-{terminal,iframe}.spec.ts, playwright.formicarium.config.ts, e2e/formicarium-serve.ts, e2e/host/formicarium/*.html (new) | 3browser、9セル、非実行oracle |
-| terrarium | packages/terrarium/README.md | 実導入、asset、iframe条件、移行範囲 |
-| formicarium | tests/terrarium/{adapter,assets,coverage}.test.mjs, playwright.config.mjs, consumer.spec.mjs, serve.mjs (new) | sibling差分とpackのconsumer検証 |
-| formicarium | scripts/terrarium/{prepare,evidence,coverage}.mjs (new), docs/terrarium-integration.md | local候補/差分/digest、測定世代、U4への結果提供 |
+- [x] Step 13 — mainでrunner/configurationと保存済み証拠を読み取り確認する。`verification/official-restart-20261010-v2/main-results.json`、既存reconciliation、`.artifacts/u3-current-v9-v2`、`verification/audit-current-candidate-v1/coverage-report-v3.json`と対応する元測定を照合する。固定24JS、46receipt、1450/1801行80.51%・skip0、v9 tarball/core/aube/pitchfork2.30.1、owner原参照と保存auditの同一性を実ファイルから確認し、新規verificationへSHA/size付き記録を保存する。未知のaudit追記を推測で許可しない。
+- [x] Step 14 — 既存traceabilityの全IDとU4所有Deferredを保持し、U3担当7ACの全条件を名前付き試験・ownerの正式証拠・現在ローカル候補へ対応付ける。FR5/5.1/5.2/5.3/5.4、FR7/7.1/7.2/7.3と関連NFR1/2/3/4/5/7を原文に照らして追加対応する。全体・公開RC・遠隔CI等の残条件はDeferred/GAPと理由・担当を記録し、既存targetの実在だけでOKにしない。owner旧v8/pitchfork2.30.0承認とローカルv9/pitchfork2.30.1の証拠を混同しない。
+- [x] Step 15 — `code-summary.md`、`traceability.json`と新規`verification/ci-traceability-repair-v1/requirement-mapping.md`へ反映する。読み取り専用`reconcile.mjs`を同verification配下へ作成しmainが実行する。raw receipt・coverage集約・source/maps・candidate/execution seal・保存結果48/6を照合する。既存source-manifest14件と製品・core・guest・外部owner・旧receipt・失敗世代を保持する。
+- [x] Step 16 — 既知Minor R-02の代替出力先不一致を確認し、今回の代替計画を実装が許可する新規`.artifacts/u1-coverage-v<未使用の整数>`へ整合させる。旧`u1-coverage-u3-current-v1`は履歴であり今回の実行先にしない。既存componentImportのパス条件、same-pack/14source/maps/1253realm/80%/SHA検査は維持する。既存の名前付き否定・正常試験を照合し、必要な条件確認だけmainでUnit限定に実行する。現v14 importが一致する間は新規U1測定を行わない。代替経路の実測は実施しない限り未検証と明記する。製品修正が必要と判明した場合は具体的な再現と変更範囲を示して計画改訂へ戻る。
+- [ ] Step 17 — main照合結果を完了資料へ反映して独立した正式レビュー、Unit完了、承認済みコマンドによるチェックポイント検証へ進む。固定24全体のcoverage/遠隔CI、公開RC・実配信・全体受入れの残条件をU4/Build and Testへ引き継ぐ。Code Generation全体の完了確認までStopフックを無効のまま維持する。
 
-新規配置・設定・テストファイルも source-manifest に含める。U1/U2 の凍結済みソース・契約・review は書き換えない。U2 の R-01/R-02 修正はU2所有の明示的な revision 経路を必要とし、U3中の無断修正はしない。今回は完全な site-v2 を使い、測定ディレクトリは毎回新規・既存拒否とする。これを既存問題の修正完了と呼ばない。
+本計画は重い再build・再prepare・再測定・再pack・外部owner書込み・新承認・公開操作を既定実行に含めない。既存identity不一致は未完了として報告し、期待SHA・state・receiptを手編集して解消しない。Testing Contractと品質基準を保持する。
 
-## Implementation Steps
+## Sources and Historical Record
 
-- [ ] Step 1 — 配置とrunner準備 (US4.1/US4.2): 外部repoの jj status/基準差分と既存変更を記録、上記具体パスへの書込み権限取得。U1 tarballをpack内容/digest付きで通常dependencyへ導入し、U2の完全なsite-v2とresolver3moduleをdigestで束ねる。新規unit-scopedタスクとbrowser configを作り、既存catalog testによるrunner readinessをmainで確認する。Workerは実配信same-origin URL、blob回避を使わない。
-- [x] Step 2 — command/business logic実装 (US4.1、AC4.1.1/3): createSessionをcwd=/work、home=/root、選択全entriesで作成し、setCwdで選択cwdへ変更。public FSのみでcd/ls/cat/rm/pwdを翻訳し、hard-link peer、mode、symlink、コピー・根境界を維持。literal引用符と既存未知command127を維持し、pipe/redirection/expansionを明示拒否。guest args/env/timeoutsをC1へ渡す。
-- [x] Step 3 — Step 2のテスト作成・main実行 (US4.1): adapter unit 8件以上。正常/非0、分割UTF8・stream順序・partial output重複防止、empty、未知command、shell拒否、ls表、rm表、nested cwd外の/work sibling保持、reset/dispose/state independenceをテストする。既存exportの互換型も確認。
-- [x] Step 4 — selection/data access実装 (US4.1): 既存catalog/Choice/describeを保持してC3選択と照合。aube/pitchforkのみ新guest経路を使用し、tool/ref/fixture/base/commitの不一致・404・hash失敗を明示拒否。fixture=''とundefined、明示cwd、既定ref先頭を維持。旧metadataの他ツールを強制変換しない。
-- [x] Step 5 — Step 4のテスト作成・main実行 (US4.1): catalog/assets各5–8件。最新版両tool＋aube旧refで対応を確認、未配布ref/fixture/未知tool/digest/asset欠落、既存source/upstream_pr/built_atの保存とasset再配置を検証。
-- [ ] Step 6 — frontend実装 (US4.1、AC4.1.1/2/3): 既存terminalのready/transcript/run/focusとイベントfields/bubbles/composedを維持。stream別decoderをsequence順表示しraw結果は別保存。ready成功/失敗・空/非0/異常runの通知回数を固定し、queueを失敗後再利用、finallyでbusyを解除。disconnect/tool切替でdisposeし旧世代を遮断。run属性/複数query run、ツール切替reset、履歴/矢印/削除/Ctrl-C/focusを比較。必要なinteractive箇所にdata-testidを追加。
-- [ ] Step 7 — Step 6のテスト作成・main実行 (US4.1): browser端末8scenario以上を3browserで実行。実際の最新版guest --version と代表連続操作、既定/空fixture、nestedcwd/work sibling、ready/exit/errorの順序回数fields、失敗後再実行、switch/disconnectの古い通知抑制、キーボード/focusを確認。baseline観測と安全上の契約差分を分けて記録する。
-- [ ] Step 8 — iframe API実装 (US4.2、AC4.2.1–4): origin query→ancestorOrigins→referrerの優先を保ち、null/opaque/wildcard/無効originを拒否。event.source===window.parentかつexact origin/type/command型を検査。通知もexact originのみ。非対応/隔離不足でguestを起動しない。待ち続けるservice-worker状態を成功にしない。
-- [ ] Step 9 — Step 8のテスト作成・main実行 (US4.2): 3条件×3browserを個別判定し、同origin全成功、Pages相当cross-origin credentialless/allowのChromium成功・Firefox/WebKit未対応、隔離不足全拒否。各条件の未承認origin/source/type/commandとunknown/null/wildcard originも検査。guest実行要求監視＋marker guest書込みで非実行を確認。ローカルPages相当ホストと実GitHub Pagesを区別し、実外部配信が未観測なら未検証を残す。
-- [ ] Step 10 — build/measurement環境 (US4.1/US4.2、US5.2補助): 同一tarballのpackage/Worker/core資産を組としてstageし、U2の全ref資産をコピー後digest照合。新しい第一者配布JS inventoryをpack/siteから固定し、U1固定13/U2固定3を縮小せず追加対象と統合する。測定世代/source/candidate identityを結果にbind、未import0・未収集realm失敗・旧receipt拒否を試験。行coverage80%・統合前CI条件は維持し、U4の全体判定を代行しない。
-- [ ] Step 11 — documents/evidence/traceability (US4.1/US4.2、US5.1/US6.4補助): 基準commit・実差分・installedVersion・tarball/core/guest/sourceのdigests、commands/browser/stdout/stderr/code/失敗分類をU4へ提供。local packは公開済みRC受入れへ再ラベルしない。AC4.1.1–3/AC4.2.1–4をsource/testに対応させ、全変更パスsource-manifest、code-summaryを作成しsensorと独立reviewを行う。
+現在directiveはcode-generation / u3-terrarium-integration。主担当はUS4.1/US4.2、C4/C5の既存terrarium接続と受入れ。inception/requirements-analysis/requirements.md、contract-design/contract-summary.md、units-generation/unit-of-work.mdとunit-of-work-story-map.mdを消費する。C1/C2/C3とU1/U2の凍結済み実装・レビューは変更しない。
 
-## Constraints and Acceptance
+以前の計画Step1–11、質問・承認、manifestの外部write claims、summaryとtraceabilityは `archive/pre-owner-acceptance-20261008/` に原bytes7件を保存した。旧21 Node/6 bridge/固定24 coverage80.56%は過去の特定source/candidateの観測である。terrarium未登録による旧review拒否と、旧source-manifestが主張した外部変更を取り消した歴史へ書き換えない。本計画は新しい所有境界での再承認を必要とする。
 
-新規通常実装は層ごと実装→テスト。不具合を発見した場合は再現Red→修正Green→Refactor。DB/repository/HTTP API追加は非該当。Session内部表やEmscripten factoryの知識をadapterへ拡散させない。最新toolは実行前に公式releaseを再確認し、取得版/commitを固定して記録する。変更のないaubeは再ビルドしない。更新により候補が変われば古い結果を再利用しない。
+## Ownership and Scope
 
-mainだけがbuild/testを逐次実行。probe600秒、aube browser840秒、pitchfork browser600秒/Node120秒、1worker、retry0、wasm1GBを維持。既存terrarium configのCI retry1をU3 configへ引き継がない。追加guest/network/daemon/汎用shell/JIT/UI再設計/実機Safari必須化を追加しない。push・タグ・npm/JSR・Pages公開はこの計画承認に含めない。
+terrariumのapplicationは正式な所有intent `261008-formicarium-integration-2` で修正・レビューされた成果としてread-onlyで消費する。U3はformicariumローカルの受入れvalidator、consumer検証、candidate-bound証拠、C4/C5対応表を所有する。既存外部claimsを消すだけでreview admissionを通さず、計画承認後の実装と証拠に基づいて現在のsource-manifestを構成する。歴史的外部claimsはarchiveで引き続き参照可能にする。
 
-## Risks and Unverified Items
+新規編集対象は `scripts/terrarium/acceptance.ts`、`tests/terrarium/acceptance.test.ts`、必要な既存 `scripts/terrarium/{prepare,evidence,coverage}.ts` と `tests/terrarium/{adapter,assets,coverage}.test.ts`、`consumer.spec.ts`、`serve.ts`、`playwright.config.ts`、`docs/terrarium-integration.md`。正式buildによる対応.jsを含む。既存identity/digest helperはevidence.tsを再利用する。外部repo・旧入力・旧候補・旧receiptは編集しない。collector適合修正は具体的なmain Redがある場合だけ行う。
 
-- 外部repo書込み/依存install/既存状態、基準commitに対する実行差分、U3 runner/bundle、実Pages iframe、全体coverage/CI、公開済みRC受入れは未検証。
-- U2 R-01/R-02は未解消の公開前事項。fresh candidateの実測は有効だが一般producer/collectorの修正完了ではない。
-- 現terrarium memoryは旧Emscripten/no-emulator設計を記載する。本intentで人間が承認したcommon runtime移行を優先し、範囲外の戦略変更を加えない。
-- 独立review前にsource-tree複製の再現fixtureを作らず、source fingerprintを凍結する。review後の修正はnative owning revision経路へ戻す。
+## Owner Inputs and Identity
+
+正式owner recordは `/Users/mutoakio/Documents/terrarium/aidlc/spaces/default/intents/261008-formicarium-integration-2`。正式receipt `.aidlc-engine/reviews/code-generation/stage/826a9a551ecd3d72/1.json`、request_id `review:00ea057e81e3a59480e2c2297b99eeb6`、source_fingerprint `5fba77e90f0bbc0c52724e6ed63ddb68c813654bc98800c74bc1ccb9734ab53a`、独立review本文、matching code-generation/build-and-test auditのGATE_APPROVED/STAGE_COMPLETEDを消費する。verification/owner-planning-readonly.jsonの原bytes SHA・正確なsource/evidence参照一覧・request/intent/承認完了identityを期待値へpinする。受入れ前に期待原bytesを保存・比較し、単なるREADY文字列を信頼しない。validatorは外部receipt/auditを発行・変更しない。
+
+BT verificationのsource-start/endは78source、集合digest `b70c328cf9d309a18a6dc06eccde0817b0c3a78bf6f7b513ea4cb159beee2f99`。checks.jsonの15distinct command/exit0/log SHA、input-identity-reference.jsonの全16固定path/size/SHA、最新formicarium/legacy candidate start/endのkind/file/link/directory inventoryを実bytesと照合する。入力rootは `.vendor/formicarium-inputs-integration-2`、formicarium siteは `.vendor/site-formicarium-integration-2-bt`、legacy siteは `.vendor/site-legacy-integration-2-bt`（すべてterrarium root相対）。同一入力descriptor396cd555…a855、U1 v8 tgz ebe7e5cf…9dc35、aube2.7.0/2.6.1とpitchfork2.30.0を固定し、公式最新版とは断定しない。
+
+## Acceptance Behavior and Tests
+
+受入れmanifestはowner intent/root、正式review/audit参照、source/input/candidate/checks/log参照と期待identity、取得時刻、ローカルoutを明示する。missing/tamper/source drift/candidate drift/未成立承認/失敗commandを原因別に拒否する。検査完了前に受入れ成功を出力せず、outは未使用 `.artifacts/u3-owner-acceptance-v1` に限定する。元ログとsourceをcopyして架空の実行成功を作らず、外部証拠の観測と今回ローカル実行を別項目にする。
+
+Standardの5–8 meaningful casesとしてacceptance.test.tsに7ケース群を計画する：正常owner受入れ、source78のdigest/集合drift、16input欠落/改変、両candidateのkind/link/bytes drift、15commandのnonzero/重複/欠落、log SHA不一致、READY/request/gate/intent不一致または欠落。C4/C5の実装はownerのterminal/iframe sourceと専用45browser結果へ結び、ローカルvalidatorとbridge試験はその入力を実際に消費する。ownerの136unit・45専用・34legacy/2既存skipをローカル新規試験件数へ合算しない。
+
+## Ordered Steps — Historical Implementation
+
+Step1–6の実装・保存検証は既存summary/current-main-checks/owner-v1の観測履歴。下記checkboxは以前の本文のまま保持し、今回再実行対象や新候補成功を意味しない。Step7の現在完了はaudit不一致により停止。今回のpending修復対象は後述Step8–12のみ。
+
+- [ ] Step 1 — US4.1/US4.2の入力とrunner準備。mainが正式owner READY/段階承認とsource78/checks15/log/input16/最新2candidateの不変照合を記録する。受入れ入力JSON、coverage入力JSON、直接Node/Bunの実体とscoped commandを確定する。既存runnerを正式build後のU3 Node試験で確認し、検証不能を成功扱いしない。
+- [ ] Step 2 — C4/C5/C6のローカル受入れvalidatorをacceptance.tsへ実装する。evidence.tsのidentity helperを再利用し、期待集合・path/kind/link/size/digestと正式owner参照を検査する。missing/tamper/drift/未成立承認をfail closedにし、新規outに検証済み参照・取得時identity・制限を記録する。外部sourceやreceiptへ書かない。
+- [ ] Step 3 — Step2後にacceptance.test.tsの上記7ケース群を作り、mainが正式buildと同じscoped試験を実行する。owner参照が一致する正常系と各不一致の失敗を実証する。既存不具合の修正が必要ならmainで再現Redを観測してから同じ試験Greenへ進む。
+- [ ] Step 4 — US4.1/US4.2の現在入力consumerをmainで検証する。既存ローカル21testsに新規受入れ試験を追加して逐次実行し、現在BT siteを明示したbridge6casesを三browserで実行する。既存C4/C5境界・fixture/cwd/ref・marker非実行oracle・同origin Worker条件を保持する。owner正式136unit/専用45/legacy34+2skipは外部観測として取り込み、今回再実行と呼ばない。
+- [ ] Step 5 — C6/NFR3のfresh coverageを固定24（U1十四/U2三/U3七）でmain測定する。未使用 `.artifacts/u3-coverage-owner-v1` に現source/candidate/generationを結合し、fresh Node/三browserを収集する。同packのU1 v11 componentはsource/maps/realm/tgz一致を検査して明示importする。旧U3 source26cc…/candidate711e…の80.56%を現候補へ再ラベルせず、必要なcollector適合だけmain Red→修正→Greenとする。
+- [ ] Step 6 — 新しいローカルwrite manifest、docs、summary、traceabilityを作る。US4.1 AC4.1.1–3/US4.2 AC4.2.1–4をowner実装/正式結果/ローカル検証へ対応させ、owner refsとraw digestを保存する。旧external claimsを保存したarchiveへの参照、candidate差分とcoverage適用限界、生成.jsを含む全ローカルwriteを明示する。native sensors、独立U3正式reviewをmainへ渡す。
+- [ ] Step 7 — mainが正式review受理・登録とnative Unit完了手続きを行う。未登録外部repoを今回write claimへ戻さず、外部成果は識別されたowner入力として評価する。source admission/review拒否があれば未完了として正式修復へ返し、claim除去だけやreceipt偽装で進めない。公開・外部投稿・U4判定を代行しない。
+
+## Coverage and Quality Constraints
+
+Testing Contractはtest-after/Standard。新規層実装後に対応試験、不具合は再現Red→修正Green。第一者配布JS全体80% floor、未import0、未収集realm失敗、fresh generation/source/candidate binding、旧receipt拒否、統合前CI必須を維持する。U1十四+U2三の基礎17にU3七を加えた固定24を縮小しない。transaction/assembly等のowner開発専用scriptsは別owner回帰検証を消費し、配布分母の閾値逃れへ利用しない。
+
+mainだけがbuild/test/repo操作を逐次実行。probe600秒/aube browser840秒/pitchfork browser600秒Node120秒/1worker/retry0/wasm1GBを保持する。U1/U2 frozen source、guest再build、外部source書込、既存input/site overwrite、framework/state/receipt手編集は対象外。
+
+## Limits and Completion
+
+owner新修正はtransaction保全・履歴namespace保護・legacy tools.jsonのsymlink書込み拒否・明示供給URL契約・正式CodeKB反映を含む。その正式レビューを消費しU3側で再実装しない。78source/15logs/16inputs/最新候補の現bytes照合が成立しない限り正式受入れとは呼ばない。
+
+遠隔CI、公開RC、実Pages/service-worker、実Safari、公開操作、remote供給URLの到達性とU4の全体release判断は未検証・別所有。新計画の承認前にはStep2以降を実装しない。currentmanifest変更は再Approvalとローカル実装後に限り、履歴・旧claimsはarchiveへ保持する。
+
+## Current Repair — Steps8–12 Await Fresh Plan Approval
+
+今回の実行対象は以下Steps8–12。上のSteps1–7/旧owner受入れと測定は特定候補の履歴として保持し、再実行指定ではない。検証済み：mainの新outへのowner受入れ再確認はaudit原bytes SHA不一致でexit1。保存auditとの差分は104行のHuman Turn/Guardrail Loaded/Health Check/Session Resume追記で、既存承認行の削除・変更はdiffにない。現validatorの厳格拒否は維持し、期待SHAを単に更新しない。今回まだ実装修正・現候補検証は未実施。
+
+### Exact Scope and Evidence Boundaries
+
+修正はscripts/terrarium/acceptance.tsとtests/terrarium/acceptance.test.ts、現候補をローカルだけで構成する新scripts/terrarium/current-candidate.tsとtests/terrarium/current-candidate.test.ts、必要なprepare.tsの明示packageRoot入力、consumer.spec.tsの明示選択入力、coverage.tsのコピー専用pitchfork oracle対応と対応coverage.test.ts、docs/記録に限定する。既存evidence helperを使う。外部terrarium、U1/U2 frozen、guest/core、既存候補/input/receipt、frameworkは変更しない。
+
+ownerの正式承認対象はU1v8/旧core4b5c…/pitchfork2.30.0。新しいformicariumローカル候補はU1v9 tarball SHA dfcc3e6384b5ed14ddefbccd4806b9f1be2d858129e74216f116668142571f6d、core a882fb2f3df14115b7e46f6812fb296eef5934d7、aube2.7.0、pitchfork2.30.1/公式commit1054549e85470b08d9507e2c82c850959a4b3914を使用する。v14 coverage-report.jsonをsame-pack明示importする。ownerが新候補を承認したとは主張しない。旧U3固定24の80.56%を新候補へ流用しない。
+
+v14のcomponentImport互換性は事前確認する。tarball/14source/statement-map/予定1253realmが完全一致しない場合、importチェックを緩めず、mainが凍結U1ソース・記録を変更せず新.artifacts/u1-coverage-u3-current-v1で既存U1 collector prepare/固定12Node/全6compiled browser/reportを逐次再測定する。新結果を明示入力にする前に同一pack/maps/realmを再検査し、失敗で停止する。旧v14を書換えない。
+
+### Bounded Audit Append Contract
+
+inputへauditSnapshotのローカル絶対path/固定SHA/bytesを明示し、現在references.auditの旧SHAを維持する。保存snapshotはregular nonsymlink/canonical pathで上限1MiB、旧pin SHAとbyte lengthを照合。現owner auditはstatして最大2MiB、追加は最大256KiB/256event、UTF8 strict decode/NUL拒否、snapshot全bytesが現audit先頭と一致する場合だけ追加を検査する。snapshotと現auditの両原bytes、各SHA/size、追加SHA/event一覧を別々に保存。receipt/review/source/input/candidate/logのpin検証は従来どおり厳格である。
+
+旧snapshot内の正式READY登録/request/source/artifact/receipt digestとGATE_APPROVED/STAGE_COMPLETEDを従来の固定identityで照合。追加部分は完結したMarkdown event blockのみ（見出し/一意bold field/空行/---境界、ISO timestampの非減少・required fields・未知field/重複field/自由文/NUL拒否）。allowlistはHUMAN_TURN(Timestamp/Event/Session)、GUARDRAIL_LOADED(Timestamp/Event/Scope=all/Path=.codex/aidlc-rules//Rule count非負整数)、HEALTH_CHECKED(Timestamp/Event/Request=/aidlc --doctor/Details=整数passed,整数failed)、SESSION_RESUMED(Timestamp/Event/Source=resume/Session)だけ。UUID session、正確な見出しとの対応を確認する。これらは承認の更新や品質成功を意味しない。未知event、revocation、gate/review/stage/plan/sourceのtransition、旧領域改変/削除、途中block、oversizeを必ず拒否。検査中のaudit更新は再照合で拒否し、暗黙retryしない。
+
+### Ordered Repair and Current Validation
+
+- [ ] Step 8 — mainが固定owner13refs/78source/16input/候補69+22/checks15と各log、現local source、v9全24file/tgz/core/guest/v14を読取り確認して新verification/audit-current-candidate-v1へ保存する。今回のmain確認は13refs中12一致/audit不一致であり、全raw logの現在一致はこのStepで確認する。acceptance.test.tsに同bytessnapshot＋許可追記正常、旧prefix改変/短縮、unknown/state/revocation、duplicate/missing/invalid field、未完block/UTF8/size/event上限、受入れ中drift、snapshot pin差替え拒否を追加。mainが正式buildして意図した許可追記拒否Redを観測する。現在audit拒否の既存ログも保持する。
+- [ ] Step 9 — approved bounded audit契約だけacceptance.tsへ実装、main正式buildと同じ回帰Green、既存7ケース群保持。mainが新verification/owner-audit-append-input-v3.jsonから.artifacts/u3-owner-acceptance-v3へ実ownerを検査。snapshot/現audit/追加と正式承認identityを記録。旧v1成功/今回v2拒否は保持、owner結果の過去受入れを新候補成功へ結合しない。
+- [ ] Step 10 — current-candidate.tsを実装後、5–8 meaningfulケースでv9/tgz/24files・guest/provenance/ref・不足/改変/extra/path/symlink/既存out拒否と外部書込みなしを試験する。mainが新.artifacts/u3-current-v9-v1にowner source/host/config/scriptsの読取りcopyと原SHA一覧を作り、空consumerへ唯一v9を通常npm install --ignore-scripts --no-audit --no-fundで導入。新local guest-siteは既存U2 producerで検証済みaube2.7.0/pitchfork2.30.1 bytes/fixture/build-infoから生成（mainが原build-infoと正規C3 metadata対応を記録、commit推測なし）。外部stageFormicariumの正式関数をread-only importし、明示packageRoot/packageManifest/guestSite/resolverRoot/webRootで新local site/webへstage、Bunでcopied src/index.tsをbundleする。owner136/45/34+2skipを新検証件数へ合算しない。外部dependencyは読取り参照としてidentityを記録、install先/生成先はlocal新dirのみ。
+- [ ] Step 11 — mainが新候補のconsumer6件を三browserで実行。consumerのpitchfork ref/versionは明示v2.30.1固定oracle、aubeは2.7.0固定。copied owner terminal/iframe専用45caseも現pack/guest候補で実行しC4/C5/current source互換性を検証する。copied terminal specの既存v2.30.0期待3箇所だけ2.30.1へ明示変更し、title/件数/その他assertを維持、変更一覧SHAを保存（新候補テストoracleでowner sourceを書換えない）。fresh.artifacts/u3-coverage-current-v9-v1へ固定24＝14+3+7をprepare。packageRoot/tgz/v14、local terrarium source/siteに結合しbundle→seal→Node→三browser45→report。U1 importはv14の14source/map/tgz/1253realm/80%をstrict検査、U3/U2 countersはfresh実測、未import0/欠落失敗/skip0/80%以上を要求する。必要collector対応はmainの意図したRed→最小修正→新dirGreenのみ。旧repair/owner世代を補完・再ラベルしない。失敗時正式停止し追加retry/期限延長なし。
+- [ ] Step 12 — docs/summary/source-manifest/traceabilityと全commands/raw/digest/beforeafterを現在local owner受入れ・新候補検証へ別々に結合。歴史archive/旧失敗とremoteCI/RC/Pages/serviceworker/このU3候補の実Safari未検証を維持。mainがnative sensors/正式review/Unit手続を行う。review前に全write凍結。外部owner新承認、公開/push/PR/deploy/U4release判断はしない。
+
 
 ## Testing Contract
 

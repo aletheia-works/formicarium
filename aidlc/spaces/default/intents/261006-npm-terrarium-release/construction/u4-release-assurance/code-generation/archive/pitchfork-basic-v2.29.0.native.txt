@@ -1,0 +1,32 @@
+$ pitchfork --version
+pitchfork 2.29.0
+[exit 0]
+$ pitchfork daemons
+app/api	bun run server/index.ts
+app/worker	python3 worker.py
+[exit 0]
+$ pitchfork daemons add db --run "postgres -D data"
+added app/db to /work/app/pitchfork.toml
+[exit 0]
+$ pitchfork daemons remove worker
+removed app/worker from /work/app/pitchfork.toml
+[exit 0]
+$ cat pitchfork.toml
+[daemons.api]
+run = "bun run server/index.ts"
+retry = 0
+
+[daemons.db]
+run = "postgres -D data"
+retry = 0
+[exit 0]
+$ pitchfork status api
+Name: app/api
+Status: available
+[exit 0]
+$ pitchfork settings set general.interval 5s
+set general.interval = 5s in /work/app/pitchfork.toml
+[exit 0]
+$ pitchfork settings get general.interval
+5s
+[exit 0]

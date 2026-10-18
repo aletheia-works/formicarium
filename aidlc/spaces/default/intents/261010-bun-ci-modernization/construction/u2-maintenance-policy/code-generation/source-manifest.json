@@ -1,0 +1,29 @@
+{
+  "stage": "code-generation",
+  "unit": "u2-maintenance-policy",
+  "version": 1,
+  "writes": [
+    {
+      "path": "scripts/maintenance/input.ts"
+    },
+    {
+      "path": "scripts/maintenance/evidence.ts"
+    },
+    {
+      "path": "scripts/maintenance/policy.ts"
+    },
+    {
+      "path": "tests/tooling/maintenance-input.test.ts"
+    },
+    {
+      "path": "tests/tooling/maintenance-evidence.test.ts"
+    },
+    {
+      "path": "tests/tooling/maintenance-policy.test.ts"
+    },
+    {
+      "path": "tests/tooling/maintenance-contract.test.ts"
+    }
+  ]
+}
+

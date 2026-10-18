@@ -1,0 +1,85 @@
+{
+  "stage": "code-generation",
+  "unit": "u1-bun-quality",
+  "version": 1,
+  "writes": [
+    {
+      "path": ".github/workflows/candidate-verify.yml"
+    },
+    {
+      "path": ".github/workflows/ci.yml"
+    },
+    {
+      "path": "README.md"
+    },
+    {
+      "path": "bun.lock"
+    },
+    {
+      "path": "mise.toml"
+    },
+    {
+      "path": "package-lock.json"
+    },
+    {
+      "path": "package.json"
+    },
+    {
+      "path": "scripts/ci/candidate.ts"
+    },
+    {
+      "path": "scripts/ci/commit-format.ts"
+    },
+    {
+      "path": "scripts/ci/install-modernization-inputs.py"
+    },
+    {
+      "path": "scripts/ci/ordinary-receipt.ts"
+    },
+    {
+      "path": "scripts/ci/quality-evidence.ts"
+    },
+    {
+      "path": "scripts/ci/run.ts"
+    },
+    {
+      "path": "scripts/ci/tasks.ts"
+    },
+    {
+      "path": "scripts/ci/verification.ts"
+    },
+    {
+      "path": "scripts/release/publication-cli.ts"
+    },
+    {
+      "path": "scripts/release/publication.ts"
+    },
+    {
+      "path": "scripts/release/workflow.ts"
+    },
+    {
+      "path": "tests/node/probe.test.ts"
+    },
+    {
+      "path": "tests/package/runner-ready.test.ts"
+    },
+    {
+      "path": "tests/release/publication-cli.test.ts"
+    },
+    {
+      "path": "tests/release/publication.test.ts"
+    },
+    {
+      "path": "tests/release/workflow.test.ts"
+    },
+    {
+      "path": "tests/tooling/bun-tasks.test.ts"
+    },
+    {
+      "path": "tests/tooling/candidate-inputs.test.ts"
+    },
+    {
+      "path": "tests/tooling/quality-evidence.test.ts"
+    }
+  ]
+}

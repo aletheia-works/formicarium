@@ -1,17 +1,22 @@
-# Code Generation Questions — u1-runtime-package
+# Code Generation Plan Approval
+
+AI-DLC built this plan without asking because plan approval is off for this
+piece of work. This file is the record and asks nothing; to look at a plan
+before it is built, ask in chat.
 
 ## Plan Approval
 
-code-generation-plan.md Step23–25とunit-test-instructions.mdの回収oracle修正を承認しますか。共有tmp一覧による誤失敗を再現し、test専用資源の追跡と直接coreの明示owner回収へ修正して再検証します。製品v7・品質基準・既存検証コマンドを保持します。修正後の成功と今回消えたdirの所有者は未検証です。
+Built without asking: plan approval is off for this piece of work (from AIDLC_DISABLE_PLAN_APPROVAL_GUARD in aidlc.settings.local.json).
 
-[Approval Fingerprint]: sha256:v3:8193f5189d00ba652b8eab359f16b189d6631e85511bf79d1f31a647b843d501
-[Planned Source]: b1bedb2e9a24c4f0ba8af78ec66140b9d8a5ecaf43a8682f003cd574be7fe68e
+- Builds: 既存U1実装を保持し、要件のexact ID対応とU4遠隔CIへの引継ぎを修復する（Steps89–93のみ）。
+- Touches: U1 traceability.json・code-summary.md・main-verification.mdと新検証記録。製品、候補、core、guestのbytesは変更しない。
+- Tests: 保存済みU1 Node138件・3browser123件と固定14JS/87.78%を同一性照合。runner-ready3件を主セッションで確認する。
 
-- Approve Plan — この計画・試験手順と明記された時間予算差分を承認し、実装へ進む
-- Request Changes — 計画を修正する
+Full plan: aidlc/spaces/default/intents/261006-npm-terrarium-release/construction/u1-runtime-package/code-generation/code-generation-plan.md
+Test instructions: aidlc/spaces/default/intents/261006-npm-terrarium-release/construction/u1-runtime-package/code-generation/unit-test-instructions.md
 
-[Answer]: Approve Plan
+[Approval Fingerprint]: sha256:v3:91082a5eb2bfd1eb4755842af8a426748d65d3cb4635a6396200b40b2076a1cd
+[Planned Source]: c694b8aa27543ee7ce4709a8d3f49e3d1d1a13d9f2a2da896fe11e7cd8aaf9aa
 
-## Status
 
-工程再開に伴う計画承認待ち。修正済みコードと検証記録を保持する。以前の承認を新しい工程の承認として扱わない。
+[Answer]: Plan approval off

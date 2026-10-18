@@ -1,0 +1,16 @@
+import { readFile, writeFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+const base = '/Users/mutoakio/Documents/formicarium/.artifacts/modernization-current-v1';
+const tar = `${base}/modernization-inputs-v5.tar`;
+execFileSync('tar', ['-cf', tar, '-C', `${base}/inputs-v5`, '-T', `${base}/archive-files-v5.txt`], { env: { ...process.env, COPYFILE_DISABLE: '1' } });
+execFileSync('gzip', ['-9', '-n', tar]);
+const bytes = await readFile(`${tar}.gz`);
+const preflightPath = new URL('./input-preflight.json', import.meta.url);
+const summary = JSON.parse(await readFile(preflightPath));
+summary.archive = `${tar}.gz`;
+summary.archiveBytes = bytes.length;
+summary.archiveSha256 = createHash('sha256').update(bytes).digest('hex');
+summary.serialization = 'regular pinned files only; macOS AppleDouble metadata excluded';
+await writeFile(preflightPath, JSON.stringify(summary, null, 2));
+console.log(JSON.stringify({ archiveBytes: summary.archiveBytes, archiveSha256: summary.archiveSha256 }));

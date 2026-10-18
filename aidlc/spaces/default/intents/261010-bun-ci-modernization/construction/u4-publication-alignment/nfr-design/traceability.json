@@ -1,0 +1,17 @@
+{
+ "stage":"nfr-design","unit":"u4-publication-alignment",
+ "upstream_ids":["NFR1.1","NFR1.2","NFR2.1","NFR2.2","NFR3.1","NFR3.2","NFR3.3","NFR4.1","NFR4.2","NFR5.1","NFR5.2"],
+ "coverage":[
+ {"id":"NFR1.1","status":"OK","target":"D1 固定開発基盤とnpm CLI供給"},
+ {"id":"NFR1.2","status":"OK","target":"D2 独立出所・実bytes・candidate identity"},
+ {"id":"NFR2.1","status":"OK","target":"D4 目的別権限・release environment"},
+ {"id":"NFR2.2","status":"OK","target":"D1 無権限生成・固定実行bundle"},
+ {"id":"NFR3.1","status":"OK","target":"D2 C2・producer・run/attempt照合"},
+ {"id":"NFR3.2","status":"OK","target":"D3 厳密版と署名済み版別承認"},
+ {"id":"NFR3.3","status":"OK","target":"D4 副作用最大1回・未知結果再送なし"},
+ {"id":"NFR4.1","status":"OK","target":"D2 固定inventory・全realm・80%"},
+ {"id":"NFR4.2","status":"OK","target":"D5 既存品質とconsumer維持"},
+ {"id":"NFR5.1","status":"OK","target":"D4 finite job・非成功下流禁止"},
+ {"id":"NFR5.2","status":"OK","target":"D5 運用資料・証拠と未検証の分離"}
+ ]
+}

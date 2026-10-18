@@ -1,0 +1,8 @@
+{
+  "archiveSha256": "78bc6e0a9624124a79bc7ce9fbe85c5ebd2721759f1578cca8d1efcef63007fe",
+  "members": 1374,
+  "expandedBytes": 229532041,
+  "knownCredentialPatterns": 0,
+  "sourceCommit": "7fc23afedef9a2296cb24026c0f19998a6933da7",
+  "limits": "既知形式の検出のみ。全秘密検出や実CI成功を保証しない。"
+}

@@ -2,12 +2,20 @@
 > This file is kept up to date automatically while the stage runs. Add observations at the review step, not by editing here directly.
 
 ## Interpretations
+- 2026-10-09T11:05:00Z — 人間承認済みSteps85–88では新しい製品変更がなく、mainが保存346file・候補24file・runtime14・traceability57・component14と現identityを照合した。exit0とrunner3/3成功を観測し、coverage87.78%/1253realmと現sessionSafari5caseは保存済みの実行結果として再レビューへ渡す。全suite再実行と区別し、遠隔CI・公開・旧Safari原因の未検証を保持する。
 <!-- example: 2026-05-29T10:14:32Z — chose REST over GraphQL; the consuming team only needs CRUD, revisit if subscriptions land -->
 
 ## Deviations
+
+- 2026-10-10T04:39:23Z [unit u4-release-assurance] — 最初の手動release実行がsessionへyieldした後にCI試験を開始し、短時間重複した。性能測定はなく、逐次検証の証拠には使用しない。mainと隔離候補でcloseを待つrun-local.mjsにより正式build→release35→CI13を逐次再実行し全成功を原ログ付きで保存した。
 <!-- example: 2026-05-29T10:14:32Z — skipped the optional caching layer the stage prose suggested; the dataset is small enough that it adds risk -->
 
 ## Tradeoffs
+
+- U3承認済み修復のmain検証：正式assembleCandidateを明示local sourceRoot/inputs/destination/main bundle callbackで利用しcandidate v2を作成。外部source78/tgz/guest不変、scoped46/bridge6/専用45合格。asset stagingだけではiframe /web/のindex.html/terminal.mjsが欠けるため完全host組立てを採用した。coverage v2 sealはmember外部symlinkを拒否、検査を緩めず依存をowned workspaceへ展開コピー。main回帰16件とfreshv3 seal/Node30件合格、browserと最終閾値は測定中。旧失敗世代・歴史owner承認を保持。
+
+- 2026-10-09T12:11:00Z（U3）: 検証済み。保存audit原111851bytesのprefixと現在113715bytesを別々に記録し、許可された非承認追記13eventのみ受け入れた。修正前回帰12件中5件失敗、修正後初回11合格/1失敗はshortened fixtureの削除改行を追記先頭で復元していた。人間の再開承認後、実文字も削除し異なるprefixをassertした同12件が全合格。外部owner結果は歴史的観測として受入れ、現U1v9候補の実行成功やowner新承認とは扱わない。
+- 2026-10-09T11:43:28Z [unit u2-guest-distribution] — 保存された測定結果を現在のソースへ適用する前に、測定copyのTS・実行JS・供給候補のSHA256を照合する。古いreview snapshotとの2ファイル差異は最新v3測定copyと一致した。配布3JSと候補11ファイルも一致し、不要な再ビルド・再測定を行わず完了資料を整合する。
 <!-- example: 2026-05-29T10:14:32Z — picked TDD over BDD this run; the team is unit-first and the domain is well-understood -->
 
 ## Open questions

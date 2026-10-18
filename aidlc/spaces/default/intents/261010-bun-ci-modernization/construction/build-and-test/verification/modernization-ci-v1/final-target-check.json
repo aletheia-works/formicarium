@@ -1,0 +1,168 @@
+{
+  "passed": true,
+  "requirementsCovered": 14,
+  "matrixTargets": 46,
+  "allTargetsMet": true,
+  "coverage": [
+    {
+      "id": "FR1",
+      "targets": [
+        [
+          "u1-bun-quality",
+          "bun.lock"
+        ]
+      ],
+      "passed": true
+    },
+    {
+      "id": "FR2",
+      "targets": [
+        [
+          "u1-bun-quality",
+          "scripts/ci/tasks.ts"
+        ]
+      ],
+      "passed": true
+    },
+    {
+      "id": "FR3",
+      "targets": [
+        [
+          "u1-bun-quality",
+          ".github/workflows/ci.yml"
+        ]
+      ],
+      "passed": true
+    },
+    {
+      "id": "FR4",
+      "targets": [
+        [
+          "u3-maintenance-workflows",
+          ".github/workflows/pr-labels.yml"
+        ]
+      ],
+      "passed": true
+    },
+    {
+      "id": "FR5",
+      "targets": [
+        [
+          "u3-maintenance-workflows",
+          "scripts/maintenance/receipt.ts"
+        ],
+        [
+          "u1-bun-quality",
+          "scripts/ci/commit-format.ts"
+        ]
+      ],
+      "passed": true
+    },
+    {
+      "id": "FR6",
+      "targets": [
+        [
+          "u3-maintenance-workflows",
+          "scripts/maintenance/reproduce.ts"
+        ],
+        [
+          "u2-maintenance-policy",
+          "scripts/maintenance/policy.ts"
+        ]
+      ],
+      "passed": true
+    },
+    {
+      "id": "FR7",
+      "targets": [
+        [
+          "u3-maintenance-workflows",
+          "scripts/maintenance/operations.ts"
+        ],
+        [
+          "u2-maintenance-policy",
+          "scripts/maintenance/policy.ts"
+        ]
+      ],
+      "passed": true
+    },
+    {
+      "id": "FR8",
+      "targets": [
+        [
+          "u4-publication-alignment",
+          ".github/workflows/publish.yml"
+        ]
+      ],
+      "passed": true
+    },
+    {
+      "id": "FR9",
+      "targets": [
+        [
+          "u3-maintenance-workflows",
+          "README.md"
+        ],
+        [
+          "u4-publication-alignment",
+          "README.md"
+        ],
+        [
+          "u1-bun-quality",
+          "README.md"
+        ]
+      ],
+      "passed": true
+    },
+    {
+      "id": "NFR1",
+      "targets": [
+        [
+          "u3-maintenance-workflows",
+          "scripts/maintenance/bundle.ts"
+        ]
+      ],
+      "passed": true
+    },
+    {
+      "id": "NFR2",
+      "targets": [
+        [
+          "u3-maintenance-workflows",
+          ".github/workflows/maintenance.yml"
+        ]
+      ],
+      "passed": true
+    },
+    {
+      "id": "NFR3",
+      "targets": [
+        [
+          "u3-maintenance-workflows",
+          "scripts/maintenance/operations.ts"
+        ]
+      ],
+      "passed": true
+    },
+    {
+      "id": "NFR4",
+      "targets": [
+        [
+          "u3-maintenance-workflows",
+          "tests/tooling/maintenance-integration.test.ts"
+        ]
+      ],
+      "passed": true
+    },
+    {
+      "id": "NFR5",
+      "targets": [
+        [
+          "u3-maintenance-workflows",
+          "scripts/maintenance/receipt.ts"
+        ]
+      ],
+      "passed": true
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "stage": "code-generation",
+  "unit": "u1-bun-quality",
+  "upstream_ids": [
+    "FR1",
+    "FR2",
+    "FR3",
+    "FR5",
+    "FR9",
+    "NFR1.1",
+    "NFR1.2",
+    "NFR2.1",
+    "NFR2.2",
+    "NFR3.1",
+    "NFR3.2",
+    "NFR4.1",
+    "NFR4.2",
+    "NFR5.1",
+    "NFR5.2"
+  ],
+  "coverage": [
+    {
+      "id": "FR1",
+      "status": "OK",
+      "target": "bun.lock"
+    },
+    {
+      "id": "FR2",
+      "status": "OK",
+      "target": "scripts/ci/tasks.ts"
+    },
+    {
+      "id": "FR3",
+      "status": "OK",
+      "target": ".github/workflows/ci.yml"
+    },
+    {
+      "id": "FR5",
+      "status": "OK",
+      "target": "scripts/ci/commit-format.ts"
+    },
+    {
+      "id": "FR9",
+      "status": "OK",
+      "target": "README.md"
+    },
+    {
+      "id": "NFR1.1",
+      "status": "OK",
+      "target": "tests/tooling/bun-tasks.test.ts"
+    },
+    {
+      "id": "NFR1.2",
+      "status": "OK",
+      "target": ".github/workflows/ci.yml"
+    },
+    {
+      "id": "NFR2.1",
+      "status": "OK",
+      "target": ".github/workflows/ci.yml"
+    },
+    {
+      "id": "NFR2.2",
+      "status": "OK",
+      "target": "scripts/ci/tasks.ts"
+    },
+    {
+      "id": "NFR3.1",
+      "status": "OK",
+      "target": "scripts/ci/quality-evidence.ts"
+    },
+    {
+      "id": "NFR3.2",
+      "status": "OK",
+      "target": "tests/tooling/quality-evidence.test.ts"
+    },
+    {
+      "id": "NFR4.1",
+      "status": "OK",
+      "target": ".github/workflows/candidate-verify.yml"
+    },
+    {
+      "id": "NFR4.2",
+      "status": "OK",
+      "target": "tests/package/consumer.spec.ts"
+    },
+    {
+      "id": "NFR5.1",
+      "status": "OK",
+      "target": ".github/workflows/ci.yml"
+    },
+    {
+      "id": "NFR5.2",
+      "status": "OK",
+      "target": "README.md"
+    }
+  ]
+}

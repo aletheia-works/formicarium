@@ -1,0 +1,178 @@
+diff --git a/core/hooks/aidlc-plan-approval-guard.ts b/core/hooks/aidlc-plan-approval-guard.ts
+index f2cd8cc50a..523de3a3e7 100644
+--- a/core/hooks/aidlc-plan-approval-guard.ts
++++ b/core/hooks/aidlc-plan-approval-guard.ts
+@@ -1735,10 +1735,12 @@ personSpoke: () => boolean = () => false,
+   if (noun === "testing-posture" && verb === "begin") return true;
+   if (noun !== "log" || (verb !== "decision" && verb !== "answer")) return false;
+ 
++  // Summary confirmation precedes plan generation. Admission delegates reply,
++  // questions-file and Unit validation to the log owner; it grants no approval.
+   const routeArgs = args.slice(3);
+   return (
+     lastFlagValue(routeArgs, "--stage") === GUARDED_STAGE &&
+-    lastFlagValue(routeArgs, "--checkpoint") === "plan-approval"
++    ["plan-approval", "summary-confirmation"].includes(lastFlagValue(routeArgs, "--checkpoint") ?? "")
+   );
+ }
+ 
+diff --git a/docs/reference/06-hooks-and-tools.md b/docs/reference/06-hooks-and-tools.md
+index 5ea68d5e8d..72031841b1 100644
+--- a/docs/reference/06-hooks-and-tools.md
++++ b/docs/reference/06-hooks-and-tools.md
+@@ -55,6 +55,8 @@ ### Hook Summary
+ | `session-end.ts` | SessionEnd | Project-wide (settings.json) | (empty) | Emit `SESSION_ENDED` on graceful exit to the intent recorded for that exact session; fail closed instead of using the shared active cursor when a UUID-backed workflow has no session binding |
+ | `aidlc-statusline.ts` | statusLine | Project-wide (settings.json) | -- | Show real-time progress in terminal |
+ 
++Before a Code Generation plan exists, `engine log decision` and `engine log answer` for `--stage code-generation --checkpoint summary-confirmation` are admitted as planning prerequisites, like the Plan Approval checkpoint. The log owner still validates the questions file, Unit and human reply. Summary confirmation grants no Plan Approval; source changes and developer dispatch remain subject to the plan guard.
++
+ **One process for the checks before a tool call.** A host starts every hook it
+ has registered for an event at once, each as its own process loading the whole
+ engine before its own filter decides there is nothing to do. Claude Code ran
+diff --git a/tests/integration/t-summary-plan-prerequisite-native.test.ts b/tests/integration/t-summary-plan-prerequisite-native.test.ts
+new file mode 100644
+index 0000000000..138bd79581
+--- /dev/null
++++ b/tests/integration/t-summary-plan-prerequisite-native.test.ts
+@@ -0,0 +1,70 @@
++// covers: hook:aidlc-plan-approval-guard, subcommand:aidlc-log:answer
++// #2265: execute the shipped Codex adapter and log owner with a compiled CLI.
++import { expect, test } from "bun:test";
++import { spawnSync } from "node:child_process";
++import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
++import { tmpdir } from "node:os";
++import { join } from "node:path";
++import { appendAuditEntry } from "../../core/tools/aidlc-audit.ts";
++import { readAllAuditShards, stateDigest, writeActiveDirectiveMarker } from "../../core/tools/aidlc-lib.ts";
++import { createTestProject, seedAidlcMemory, seededRecordDir, seededStateFile } from "../harness/fixtures.ts";
++import { NATIVE_COMPILE_TIMEOUT_MS, NATIVE_FIXTURE_SETUP_TIMEOUT_MS, NATIVE_STARTUP_TIMEOUT_MS, remainingOperationTimeoutMs } from "../harness/test-budget.ts";
++
++const ROOT = join(import.meta.dir, "..", "..");
++
++test("native Codex summary receipt precedes the plan without authorizing generation (#2265)", () => {
++  const scratch = mkdtempSync(join(tmpdir(), "summary-native-"));
++  const proj = createTestProject();
++  try {
++    const runtime = join(ROOT, "dist-release");
++    const binary = join(scratch, process.platform === "win32" ? "aidlc.exe" : "aidlc");
++    const build = spawnSync(process.execPath, ["build", join(runtime, "claude", ".claude", "tools", "aidlc.ts"), "--compile", "--outfile", binary], {
++      cwd: ROOT, encoding: "utf-8", timeout: remainingOperationTimeoutMs(NATIVE_COMPILE_TIMEOUT_MS),
++    });
++    expect(build.status, `${build.stdout}\n${build.stderr}`).toBe(0);
++    symlinkSync(runtime, join(scratch, "runtime"), "junction");
++    cpSync(join(runtime, "codex", ".codex"), join(proj, ".codex"), { recursive: true });
++    seedAidlcMemory(proj);
++    const state = "# AI-DLC State Tracking\n\n## Project Information\n- **Scope**: classic\n- **Guard Policy**: strict\n\n## Current Status\n- **Lifecycle Phase**: CONSTRUCTION\n- **Current Stage**: code-generation\n";
++    writeFileSync(seededStateFile(proj), state);
++    writeActiveDirectiveMarker(proj, { kind: "run-stage", stage: "code-generation", unit: "todo-core", state_sha256: stateDigest(state) });
++    const dir = join(seededRecordDir(proj), "construction", "todo-core", "code-generation");
++    mkdirSync(dir, { recursive: true });
++    const questions = join(dir, "code-generation-questions.md");
++    writeFileSync(questions, "# Planning questions\n\n## Q1\n\nKeep the current API.\n\n## Consolidated Summary Confirmation\n\n- Looks correct\n- Request changes\n\n[Answer]:\n");
++    const env: NodeJS.ProcessEnv = { ...process.env, AIDLC_PROJECT_DIR: proj, AIDLC_HARNESS_NAME: "codex", AIDLC_HARNESS_DIR: ".codex", AIDLC_SKIP_HUMAN_PRESENCE_GUARD: "0", AIDLC_SKIP_SUMMARY_CONFIRMATION_GUARD: "0", AIDLC_DISABLE_PLAN_APPROVAL_GUARD: "0" };
++    delete env.CODEX_THREAD_ID;
++    delete env.CODEX_SESSION_ID;
++    delete env.AIDLC_SESSION_OVERRIDE;
++    delete env.AIDLC_SESSION_OVERRIDE_SOURCE;
++    const run = (args: string[], input?: object) => spawnSync(binary, args, {
++      cwd: proj, env, encoding: "utf-8", input: input ? JSON.stringify(input) : undefined,
++      timeout: remainingOperationTimeoutMs(NATIVE_STARTUP_TIMEOUT_MS),
++    });
++    const guard = (tool_name: string, tool_input: object) => run(["engine", "adapter", "codex", "plan-approval-guard"], {
++      hook_event_name: "PreToolUse", tool_name, tool_input, cwd: proj,
++    });
++    const args = ["engine", "log", "decision", "--stage", "code-generation", "--checkpoint", "summary-confirmation", "--questions-file", questions, "--unit", "todo-core", "--decision", "Does this all look correct?", "--options", "Looks correct,Request changes"];
++    const command = (verb: string) => `aidlc engine log ${verb} --stage code-generation --checkpoint summary-confirmation --questions-file '${questions}' --unit todo-core --details 'Looks correct'`;
++    for (const verb of ["decision", "answer"]) {
++      const admitted = guard("Bash", { command: command(verb) });
++      expect(admitted.status, admitted.stderr).toBe(0);
++    }
++    const missing = run(["engine", "log", "answer", "--stage", "code-generation", "--checkpoint", "summary-confirmation", "--questions-file", join(dir, "missing.md"), "--unit", "todo-core", "--details", "Looks correct"]);
++    expect(missing.status).not.toBe(0);
++    const decision = run(args);
++    expect(decision.status, decision.stderr).toBe(0);
++    // Synthetic human evidence belongs only to this isolated regression fixture.
++    appendAuditEntry("HUMAN_TURN", {}, proj);
++    writeFileSync(questions, readFileSync(questions, "utf-8").replace("[Answer]:", "[Answer]: Looks correct"));
++    const answer = run(["engine", "log", "answer", "--stage", "code-generation", "--checkpoint", "summary-confirmation", "--questions-file", questions, "--unit", "todo-core", "--details", "Looks correct"]);
++    expect(answer.status, answer.stderr).toBe(0);
++    expect(readAllAuditShards(proj)).toContain("**Event**: SUMMARY_CONFIRMATION_RECORDED");
++    expect(readAllAuditShards(proj)).not.toContain("**Event**: PLAN_APPROVAL_RECORDED");
++    expect(guard("Bash", { command: "printf code > src/generated.ts" }).status).toBe(2);
++    expect(guard("spawn_agent", { agent_type: "aidlc-developer-agent", message: "AIDLC-UNIT: todo-core\nImplement todo-core" }).status).toBe(2);
++  } finally {
++    rmSync(proj, { recursive: true, force: true });
++    rmSync(scratch, { recursive: true, force: true });
++  }
++}, NATIVE_FIXTURE_SETUP_TIMEOUT_MS);
+diff --git a/tests/unit/t265-plan-approval-guard.test.ts b/tests/unit/t265-plan-approval-guard.test.ts
+index 6cae8d0543..79f0b40644 100644
+--- a/tests/unit/t265-plan-approval-guard.test.ts
++++ b/tests/unit/t265-plan-approval-guard.test.ts
+@@ -810,6 +810,44 @@ function seedTwoBoundIntents(proj: string): void {
+ }
+ 
+ describe("t265b hook lifecycle", () => {
++  test("summary confirmation is a planning prerequisite, never Plan Approval (#2265)", () => {
++    const proj = scratchProject();
++    try {
++      seedState(proj);
++      seedActiveDirective(proj, "code-generation", "todo-core");
++      for (const prefix of ["aidlc", "bun .claude/tools/aidlc.ts"]) {
++        for (const verb of ["decision", "answer"]) {
++          const command = `${prefix} engine log ${verb} --stage code-generation --checkpoint summary-confirmation --questions-file ${RECORD_REL}/construction/todo-core/code-generation/questions.md --unit todo-core --details 'Looks correct'`;
++          const result = runHook(proj, BASH(command));
++          expect(result.code, `${command}\n${result.stderr}`).toBe(0);
++          for (const foreign of [
++            command.replace("--stage code-generation", "--stage build-and-test"),
++            command.replace("--checkpoint summary-confirmation", "--checkpoint unrelated"),
++            `${command} > src/generated.ts`,
++            `${command}; printf code > src/generated.ts`,
++          ]) expect(runHook(proj, BASH(foreign)).code, foreign).toBe(2);
++        }
++      }
++      // Admission records no approval: source mutation and developer dispatch
++      // still fail, and the log owner refuses missing confirmation evidence.
++      expect(runHook(proj, WRITE(join(proj, "src", "generated.ts"))).code).toBe(2);
++      expect(runHook(proj, {
++        hook_event_name: "PreToolUse", tool_name: "Task",
++        tool_input: { subagent_type: "aidlc-developer-agent", prompt: "AIDLC-UNIT: todo-core\nImplement todo-core" },
++      }).code).toBe(2);
++      const missing = spawnSync(BUN, [join(proj, ".claude", "tools", "aidlc-log.ts"),
++        "answer", "--stage", "code-generation", "--checkpoint", "summary-confirmation",
++        "--questions-file", join(proj, RECORD_REL, "missing.md"), "--details", "Looks correct",
++        "--unit", "todo-core", "--project-dir", proj], {
++        timeout: remainingOperationTimeoutMs(NATIVE_STARTUP_TIMEOUT_MS),
++        env: { ...process.env, AIDLC_SKIP_HUMAN_PRESENCE_GUARD: "0", AIDLC_SKIP_SUMMARY_CONFIRMATION_GUARD: "0" }, encoding: "utf-8",
++      });
++      expect(missing.status).not.toBe(0);
++      expect(readAllAuditShards(proj)).not.toContain("**Event**: SUMMARY_CONFIRMATION_RECORDED");
++      expect(readAllAuditShards(proj)).not.toContain("**Event**: PLAN_APPROVAL_RECORDED");
++    } finally { rmSync(proj, { recursive: true, force: true }); }
++  });
++
+   // The bytes the approval excludes must never reach the worker, on either path.
+   const APPENDIX =
+     "\n## Review\n\n**Verdict:** READY\n**Reviewer:** aidlc-architecture-reviewer-agent\n" +
+@@ -2116,8 +2154,8 @@ function seedTwoBoundIntents(proj: string): void {
+           `bun ${entry} engine bolt swarm-checkpoint --action verify --batch 1 --units todo-core,auth`,
+           `bun ${entry} engine bolt swarm-checkpoint --action status > src/inline.ts`,
+           `bun ${entry} engine bolt swarm-checkpoint --action status; printf code > src/inline.ts`,
+-          `bun ${entry} engine log decision --stage code-generation --checkpoint summary-confirmation`,
+-          `bun ${entry} engine log answer --stage code-generation --checkpoint plan-approval --checkpoint summary-confirmation`,
++          `bun ${entry} engine log decision --stage code-generation --checkpoint unrelated`,
++          `bun ${entry} engine log answer --stage code-generation --checkpoint plan-approval --checkpoint unrelated`,
+           `bun ${entry} system lifecycle uninstall --yes`,
+           `bun ${entry} engine orchestrate next > src/inline.ts`,
+           `bun ${entry} engine orchestrate next; printf code > src/inline.ts`,
+@@ -2492,8 +2530,8 @@ function seedTwoBoundIntents(proj: string): void {
+         "aidlc engine bolt checkpoint --action status --action verify --unit todo-core",
+         "aidlc engine bolt start --name todo-core",
+         "aidlc engine bolt swarm-checkpoint --action status > src/inline.ts",
+-        "aidlc engine log decision --stage code-generation --checkpoint summary-confirmation",
+-        "aidlc engine log decision --stage code-generation --checkpoint plan-approval --checkpoint summary-confirmation",
++        "aidlc engine log decision --stage code-generation --checkpoint unrelated",
++        "aidlc engine log decision --stage code-generation --checkpoint plan-approval --checkpoint unrelated",
+         "aidlc engine log review --stage code-generation",
+         "aidlc engine state advance",
+         "aidlc system lifecycle uninstall --yes",

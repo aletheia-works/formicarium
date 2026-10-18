@@ -4,6 +4,9 @@
   "version": 1,
   "writes": [
     {
+      "path": "blink.lock"
+    },
+    {
       "path": "package.json"
     },
     {
@@ -11,9 +14,6 @@
     },
     {
       "path": ".gitignore"
-    },
-    {
-      "path": "eslint.config.mjs"
     },
     {
       "path": "README.md"
@@ -25,46 +25,16 @@
       "path": "scripts/build-guests.sh"
     },
     {
-      "path": "scripts/package/"
+      "path": "scripts/package/coverage-inventory.json"
     },
     {
-      "path": "runtime/public.mjs"
+      "path": "scripts/package/coverage.ts"
     },
     {
-      "path": "runtime/errors.mjs"
+      "path": "scripts/package/stage-package.ts"
     },
     {
-      "path": "runtime/validation.mjs"
-    },
-    {
-      "path": "runtime/state.mjs"
-    },
-    {
-      "path": "runtime/lifecycle.mjs"
-    },
-    {
-      "path": "runtime/protocol.mjs"
-    },
-    {
-      "path": "runtime/worker-execution.mjs"
-    },
-    {
-      "path": "runtime/core.mjs"
-    },
-    {
-      "path": "runtime/guest-io.mjs"
-    },
-    {
-      "path": "runtime/node/api.mjs"
-    },
-    {
-      "path": "runtime/node/package-worker.mjs"
-    },
-    {
-      "path": "runtime/web/api.mjs"
-    },
-    {
-      "path": "runtime/web/package-worker.mjs"
+      "path": "scripts/package/verify-package.ts"
     },
     {
       "path": "types/index.d.ts"
@@ -76,7 +46,235 @@
       "path": "types/browser.d.ts"
     },
     {
-      "path": "tests/package/"
+      "path": "tests/package/browser-api.spec.ts"
+    },
+    {
+      "path": "tests/package/browser-broker.spec.ts"
+    },
+    {
+      "path": "tests/package/browser-errors.spec.ts"
+    },
+    {
+      "path": "tests/package/browser-worker.spec.ts"
+    },
+    {
+      "path": "tests/package/consumer.spec.ts"
+    },
+    {
+      "path": "tests/package/consumer.test.ts"
+    },
+    {
+      "path": "tests/package/core.test.ts"
+    },
+    {
+      "path": "tests/package/coverage.test.ts"
+    },
+    {
+      "path": "tests/package/errors.test.ts"
+    },
+    {
+      "path": "tests/package/fixtures/broker-child.ts"
+    },
+    {
+      "path": "tests/package/fixtures/broker-request-worker.ts"
+    },
+    {
+      "path": "tests/package/fixtures/browser-nested-child.ts"
+    },
+    {
+      "path": "tests/package/fixtures/browser-nested-observer.ts"
+    },
+    {
+      "path": "tests/package/fixtures/inspect-worker.ts"
+    },
+    {
+      "path": "tests/package/fixtures/node-nested-observer.ts"
+    },
+    {
+      "path": "tests/package/fixtures/quiet-worker.ts"
+    },
+    {
+      "path": "tests/package/fixtures.ts"
+    },
+    {
+      "path": "tests/package/guest-io.test.ts"
+    },
+    {
+      "path": "tests/package/lifecycle.test.ts"
+    },
+    {
+      "path": "tests/package/loader-mutation.ts"
+    },
+    {
+      "path": "tests/package/nested-worker.spec.ts"
+    },
+    {
+      "path": "tests/package/nested-worker.test.ts"
+    },
+    {
+      "path": "tests/package/node-api.test.ts"
+    },
+    {
+      "path": "tests/package/node-worker.test.ts"
+    },
+    {
+      "path": "tests/package/pack.test.ts"
+    },
+    {
+      "path": "tests/package/playwright.config.ts"
+    },
+    {
+      "path": "tests/package/protocol.test.ts"
+    },
+    {
+      "path": "tests/package/public.test.ts"
+    },
+    {
+      "path": "tests/package/runner-ready.test.ts"
+    },
+    {
+      "path": "tests/package/state.test.ts"
+    },
+    {
+      "path": "tests/package/tooling.test.ts"
+    },
+    {
+      "path": "tests/package/tsconfig.json"
+    },
+    {
+      "path": "tests/package/types-invalid.ts"
+    },
+    {
+      "path": "tests/package/types-valid.ts"
+    },
+    {
+      "path": "tests/package/types.test.ts"
+    },
+    {
+      "path": "tests/package/validation.test.ts"
+    },
+    {
+      "path": "tests/package/worker-execution.test.ts"
+    },
+    {
+      "path": "runtime/worker-execution.ts"
+    },
+    {
+      "path": "runtime/lifecycle.ts"
+    },
+    {
+      "path": "runtime/protocol.ts"
+    },
+    {
+      "path": "runtime/web/package-worker.ts"
+    },
+    {
+      "path": "runtime/node/package-worker.ts"
+    },
+    {
+      "path": "runtime/state.ts"
+    },
+    {
+      "path": "runtime/public.ts"
+    },
+    {
+      "path": "runtime/errors.ts"
+    },
+    {
+      "path": "runtime/validation.ts"
+    },
+    {
+      "path": "runtime/core.ts"
+    },
+    {
+      "path": "runtime/web/api.ts"
+    },
+    {
+      "path": "runtime/node/api.ts"
+    },
+    {
+      "path": "runtime/guest-io.ts"
+    },
+    {
+      "path": "runtime/contracts.ts"
+    },
+    {
+      "path": "biome.json"
+    },
+    {
+      "path": "tsconfig.json"
+    },
+    {
+      "path": "tsconfig.tests.json"
+    },
+    {
+      "path": "scripts/emit.ts"
+    },
+    {
+      "path": "scripts/playwright-build-config.ts"
+    },
+    {
+      "path": "scripts/coverage-types.ts"
+    },
+    {
+      "path": "OUTCOMES.md"
+    },
+    {
+      "path": "docs/architecture.md"
+    },
+    {
+      "path": "docs/nfr-summary.md"
+    },
+    {
+      "path": "guest/probe/src/main.rs"
+    },
+    {
+      "path": "guest/probe/src/madvise_purge_reuse.rs"
+    },
+    {
+      "path": "guest/diagnostics/aube-purge/main.c"
+    },
+    {
+      "path": "guest/diagnostics/aube-purge/bitmap.c"
+    },
+    {
+      "path": "guest/diagnostics/aube-purge/bsf-zero.c"
+    },
+    {
+      "path": "guest/diagnostics/aube-purge/README.md"
+    },
+    {
+      "path": "guest/probe/src/bsf_zero.rs"
+    },
+    {
+      "path": "tests/node/probe.test.ts"
+    },
+    {
+      "path": "fixtures/baseline/aube-1645.native.txt"
+    },
+    {
+      "path": "patches/blink-bsf-zero-destination.patch"
+    },
+    {
+      "path": "tests/browser/aube-1645.spec.ts"
+    },
+    {
+      "path": "tests/browser/fixtures/pitchfork-diagnostic-worker.ts"
+    },
+    {
+      "path": "tests/browser/pitchfork-diagnostic.spec.ts"
+    },
+    {
+      "path": "tests/browser/core-exit-order.spec.ts"
+    },
+    {
+      "path": "patches/blink-exit-notification-order.patch"
+    },
+    {
+      "path": "tests/safari/verify.ts"
+    },
+    {
+      "path": "tests/package/fixtures/cpu-ready-worker.ts"
     }
   ]
 }

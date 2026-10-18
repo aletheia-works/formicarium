@@ -1,0 +1,17 @@
+{
+  "beforeSha256": "916d3354d29097afde89588473ae87712069710d7e111b0ab32c5cd93abdbd32",
+  "afterSha256": "48b4923b706f9fef959fdc08a4e87987bb59efb89541a800080f4b91d1cc2dd8",
+  "removed": [
+    {
+      "event": "STAGE_JUMPED",
+      "sha256": "907a627fc25ac68eea94e12fd76e181e0548187779da2f6bdbcd6401495874e4"
+    },
+    {
+      "event": "STAGE_STARTED",
+      "sha256": "b04e4b4c393e54c879b3e2290186a0741fb5ffd7c6f4f43f7010e48de77dcb75"
+    }
+  ],
+  "allOtherBlocksUnchanged": true,
+  "restoredApprovalCreated": false,
+  "appliedAt": "2026-10-10T02:19:03.305Z"
+}

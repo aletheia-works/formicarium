@@ -1,13 +1,24 @@
-# Code Generation Questions — U3
+# Code Generation Plan Approval
+
+AI-DLC writes this file when it asks you to approve the plan. To answer here
+instead of in chat, write your answer after `[Answer]:` and say done.
 
 ## Plan Approval
 
-このU3 code-generation-plan.md（埋込みTesting Contractを含む）と unit-test-instructions.md に従い、既存terrariumの具体的な対象を共通runtimeへ接続しますか？外部書込み権限は実装前に取得します。公開操作は別承認です。
+Approve the code plan for u3-terrarium-integration?
 
-[Approval Fingerprint]: sha256:v3:393e151a016dec8d7f52c309f5bde92b3587fe71ae6989df94aa9d77452b8bbb
-[Planned Source]: 7a348bdf78cb0f3dee395b18592fd262e2f7e33689f203750fbe059bf4c352de
+- Builds: 既存U3成果を保持した要件対応の補完、保存証拠の再照合、代替coverage出力先の計画整合。
+- Touches: U3の計画・試験指示・要件対応・完了資料と新規verification。製品・外部owner・既存候補・証拠は保持する。
+- Tests: 保存Node48件・bridge6件・固定24JS coverageの同一性照合、代替入力条件の確認、正式レビューとチェックポイント検証。
 
-- Approve Plan — proceed to code generation
-- Request Changes — revise the plan
+Full plan: aidlc/spaces/default/intents/261006-npm-terrarium-release/construction/u3-terrarium-integration/code-generation/code-generation-plan.md
+Test instructions: aidlc/spaces/default/intents/261006-npm-terrarium-release/construction/u3-terrarium-integration/code-generation/unit-test-instructions.md
 
-[Answer]: Approve Plan
+[Approval Fingerprint]: sha256:v3:9c9a3cef76d9f1134d49cce7d0dc33a87237356ec84fd6fa0d3976d99b9af006
+[Planned Source]: e927d99d8076c501199ca6894a765f4c958d87c473a3c6b1a69e2843aee60b52
+
+- A. Approve Plan
+- B. Request Changes
+- C. I'll edit the files
+
+[Answer]: A. Approve Plan

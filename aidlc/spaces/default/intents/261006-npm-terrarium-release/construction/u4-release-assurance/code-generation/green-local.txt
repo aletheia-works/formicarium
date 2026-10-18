@@ -1,0 +1,44 @@
+✔ main observer records actual zero exit with stdout stderr digest (40.904333ms)
+✔ nonzero process remains failed (31.269833ms)
+✔ deadline kills child and cannot count as success (34.571583ms)
+✔ aborted command is never started (2.119625ms)
+✔ missing executable reports init failure (2.141916ms)
+✔ missing or wrong artifact bytes are rejected (1.357458ms)
+✔ not-run and malformed argv configuration never imply execution (0.847458ms)
+✔ RC permits complete fixture preconditions without stable adoption; performs no publishing (13.012791ms)
+✔ missing target-bound human approval blocks RC (11.665708ms)
+✔ unknown ID checkId and duplicate evidence IDs block (4.499375ms)
+✔ failed mandatory check cannot be hidden by another successful envelope (15.118083ms)
+✔ stable requires own fixed coverage and digest-bound explicit RC history (30.448333ms)
+✔ RC envelope direct stable adoption or relabel cannot substitute stable evidence (33.233084ms)
+✔ unknown or altered RC digest public tarball and unverified diff all block stable (158.943833ms)
+✔ null coverage missing realm below floor and incomplete stable checks block (143.882583ms)
+✔ immutable envelope resolves by evidenceId and duplicate save refuses overwrite (8.864375ms)
+✔ unknown ID checkId substitution and duplicate index IDs fail (2.811083ms)
+✔ envelope byte tampering invalidates saved index (2.241792ms)
+✔ different candidate or tarball and duplicate check IDs are refused (2.570084ms)
+✔ passed status cannot conceal nonzero timeout unverified or missing logs (3.853958ms)
+✔ log modification and traversal/symlink artifacts fail (2.202834ms)
+✔ fixed source denominator cannot omit or duplicate modules; null coverage remains explicit (1.192125ms)
+✔ report refuses instrumented module-only tampering with original sources and statement maps intact (96.89575ms)
+✔ report refuses final browser bundle-only tampering with original candidate intact (40.793083ms)
+✔ report refuses measured-copy drift after a successful complete report (57.741792ms)
+✔ normal seal rejects resealing and missing seal or stale execution receipts (60.552625ms)
+✔ sealed execution rejects additions omissions kind changes and escaping links (144.638625ms)
+✔ fixed24 preserves U1 fourteen U2 three and all seven U3 modules; never imported files stay zero (11.637625ms)
+✔ old generation receipts are refused even when source and statement layout are identical (7.402917ms)
+✔ same-length source or candidate replacement invalidates old receipts (17.96525ms)
+✔ missing node/browser or skipped measurement fails closed (8.150791ms)
+✔ duplicate realms inventory shrink and nonzero seed are rejected (7.839375ms)
+✔ missing Worker component import and altered statement map fail (8.487333ms)
+✔ re-prepare refuses existing measurement output before touching a receipt (3.79775ms)
+✔ immutable U1 import preserves original realm names and rejects wrong pack/source/missing realm (18.25825ms)
+✔ node raw hook requires fresh attempt and parent observed exit (11.745708ms)
+ℹ tests 36
+ℹ suites 0
+ℹ pass 36
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1548.932459

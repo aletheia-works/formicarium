@@ -1,0 +1,13 @@
+# Candidate Input Preparation
+
+## Observed Local Binding
+
+検証済み。隔離jj source aa9c974b7cab564d5a824f3aecedd99428d481c7（base12a92eab）からcandidateSourcePathsの188ファイルをpinした。旧供給manifest全1373ファイルのdigestをverifyPinsで確認後、tarball/package manifest/consumer内容を新candidateへ差し替え、createBundleとvalidateCandidateInputsで実入力のpreflightが成功した。owner baseline60dd0dc448f3a67d226dc8a3c6b3afcf4709823d、integration identity e1fdf00580280a9d713677987d73d2737d5a4cab91b30542357a60d9335b540d。corea882fb2f3df14115b7e46f6812fb296eef5934d7、aubev2.7.0/pitchforkv2.30.1は再ビルドしていない。
+
+入力directory /private/tmp/formicarium-bun-ci-u1-inputs-v1。payload1373file・229150324bytes。移送候補archive /private/tmp/formicarium-bun-ci-u1-inputs-v3.tar.gz、104494068bytes、SHA256 cc182cb477eb7747b3b4418c3e13b4938f2364dabb806f1727aacd875952dc08。全1374member（manifest+payload）はregular、重複なし、GitHub100MiB未満。Mac tarのdirectory/AppleDouble入り初期archiveは使用しない。明示file一覧・COPYFILE_DISABLE=1・no-xattrs・gzip9で生成したv3のみを候補とする。
+
+## External Execution Prerequisites
+
+未実施。具体的な外部push/設定/CI承認後にのみ、source branchと別の新入力branchへ送信し、固定commitのraw HTTPS URL及びarchiveSHAをFORMICARIUM_MODERNIZATION_INPUT_URL/SHA256へ設定する。旧CI_INPUT変数・公開tag・rc1-inputs branchは変更しない。最大360分candidate-requiredを当該sourceでdispatchし、9checks/固定24JS coverage80%以上/全realmを実結果で確認する。初期mainにtrusted validatorを載せるbootstrapは別の最小導入案を提示して承認する。main統合前に通常CIも当該SHAで成功させる。
+
+このpreflightはHTTP実転送・回帰・coverage・GitHub Actions成功を証明しない。sourceの署名pushでSHAが変わった場合はmanifest再生成・archiveSHA再固定が必要であり、古いmanifestを流用しない。

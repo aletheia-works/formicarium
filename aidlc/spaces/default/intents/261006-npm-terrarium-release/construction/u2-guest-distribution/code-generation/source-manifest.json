@@ -3,24 +3,59 @@
   "unit": "u2-guest-distribution",
   "version": 1,
   "writes": [
-    { "path": "integration/terrarium/guest-distribution/manifest.mjs" },
-    { "path": "integration/terrarium/guest-distribution/fixtures.mjs" },
-    { "path": "integration/terrarium/guest-distribution/resolver.mjs" },
-    { "path": "integration/terrarium/guest-distribution/index.d.ts" },
-    { "path": "integration/terrarium/guest-distribution/resolver.d.mts" },
-    { "path": "scripts/guest-distribution/stage.mjs" },
-    { "path": "scripts/guest-distribution/coverage.mjs" },
-    { "path": "tests/guest-distribution/manifest.test.mjs" },
-    { "path": "tests/guest-distribution/fixtures.test.mjs" },
-    { "path": "tests/guest-distribution/resolver.test.mjs" },
-    { "path": "tests/guest-distribution/stage.test.mjs" },
-    { "path": "tests/guest-distribution/integration.test.mjs" },
-    { "path": "tests/guest-distribution/consumer.spec.mjs" },
-    { "path": "tests/guest-distribution/playwright.config.mjs" },
-    { "path": "tests/guest-distribution/serve.mjs" },
-    { "path": "tests/guest-distribution/types.ts" },
-    { "path": "tests/guest-distribution/tsconfig.json" },
-    { "path": "tests/guest-distribution/eslint.config.mjs" },
-    { "path": "docs/guest-distribution.md" }
+    {
+      "path": "integration/terrarium/guest-distribution/manifest.ts"
+    },
+    {
+      "path": "integration/terrarium/guest-distribution/fixtures.ts"
+    },
+    {
+      "path": "integration/terrarium/guest-distribution/resolver.ts"
+    },
+    {
+      "path": "integration/terrarium/guest-distribution/index.d.ts"
+    },
+    {
+      "path": "integration/terrarium/guest-distribution/resolver.d.ts"
+    },
+    {
+      "path": "scripts/guest-distribution/stage.ts"
+    },
+    {
+      "path": "scripts/guest-distribution/coverage.ts"
+    },
+    {
+      "path": "tests/guest-distribution/manifest.test.ts"
+    },
+    {
+      "path": "tests/guest-distribution/fixtures.test.ts"
+    },
+    {
+      "path": "tests/guest-distribution/resolver.test.ts"
+    },
+    {
+      "path": "tests/guest-distribution/stage.test.ts"
+    },
+    {
+      "path": "tests/guest-distribution/integration.test.ts"
+    },
+    {
+      "path": "tests/guest-distribution/consumer.spec.ts"
+    },
+    {
+      "path": "tests/guest-distribution/playwright.config.ts"
+    },
+    {
+      "path": "tests/guest-distribution/serve.ts"
+    },
+    {
+      "path": "tests/guest-distribution/types.ts"
+    },
+    {
+      "path": "tests/guest-distribution/tsconfig.json"
+    },
+    {
+      "path": "docs/guest-distribution.md"
+    }
   ]
 }

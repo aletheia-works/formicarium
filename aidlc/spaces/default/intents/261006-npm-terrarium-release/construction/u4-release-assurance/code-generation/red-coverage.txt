@@ -1,0 +1,64 @@
+✖ report refuses instrumented module-only tampering with original sources and statement maps intact (86.042417ms)
+✖ report refuses final browser bundle-only tampering with original candidate intact (46.408042ms)
+✖ report refuses measured-copy drift after a successful complete report (53.055334ms)
+✔ fixed24 preserves U1 fourteen U2 three and all seven U3 modules; never imported files stay zero (10.309583ms)
+✔ old generation receipts are refused even when source and statement layout are identical (10.790083ms)
+✔ same-length source or candidate replacement invalidates old receipts (18.263833ms)
+✔ missing node/browser or skipped measurement fails closed (7.578916ms)
+✔ duplicate realms inventory shrink and nonzero seed are rejected (8.286875ms)
+✔ missing Worker component import and altered statement map fail (7.461666ms)
+✔ re-prepare refuses existing measurement output before touching a receipt (2.785041ms)
+✔ immutable U1 import preserves original realm names and rejects wrong pack/source/missing realm (12.545166ms)
+✔ node raw hook requires fresh attempt and parent observed exit (11.715125ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 9
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 699.264
+
+✖ failing tests:
+
+test at tests/terrarium/coverage.test.js:75:1
+✖ report refuses instrumented module-only tampering with original sources and statement maps intact (86.042417ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///Users/mutoakio/Documents/formicarium/tests/terrarium/coverage.test.js:78:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /execution|seal|instrumented.*changed/i,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at tests/terrarium/coverage.test.js:80:1
+✖ report refuses final browser bundle-only tampering with original candidate intact (46.408042ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///Users/mutoakio/Documents/formicarium/tests/terrarium/coverage.test.js:83:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /execution|seal|bundle.*changed/i,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at tests/terrarium/coverage.test.js:85:1
+✖ report refuses measured-copy drift after a successful complete report (53.055334ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///Users/mutoakio/Documents/formicarium/tests/terrarium/coverage.test.js:90:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /execution|seal|instrumented.*changed/i,
+    operator: 'rejects',
+    diff: 'simple'
+  }

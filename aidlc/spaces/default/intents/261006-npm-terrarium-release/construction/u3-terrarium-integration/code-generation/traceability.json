@@ -26,43 +26,62 @@
     "AC6.3.3",
     "AC6.4.1",
     "AC6.4.2",
-    "AC6.4.3"
+    "AC6.4.3",
+    "FR5",
+    "FR5.1",
+    "FR5.2",
+    "FR5.3",
+    "FR5.4",
+    "FR7",
+    "FR7.1",
+    "FR7.2",
+    "FR7.3",
+    "NFR1",
+    "NFR2",
+    "NFR3",
+    "NFR4",
+    "NFR5",
+    "NFR7"
   ],
   "coverage": [
     {
       "id": "AC4.1.1",
       "status": "OK",
-      "target": "tests/terrarium/consumer.spec.mjs"
+      "target": "tests/terrarium/consumer.spec.ts"
     },
     {
       "id": "AC4.1.2",
       "status": "OK",
-      "target": "tests/terrarium/consumer.spec.mjs"
+      "target": "tests/terrarium/consumer.spec.ts"
     },
     {
       "id": "AC4.1.3",
       "status": "OK",
-      "target": "tests/terrarium/consumer.spec.mjs"
+      "target": "tests/terrarium/consumer.spec.ts"
     },
     {
       "id": "AC4.2.1",
       "status": "OK",
-      "target": "tests/terrarium/coverage.test.mjs"
+      "target": "scripts/terrarium/acceptance.ts",
+      "reason": "Owner C5 source78 and historical v8 approval remain pinned/read-only, with immutable audit snapshot and bounded benign append verification. Local current-candidate formal assembly validates v9/pitchfork2.30.1 separately: bridge6, dedicated45 and fresh measured45 passed; fixed24 coverage80.51% with strict samepack U1v14 import. External owner did not approve this new candidate."
     },
     {
       "id": "AC4.2.2",
       "status": "OK",
-      "target": "tests/terrarium/coverage.test.mjs"
+      "target": "scripts/terrarium/acceptance.ts",
+      "reason": "Owner C5 source78 and historical v8 approval remain pinned/read-only, with immutable audit snapshot and bounded benign append verification. Local current-candidate formal assembly validates v9/pitchfork2.30.1 separately: bridge6, dedicated45 and fresh measured45 passed; fixed24 coverage80.51% with strict samepack U1v14 import. External owner did not approve this new candidate."
     },
     {
       "id": "AC4.2.3",
       "status": "OK",
-      "target": "tests/terrarium/coverage.test.mjs"
+      "target": "scripts/terrarium/acceptance.ts",
+      "reason": "Owner C5 source78 and historical v8 approval remain pinned/read-only, with immutable audit snapshot and bounded benign append verification. Local current-candidate formal assembly validates v9/pitchfork2.30.1 separately: bridge6, dedicated45 and fresh measured45 passed; fixed24 coverage80.51% with strict samepack U1v14 import. External owner did not approve this new candidate."
     },
     {
       "id": "AC4.2.4",
       "status": "OK",
-      "target": "tests/terrarium/coverage.test.mjs"
+      "target": "scripts/terrarium/acceptance.ts",
+      "reason": "Owner C5 source78 and historical v8 approval remain pinned/read-only, with immutable audit snapshot and bounded benign append verification. Local current-candidate formal assembly validates v9/pitchfork2.30.1 separately: bridge6, dedicated45 and fresh measured45 passed; fixed24 coverage80.51% with strict samepack U1v14 import. External owner did not approve this new candidate."
     },
     {
       "id": "AC5.1.1",
@@ -171,6 +190,96 @@
       "status": "Deferred",
       "target": "aidlc/spaces/default/intents/261006-npm-terrarium-release/inception/units-generation/unit-of-work-story-map.md",
       "reason": "Primary implementation and release/CI/RC/stable judgment owned by U4; U3 provides local integration evidence only."
+    },
+    {
+      "id": "FR5",
+      "status": "Deferred",
+      "target": "aidlc/spaces/default/intents/261006-npm-terrarium-release/construction/u3-terrarium-integration/code-generation/verification/ci-traceability-repair-v1/requirement-mapping.md",
+      "reason": "C4/C5 local compatibility observed; real GitHub Pages/service-worker/public RC acceptance remains U4/Build and Test."
+    },
+    {
+      "id": "FR5.1",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261006-npm-terrarium-release/construction/u3-terrarium-integration/code-generation/verification/ci-traceability-repair-v1/requirement-mapping.md",
+      "reason": "Saved current copied terminal 45-case suite covers ready tool/ref/commit, code/output/transcript/events, nonzero/error, queue/reset, keyboard/focus; bridge6 ties installed v9 pack/aube2.7.0/pitchfork2.30.1 to actual Worker."
+    },
+    {
+      "id": "FR5.2",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261006-npm-terrarium-release/construction/u3-terrarium-integration/code-generation/verification/ci-traceability-repair-v1/requirement-mapping.md",
+      "reason": "Saved current iframe condition exact origins and guest marker oracle; invalid opaque wildcard/unknown parent and unapproved parent run/notification rejection. Local origin fixture only; no remote deployment claim."
+    },
+    {
+      "id": "FR5.3",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261006-npm-terrarium-release/construction/u3-terrarium-integration/code-generation/verification/ci-traceability-repair-v1/requirement-mapping.md",
+      "reason": "normal nonzero exit and unsupported syntax error once; queue recovers; owner implementation preserves builtins/literal quoting without shell execution."
+    },
+    {
+      "id": "FR5.4",
+      "status": "Deferred",
+      "target": "aidlc/spaces/default/intents/261006-npm-terrarium-release/construction/u3-terrarium-integration/code-generation/verification/ci-traceability-repair-v1/requirement-mapping.md",
+      "reason": "All nine local fixture cells and guest marker oracle saved passed; actual GitHub Pages credentialless/service-worker delivery remains unverified, owned by U4/Build and Test."
+    },
+    {
+      "id": "FR7",
+      "status": "Deferred",
+      "target": "aidlc/spaces/default/intents/261006-npm-terrarium-release/construction/u3-terrarium-integration/code-generation/verification/ci-traceability-repair-v1/requirement-mapping.md",
+      "reason": "Current local v9 consumer evidence is preserved; publicly released RC adoption and complete native/probe regression acceptance remain U4."
+    },
+    {
+      "id": "FR7.1",
+      "status": "Deferred",
+      "target": "aidlc/spaces/default/intents/261006-npm-terrarium-release/construction/u3-terrarium-integration/code-generation/verification/ci-traceability-repair-v1/requirement-mapping.md",
+      "reason": "U3 bridge and copied terminal/iframe suites passed; complete Node/three-browser native aube-1645/pitchfork-basic/probe8 and named regressions on final release candidate remain U4."
+    },
+    {
+      "id": "FR7.2",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261006-npm-terrarium-release/construction/u3-terrarium-integration/code-generation/verification/ci-traceability-repair-v1/requirement-mapping.md",
+      "reason": "Same v9 tarball, clean core a882fb2f3df14115b7e46f6812fb296eef5934d7, guest build-info/ELF/input identities and sealed candidate retained; no core/guest rebuild in recovery."
+    },
+    {
+      "id": "FR7.3",
+      "status": "Deferred",
+      "target": "aidlc/spaces/default/intents/261006-npm-terrarium-release/construction/u3-terrarium-integration/code-generation/verification/ci-traceability-repair-v1/requirement-mapping.md",
+      "reason": "Local records bind commands/results/guestref/browsers/version and unknowns; public RC installed into real terrarium is not verified and must be separately recorded by U4."
+    },
+    {
+      "id": "NFR1",
+      "status": "Deferred",
+      "target": "aidlc/spaces/default/intents/261006-npm-terrarium-release/construction/u3-terrarium-integration/code-generation/verification/ci-traceability-repair-v1/requirement-mapping.md",
+      "reason": "U3 current Node/Chromium/Firefox/WebKit subset observed; all FR1-FR7 across final candidate and real delivery remain U4/Build and Test. This U3 Safari candidate unverified, optional."
+    },
+    {
+      "id": "NFR2",
+      "status": "Deferred",
+      "target": "aidlc/spaces/default/intents/261006-npm-terrarium-release/construction/u3-terrarium-integration/code-generation/verification/ci-traceability-repair-v1/requirement-mapping.md",
+      "reason": "U3 runner one worker/no retry,840s suite and600s pitchfork bridge limits observed; probe8/native/600s/840s/120s/memory1GB full release assessment remains U4."
+    },
+    {
+      "id": "NFR3",
+      "status": "Deferred",
+      "target": "aidlc/spaces/default/intents/261006-npm-terrarium-release/construction/u3-terrarium-integration/code-generation/verification/ci-traceability-repair-v1/requirement-mapping.md",
+      "reason": "Fixed24 saved raw46 receipts1450/1801 lines80.51% skip0 with immutable same-pack U1v14 import. Remote integration CI remains unverified; full requirement not OK."
+    },
+    {
+      "id": "NFR4",
+      "status": "Deferred",
+      "target": "aidlc/spaces/default/intents/261006-npm-terrarium-release/construction/u3-terrarium-integration/code-generation/verification/ci-traceability-repair-v1/requirement-mapping.md",
+      "reason": "Local exact origin/nonexecution oracle, input/path and independent terminal regressions covered; all guest network/daemon/path/state release regressions remain U4/Build and Test."
+    },
+    {
+      "id": "NFR5",
+      "status": "Deferred",
+      "target": "aidlc/spaces/default/intents/261006-npm-terrarium-release/construction/u3-terrarium-integration/code-generation/verification/ci-traceability-repair-v1/requirement-mapping.md",
+      "reason": "Local tarball/core dirty=false/guest provenance identities verified; public source/history/secrets/dependency/license review and public supplier identity remain U4."
+    },
+    {
+      "id": "NFR7",
+      "status": "Deferred",
+      "target": "aidlc/spaces/default/intents/261006-npm-terrarium-release/construction/u3-terrarium-integration/code-generation/verification/ci-traceability-repair-v1/requirement-mapping.md",
+      "reason": "Named U3 error/nonzero/queue/timeout-control cases and identity-bound logs retained; all execution lifecycle/output byte semantics plus secret-free public final acceptance remain U4/Build and Test."
     }
   ]
 }

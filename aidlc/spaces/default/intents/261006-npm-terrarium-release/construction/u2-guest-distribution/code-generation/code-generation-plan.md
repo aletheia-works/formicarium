@@ -1,13 +1,30 @@
 # Code Generation Plan — U2 Guest Distribution
 
+## Summary
+
+Builds: 既存U2成果を保持した要件対応記録と証拠同一性の再照合。
+Touches: 本Unitの計画・試験指示・要件対応・完了資料と新規verification記録。製品、core、guest、既存検証証拠は保持する。
+Tests: 保存済みNode 41件・三browser 15件・coverageの候補同一性を照合し、正式レビューと承認済みチェックポイント検証を行う。
+
+## Current Recovery Plan (2026-10-10)
+
+今回のRequest Changesに対する実行計画はStep 16–20である。下記Step 1–15とRepair Boundaryは過去の実装・修正履歴であり、未チェックのStep 12を含め製品修正や再測定を再実行する指示ではない。今回の計画承認後に着手する。
+
+- [ ] Step 16 — main sessionで既存runner/configurationと保存済み証拠を読み取り確認する。`verification/official-restart-20261010-v2/main-results.json`、既存reconciliation、`.artifacts/u2-guest-distribution/site-repair-v1`、`.artifacts/u2-coverage-repair-v3/report.json`を照合する。固定配布JS 3件、候補11ファイル、source-manifest 18件、traceability 11件の在庫と関連receiptの実際の件数・SHA-256・size・identityを記録する。旧成功を別候補へ付け替えない。
+- [x] Step 17 — AC4.3.1、AC4.3.2、AC4.3.3、FR6、FR6.1、FR6.2、NFR1、NFR3、NFR4、NFR5、NFR7の11 IDについて、承認済み要件原文の全条件を実装箇所・名前付き試験・実行証拠へ対応付ける。既存IDを保持する。ファイルが存在するだけではOKにしない。親要件の全体条件、実配信、遠隔CIなどU2証拠だけで満たせない条件はDeferred/GAPと理由・後続担当を明記する。
+- [x] Step 18 — code-summary.md、traceability.jsonと新規`verification/ci-traceability-repair-v1/requirement-mapping.md`へ照合結果を反映する。新規読み取り照合helperと結果は同verification配下へ保存できる。既存receipt・review・coverage・候補・source-manifestは上書きしない。U2のpitchfork 2.30.0候補とU3の2.30.1証拠を区別し、今回の照合を最新guest受入れ成功とは扱わない。
+- [ ] Step 19 — 保存済みNode 41件・browser 15件、coverage 249/254（98.03%）、skip 0の記録を実ファイルと照合し、観測できた値だけを報告する。runnerの構成を確認してから必要な正式チェックポイント検証をmainで逐次実行する。同一成果の重い再build・再prepare・coverage再測定は既定では行わない。差分や不一致により製品修正・新規測定が必要になった場合は根拠を示して計画を改訂する。
+- [ ] Step 20 — 独立した正式レビュー、結果記録、Unit完了・チェックポイント承認の手順へ進む。遠隔CI・全要件の残条件はU4と後続Build and Testへ明示的に引き継ぐ。U1 14件とU2 3件は小計17件であり、全体coverage一覧はU3を含む実際の配布対象から確定する。Code Generation全体の完了確認までStopフックを無効のまま維持する。
+
+既存の修正と検証結果を保持し、AI-DLCの状態・セッション・承認receiptを手編集しない。外部配信、push、公開、PR作成を今回のU2計画に含めない。
+
 ## Scope and Sources
 
 担当: GuestDistribution、US4.3 / AC4.3.1–AC4.3.3、FR6.1/FR6.2、C3。
 参照: inception/contract-design/contract-summary.md C3、inception/units-generation/unit-of-work.md U2、inception/user-stories/stories.md US4.3、inception/requirements-analysis/requirements.md、inception/delivery-planning/bolt-plan.md B2。
 NFR1/NFR3/NFR4/NFR5/NFR7の関連条件を保持する。U1のC1/C2/C8と承認済みskeletonを変更しない。
 
-この計画は実装前であり、チェックボックスはすべて未実施。初回Plan Approvalが必要。
-利用者の復旧指示に従い、U2の正規の計画作成・承認を先に実施し、既に選ばれた自動進行の設定記録を承認後に試す。設定・状態・承認receipt・導入済みAI-DLCは手編集しない。
+既存のStep 1–11は実装・ローカル検証済みとして記録されている。Step 12の完了手続と、以下の供給物・測定証拠の欠陥修正は未完了。現在のリポジトリはTypeScriptへ移行済みであり、ソースは.ts、emitされた実行対象とcoverage inventoryは.jsを使用する。現在の試行でこの更新計画の有効なPlan Approvalを得てから修正を開始する。既存成果は保持し、全体を再生成しない。設定・状態・承認receipt・導入済みAI-DLCは手編集しない。
 
 ## Implementation Boundary
 
@@ -15,12 +32,12 @@ NFR1/NFR3/NFR4/NFR5/NFR7の関連条件を保持する。U1のC1/C2/C8と承認�
 ローカルの静的サイト候補は `.artifacts/u2-guest-distribution/site/` に生成し、tools.json / dist/builds.json / ref別guest・fixtures・build-infoを含む。U3で既存terrariumへ接続する際、反映対象と外部作業領域の書込み権限を確認する。ローカル候補を実配信やterrarium本体への反映済み成果として報告しない。
 
 想定ソース:
-- integration/terrarium/guest-distribution/manifest.mjs: C3 metadataと供給URLの検証。
-- integration/terrarium/guest-distribution/fixtures.mjs: UTF-8/明示bytesからC1 FsEntryへの変換。
-- integration/terrarium/guest-distribution/resolver.mjs: resolveGuest、catalogue選択と資産検証の公開境界。
+- integration/terrarium/guest-distribution/manifest.ts: C3 metadataと供給URLの検証。
+- integration/terrarium/guest-distribution/fixtures.ts: UTF-8/明示bytesからC1 FsEntryへの変換。
+- integration/terrarium/guest-distribution/resolver.ts: resolveGuest、catalogue選択と資産検証の公開境界。
 - integration/terrarium/guest-distribution/index.d.ts: C3公開型。
-- scripts/guest-distribution/stage.mjs: static-musl供給物とmanifestの生成。
-- tests/guest-distribution/{manifest,fixtures,resolver,stage,integration}.test.mjs、consumer.spec.mjs、playwright.config.mjs、serve.mjs、types.ts、tsconfig.json。
+- scripts/guest-distribution/stage.ts: static-musl供給物とmanifestの生成。
+- tests/guest-distribution/{manifest,fixtures,resolver,stage,integration}.test.ts、consumer.spec.ts、playwright.config.ts、serve.ts、types.ts、tsconfig.json。
 - docs/guest-distribution.md: 配置、provenance、U3/U4への受渡しと未検証事項。
 
 ## Contract Details
@@ -35,18 +52,27 @@ source.commitのない資産をproducerが推測で補完しない。変更の�
 
 ## Ordered Implementation Steps
 
-- [x] Step 1 — runnerと入力在庫を確認する。既存node:test/Playwright/TypeScriptを使い、main sessionで実体パスとunit-scopedコマンドを確認する。実guest/build-infoの所在・commit・patchを調査し、再buildが必要なら根拠を示す。テスト準備の最小configを作る。AC4.3.1–3/NFR5。
-- [x] Step 2 — manifest.mjsでC3 schema・registered ref・供給URL・metadataの検証層を実装する。AC4.3.1/3。
-- [x] Step 3 — manifest.test.mjsに正常2ref、branch/tag/commit/pr-N、未知tool/ref、missing commit、format/schema不正、origin/path/redirect境界の5–8論理ケース群を作成しmainで実行する。AC4.3.1–3/NFR4/5。
-- [x] Step 4 — fixtures.mjsで既存UTF-8 mapと明示bytesのC1 FsEntry変換を実装する。AC4.3.1/NFR4。
-- [x] Step 5 — fixtures.test.mjsに既定/空seed、binary copy、mode/inode、重複/path traversal/root外、symlink境界、cwd既定の5–8ケース群を作成しmainで実行する。AC4.3.1/3。
-- [x] Step 6 — resolver.mjsと型を実装する。catalogue→選択→fetch/digest/provenance→SelectedGuestの順で検査し、共通core版とguest refを分離する。AC4.3.1–3。
-- [x] Step 7 — resolver.test.mjsに正常2ref、default、fixture=''、未知fixture/404、改変digest、異なるtool/ref/commit、ELF/dynamic guest不正、供給先外redirectのケース群を作成しmainで実行する。types.ts/tsconfig.jsonでC3 consumerをcompileする。AC4.3.1–3/NFR1/4/5。
-- [x] Step 8 — stage.mjsでref別static site供給物を生成する。既存buildsを保持し、sha256を実bytesから計算し、build-info/source/patchを照合する。UI・npm・公開workflowは変更しない。AC4.3.1/2/NFR5。
-- [x] Step 9 — stage.test.mjsに正常生成、二refの分離、旧/他tool metadata保持、missing asset/commit、不正target/patch、digest対応、npm非同梱の5–8ケース群を作成しmainで実行する。AC4.3.1–3/FR1.3。
-- [x] Step 10 — integration.test.mjsとbrowser consumer.spec.mjsでローカルHTTP供給をNode/Chromium/Firefox/WebKitから選択しbytes/commit/digest/entries/cwdを照合する。各拒否ケースでguest未実行を確認する。模擬2refのschema試験と実aube/pitchfork資産の供給検証を別記録にし、模擬を実guest合格として流用しない。AC4.3.1–3/NFR1/4/5。
-- [x] Step 11 — U2の配布JS一覧をmanifest/fixtures/resolverの固定3ファイルとして定め、Node/browserの計測を収集・照合する。未実行を0%、realm欠落を未検証/失敗にする。U1の固定13ファイル・80%基準を維持し、U4へunion用のidentity付き結果を渡す。U2の新規配布JSも第一者配布JS coverageの分母へ加える。CI実行はU4で必須、ローカル成功で代替しない。NFR3。
-- [ ] Step 12 — docs、code-summary.md、source-manifest.json、traceability.jsonを生成する。AC4.3.1–3/FR6/NFR関連条件を実装・テストの既存pathへ結び、候補identity/commands/resultsと実配信未検証をU3/U4へ渡す。正規の第三者レビュー・Unit検証・完了記録へ進む。未実施Mustが残れば完了しない。
+- [ ] Step 1 — runnerと入力在庫を確認する。既存node:test/Playwright/TypeScriptを使い、main sessionで実体パスとunit-scopedコマンドを確認する。実guest/build-infoの所在・commit・patchを調査し、再buildが必要なら根拠を示す。テスト準備の最小configを作る。AC4.3.1–3/NFR5。
+- [ ] Step 2 — manifest.tsでC3 schema・registered ref・供給URL・metadataの検証層を実装する。AC4.3.1/3。
+- [ ] Step 3 — manifest.test.tsに正常2ref、branch/tag/commit/pr-N、未知tool/ref、missing commit、format/schema不正、origin/path/redirect境界の5–8論理ケース群を作成しmainで実行する。AC4.3.1–3/NFR4/5。
+- [ ] Step 4 — fixtures.tsで既存UTF-8 mapと明示bytesのC1 FsEntry変換を実装する。AC4.3.1/NFR4。
+- [ ] Step 5 — fixtures.test.tsに既定/空seed、binary copy、mode/inode、重複/path traversal/root外、symlink境界、cwd既定の5–8ケース群を作成しmainで実行する。AC4.3.1/3。
+- [ ] Step 6 — resolver.tsと型を実装する。catalogue→選択→fetch/digest/provenance→SelectedGuestの順で検査し、共通core版とguest refを分離する。AC4.3.1–3。
+- [ ] Step 7 — resolver.test.tsに正常2ref、default、fixture=''、未知fixture/404、改変digest、異なるtool/ref/commit、ELF/dynamic guest不正、供給先外redirectのケース群を作成しmainで実行する。types.ts/tsconfig.jsonでC3 consumerをcompileする。AC4.3.1–3/NFR1/4/5。
+- [ ] Step 8 — stage.tsでref別static site供給物を生成する。既存buildsを保持し、sha256を実bytesから計算し、build-info/source/patchを照合する。UI・npm・公開workflowは変更しない。AC4.3.1/2/NFR5。
+- [ ] Step 9 — stage.test.tsに正常生成、二refの分離、旧/他tool metadata保持、missing asset/commit、不正target/patch、digest対応、npm非同梱の5–8ケース群を作成しmainで実行する。AC4.3.1–3/FR1.3。
+- [ ] Step 10 — integration.test.tsとbrowser consumer.spec.tsでローカルHTTP供給をNode/Chromium/Firefox/WebKitから選択しbytes/commit/digest/entries/cwdを照合する。各拒否ケースでguest未実行を確認する。模擬2refのschema試験と実aube/pitchfork資産の供給検証を別記録にし、模擬を実guest合格として流用しない。AC4.3.1–3/NFR1/4/5。
+- [ ] Step 11 — U2の配布JS一覧をmanifest.js/fixtures.js/resolver.jsの固定3ファイルとして定め、Node/browserの計測を収集・照合する。未実行を0%、realm欠落を未検証/失敗にする。U1の固定14ファイル・80%基準を維持し、U4へunion用のidentity付き結果を渡す。U2の新規配布JSも第一者配布JS coverageの分母へ加える。CI実行はU4で必須、ローカル成功で代替しない。NFR3。
+- [ ] Step 12 — docs、code-summary.md、source-manifest.json、traceability.jsonを更新し、Step 13–15完了後の証拠を反映する。AC4.3.1–3/FR6/NFR関連条件を実装・テストの既存pathへ結び、候補identity/commands/resultsと実配信未検証をU3/U4へ渡す。正規の第三者レビュー・Unit検証・完了記録へ進む。未実施Mustと下記欠陥が残れば完了しない。この完了手続はStep 15の後に実施する。
+- [ ] Step 13 — C6/NFR3の測定証拠の結合を修正する。scripts/guest-distribution/coverage.tsのcollector self-testへ、使用済み測定directoryでsourceまたは供給候補を変更して再prepareし、試験を再実行せずreportする再現ケースを追加する。mainで修正前の失敗を観測する。使用済みdirectoryを拒否し、各prepareを新規directoryへ限定する。全Node/browser receiptにpreparation identity、sourceIdentity、candidate digestを結合しreportで一致を検査する。古いreceiptを新規directoryへコピーしたケースも拒否する。mainで同じ試験の成功を確認する。既存成功記録を新候補へ再ラベルしない。AC4.3.1–3/NFR3/NFR5。
+- [ ] Step 14 — C3/FR6の既存ref供給を修正する。tests/guest-distribution/stage.test.tsとintegration.test.tsへ、既存rootにold refを配布してnew refだけを追加した候補から両refのguest/fixture/build-infoをHTTP取得する再現ケースを追加し、mainで修正前の失敗を観測する。scripts/guest-distribution/stage.tsに既存distribution rootの明示入力を追加し、保持するcatalogueの全資産を候補へコピーする。既存C3資産はdigest/provenanceを照合し、legacy資産は既存schemaの意味とbytesを保持して同じ形式へ強制移行しない。root外path・symlink・欠落資産は生成失敗とし、利用可能な完成候補として出力しない。mainで同じ試験の成功を確認する。既存rootがないのに保持metadataだけを残す経路を拒否する。AC4.3.1–3/FR6.1/FR6.2/NFR5。
+- [ ] Step 15 — mainで修正後のU2全Node試験、型、lint、collector self-test、三browserを逐次再実行する。新規測定directoryで固定3ファイルのNode/browser coverageを収集し、identityと欠落拒否を再確認する。保持ref全資産の存在・HTTP解決を候補に結合して記録する。U1固定14ファイルとU4全17ファイル/80%/統合前CIの条件は保持する。成功後にStep 12へ戻り完了資料を更新する。AC4.3.1–3/NFR1/NFR3/NFR5。
+
+## Repair Boundary
+
+既存の再現済み問題は、同じ測定directoryへの再prepareが旧成功receiptを新sourceへ採用できることと、既存refのmetadataを保持したstandalone候補に対応資産が欠落すること。前者はC6の候補同一性、後者はC3/FR6の既存ref選択を満たさないため、本Unitの完了前に修正する。既存review文書・receiptは変更しない。
+
+修正対象は scripts/guest-distribution/coverage.ts、scripts/guest-distribution/stage.ts、tests/guest-distribution/stage.test.ts、tests/guest-distribution/integration.test.ts、および測定receiptを作る既存 tests/guest-distribution/consumer.spec.ts / serve.ts と docs/guest-distribution.md。生成preload/receipt側の必要変更はcollector内へ限定する。共有 scripts/coverage-types.ts の既存 generation/sourceIdentity/candidateSha256 fieldsは保持し、U2の必須結合を型で表すために必要な最小変更だけを対象に含める。resolverの公開契約、npm exports/files、U1 runtime、guest source、外部配信先は変更しない。利用可能な既存資産をコピーし、変更のないaubeを再buildしない。
 
 ## Verification and Completion
 

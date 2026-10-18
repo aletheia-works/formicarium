@@ -4,8 +4,8 @@
   "minimum_per_component": 5,
   "components": [
     {
-      "source": "runtime/public.mjs",
-      "test_file": "tests/package/public.test.mjs",
+      "source": "runtime/public.ts",
+      "test_file": "tests/package/public.test.ts",
       "cases": [
         "shared public surface contains only byte decoder and public error definitions",
         "decoder handles valid UTF8 multibyte text",
@@ -15,11 +15,12 @@
         "public error identity and immutable error inventory match run contract"
       ],
       "count": 6,
-      "evidence": "main-verification.md; current candidate and latest rerun status are recorded separately in code-summary.md"
+      "evidence": "候補v9・coverage-v14に対応。main-verification.mdおよびverification/coverage-page-lifecycle-v1/の実行記録を参照。旧候補の結果は履歴として保持。",
+      "distributed_js": "runtime/public.js"
     },
     {
-      "source": "runtime/errors.mjs",
-      "test_file": "tests/package/errors.test.mjs",
+      "source": "runtime/errors.ts",
+      "test_file": "tests/package/errors.test.ts",
       "cases": [
         "public ExecutionError retains its code and Error identity",
         "ExecutionError copies stdout and stderr independently",
@@ -29,11 +30,12 @@
         "validation and safe causes contain fixed explanations"
       ],
       "count": 6,
-      "evidence": "main-verification.md; current candidate and latest rerun status are recorded separately in code-summary.md"
+      "evidence": "候補v9・coverage-v14に対応。main-verification.mdおよびverification/coverage-page-lifecycle-v1/の実行記録を参照。旧候補の結果は履歴として保持。",
+      "distributed_js": "runtime/errors.js"
     },
     {
-      "source": "runtime/validation.mjs",
-      "test_file": "tests/package/validation.test.mjs",
+      "source": "runtime/validation.ts",
+      "test_file": "tests/package/validation.test.ts",
       "cases": [
         "absolute POSIX paths normalize dots and slashes but reject traversal and NUL",
         "persistence roots merge overlap and reject reserved locations at component boundaries",
@@ -49,11 +51,12 @@
         "asset URLs are copied and absolute supported schemes are mandatory"
       ],
       "count": 12,
-      "evidence": "main-verification.md; current candidate and latest rerun status are recorded separately in code-summary.md"
+      "evidence": "候補v9・coverage-v14に対応。main-verification.mdおよびverification/coverage-page-lifecycle-v1/の実行記録を参照。旧候補の結果は履歴として保持。",
+      "distributed_js": "runtime/validation.js"
     },
     {
-      "source": "runtime/state.mjs",
-      "test_file": "tests/package/state.test.mjs",
+      "source": "runtime/state.ts",
+      "test_file": "tests/package/state.test.ts",
       "cases": [
         "state owns copied seed and returns read/list copies",
         "listEntries sorts direct children and does not follow files or symlinks",
@@ -67,11 +70,12 @@
         "dispose is irreversible and takes precedence over busy"
       ],
       "count": 10,
-      "evidence": "main-verification.md; current candidate and latest rerun status are recorded separately in code-summary.md"
+      "evidence": "候補v9・coverage-v14に対応。main-verification.mdおよびverification/coverage-page-lifecycle-v1/の実行記録を参照。旧候補の結果は履歴として保持。",
+      "distributed_js": "runtime/state.js"
     },
     {
-      "source": "runtime/lifecycle.mjs",
-      "test_file": "tests/package/lifecycle.test.mjs",
+      "source": "runtime/lifecycle.ts",
+      "test_file": "tests/package/lifecycle.test.ts",
       "cases": [
         "normal nonzero done commits after cleanup and releases reservation before resolve",
         "run reservation is synchronous and all public operations reject BUSY",
@@ -87,11 +91,12 @@
         "bad snapshot rejects atomically and real short timeout settles once without unhandled rejection"
       ],
       "count": 12,
-      "evidence": "main-verification.md; current candidate and latest rerun status are recorded separately in code-summary.md"
+      "evidence": "候補v9・coverage-v14に対応。main-verification.mdおよびverification/coverage-page-lifecycle-v1/の実行記録を参照。旧候補の結果は履歴として保持。",
+      "distributed_js": "runtime/lifecycle.js"
     },
     {
-      "source": "runtime/protocol.mjs",
-      "test_file": "tests/package/protocol.test.mjs",
+      "source": "runtime/protocol.ts",
+      "test_file": "tests/package/protocol.test.ts",
       "cases": [
         "protocol binds version/session/run/generation and ignores previous runs",
         "output validation copies bytes and enforces stream and sequence",
@@ -101,11 +106,12 @@
         "stream joins preserve all nonUTF8 bytes and do not alias inputs"
       ],
       "count": 6,
-      "evidence": "main-verification.md; current candidate and latest rerun status are recorded separately in code-summary.md"
+      "evidence": "候補v9・coverage-v14に対応。main-verification.mdおよびverification/coverage-page-lifecycle-v1/の実行記録を参照。旧候補の結果は履歴として保持。",
+      "distributed_js": "runtime/protocol.js"
     },
     {
-      "source": "runtime/worker-execution.mjs",
-      "test_file": "tests/package/worker-execution.test.mjs",
+      "source": "runtime/worker-execution.ts",
+      "test_file": "tests/package/worker-execution.test.ts",
       "cases": [
         "Worker execution sends normal nonzero result and complete preRun snapshot",
         "output messages flush all bytes in one run-wide sequence before done",
@@ -115,11 +121,12 @@
         "cleanup failure rejects candidate and separate runs use independent cores"
       ],
       "count": 6,
-      "evidence": "main-verification.md; current candidate and latest rerun status are recorded separately in code-summary.md"
+      "evidence": "候補v9・coverage-v14に対応。main-verification.mdおよびverification/coverage-page-lifecycle-v1/の実行記録を参照。旧候補の結果は履歴として保持。",
+      "distributed_js": "runtime/worker-execution.js"
     },
     {
-      "source": "runtime/core.mjs",
-      "test_file": "tests/package/core.test.mjs",
+      "source": "runtime/core.ts",
+      "test_file": "tests/package/core.test.ts",
       "cases": [
         "core execution retains preRun FS when onExit precedes factory Promise resolution",
         "core descriptor owns argv and package-relative asset layout",
@@ -132,11 +139,12 @@
         "core child cleanup terminates every remaining child and ignores stale replies"
       ],
       "count": 9,
-      "evidence": "main-verification.md; current candidate and latest rerun status are recorded separately in code-summary.md"
+      "evidence": "候補v9・coverage-v14に対応。main-verification.mdおよびverification/coverage-page-lifecycle-v1/の実行記録を参照。旧候補の結果は履歴として保持。",
+      "distributed_js": "runtime/core.js"
     },
     {
-      "source": "runtime/guest-io.mjs",
-      "test_file": "tests/package/guest-io.test.mjs",
+      "source": "runtime/guest-io.ts",
+      "test_file": "tests/package/guest-io.test.ts",
       "cases": [
         "snapshot preserves same-inode hardlinks instead of expanding independent files",
         "snapshot lstat preserves symlink and mode without following target",
@@ -148,11 +156,12 @@
         "snapshot refuses unknown special files rather than silently omitting them"
       ],
       "count": 8,
-      "evidence": "main-verification.md; current candidate and latest rerun status are recorded separately in code-summary.md"
+      "evidence": "候補v9・coverage-v14に対応。main-verification.mdおよびverification/coverage-page-lifecycle-v1/の実行記録を参照。旧候補の結果は履歴として保持。",
+      "distributed_js": "runtime/guest-io.js"
     },
     {
-      "source": "runtime/node/api.mjs",
-      "test_file": "tests/package/node-api.test.mjs",
+      "source": "runtime/node/api.ts",
+      "test_file": "tests/package/node-api.test.ts",
       "cases": [
         "Node public API copies seed and supports filesystem operations without loading core",
         "Node session creation validates options, assets and seed atomically",
@@ -163,11 +172,12 @@
         "Node abort/reset/dispose produce defined public errors without implicit queue"
       ],
       "count": 7,
-      "evidence": "main-verification.md; current candidate and latest rerun status are recorded separately in code-summary.md"
+      "evidence": "候補v9・coverage-v14に対応。main-verification.mdおよびverification/coverage-page-lifecycle-v1/の実行記録を参照。旧候補の結果は履歴として保持。",
+      "distributed_js": "runtime/node/api.js"
     },
     {
-      "source": "runtime/node/package-worker.mjs",
-      "test_file": "tests/package/node-worker.test.mjs",
+      "source": "runtime/node/package-worker.ts",
+      "test_file": "tests/package/node-worker.test.ts",
       "cases": [
         "Node Worker reads file asset bytes without host filesystem mount",
         "Node Worker reads successful HTTP asset bytes",
@@ -177,11 +187,12 @@
         "actual Node Worker classifies asset failure and suppresses arbitrary diagnostics"
       ],
       "count": 6,
-      "evidence": "main-verification.md; current candidate and latest rerun status are recorded separately in code-summary.md"
+      "evidence": "候補v9・coverage-v14に対応。main-verification.mdおよびverification/coverage-page-lifecycle-v1/の実行記録を参照。旧候補の結果は履歴として保持。",
+      "distributed_js": "runtime/node/package-worker.js"
     },
     {
-      "source": "runtime/web/api.mjs",
-      "test_file": "tests/package/browser-api.spec.mjs",
+      "source": "runtime/web/api.ts",
+      "test_file": "tests/package/browser-api.spec.ts",
       "cases": [
         "browser API owns copied filesystem seed and reset without core startup",
         "browser session rejects malformed roots, assets and seed before ownership changes",
@@ -191,11 +202,12 @@
         "CPU-bound browser Worker timeout releases BUSY reservation after termination"
       ],
       "count": 6,
-      "evidence": "main-verification.md; current candidate and latest rerun status are recorded separately in code-summary.md"
+      "evidence": "候補v9・coverage-v14に対応。main-verification.mdおよびverification/coverage-page-lifecycle-v1/の実行記録を参照。旧候補の結果は履歴として保持。",
+      "distributed_js": "runtime/web/api.js"
     },
     {
-      "source": "runtime/web/package-worker.mjs",
-      "test_file": "tests/package/browser-worker.spec.mjs",
+      "source": "runtime/web/package-worker.ts",
+      "test_file": "tests/package/browser-worker.spec.ts",
       "cases": [
         "actual browser package Worker removes Atomics.waitAsync before core import",
         "actual browser Worker rejects unsupported protocol major",
@@ -205,18 +217,36 @@
         "browser asset reader rejects HTTP404 instead of accepting its response body"
       ],
       "count": 6,
-      "evidence": "main-verification.md; current candidate and latest rerun status are recorded separately in code-summary.md"
+      "evidence": "候補v9・coverage-v14に対応。main-verification.mdおよびverification/coverage-page-lifecycle-v1/の実行記録を参照。旧候補の結果は履歴として保持。",
+      "distributed_js": "runtime/web/package-worker.js"
+    },
+    {
+      "source": "runtime/contracts.ts",
+      "distributed_js": "runtime/contracts.js",
+      "test_file": "tests/package/errors.test.ts",
+      "cases": [
+        "error classification preserves Node errno and public execution codes",
+        "unknown primitive failures do not invent an error code",
+        "malformed diagnostic code fields cannot become string classifications",
+        "a throwing diagnostic accessor is propagated instead of hiding its failure",
+        "error text uses an Error message without appending stack or cause",
+        "non Error rejections preserve their explicit textual diagnostics",
+        "failed diagnostic conversion is propagated without fabricating fallback text",
+        "record boundary accepts object envelopes but excludes arrays and primitives"
+      ],
+      "count": 8,
+      "evidence": "候補v9・coverage-v14に対応。main-verification.mdおよびverification/coverage-page-lifecycle-v1/の実行記録を参照。旧候補の結果は履歴として保持。"
     }
   ],
   "integration_tests": [
     {
-      "test_file": "tests/package/consumer.test.mjs",
+      "test_file": "tests/package/consumer.test.ts",
       "covers": [
-        "runtime/node/api.mjs",
-        "runtime/node/package-worker.mjs",
-        "runtime/core.mjs",
-        "runtime/guest-io.mjs",
-        "runtime/lifecycle.mjs"
+        "runtime/node/api.ts",
+        "runtime/node/package-worker.ts",
+        "runtime/core.ts",
+        "runtime/guest-io.ts",
+        "runtime/lifecycle.ts"
       ],
       "oracles": [
         "real default assets",
@@ -226,20 +256,20 @@
       ]
     },
     {
-      "test_file": "tests/package/consumer.spec.mjs",
+      "test_file": "tests/package/consumer.spec.ts",
       "covers": [
-        "runtime/web/api.mjs",
-        "runtime/web/package-worker.mjs",
-        "runtime/core.mjs"
+        "runtime/web/api.ts",
+        "runtime/web/package-worker.ts",
+        "runtime/core.ts"
       ],
       "oracles": [
         "same real consumer fixture on Chromium/Firefox/WebKit"
       ]
     },
     {
-      "test_file": "tests/package/browser-broker.spec.mjs",
+      "test_file": "tests/package/browser-broker.spec.ts",
       "covers": [
-        "runtime/web/api.mjs"
+        "runtime/web/api.ts"
       ],
       "oracles": [
         "MessagePort roundtrip",
@@ -249,10 +279,10 @@
       ]
     },
     {
-      "test_file": "tests/package/browser-errors.spec.mjs",
+      "test_file": "tests/package/browser-errors.spec.ts",
       "covers": [
-        "runtime/web/api.mjs",
-        "runtime/lifecycle.mjs"
+        "runtime/web/api.ts",
+        "runtime/lifecycle.ts"
       ],
       "oracles": [
         "current unsupported major rejects EXECUTION",
@@ -261,41 +291,41 @@
       ]
     },
     {
-      "test_file": "tests/package/nested-worker.test.mjs",
+      "test_file": "tests/package/nested-worker.test.ts",
       "covers": [
-        "runtime/node/api.mjs",
-        "runtime/core.mjs"
+        "runtime/node/api.ts",
+        "runtime/core.ts"
       ],
       "oracles": [
         "direct real pthread realm timer stops on normal/abort/timeout; idle timer limitation recorded"
       ]
     },
     {
-      "test_file": "tests/package/nested-worker.spec.mjs",
+      "test_file": "tests/package/nested-worker.spec.ts",
       "covers": [
-        "runtime/web/api.mjs",
-        "runtime/core.mjs"
+        "runtime/web/api.ts",
+        "runtime/core.ts"
       ],
       "oracles": [
         "same direct pthread timer stop oracle in all3 browsers"
       ]
     },
     {
-      "test_file": "tests/package/coverage.test.mjs",
+      "test_file": "tests/package/coverage.test.ts",
       "covers": [
-        "scripts/package/coverage.mjs"
+        "scripts/package/coverage.ts"
       ],
       "oracles": [
-        "fixed13 includes unimported0",
+        "fixed14 includes unimported0",
         "missing/duplicate realm fails",
         "line union",
         "proxy statement-map guards"
       ]
     },
     {
-      "test_file": "tests/package/core.test.mjs",
+      "test_file": "tests/package/core.test.ts",
       "covers": [
-        "runtime/core.mjs"
+        "runtime/core.ts"
       ],
       "oracles": [
         "real generated original-URL mutation marker Red then verified-byte Green",
@@ -304,11 +334,11 @@
       ]
     },
     {
-      "test_file": "tests/package/consumer.test.mjs",
+      "test_file": "tests/package/consumer.test.ts",
       "covers": [
-        "runtime/core.mjs",
-        "runtime/node/api.mjs",
-        "runtime/guest-io.mjs"
+        "runtime/core.ts",
+        "runtime/node/api.ts",
+        "runtime/guest-io.ts"
       ],
       "oracles": [
         "real installed loader mutation",
@@ -317,12 +347,12 @@
       ]
     },
     {
-      "test_file": "tests/package/consumer.spec.mjs",
+      "test_file": "tests/package/consumer.spec.ts",
       "covers": [
-        "runtime/core.mjs",
-        "runtime/web/api.mjs",
-        "runtime/web/package-worker.mjs",
-        "runtime/guest-io.mjs"
+        "runtime/core.ts",
+        "runtime/web/api.ts",
+        "runtime/web/package-worker.ts",
+        "runtime/guest-io.ts"
       ],
       "oracles": [
         "same real loader mutation all3 browsers",
@@ -331,21 +361,21 @@
       ]
     },
     {
-      "test_file": "tests/package/lifecycle.test.mjs",
+      "test_file": "tests/package/lifecycle.test.ts",
       "covers": [
-        "runtime/lifecycle.mjs",
-        "runtime/state.mjs"
+        "runtime/lifecycle.ts",
+        "runtime/state.ts"
       ],
       "oracles": [
         "removed cwd candidate abort rollback then normal commit/reset mode/hardlink"
       ]
     },
     {
-      "test_file": "tests/package/consumer.test.mjs",
+      "test_file": "tests/package/consumer.test.ts",
       "covers": [
-        "runtime/guest-io.mjs",
-        "runtime/state.mjs",
-        "runtime/lifecycle.mjs"
+        "runtime/guest-io.ts",
+        "runtime/state.ts",
+        "runtime/lifecycle.ts"
       ],
       "oracles": [
         "removed cwd real abort rollback retains absence",
@@ -354,11 +384,11 @@
       ]
     },
     {
-      "test_file": "tests/package/consumer.spec.mjs",
+      "test_file": "tests/package/consumer.spec.ts",
       "covers": [
-        "runtime/guest-io.mjs",
-        "runtime/state.mjs",
-        "runtime/lifecycle.mjs"
+        "runtime/guest-io.ts",
+        "runtime/state.ts",
+        "runtime/lifecycle.ts"
       ],
       "oracles": [
         "same removed cwd rollback/next-run/reset oracle in Chromium Firefox WebKit"

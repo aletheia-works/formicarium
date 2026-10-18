@@ -1,0 +1,80 @@
+{
+  "stage": "infrastructure-design",
+  "unit": "u3-maintenance-workflows",
+  "upstream_ids": [
+    "NFR1.1",
+    "NFR1.2",
+    "NFR2.1",
+    "NFR2.2",
+    "NFR2.3",
+    "NFR3.1",
+    "NFR3.2",
+    "NFR3.3",
+    "NFR4.1",
+    "NFR5.1",
+    "NFR5.2",
+    "NFR5.3"
+  ],
+  "coverage": [
+    {
+      "id": "NFR1.1",
+      "status": "OK",
+      "target": "cicd-pipeline.md Pipeline and Gates / Executable Supply"
+    },
+    {
+      "id": "NFR1.2",
+      "status": "OK",
+      "target": "cicd-pipeline.md Pipeline and Gates / Executable Supply"
+    },
+    {
+      "id": "NFR2.1",
+      "status": "OK",
+      "target": "cicd-pipeline.md Pipeline and Gates / Executable Supply"
+    },
+    {
+      "id": "NFR2.2",
+      "status": "OK",
+      "target": "cicd-pipeline.md Pipeline and Gates / Executable Supply"
+    },
+    {
+      "id": "NFR2.3",
+      "status": "OK",
+      "target": "cicd-pipeline.md Pipeline and Gates / Executable Supply"
+    },
+    {
+      "id": "NFR3.1",
+      "status": "OK",
+      "target": "cicd-pipeline.md Pipeline and Gates / Executable Supply"
+    },
+    {
+      "id": "NFR3.2",
+      "status": "OK",
+      "target": "cicd-pipeline.md Pipeline and Gates / Executable Supply"
+    },
+    {
+      "id": "NFR3.3",
+      "status": "OK",
+      "target": "cicd-pipeline.md Pipeline and Gates / Executable Supply"
+    },
+    {
+      "id": "NFR4.1",
+      "status": "OK",
+      "target": "cicd-pipeline.md Pipeline and Gates / Executable Supply"
+    },
+    {
+      "id": "NFR5.1",
+      "status": "OK",
+      "target": "cicd-pipeline.md Pipeline and Gates / Executable Supply"
+    },
+    {
+      "id": "NFR5.2",
+      "status": "OK",
+      "target": "infrastructure-specification.md Sizing / cicd-pipeline.md Data Flow"
+    },
+    {
+      "id": "NFR5.3",
+      "status": "OK",
+      "target": "monitoring-design.md Logs & Tracing"
+    }
+  ]
+}
