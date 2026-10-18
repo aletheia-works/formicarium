@@ -1,0 +1,81 @@
+{
+  "stage": "nfr-design",
+  "unit": "u3-install",
+  "upstream_ids": [
+    "NFR1.1",
+    "NFR2.1",
+    "NFR2.2",
+    "NFR3.1",
+    "NFR3.2",
+    "NFR3.3",
+    "NFR4.1",
+    "NFR4.2",
+    "NFR6.1",
+    "NFR7.1",
+    "NFR8.1",
+    "NFR8.2"
+  ],
+  "coverage": [
+    {
+      "id": "NFR1.1",
+      "status": "OK",
+      "target": "D6"
+    },
+    {
+      "id": "NFR2.1",
+      "status": "OK",
+      "target": "D6"
+    },
+    {
+      "id": "NFR2.2",
+      "status": "OK",
+      "target": "D6"
+    },
+    {
+      "id": "NFR3.1",
+      "status": "OK",
+      "target": "D1"
+    },
+    {
+      "id": "NFR3.2",
+      "status": "OK",
+      "target": "D3"
+    },
+    {
+      "id": "NFR3.3",
+      "status": "OK",
+      "target": "D3 D4"
+    },
+    {
+      "id": "NFR4.1",
+      "status": "OK",
+      "target": "D2 D4"
+    },
+    {
+      "id": "NFR4.2",
+      "status": "OK",
+      "target": "D4"
+    },
+    {
+      "id": "NFR6.1",
+      "status": "OK",
+      "target": "D1 D2 D6"
+    },
+    {
+      "id": "NFR7.1",
+      "status": "OK",
+      "target": "D5"
+    },
+    {
+      "id": "NFR8.1",
+      "status": "OK",
+      "target": "D6"
+    },
+    {
+      "id": "NFR8.2",
+      "status": "OK",
+      "target": "D5 Threat Response and Rollback"
+    }
+  ]
+}
+

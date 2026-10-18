@@ -1,0 +1,181 @@
+{
+  "stage": "code-generation",
+  "unit": "u5-fixed-guest-build",
+  "version": 1,
+  "writes": [
+    {
+      "path": "biome.json"
+    },
+    {
+      "path": "proposals/vivarium/u5/.github/workflows/fixed-guest-build.yml"
+    },
+    {
+      "path": "proposals/vivarium/u5/.github/workflows/fixed-guest-bump.yml"
+    },
+    {
+      "path": "proposals/vivarium/u5/.github/workflows/fixed-guest-release.yml"
+    },
+    {
+      "path": "proposals/vivarium/u5/.github/workflows/test-fixed-guest-builder.yml"
+    },
+    {
+      "path": "proposals/vivarium/u5/CONFIG-CHANGES.md"
+    },
+    {
+      "path": "proposals/vivarium/u5/HANDOFF.md"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/README.md"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/allowlist.json"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/biome.json"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/bun.lock"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/bunfig.toml"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/container/build.sh"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/package.json"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/src/artifact.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/src/build.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/src/bump.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/src/busy.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/src/cli.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/src/deadline.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/src/declaration.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/src/errors.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/src/github.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/src/http.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/src/key.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/src/lockfile.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/src/monitor.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/src/pipeline.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/src/process.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/src/release.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/src/reuse.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/src/source.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/tests/artifact.test.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/tests/build.test.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/tests/bump.test.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/tests/busy.test.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/tests/cli.test.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/tests/deadline.test.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/tests/declaration.test.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/tests/fixtures/fake-docker.sh"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/tests/helpers/artifacts.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/tests/helpers/fake-github.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/tests/helpers/git.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/tests/key.test.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/tests/lockfile.test.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/tests/monitor.test.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/tests/pipeline.test.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/tests/process.test.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/tests/release.test.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/tests/reuse.test.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/tests/runner-ready.test.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/tests/source.test.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/tests/workflows.test.ts"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/tools.json"
+    },
+    {
+      "path": "proposals/vivarium/u5/tools/fixed-guest-builder/tsconfig.json"
+    },
+    {
+      "path": "scripts/migration-guest-build/assets.ts"
+    },
+    {
+      "path": "scripts/migration-guest-build/verify.ts"
+    },
+    {
+      "path": "tests/migration-guest-build/verify.test.ts"
+    }
+  ]
+}

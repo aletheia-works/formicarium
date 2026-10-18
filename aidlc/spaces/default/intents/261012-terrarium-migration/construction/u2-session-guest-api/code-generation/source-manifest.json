@@ -1,0 +1,280 @@
+{
+  "stage": "code-generation",
+  "unit": "u2-session-guest-api",
+  "version": 1,
+  "writes": [
+    {
+      "path": ".gitignore"
+    },
+    {
+      "path": ".github/workflows/migration-session-u2.yml"
+    },
+    {
+      "path": "tests/package/pack.test.ts"
+    },
+    {
+      "path": "tests/package/pack.test.js"
+    },
+    {
+      "path": "tests/terrarium/current-candidate.test.ts"
+    },
+    {
+      "path": "tests/terrarium/current-candidate.test.js"
+    },
+    {
+      "path": "runtime/guest-validation.ts"
+    },
+    {
+      "path": "runtime/guest-validation.js"
+    },
+    {
+      "path": "runtime/session-port.ts"
+    },
+    {
+      "path": "runtime/session-port.js"
+    },
+    {
+      "path": "runtime/state.ts"
+    },
+    {
+      "path": "runtime/state.js"
+    },
+    {
+      "path": "runtime/lifecycle.ts"
+    },
+    {
+      "path": "runtime/lifecycle.js"
+    },
+    {
+      "path": "runtime/public.ts"
+    },
+    {
+      "path": "runtime/public.js"
+    },
+    {
+      "path": "types/index.d.ts"
+    },
+    {
+      "path": "package.json"
+    },
+    {
+      "path": "mise.toml"
+    },
+    {
+      "path": "scripts/package/stage-package.ts"
+    },
+    {
+      "path": "scripts/package/stage-package.js"
+    },
+    {
+      "path": "scripts/package/coverage.ts"
+    },
+    {
+      "path": "scripts/package/coverage.js"
+    },
+    {
+      "path": "scripts/package/coverage-inventory.json"
+    },
+    {
+      "path": "scripts/migration-session/ci-core.js"
+    },
+    {
+      "path": "scripts/migration-session/ci-core.ts"
+    },
+    {
+      "path": "scripts/migration-session/ci-inputs.js"
+    },
+    {
+      "path": "scripts/migration-session/ci-inputs.ts"
+    },
+    {
+      "path": "scripts/migration-session/ci.js"
+    },
+    {
+      "path": "scripts/migration-session/ci.ts"
+    },
+    {
+      "path": "scripts/migration-session/completion.js"
+    },
+    {
+      "path": "scripts/migration-session/completion.ts"
+    },
+    {
+      "path": "scripts/migration-session/coverage.js"
+    },
+    {
+      "path": "scripts/migration-session/coverage.ts"
+    },
+    {
+      "path": "scripts/migration-session/stage.js"
+    },
+    {
+      "path": "scripts/migration-session/stage.ts"
+    },
+    {
+      "path": "tests/migration-session/browser-modules.d.ts"
+    },
+    {
+      "path": "tests/migration-session/ci.test.js"
+    },
+    {
+      "path": "tests/migration-session/ci.test.ts"
+    },
+    {
+      "path": "tests/migration-session/completion.test.js"
+    },
+    {
+      "path": "tests/migration-session/completion.test.ts"
+    },
+    {
+      "path": "tests/migration-session/consumer-input.js"
+    },
+    {
+      "path": "tests/migration-session/consumer-input.ts"
+    },
+    {
+      "path": "tests/migration-session/consumer.spec.js"
+    },
+    {
+      "path": "tests/migration-session/consumer.spec.ts"
+    },
+    {
+      "path": "tests/migration-session/consumer.test.js"
+    },
+    {
+      "path": "tests/migration-session/consumer.test.ts"
+    },
+    {
+      "path": "tests/migration-session/fixture.test.js"
+    },
+    {
+      "path": "tests/migration-session/fixture.test.ts"
+    },
+    {
+      "path": "tests/migration-session/fixtures.js"
+    },
+    {
+      "path": "tests/migration-session/fixtures.ts"
+    },
+    {
+      "path": "tests/migration-session/guest-validation.test.js"
+    },
+    {
+      "path": "tests/migration-session/guest-validation.test.ts"
+    },
+    {
+      "path": "tests/migration-session/playwright.config.js"
+    },
+    {
+      "path": "tests/migration-session/playwright.config.ts"
+    },
+    {
+      "path": "tests/migration-session/public.test.js"
+    },
+    {
+      "path": "tests/migration-session/public.test.ts"
+    },
+    {
+      "path": "tests/migration-session/reservation.test.js"
+    },
+    {
+      "path": "tests/migration-session/reservation.test.ts"
+    },
+    {
+      "path": "tests/migration-session/tsconfig.json"
+    },
+    {
+      "path": "tests/migration-session/types-invalid.js"
+    },
+    {
+      "path": "tests/migration-session/types-invalid.ts"
+    },
+    {
+      "path": "tests/migration-session/types-valid.js"
+    },
+    {
+      "path": "tests/migration-session/types-valid.ts"
+    },
+    {
+      "path": "tests/package/lifecycle.test.ts"
+    },
+    {
+      "path": "tests/package/lifecycle.test.js"
+    },
+    {
+      "path": "tests/package/public.test.ts"
+    },
+    {
+      "path": "tests/package/public.test.js"
+    },
+    {
+      "path": "tests/package/coverage.test.ts"
+    },
+    {
+      "path": "tests/package/coverage.test.js"
+    },
+    {
+      "path": "scripts/terrarium/coverage.ts"
+    },
+    {
+      "path": "scripts/terrarium/coverage.js"
+    },
+    {
+      "path": "tests/terrarium/coverage.test.ts"
+    },
+    {
+      "path": "tests/terrarium/coverage.test.js"
+    },
+    {
+      "path": "scripts/release/inventory.ts"
+    },
+    {
+      "path": "scripts/release/inventory.js"
+    },
+    {
+      "path": "scripts/release/publication.ts"
+    },
+    {
+      "path": "scripts/release/publication.js"
+    },
+    {
+      "path": "scripts/release/publication-cli.ts"
+    },
+    {
+      "path": "scripts/release/publication-cli.js"
+    },
+    {
+      "path": "tests/release/publication-alignment-fixture.ts"
+    },
+    {
+      "path": "tests/release/publication-alignment-fixture.js"
+    },
+    {
+      "path": "tests/tooling/publication-alignment.test.ts"
+    },
+    {
+      "path": "tests/tooling/publication-alignment.test.js"
+    },
+    {
+      "path": "tests/tooling/publication-version.test.ts"
+    },
+    {
+      "path": "tests/tooling/publication-version.test.js"
+    },
+    {
+      "path": ".github/publication/runner.mjs"
+    },
+    {
+      "path": ".github/publication/bootstrap.mjs"
+    },
+    {
+      "path": ".github/publication/runner-manifest.json"
+    },
+    {
+      "path": "README.md"
+    },
+    {
+      "path": "docs/terrarium-integration.md"
+    }
+  ]
+}

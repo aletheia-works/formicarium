@@ -1,0 +1,81 @@
+{
+  "stage": "infrastructure-design",
+  "unit": "u3-install",
+  "upstream_ids": [
+    "NFR1.1",
+    "NFR2.1",
+    "NFR2.2",
+    "NFR3.1",
+    "NFR3.2",
+    "NFR3.3",
+    "NFR4.1",
+    "NFR4.2",
+    "NFR6.1",
+    "NFR7.1",
+    "NFR8.1",
+    "NFR8.2"
+  ],
+  "coverage": [
+    {
+      "id": "NFR1.1",
+      "status": "OK",
+      "target": "Pipeline 7 browser性能/HTTPS mirror"
+    },
+    {
+      "id": "NFR2.1",
+      "status": "OK",
+      "target": "Pipeline 5 既存回帰"
+    },
+    {
+      "id": "NFR2.2",
+      "status": "OK",
+      "target": "Pipeline 6/9 fixed raw coverage"
+    },
+    {
+      "id": "NFR3.1",
+      "status": "OK",
+      "target": "Pipeline 3 catalog/type boundary"
+    },
+    {
+      "id": "NFR3.2",
+      "status": "OK",
+      "target": "Pipeline 3/4 local HTTP/archive fixture"
+    },
+    {
+      "id": "NFR3.3",
+      "status": "OK",
+      "target": "Pipeline 4 固定guest consumer"
+    },
+    {
+      "id": "NFR4.1",
+      "status": "OK",
+      "target": "Pipeline 3 HTTP失敗/遅延境界"
+    },
+    {
+      "id": "NFR4.2",
+      "status": "OK",
+      "target": "Pipeline 3/4 cancel/epoch consumer"
+    },
+    {
+      "id": "NFR6.1",
+      "status": "OK",
+      "target": "Pipeline 4/7 Node/3browser COI"
+    },
+    {
+      "id": "NFR7.1",
+      "status": "OK",
+      "target": "Pipeline 3/4 progress text consumer"
+    },
+    {
+      "id": "NFR8.1",
+      "status": "OK",
+      "target": "Pipeline 8/9/10/11 same SHA evidence"
+    },
+    {
+      "id": "NFR8.2",
+      "status": "OK",
+      "target": "Deployment, Secrets and Rollback"
+    }
+  ]
+}
+

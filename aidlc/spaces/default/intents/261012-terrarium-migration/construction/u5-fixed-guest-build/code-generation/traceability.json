@@ -1,0 +1,122 @@
+{
+  "stage": "code-generation",
+  "unit": "u5-fixed-guest-build",
+  "upstream_ids": [
+    "FR7",
+    "FR8",
+    "FR9",
+    "NFR2.1",
+    "NFR2.2",
+    "NFR3.1",
+    "NFR3.2",
+    "NFR3.3",
+    "NFR3.4",
+    "NFR3.5",
+    "NFR4.1",
+    "NFR4.2",
+    "NFR5.1",
+    "NFR5.2",
+    "NFR5.3",
+    "NFR5.4",
+    "NFR8.1",
+    "NFR8.2",
+    "NFR8.3"
+  ],
+  "coverage": [
+    {
+      "id": "FR7",
+      "status": "OK",
+      "target": "proposals/vivarium/u5/tools/fixed-guest-builder/src/declaration.ts, src/key.ts, src/reuse.ts, src/release.ts; tests/declaration.test.ts, tests/key.test.ts, tests/reuse.test.ts, tests/release.test.ts; vivarium runs 39076793651 and 39079897400 (compiled=false)"
+    },
+    {
+      "id": "FR8",
+      "status": "OK",
+      "target": "src/artifact.ts (build-info, catalog), src/bump.ts, src/cli.ts; tests/artifact.test.ts, tests/bump.test.ts; .github/workflows/fixed-guest-bump.yml"
+    },
+    {
+      "id": "FR9",
+      "status": "OK",
+      "target": "scripts/migration-guest-build/verify.ts; tests/migration-guest-build/verify.test.ts; vivarium runs 39073445357 and 39077142098; .artifacts/migration-guest-build/release-39076401324 and release-39079705708 formicarium-evidence.json (--version exit 0)"
+    },
+    {
+      "id": "NFR2.1",
+      "status": "OK",
+      "target": "formicarium test:light and type-checks unchanged and green; distributed JS not changed by U5"
+    },
+    {
+      "id": "NFR2.2",
+      "status": "OK",
+      "target": ".github/workflows/test-fixed-guest-builder.yml; tools/fixed-guest-builder/bunfig.toml (coverageThreshold lines 0.8); vivarium lint:all and ci:fixed-guest-builder exit 0"
+    },
+    {
+      "id": "NFR3.1",
+      "status": "OK",
+      "target": "src/declaration.ts; tests/declaration.test.ts"
+    },
+    {
+      "id": "NFR3.2",
+      "status": "OK",
+      "target": "src/source.ts (verifyReachable, GIT_NO_LAZY_FETCH); tests/source.test.ts (fork-only commit refused)"
+    },
+    {
+      "id": "NFR3.3",
+      "status": "OK",
+      "target": "src/artifact.ts (parseUniqueJson, limits, canonical build-info); tests/artifact.test.ts"
+    },
+    {
+      "id": "NFR3.4",
+      "status": "OK",
+      "target": "src/source.ts (applyPatches), src/key.ts (sourcePatches in the key); tests/source.test.ts, tests/key.test.ts"
+    },
+    {
+      "id": "NFR3.5",
+      "status": "OK",
+      "target": "src/bump.ts (git ls-remote); tests/bump.test.ts"
+    },
+    {
+      "id": "NFR4.1",
+      "status": "OK",
+      "target": "src/deadline.ts, src/process.ts; tests/deadline.test.ts, tests/pipeline.test.ts (TIMEOUT)"
+    },
+    {
+      "id": "NFR4.2",
+      "status": "OK",
+      "target": "src/monitor.ts, src/http.ts; tests/monitor.test.ts, tests/reuse.test.ts; receipts record source and dependency sizes"
+    },
+    {
+      "id": "NFR5.1",
+      "status": "OK",
+      "target": "src/busy.ts, src/build.ts (finalizeArtifacts), workflow concurrency groups; tests/busy.test.ts, tests/build.test.ts, tests/workflows.test.ts"
+    },
+    {
+      "id": "NFR5.2",
+      "status": "OK",
+      "target": "src/key.ts, src/reuse.ts, src/release.ts (NOT_REPRODUCIBLE); vivarium reuse runs 39076793651 and 39079897400"
+    },
+    {
+      "id": "NFR5.3",
+      "status": "OK",
+      "target": "src/release.ts; Releases guest-biome-15432368… and guest-biome-4751f68d…"
+    },
+    {
+      "id": "NFR5.4",
+      "status": "OK",
+      "target": "src/build.ts (mbx), fixed-guest-build.yml cache steps; runs 39073445357 (mbx on) and 39080082205 (mbx off) give the same ELF 3d7e7e8c…; the reference.mbxCacheRestored value in the two published build-infos is unreliable (counted after compile; baseline restore was a miss). Fixed to count before any container runs and to record mbxCacheKeys, via a vivarium PR"
+    },
+    {
+      "id": "NFR8.1",
+      "status": "OK",
+      "target": "workflow permissions (tests/workflows.test.ts), fixed-guest-release environment and checkApprovalGate (tests/release.test.ts); approvals.json of release runs"
+    },
+    {
+      "id": "NFR8.2",
+      "status": "OK",
+      "target": ".artifacts/migration-guest-build/verify-final-u5.mjs and verify-final-u5.test.mjs; U1 baseline branch already removed, no duplicate builder upstream"
+    },
+    {
+      "id": "NFR8.3",
+      "status": "OK",
+      "target": "src/cli.ts (secret redaction); tests/cli.test.ts; README rollback section"
+    }
+  ]
+}

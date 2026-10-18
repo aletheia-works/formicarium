@@ -1,0 +1,15 @@
+{
+  "stage": "functional-design",
+  "unit": "u4-command",
+  "upstream_ids": ["FR3", "FR5", "NFR3", "NFR7"],
+  "coverage": [
+    { "id": "FR3", "status": "OK", "target": "BR4.1 BR4.2 BR4.3 BR4.4 BR4.5 BR4.6 BR4.7 BR4.8 BR4.9 BR4.11 BR4.12 BR4.13 BR4.14 BR4.15 BR4.16" },
+    { "id": "FR5", "status": "OK", "target": "BR4.10 BR4.12 BR4.14 BR4.15" },
+    { "id": "NFR3", "status": "OK", "target": "BR4.2 BR4.16" },
+    { "id": "NFR7", "status": "OK", "target": "BR4.4 BR4.6 BR4.11 BR4.17" }
+  ],
+  "reverse": [
+    { "id": "BR4.1", "status": "N/A", "target": "FR3 FR4 direct requirements; User Stories skipped" },
+    { "id": "BR4.17", "status": "N/A", "target": "NFR7 and C05 transcript contract; User Stories skipped" }
+  ]
+}

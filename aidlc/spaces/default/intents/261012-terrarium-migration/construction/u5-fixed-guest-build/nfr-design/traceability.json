@@ -1,0 +1,23 @@
+{
+  "stage": "nfr-design",
+  "unit": "u5-fixed-guest-build",
+  "upstream_ids": ["NFR2.1", "NFR2.2", "NFR3.1", "NFR3.2", "NFR3.3", "NFR3.4", "NFR3.5", "NFR4.1", "NFR4.2", "NFR5.1", "NFR5.2", "NFR5.3", "NFR5.4", "NFR8.1", "NFR8.2", "NFR8.3"],
+  "coverage": [
+    { "id": "NFR2.1", "status": "OK", "target": "D8" },
+    { "id": "NFR2.2", "status": "OK", "target": "D1 D8" },
+    { "id": "NFR3.1", "status": "OK", "target": "D1" },
+    { "id": "NFR3.2", "status": "OK", "target": "D1" },
+    { "id": "NFR3.3", "status": "OK", "target": "D2" },
+    { "id": "NFR3.4", "status": "OK", "target": "D2" },
+    { "id": "NFR3.5", "status": "OK", "target": "D7" },
+    { "id": "NFR4.1", "status": "OK", "target": "D4" },
+    { "id": "NFR4.2", "status": "OK", "target": "D3" },
+    { "id": "NFR5.1", "status": "OK", "target": "D4 D6" },
+    { "id": "NFR5.2", "status": "OK", "target": "D2 D6" },
+    { "id": "NFR5.3", "status": "OK", "target": "D6" },
+    { "id": "NFR5.4", "status": "OK", "target": "D5" },
+    { "id": "NFR8.1", "status": "OK", "target": "D4 D6 D7" },
+    { "id": "NFR8.2", "status": "OK", "target": "D8" },
+    { "id": "NFR8.3", "status": "OK", "target": "D9" }
+  ]
+}

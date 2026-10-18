@@ -1,0 +1,57 @@
+{
+  "stage": "nfr-requirements",
+  "unit": "u3-install",
+  "upstream_ids": [
+    "NFR1",
+    "NFR2",
+    "NFR3",
+    "NFR4",
+    "NFR5",
+    "NFR6",
+    "NFR7",
+    "NFR8"
+  ],
+  "coverage": [
+    {
+      "id": "NFR1",
+      "status": "OK",
+      "target": "NFR1.1"
+    },
+    {
+      "id": "NFR2",
+      "status": "OK",
+      "target": "NFR2.1, NFR2.2"
+    },
+    {
+      "id": "NFR3",
+      "status": "OK",
+      "target": "NFR3.1, NFR3.2, NFR3.3"
+    },
+    {
+      "id": "NFR4",
+      "status": "OK",
+      "target": "NFR4.1, NFR4.2"
+    },
+    {
+      "id": "NFR5",
+      "status": "N/A",
+      "target": "U3はbuild/publish/永続cacheを所有しない。install排他と原子的置換はNFR4.2に適用。"
+    },
+    {
+      "id": "NFR6",
+      "status": "OK",
+      "target": "NFR6.1"
+    },
+    {
+      "id": "NFR7",
+      "status": "OK",
+      "target": "NFR7.1"
+    },
+    {
+      "id": "NFR8",
+      "status": "OK",
+      "target": "NFR8.1, NFR8.2"
+    }
+  ]
+}
+

@@ -1,0 +1,18 @@
+{
+  "stage": "nfr-design",
+  "unit": "u1-migration-preflight",
+  "upstream_ids": ["NFR1.1","NFR1.2","NFR2.1","NFR3.1","NFR3.2","NFR4.1","NFR4.2","NFR5.1","NFR6.1","NFR7.1","NFR8.1"],
+  "coverage": [
+    {"id":"NFR1.1","status":"OK","target":"DS1"},
+    {"id":"NFR1.2","status":"OK","target":"DS1"},
+    {"id":"NFR2.1","status":"OK","target":"DS4"},
+    {"id":"NFR3.1","status":"OK","target":"DS2"},
+    {"id":"NFR3.2","status":"OK","target":"DS2"},
+    {"id":"NFR4.1","status":"OK","target":"DS2, DS3"},
+    {"id":"NFR4.2","status":"OK","target":"DS2"},
+    {"id":"NFR5.1","status":"OK","target":"DS3"},
+    {"id":"NFR6.1","status":"OK","target":"DS4"},
+    {"id":"NFR7.1","status":"OK","target":"DS5"},
+    {"id":"NFR8.1","status":"OK","target":"DS5, DS6"}
+  ]
+}

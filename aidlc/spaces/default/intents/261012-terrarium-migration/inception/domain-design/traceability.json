@@ -1,0 +1,103 @@
+{
+  "stage": "domain-design",
+  "upstream_ids": [
+    "FR1",
+    "FR2",
+    "FR3",
+    "FR4",
+    "FR5",
+    "FR6",
+    "FR7",
+    "FR8",
+    "FR9",
+    "FR10",
+    "FR11",
+    "FR12",
+    "FR13",
+    "FR14",
+    "FR15",
+    "FR16"
+  ],
+  "coverage": [
+    {
+      "id": "FR1",
+      "status": "OK",
+      "target": "MigrationAcceptance"
+    },
+    {
+      "id": "FR2",
+      "status": "OK",
+      "target": "GuestValidation"
+    },
+    {
+      "id": "FR3",
+      "status": "OK",
+      "target": "CommandSession"
+    },
+    {
+      "id": "FR4",
+      "status": "OK",
+      "target": "InstallCoordinator"
+    },
+    {
+      "id": "FR5",
+      "status": "OK",
+      "target": "ExecutionSession"
+    },
+    {
+      "id": "FR6",
+      "status": "OK",
+      "target": "MigrationAcceptance"
+    },
+    {
+      "id": "FR7",
+      "status": "OK",
+      "target": "FixedGuestBuilder"
+    },
+    {
+      "id": "FR8",
+      "status": "OK",
+      "target": "FixedGuestBuilder"
+    },
+    {
+      "id": "FR9",
+      "status": "OK",
+      "target": "FixedGuestBuilder"
+    },
+    {
+      "id": "FR10",
+      "status": "OK",
+      "target": "RecipeRunner"
+    },
+    {
+      "id": "FR11",
+      "status": "OK",
+      "target": "RecipeRunner"
+    },
+    {
+      "id": "FR12",
+      "status": "OK",
+      "target": "RecipeRunner"
+    },
+    {
+      "id": "FR13",
+      "status": "OK",
+      "target": "Showcase"
+    },
+    {
+      "id": "FR14",
+      "status": "OK",
+      "target": "Showcase"
+    },
+    {
+      "id": "FR15",
+      "status": "OK",
+      "target": "Showcase"
+    },
+    {
+      "id": "FR16",
+      "status": "OK",
+      "target": "MigrationAcceptance"
+    }
+  ]
+}

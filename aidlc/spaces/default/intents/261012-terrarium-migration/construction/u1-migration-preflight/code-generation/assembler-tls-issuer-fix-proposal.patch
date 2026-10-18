@@ -1,0 +1,8 @@
+--- a/.artifacts/migration-preflight/assemble-acceptance-evidence.mjs
++++ b/.artifacts/migration-preflight/assemble-acceptance-evidence.mjs
+@@
+-const commonKeys = ['isolated','cache','coverage','origin','certificateFingerprint','coreMetadataSha256','coreOriginalInfoSha256','coreLoaderSha256','coreWasmSha256','coreCommit','coreInputCondition','tlsProtocol','tlsIssuer','tlsSubject','condition'];
++const commonKeys = ['isolated','cache','coverage','origin','certificateFingerprint','coreMetadataSha256','coreOriginalInfoSha256','coreLoaderSha256','coreWasmSha256','coreCommit','coreInputCondition','tlsProtocol','tlsSubject','condition'];
+@@
+-  for (const key of ['browserVersion', 'userAgent']) {
++  for (const key of ['browserVersion', 'userAgent', 'tlsIssuer']) {

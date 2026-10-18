@@ -1,0 +1,322 @@
+{
+  "stage": "code-generation",
+  "unit": "u1-migration-preflight",
+  "version": 1,
+  "writes": [
+    {
+      "path": ".github/publication/bootstrap.mjs"
+    },
+    {
+      "path": ".github/publication/runner-manifest.json"
+    },
+    {
+      "path": ".github/publication/runner.mjs"
+    },
+    {
+      "path": ".gitignore"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/acceptance-assembly.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/acceptance-evidence.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/ci-attempt-1/actual-inputs.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/ci-attempt-1/failure-log-excerpt.txt"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/ci-attempt-2-log-excerpt.txt"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/ci-attempt-2/actual-inputs.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/ci-attempt-2/build-info.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/ci-attempt-2/first-receipt.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/ci-attempt-2/reuse-receipt.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/completion-coverage-report.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/completion-verification.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/coverage-report.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/inventory.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/mirror-input.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/official-input.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/aube.chromium.0.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/aube.chromium.1.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/aube.chromium.2.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/aube.chromium.3.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/aube.chromium.4.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/aube.chromium.5.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/aube.firefox.0.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/aube.firefox.1.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/aube.firefox.2.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/aube.firefox.3.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/aube.firefox.4.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/aube.firefox.5.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/aube.webkit.0.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/aube.webkit.1.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/aube.webkit.2.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/aube.webkit.3.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/aube.webkit.4.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/aube.webkit.5.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/biome.chromium.0.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/biome.chromium.1.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/biome.chromium.2.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/biome.chromium.3.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/biome.chromium.4.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/biome.chromium.5.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/biome.firefox.0.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/biome.firefox.1.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/biome.firefox.2.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/biome.firefox.3.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/biome.firefox.4.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/biome.firefox.5.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/biome.webkit.0.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/biome.webkit.1.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/biome.webkit.2.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/biome.webkit.3.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/biome.webkit.4.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/trials/biome.webkit.5.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight-evidence/verification-input.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight.json"
+    },
+    {
+      "path": "docs/results/terrarium-migration-preflight.md"
+    },
+    {
+      "path": "docs/terrarium-integration.md"
+    },
+    {
+      "path": "integration/vivarium/preflight/baseline-controller.mjs"
+    },
+    {
+      "path": "integration/vivarium/preflight/baseline-workflow.yml"
+    },
+    {
+      "path": "integration/vivarium/preflight/build-baseline.sh"
+    },
+    {
+      "path": "mise.toml"
+    },
+    {
+      "path": "scripts/migration-preflight/assets.ts"
+    },
+    {
+      "path": "scripts/migration-preflight/baseline.ts"
+    },
+    {
+      "path": "scripts/migration-preflight/completion.ts"
+    },
+    {
+      "path": "scripts/migration-preflight/current-completion.ts"
+    },
+    {
+      "path": "scripts/migration-preflight/current-coverage.js"
+    },
+    {
+      "path": "scripts/migration-preflight/current-coverage.ts"
+    },
+    {
+      "path": "scripts/migration-preflight/current-evidence.ts"
+    },
+    {
+      "path": "scripts/migration-preflight/evidence.ts"
+    },
+    {
+      "path": "scripts/migration-preflight/prepare-mirror.ts"
+    },
+    {
+      "path": "scripts/migration-preflight/runner.ts"
+    },
+    {
+      "path": "scripts/migration-preflight/unique-json.ts"
+    },
+    {
+      "path": "scripts/migration-preflight/verify.ts"
+    },
+    {
+      "path": "scripts/package/coverage.js"
+    },
+    {
+      "path": "scripts/package/coverage.ts"
+    },
+    {
+      "path": "scripts/release/inventory.js"
+    },
+    {
+      "path": "scripts/release/inventory.ts"
+    },
+    {
+      "path": "scripts/terrarium/coverage.js"
+    },
+    {
+      "path": "scripts/terrarium/coverage.ts"
+    },
+    {
+      "path": "tests/migration-preflight/assets.test.ts"
+    },
+    {
+      "path": "tests/migration-preflight/baseline.test.ts"
+    },
+    {
+      "path": "tests/migration-preflight/browser-modules.d.ts"
+    },
+    {
+      "path": "tests/migration-preflight/completion.test.ts"
+    },
+    {
+      "path": "tests/migration-preflight/consumer.spec.ts"
+    },
+    {
+      "path": "tests/migration-preflight/current-completion.test.js"
+    },
+    {
+      "path": "tests/migration-preflight/current-completion.test.ts"
+    },
+    {
+      "path": "tests/migration-preflight/current-evidence.test.ts"
+    },
+    {
+      "path": "tests/migration-preflight/evidence.test.ts"
+    },
+    {
+      "path": "tests/migration-preflight/playwright.config.ts"
+    },
+    {
+      "path": "tests/migration-preflight/prepare-mirror.test.ts"
+    },
+    {
+      "path": "tests/migration-preflight/runner.test.ts"
+    },
+    {
+      "path": "tests/migration-preflight/serve.ts"
+    },
+    {
+      "path": "tests/migration-preflight/verify.test.ts"
+    },
+    {
+      "path": "tests/package/coverage.test.js"
+    },
+    {
+      "path": "tests/package/coverage.test.ts"
+    },
+    {
+      "path": "tests/package/pack.test.js"
+    },
+    {
+      "path": "tests/package/pack.test.ts"
+    },
+    {
+      "path": "tests/terrarium/coverage.test.js"
+    },
+    {
+      "path": "tests/terrarium/coverage.test.ts"
+    },
+    {
+      "path": "tests/terrarium/current-candidate.test.js"
+    },
+    {
+      "path": "tests/terrarium/current-candidate.test.ts"
+    },
+    {
+      "path": "tests/tooling/publication-alignment.test.js"
+    },
+    {
+      "path": "tests/tooling/publication-alignment.test.ts"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "stage": "infrastructure-design",
+  "unit": "u2-session-guest-api",
+  "upstream_ids": [
+    "NFR2.1",
+    "NFR2.2",
+    "NFR6.1",
+    "NFR8.1",
+    "NFR8.2"
+  ],
+  "coverage": [
+    {
+      "id": "NFR2.1",
+      "status": "OK",
+      "target": "cicd-pipeline.md: 段階4既存回帰"
+    },
+    {
+      "id": "NFR2.2",
+      "status": "OK",
+      "target": "cicd-pipeline.md: 段階5固定inventory全realm coverage"
+    },
+    {
+      "id": "NFR6.1",
+      "status": "OK",
+      "target": "cicd-pipeline.md: 既存Worker/COI test serverと段階2/3"
+    },
+    {
+      "id": "NFR8.1",
+      "status": "OK",
+      "target": "cicd-pipeline.md: 段階3/6 pack証拠"
+    },
+    {
+      "id": "NFR8.2",
+      "status": "OK",
+      "target": "cicd-pipeline.md: 最小権限・公開承認・切戻し"
+    }
+  ]
+}

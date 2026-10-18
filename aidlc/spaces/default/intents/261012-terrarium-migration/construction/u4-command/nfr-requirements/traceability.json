@@ -1,0 +1,15 @@
+{
+  "stage": "nfr-requirements",
+  "unit": "u4-command",
+  "upstream_ids": ["NFR1", "NFR2", "NFR3", "NFR4", "NFR5", "NFR6", "NFR7", "NFR8"],
+  "coverage": [
+    { "id": "NFR1", "status": "N/A", "target": "U4はinstallをC04へ委ねるだけで新しい性能目標を持たない。install性能はU3の正式install経路で受入済み。" },
+    { "id": "NFR2", "status": "OK", "target": "NFR2.1, NFR2.2" },
+    { "id": "NFR3", "status": "OK", "target": "NFR3.1, NFR3.2, NFR3.3" },
+    { "id": "NFR4", "status": "OK", "target": "NFR4.1, NFR4.2" },
+    { "id": "NFR5", "status": "OK", "target": "NFR5.1" },
+    { "id": "NFR6", "status": "OK", "target": "NFR6.1" },
+    { "id": "NFR7", "status": "OK", "target": "NFR7.1, NFR7.2" },
+    { "id": "NFR8", "status": "OK", "target": "NFR8.1, NFR8.2" }
+  ]
+}

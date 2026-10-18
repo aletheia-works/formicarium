@@ -1,0 +1,214 @@
+{
+  "stage": "code-generation",
+  "unit": "u4-command",
+  "version": 1,
+  "writes": [
+    {
+      "path": ".github/publication/runner-manifest.json"
+    },
+    {
+      "path": ".github/publication/runner.mjs"
+    },
+    {
+      "path": ".github/workflows/migration-command-u4.yml"
+    },
+    {
+      "path": "README.md"
+    },
+    {
+      "path": "bun.lock"
+    },
+    {
+      "path": "docs/command-api.md"
+    },
+    {
+      "path": "mise.toml"
+    },
+    {
+      "path": "package.json"
+    },
+    {
+      "path": "runtime/command-parse.ts"
+    },
+    {
+      "path": "runtime/command.ts"
+    },
+    {
+      "path": "runtime/core.ts"
+    },
+    {
+      "path": "runtime/lifecycle.js"
+    },
+    {
+      "path": "runtime/lifecycle.ts"
+    },
+    {
+      "path": "runtime/public.js"
+    },
+    {
+      "path": "runtime/public.ts"
+    },
+    {
+      "path": "runtime/session-port.js"
+    },
+    {
+      "path": "runtime/session-port.ts"
+    },
+    {
+      "path": "scripts/migration-command/b1.ts"
+    },
+    {
+      "path": "scripts/migration-command/ci-inputs.ts"
+    },
+    {
+      "path": "scripts/migration-command/ci.ts"
+    },
+    {
+      "path": "scripts/migration-command/completion.ts"
+    },
+    {
+      "path": "scripts/migration-command/coverage.ts"
+    },
+    {
+      "path": "scripts/migration-command/measure.ts"
+    },
+    {
+      "path": "scripts/migration-command/stage.ts"
+    },
+    {
+      "path": "scripts/package/coverage-inventory.json"
+    },
+    {
+      "path": "scripts/package/stage-package.js"
+    },
+    {
+      "path": "scripts/package/stage-package.ts"
+    },
+    {
+      "path": "scripts/release/inventory.js"
+    },
+    {
+      "path": "scripts/release/inventory.ts"
+    },
+    {
+      "path": "scripts/terrarium/coverage.js"
+    },
+    {
+      "path": "scripts/terrarium/coverage.ts"
+    },
+    {
+      "path": "tests/migration-command/acceptance.test.ts"
+    },
+    {
+      "path": "tests/migration-command/browser-modules.d.ts"
+    },
+    {
+      "path": "tests/migration-command/consumer.spec.ts"
+    },
+    {
+      "path": "tests/migration-command/consumer.test.ts"
+    },
+    {
+      "path": "tests/migration-command/dispatch.test.ts"
+    },
+    {
+      "path": "tests/migration-command/harness.ts"
+    },
+    {
+      "path": "tests/migration-command/parse.test.ts"
+    },
+    {
+      "path": "tests/migration-command/playwright.config.ts"
+    },
+    {
+      "path": "tests/migration-command/public.test.ts"
+    },
+    {
+      "path": "tests/migration-command/runner-ready.test.ts"
+    },
+    {
+      "path": "tests/migration-command/types-invalid.ts"
+    },
+    {
+      "path": "tests/migration-command/types-valid.ts"
+    },
+    {
+      "path": "tests/migration-install/consumer.spec.js"
+    },
+    {
+      "path": "tests/migration-install/consumer.spec.ts"
+    },
+    {
+      "path": "tests/migration-install/consumer.test.js"
+    },
+    {
+      "path": "tests/migration-install/consumer.test.ts"
+    },
+    {
+      "path": "tests/migration-install/hash-regression.spec.js"
+    },
+    {
+      "path": "tests/migration-install/hash-regression.spec.ts"
+    },
+    {
+      "path": "tests/migration-install/lifecycle.test.js"
+    },
+    {
+      "path": "tests/migration-install/lifecycle.test.ts"
+    },
+    {
+      "path": "tests/migration-preflight/current-completion.test.js"
+    },
+    {
+      "path": "tests/migration-preflight/current-completion.test.ts"
+    },
+    {
+      "path": "tests/migration-session/reservation.test.js"
+    },
+    {
+      "path": "tests/migration-session/reservation.test.ts"
+    },
+    {
+      "path": "tests/package/core.test.ts"
+    },
+    {
+      "path": "tests/package/coverage.test.js"
+    },
+    {
+      "path": "tests/package/coverage.test.ts"
+    },
+    {
+      "path": "tests/package/pack.test.js"
+    },
+    {
+      "path": "tests/package/pack.test.ts"
+    },
+    {
+      "path": "tests/package/public.test.js"
+    },
+    {
+      "path": "tests/package/public.test.ts"
+    },
+    {
+      "path": "tests/terrarium/coverage.test.js"
+    },
+    {
+      "path": "tests/terrarium/coverage.test.ts"
+    },
+    {
+      "path": "tests/tooling/publication-alignment.test.js"
+    },
+    {
+      "path": "tests/tooling/publication-alignment.test.ts"
+    },
+    {
+      "path": "tsconfig.json"
+    },
+    {
+      "path": "tsconfig.tests.json"
+    },
+    {
+      "path": "types/index.d.ts"
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "stage": "nfr-design",
+  "unit": "u2-session-guest-api",
+  "upstream_ids": [
+    "NFR2.1",
+    "NFR2.2",
+    "NFR3.1",
+    "NFR3.2",
+    "NFR3.3",
+    "NFR3.4",
+    "NFR3.5",
+    "NFR4.1",
+    "NFR4.2",
+    "NFR6.1",
+    "NFR8.1",
+    "NFR8.2"
+  ],
+  "coverage": [
+    {
+      "id": "NFR2.1",
+      "status": "OK",
+      "target": "security-design.md: 既存実行基盤と回帰制約を維持"
+    },
+    {
+      "id": "NFR2.2",
+      "status": "OK",
+      "target": "security-design.md: 固定配布一覧とrealm合算coverage"
+    },
+    {
+      "id": "NFR3.1",
+      "status": "OK",
+      "target": "security-design.md: 防御copy後の同期SHA/ELF検証"
+    },
+    {
+      "id": "NFR3.2",
+      "status": "OK",
+      "target": "security-design.md: package-local WeakMapの私有handle"
+    },
+    {
+      "id": "NFR3.3",
+      "status": "OK",
+      "target": "security-design.md: 全fixture事前検証とcopy"
+    },
+    {
+      "id": "NFR3.4",
+      "status": "OK",
+      "target": "security-design.md: 入口のbyte/count上限と安全整数"
+    },
+    {
+      "id": "NFR3.5",
+      "status": "OK",
+      "target": "security-design.md: canonical metadataとraw入口の重複拒否"
+    },
+    {
+      "id": "NFR4.1",
+      "status": "OK",
+      "target": "security-design.md: session所有token/epochと取消cleanup"
+    },
+    {
+      "id": "NFR4.2",
+      "status": "OK",
+      "target": "security-design.md: 予約下の原子的commitと失敗時不変"
+    },
+    {
+      "id": "NFR6.1",
+      "status": "OK",
+      "target": "security-design.md: 既存Node/browser Worker境界"
+    },
+    {
+      "id": "NFR8.1",
+      "status": "OK",
+      "target": "security-design.md: 候補source/pack/inventoryの同一性"
+    },
+    {
+      "id": "NFR8.2",
+      "status": "OK",
+      "target": "security-design.md: redaction/notices/最小権限と公開承認"
+    }
+  ]
+}

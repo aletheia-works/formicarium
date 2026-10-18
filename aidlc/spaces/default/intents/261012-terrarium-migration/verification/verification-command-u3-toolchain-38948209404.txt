@@ -1,0 +1,1 @@
+/Users/mutoakio/.local/share/mise/installs/node/26.12.0/bin/node .artifacts/migration-install/verify-toolchain-u3.mjs .artifacts/migration-install/toolchain-u3-binding-38948209404.json 9abbceb875bddfa1ed61d8fe2963dfdc90f168cd837b35387256e65ef0102447

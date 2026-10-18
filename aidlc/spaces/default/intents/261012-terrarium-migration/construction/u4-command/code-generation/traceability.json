@@ -1,0 +1,212 @@
+{
+  "stage": "code-generation",
+  "unit": "u4-command",
+  "upstream_ids": [
+    "FR3",
+    "FR4",
+    "FR5",
+    "FR6",
+    "BR4.1",
+    "BR4.2",
+    "BR4.3",
+    "BR4.4",
+    "BR4.5",
+    "BR4.6",
+    "BR4.7",
+    "BR4.8",
+    "BR4.9",
+    "BR4.10",
+    "BR4.11",
+    "BR4.12",
+    "BR4.13",
+    "BR4.14",
+    "BR4.15",
+    "BR4.16",
+    "BR4.17",
+    "NFR2.1",
+    "NFR2.2",
+    "NFR3.1",
+    "NFR3.2",
+    "NFR3.3",
+    "NFR4.1",
+    "NFR4.2",
+    "NFR5.1",
+    "NFR6.1",
+    "NFR7.1",
+    "NFR7.2",
+    "NFR8.1",
+    "NFR8.2"
+  ],
+  "coverage": [
+    {
+      "id": "FR3",
+      "status": "OK",
+      "target": "runtime/command.ts"
+    },
+    {
+      "id": "FR4",
+      "status": "OK",
+      "target": "runtime/command.ts"
+    },
+    {
+      "id": "FR5",
+      "status": "OK",
+      "target": "tests/migration-command/public.test.ts"
+    },
+    {
+      "id": "FR6",
+      "status": "OK",
+      "target": "scripts/migration-command/b1.ts"
+    },
+    {
+      "id": "BR4.1",
+      "status": "OK",
+      "target": "runtime/command.ts"
+    },
+    {
+      "id": "BR4.2",
+      "status": "OK",
+      "target": "runtime/command-parse.ts"
+    },
+    {
+      "id": "BR4.3",
+      "status": "OK",
+      "target": "runtime/command-parse.ts"
+    },
+    {
+      "id": "BR4.4",
+      "status": "OK",
+      "target": "runtime/command-parse.ts"
+    },
+    {
+      "id": "BR4.5",
+      "status": "OK",
+      "target": "runtime/command-parse.ts"
+    },
+    {
+      "id": "BR4.6",
+      "status": "OK",
+      "target": "runtime/command-parse.ts"
+    },
+    {
+      "id": "BR4.7",
+      "status": "OK",
+      "target": "tests/migration-command/parse.test.ts"
+    },
+    {
+      "id": "BR4.8",
+      "status": "OK",
+      "target": "runtime/command.ts"
+    },
+    {
+      "id": "BR4.9",
+      "status": "OK",
+      "target": "runtime/command.ts"
+    },
+    {
+      "id": "BR4.10",
+      "status": "OK",
+      "target": "tests/migration-command/public.test.ts"
+    },
+    {
+      "id": "BR4.11",
+      "status": "OK",
+      "target": "runtime/command-parse.ts"
+    },
+    {
+      "id": "BR4.12",
+      "status": "OK",
+      "target": "runtime/command.ts"
+    },
+    {
+      "id": "BR4.13",
+      "status": "OK",
+      "target": "tests/migration-command/dispatch.test.ts"
+    },
+    {
+      "id": "BR4.14",
+      "status": "OK",
+      "target": "tests/migration-command/dispatch.test.ts"
+    },
+    {
+      "id": "BR4.15",
+      "status": "OK",
+      "target": "tests/migration-command/public.test.ts"
+    },
+    {
+      "id": "BR4.16",
+      "status": "OK",
+      "target": "runtime/command.ts"
+    },
+    {
+      "id": "BR4.17",
+      "status": "OK",
+      "target": "tests/migration-command/dispatch.test.ts"
+    },
+    {
+      "id": "NFR2.1",
+      "status": "OK",
+      "target": "scripts/migration-command/completion.ts"
+    },
+    {
+      "id": "NFR2.2",
+      "status": "OK",
+      "target": "scripts/migration-command/coverage.ts"
+    },
+    {
+      "id": "NFR3.1",
+      "status": "OK",
+      "target": "tests/migration-command/parse.test.ts"
+    },
+    {
+      "id": "NFR3.2",
+      "status": "OK",
+      "target": "tests/migration-command/dispatch.test.ts"
+    },
+    {
+      "id": "NFR3.3",
+      "status": "OK",
+      "target": "tests/migration-command/dispatch.test.ts"
+    },
+    {
+      "id": "NFR4.1",
+      "status": "OK",
+      "target": "tests/migration-command/dispatch.test.ts"
+    },
+    {
+      "id": "NFR4.2",
+      "status": "OK",
+      "target": "tests/migration-command/dispatch.test.ts"
+    },
+    {
+      "id": "NFR5.1",
+      "status": "OK",
+      "target": "tests/migration-command/public.test.ts"
+    },
+    {
+      "id": "NFR6.1",
+      "status": "OK",
+      "target": "tests/migration-command/consumer.spec.ts"
+    },
+    {
+      "id": "NFR7.1",
+      "status": "OK",
+      "target": "docs/command-api.md"
+    },
+    {
+      "id": "NFR7.2",
+      "status": "OK",
+      "target": "types/index.d.ts"
+    },
+    {
+      "id": "NFR8.1",
+      "status": "OK",
+      "target": "scripts/migration-command/ci.ts"
+    },
+    {
+      "id": "NFR8.2",
+      "status": "OK",
+      "target": ".github/workflows/migration-command-u4.yml"
+    }
+  ]
+}

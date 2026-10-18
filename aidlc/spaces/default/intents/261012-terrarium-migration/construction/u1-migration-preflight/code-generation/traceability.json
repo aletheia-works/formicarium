@@ -1,0 +1,20 @@
+{
+  "stage": "code-generation",
+  "unit": "u1-migration-preflight",
+  "upstream_ids": ["FR1", "FR9", "NFR1.1", "NFR1.2", "NFR2.1", "NFR3.1", "NFR3.2", "NFR4.1", "NFR4.2", "NFR5.1", "NFR6.1", "NFR7.1", "NFR8.1"],
+  "coverage": [
+    { "id": "FR1", "status": "OK", "target": "scripts/migration-preflight/runner.ts" },
+    { "id": "FR9", "status": "OK", "target": "scripts/migration-preflight/baseline.ts" },
+    { "id": "NFR1.1", "status": "OK", "target": "scripts/migration-preflight/evidence.ts" },
+    { "id": "NFR1.2", "status": "OK", "target": "tests/migration-preflight/consumer.spec.ts" },
+    { "id": "NFR2.1", "status": "OK", "target": "scripts/migration-preflight/current-coverage.ts" },
+    { "id": "NFR3.1", "status": "OK", "target": "tests/migration-preflight/assets.test.ts" },
+    { "id": "NFR3.2", "status": "GAP", "target": "scripts/migration-preflight/assets.ts" },
+    { "id": "NFR4.1", "status": "GAP", "target": "scripts/migration-preflight/baseline.ts" },
+    { "id": "NFR4.2", "status": "OK", "target": "scripts/migration-preflight/prepare-mirror.ts" },
+    { "id": "NFR5.1", "status": "OK", "target": "tests/migration-preflight/baseline.test.ts" },
+    { "id": "NFR6.1", "status": "OK", "target": "tests/migration-preflight/serve.ts" },
+    { "id": "NFR7.1", "status": "OK", "target": "scripts/migration-preflight/verify.ts" },
+    { "id": "NFR8.1", "status": "OK", "target": "scripts/migration-preflight/current-completion.ts" }
+  ]
+}

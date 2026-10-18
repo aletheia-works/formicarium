@@ -1,0 +1,1 @@
+/Users/mutoakio/.local/share/mise/installs/node/26.12.0/bin/node .artifacts/migration-command/verify-final-u4.mjs .artifacts/migration-command/final-u4-binding-39029827794.json c4c7407b3fe5d7e45ebd251419e48cabb48f7bf8cb3339327244243f7e14e9c3

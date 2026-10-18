@@ -1,0 +1,655 @@
+diff --git a/integration/vivarium/preflight/baseline-controller.mjs b/integration/vivarium/preflight/baseline-controller.mjs
+new file mode 100644
+--- /dev/null
++++ b/integration/vivarium/preflight/baseline-controller.mjs
+@@ -0,0 +1,407 @@
++// scripts/migration-preflight/baseline.ts
++import { createHash, randomUUID } from "node:crypto";
++import { spawn } from "node:child_process";
++import {
++  copyFile,
++  mkdir,
++  readFile,
++  rename,
++  rm,
++  stat,
++  writeFile
++} from "node:fs/promises";
++import { resolve } from "node:path";
++import { pathToFileURL } from "node:url";
++var BASELINE_COMMIT = "2405c7620169bd0719166af09a8d89cc76fb37fb";
++var BASELINE_REPOSITORY = "https://github.com/biomejs/biome";
++var BASELINE_DEADLINE_MS = 14400000;
++function hash(bytes) {
++  return createHash("sha256").update(bytes).digest("hex");
++}
++function requiredDigest(value) {
++  if (typeof value !== "string" || !/^[0-9a-f]{64}$/.test(value))
++    throw Error("SHA256 required");
++}
++function canonical(value) {
++  if (value === null || typeof value === "boolean")
++    return JSON.stringify(value);
++  if (typeof value === "string") {
++    if (/[\uD800-\uDFFF]/u.test(value.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, "")))
++      throw Error("lone surrogate");
++    return JSON.stringify(value);
++  }
++  if (typeof value === "number" && Number.isSafeInteger(value))
++    return JSON.stringify(value);
++  if (Array.isArray(value))
++    return `[${value.map(canonical).join(",")}]`;
++  if (value && typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype)
++    return `{${Object.keys(value).sort().map((key) => `${canonical(key)}:${canonical(value[key])}`).join(",")}}`;
++  throw Error("canonical safe JSON required");
++}
++function baselineBuilderHash(inputs) {
++  return hash(canonical({
++    files: inputs.builderInventory,
++    image: inputs.image,
++    rustc: inputs.rustc,
++    cargo: inputs.cargo,
++    cargoLockSha256: inputs.cargoLockSha256,
++    cargoArgs: inputs.cargoArgs,
++    environment: inputs.environment,
++    sourceFileDigests: inputs.sourceFileDigests,
++    versionOrName: inputs.versionOrName,
++    nodeVersion: process.version
++  }));
++}
++function baselineKey(inputs) {
++  if (inputs.schemaVersion !== 1 || inputs.tool !== "biome" || inputs.repository !== BASELINE_REPOSITORY || inputs.commit !== BASELINE_COMMIT || inputs.target !== "x86_64-unknown-linux-musl")
++    throw Error("fixed baseline source/target required");
++  requiredDigest(inputs.builderHash);
++  requiredDigest(inputs.cargoLockSha256);
++  if (!/^[^\s@]+@sha256:[0-9a-f]{64}$/.test(inputs.image) || !inputs.rustc || !inputs.cargo || !inputs.versionOrName)
++    throw Error("immutable image and actual toolchain identities required");
++  if (!Object.keys(inputs.builderInventory).length || baselineBuilderHash(inputs) !== inputs.builderHash)
++    throw Error("builder inventory/full input digest mismatch");
++  for (const digest of Object.values(inputs.builderInventory))
++    requiredDigest(digest);
++  for (const file of [
++    "Cargo.lock",
++    "Cargo.toml",
++    "rust-toolchain.toml",
++    ".cargo/config.toml"
++  ])
++    requiredDigest(inputs.sourceFileDigests[file]);
++  if (inputs.sourceFileDigests["Cargo.lock"] !== inputs.cargoLockSha256)
++    throw Error("Cargo.lock input mismatch");
++  if (inputs.sourcePatches.length !== 0)
++    throw Error("baseline source patches forbidden");
++  const dependencies = [...inputs.dependencies].sort((a, b) => {
++    const first = `${a.tool}/${a.repository}/${a.commit}`;
++    const second = `${b.tool}/${b.repository}/${b.commit}`;
++    return first < second ? -1 : first > second ? 1 : 0;
++  });
++  const identities = new Set;
++  for (const dependency of dependencies) {
++    requiredDigest(dependency.digest);
++    if (!dependency.tool || !/^[0-9a-f]{40}$/.test(dependency.commit) || !/^https:\/\//.test(dependency.repository))
++      throw Error("dependency identity incomplete");
++    const identity = `${dependency.tool}/${dependency.repository}/${dependency.commit}`;
++    if (identities.has(identity))
++      throw Error("duplicate dependency identity");
++    identities.add(identity);
++  }
++  if (inputs.cargoArgs.join(" ") !== "build --locked --release --target x86_64-unknown-linux-musl --package biome_cli")
++    throw Error("fixed cargo invocation required");
++  for (const [key, value] of Object.entries(inputs.environment))
++    if (!/^[A-Z][A-Z0-9_]*$/.test(key) || typeof value !== "string" || /TOKEN|PASSWORD|SECRET|CREDENTIAL/.test(key))
++      throw Error("public fixed build environment required");
++  return hash(canonical({
++    tool: inputs.tool,
++    repository: inputs.repository,
++    commit: inputs.commit,
++    builderHash: inputs.builderHash,
++    target: inputs.target,
++    rustc: inputs.rustc,
++    sourcePatches: inputs.sourcePatches,
++    dependencies
++  }));
++}
++function validateBaselineElf(bytes) {
++  if (bytes.length < 120 || bytes.length > 128 * 1024 * 1024 || ![127, 69, 76, 70, 2, 1, 1].every((value, index) => bytes[index] === value))
++    throw Error("static x86-64 ELF64 required");
++  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
++  if (![2, 3].includes(view.getUint16(16, true)) || view.getUint16(18, true) !== 62 || view.getUint32(20, true) !== 1 || view.getUint16(52, true) !== 64)
++    throw Error("ELF architecture/header invalid");
++  const offset = view.getBigUint64(32, true);
++  const count = view.getUint16(56, true);
++  if (!count || count > 256 || view.getUint16(54, true) !== 56 || offset < 64n || offset + BigInt(count * 56) > BigInt(bytes.length))
++    throw Error("ELF program headers invalid");
++  let load = false;
++  for (let index = 0;index < count; index++) {
++    const start = Number(offset) + index * 56;
++    const type = view.getUint32(start, true);
++    load ||= type === 1;
++    if (type === 3)
++      throw Error("dynamic ELF refused");
++    const size = view.getBigUint64(start + 32, true);
++    if (view.getBigUint64(start + 8, true) + size > BigInt(bytes.length) || type === 1 && size > view.getBigUint64(start + 40, true))
++      throw Error("ELF segment invalid");
++  }
++  if (!load)
++    throw Error("loadable segment missing");
++}
++async function readAccepted(directory, inputs) {
++  const elf = new Uint8Array(await readFile(resolve(directory, "biome")));
++  validateBaselineElf(elf);
++  const raw = await readFile(resolve(directory, "build-info.json"));
++  const info = JSON.parse(raw.toString("utf8"));
++  const key = baselineKey(inputs);
++  if (info.schemaVersion !== 1 || info.tool !== inputs.tool || info.versionOrName !== inputs.versionOrName || info.source.repository !== inputs.repository || info.source.commit !== inputs.commit || info.target !== inputs.target || info.rustc !== inputs.rustc || info.builderHash !== inputs.builderHash || info.buildKey !== key || info.elfSha256 !== hash(elf) || info.versionExitCode !== 0 || canonical(info.inputs) !== canonical(inputs) || canonical(info.sourcePatches) !== canonical(inputs.sourcePatches) || canonical(info.dependencies) !== canonical(inputs.dependencies))
++    throw Error("accepted baseline identity/digest mismatch");
++  return {
++    buildKey: key,
++    elfSha256: hash(elf),
++    buildInfoSha256: hash(raw),
++    compileSkipped: true,
++    versionExitCode: 0
++  };
++}
++var executeProcessGroup = (command, args, options) => new Promise((resolve, reject) => {
++  if (process.platform === "win32") {
++    reject(Error("baseline requires Linux process groups"));
++    return;
++  }
++  if (options.signal.aborted) {
++    reject(Error("baseline cancelled"));
++    return;
++  }
++  const child = spawn(command, [...args], {
++    cwd: options.cwd,
++    detached: true,
++    stdio: ["ignore", "pipe", "inherit"],
++    env: process.env
++  });
++  let stdout = "";
++  let killTimer;
++  const kill = (signal) => {
++    if (child.pid) {
++      try {
++        process.kill(-child.pid, signal);
++      } catch (error) {
++        if (error.code !== "ESRCH")
++          reject(error);
++      }
++    }
++  };
++  const abort = () => {
++    kill("SIGTERM");
++    killTimer = setTimeout(() => kill("SIGKILL"), 1000);
++  };
++  options.signal.addEventListener("abort", abort, { once: true });
++  child.stdout?.on("data", (chunk) => {
++    stdout += chunk.toString("utf8");
++    if (stdout.length > 1024 * 1024) {
++      kill("SIGKILL");
++      reject(Error("command output limit"));
++    }
++  });
++  child.on("error", reject);
++  child.on("close", (code, signal) => {
++    clearTimeout(killTimer);
++    options.signal.removeEventListener("abort", abort);
++    if (options.signal.aborted || signal)
++      reject(Error("baseline command cancelled"));
++    else
++      resolve({ code: code ?? 1, stdout });
++  });
++});
++async function runBaseline(options) {
++  const inputs = structuredClone(options.inputs);
++  const key = baselineKey(inputs);
++  const cache = resolve(options.cache);
++  const timeout = options.timeoutMs ?? BASELINE_DEADLINE_MS;
++  if (!Number.isFinite(timeout) || timeout < 1 || timeout > BASELINE_DEADLINE_MS)
++    throw Error("baseline deadline cannot exceed four hours");
++  await mkdir(cache, { recursive: true });
++  const lock = resolve(cache, `${key}.lock`);
++  const staging = resolve(cache, `${key}.${randomUUID()}.staging`);
++  const accepted = resolve(cache, key);
++  const controller = new AbortController;
++  const abort = () => controller.abort();
++  options.signal?.addEventListener("abort", abort, { once: true });
++  if (options.signal?.aborted)
++    controller.abort();
++  const timer = setTimeout(abort, timeout);
++  let ownsLock = false;
++  try {
++    controller.signal.throwIfAborted();
++    await writeFile(lock, "single-writer", { flag: "wx" });
++    ownsLock = true;
++    let exists = false;
++    try {
++      await stat(accepted);
++      exists = true;
++    } catch (error) {
++      if (error.code !== "ENOENT")
++        throw error;
++    }
++    if (exists) {
++      const receipt = await readAccepted(accepted, inputs);
++      const code = await (options.checkVersion ?? (async (elf, signal) => (await (options.execute ?? executeProcessGroup)(elf, ["--version"], {
++        cwd: accepted,
++        signal
++      })).code))(resolve(accepted, "biome"), controller.signal);
++      if (code !== 0)
++        throw Error("reused baseline --version failed");
++      controller.signal.throwIfAborted();
++      return { ...receipt, versionExitCode: code };
++    }
++    await mkdir(staging);
++    const result = await (options.build ?? ((directory, signal) => buildInContainer(directory, signal, inputs, options.execute ?? executeProcessGroup, options.source)))(staging, controller.signal);
++    controller.signal.throwIfAborted();
++    if (result.versionExitCode !== 0)
++      throw Error("baseline --version failed");
++    const elf = new Uint8Array(await readFile(result.elf));
++    validateBaselineElf(elf);
++    const info = {
++      schemaVersion: 1,
++      tool: inputs.tool,
++      versionOrName: inputs.versionOrName,
++      source: { repository: inputs.repository, commit: inputs.commit },
++      target: inputs.target,
++      rustc: inputs.rustc,
++      sourcePatches: inputs.sourcePatches,
++      dependencies: inputs.dependencies,
++      builderHash: inputs.builderHash,
++      buildKey: key,
++      elfSha256: hash(elf),
++      inputs,
++      versionExitCode: result.versionExitCode
++    };
++    await copyFile(result.elf, resolve(staging, "biome"));
++    await writeFile(resolve(staging, "build-info.json"), canonical(info), {
++      flag: "wx"
++    });
++    await readAccepted(staging, inputs);
++    controller.signal.throwIfAborted();
++    await rename(staging, accepted);
++    const receipt = await readAccepted(accepted, inputs);
++    return { ...receipt, compileSkipped: false };
++  } finally {
++    clearTimeout(timer);
++    options.signal?.removeEventListener("abort", abort);
++    await rm(staging, { recursive: true, force: true });
++    if (ownsLock)
++      await rm(lock, { force: true });
++  }
++}
++async function buildInContainer(staging, signal, inputs, execute, sourceDirectory) {
++  if (!sourceDirectory)
++    throw Error("fixed source-directory from checkout Action required");
++  const source = resolve(sourceDirectory);
++  const container = `migration-preflight-${randomUUID()}`;
++  const command = async (executable, args, expected) => {
++    const result = await execute(executable, args, { cwd: staging, signal });
++    if (result.code !== 0 || expected !== undefined && result.stdout.trim() !== expected)
++      throw Error("fixed baseline command/identity failed");
++    return result.stdout.trim();
++  };
++  await command("git", ["-C", source, "rev-parse", "HEAD"], inputs.commit);
++  await command("git", ["-C", source, "status", "--porcelain", "--untracked-files=all"], "");
++  for (const [file, digest] of Object.entries(inputs.sourceFileDigests)) {
++    if (![
++      "Cargo.lock",
++      "Cargo.toml",
++      "rust-toolchain.toml",
++      ".cargo/config.toml"
++    ].includes(file) || hash(await readFile(resolve(source, file))) !== digest)
++      throw Error("fixed source input digest mismatch");
++  }
++  await command("docker", ["pull", inputs.image]);
++  const docker = [
++    "run",
++    "--rm",
++    "--name",
++    container,
++    "--mount",
++    `type=bind,src=${source},dst=/work`,
++    "--workdir",
++    "/work",
++    ...Object.entries(inputs.environment).flatMap(([key, value]) => [
++      "--env",
++      `${key}=${value}`
++    ]),
++    inputs.image
++  ];
++  try {
++    await command("docker", [...docker, "rustc", "--version"], inputs.rustc);
++    await command("docker", [...docker, "cargo", "--version"], inputs.cargo);
++    await command("docker", [...docker, "cargo", ...inputs.cargoArgs]);
++  } finally {
++    await execute("docker", ["rm", "--force", container], {
++      cwd: staging,
++      signal: AbortSignal.timeout(1e4)
++    });
++  }
++  const elf = resolve(source, "target", inputs.target, "release/biome");
++  validateBaselineElf(new Uint8Array(await readFile(elf)));
++  const version = await execute(elf, ["--version"], { cwd: staging, signal });
++  return { elf, versionExitCode: version.code };
++}
++if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
++  const cliAbort = new AbortController;
++  process.once("SIGTERM", () => cliAbort.abort());
++  process.once("SIGINT", () => cliAbort.abort());
++  if (process.argv[2] === "--prepare-inputs") {
++    const [template, output, ...extra] = process.argv.slice(3);
++    if (!template || !output || extra.length)
++      throw Error("usage: --prepare-inputs <input-template> <new-actual-inputs>");
++    const inputs = JSON.parse(await readFile(template, "utf8"));
++    if (!/^[^\s@]+@sha256:[0-9a-f]{64}$/.test(inputs.image))
++      throw Error("immutable builder image required");
++    const directory = resolve(".");
++    const pull = await executeProcessGroup("docker", ["pull", inputs.image], {
++      cwd: directory,
++      signal: cliAbort.signal
++    });
++    if (pull.code !== 0)
++      throw Error("pinned image preparation failed");
++    const rust = await executeProcessGroup("docker", [
++      "run",
++      "--rm",
++      "--env",
++      "RUSTUP_TOOLCHAIN=1.98.1",
++      inputs.image,
++      "rustc",
++      "--version"
++    ], { cwd: directory, signal: cliAbort.signal });
++    const cargo = await executeProcessGroup("docker", [
++      "run",
++      "--rm",
++      "--env",
++      "RUSTUP_TOOLCHAIN=1.98.1",
++      inputs.image,
++      "cargo",
++      "--version"
++    ], { cwd: directory, signal: cliAbort.signal });
++    if (rust.code !== 0 || cargo.code !== 0 || !rust.stdout.trim().startsWith("rustc 1.98.1 ") || !cargo.stdout.trim().startsWith("cargo 1.98.1 "))
++      throw Error("actual pinned toolchain version mismatch");
++    inputs.rustc = rust.stdout.trim();
++    inputs.cargo = cargo.stdout.trim();
++    inputs.builderHash = baselineBuilderHash(inputs);
++    baselineKey(inputs);
++    await writeFile(output, canonical(inputs), { flag: "wx" });
++  } else {
++    const [inputFile, cache, source, receiptFile, ...extra] = process.argv.slice(2);
++    if (!inputFile || !cache || !source || extra.length)
++      throw Error("usage: baseline.ts <verified-inputs.json> <cache-directory> <action-checkout-source>");
++    const inputs = JSON.parse(await readFile(inputFile, "utf8"));
++    const receipt = await runBaseline({
++      inputs,
++      cache,
++      source,
++      signal: cliAbort.signal
++    });
++    if (receiptFile)
++      await writeFile(receiptFile, JSON.stringify({
++        ...receipt,
++        schemaVersion: 1,
++        recordedAt: new Date().toISOString(),
++        source: { repository: inputs.repository, commit: inputs.commit },
++        sourceCommit: process.env.GITHUB_SHA ?? null,
++        ciRunUrl: process.env.GITHUB_RUN_ID && process.env.GITHUB_REPOSITORY ? `${process.env.GITHUB_SERVER_URL ?? "https://github.com"}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}` : null
++      }, null, 2) + `
++`, { flag: "wx" });
++    console.log(JSON.stringify(receipt));
++  }
++}
++export {
++  BASELINE_COMMIT,
++  BASELINE_DEADLINE_MS,
++  BASELINE_REPOSITORY,
++  baselineBuilderHash,
++  baselineKey,
++  executeProcessGroup,
++  readAccepted,
++  runBaseline,
++  validateBaselineElf
++};
+diff --git a/integration/vivarium/preflight/build-baseline.sh b/integration/vivarium/preflight/build-baseline.sh
+new file mode 100644
+--- /dev/null
++++ b/integration/vivarium/preflight/build-baseline.sh
+@@ -0,0 +1,24 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++# Local, reviewable CI proposal. Install this file and its pinned Node bundle
++# only after the separate approval of a concrete vivarium change.
++if [[ "${1:-}" != "--bounded" ]]; then
++  exec timeout --signal=TERM --kill-after=30s 4h bash "$0" --bounded "$@"
++fi
++shift
++controller="${PREFLIGHT_CONTROLLER:?pinned baseline-controller.mjs required}"
++template="${PREFLIGHT_INPUT_TEMPLATE:?fixed build-input template required}"
++inputs="${PREFLIGHT_ACTUAL_INPUTS:?new actual input path required}"
++cache="${PREFLIGHT_CACHE:?cache directory required}"
++source="${PREFLIGHT_SOURCE:?full-commit checkout Action directory required}"
++if [[ "$(node --version)" != "v24.21.0" ]]; then
++  echo 'Node v24.21.0 is required' >&2
++  exit 1
++fi
++# Actual rustc/cargo strings come from the immutable image, never placeholders.
++# The outer deadline includes image pull, dependency acquisition, both builds,
++# reuse validation and child-process/container cleanup.
++node "$controller" --prepare-inputs "$template" "$inputs"
++node "$controller" "$inputs" "$cache" "$source" "${PREFLIGHT_FIRST_RECEIPT:?first receipt path required}"
++node "$controller" "$inputs" "$cache" "$source" "${PREFLIGHT_REUSE_RECEIPT:?reuse receipt path required}"
+diff --git a/integration/vivarium/preflight/baseline-workflow.yml b/integration/vivarium/preflight/baseline-workflow.yml
+new file mode 100644
+--- /dev/null
++++ b/integration/vivarium/preflight/baseline-workflow.yml
+@@ -0,0 +1,94 @@
++name: Terrarium migration baseline trial (proposal)
++
++on:
++  workflow_dispatch:
++    inputs:
++      controller_sha256:
++        description: Reviewed baseline-controller.mjs SHA256 (required, no latest)
++        required: true
++        type: string
++
++permissions:
++  contents: read
++
++concurrency:
++  group: terrarium-migration-fixed-biome-baseline
++  cancel-in-progress: false
++
++jobs:
++  baseline:
++    runs-on: ubuntu-24.04
++    timeout-minutes: 250
++    env:
++      CONTROLLER_SHA256: ${{ inputs.controller_sha256 }}
++      PREFLIGHT_CONTROLLER: integration/vivarium/preflight/baseline-controller.mjs
++      PREFLIGHT_INPUT_TEMPLATE: .artifacts/preflight/template.json
++      PREFLIGHT_ACTUAL_INPUTS: .artifacts/preflight/actual-inputs.json
++      PREFLIGHT_CACHE: .artifacts/preflight/cache
++      PREFLIGHT_SOURCE: .artifacts/preflight/source
++      PREFLIGHT_FIRST_RECEIPT: .artifacts/preflight/first-receipt.json
++      PREFLIGHT_REUSE_RECEIPT: .artifacts/preflight/reuse-receipt.json
++    steps:
++      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
++        with:
++          persist-credentials: false
++      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
++        with:
++          node-version: '24.21.0'
++      - name: Validate reviewed controller and allocate trial directories
++        run: |
++          node --input-type=module <<'NODE'
++          import { createHash } from 'node:crypto';
++          import { mkdir, readFile } from 'node:fs/promises';
++          if (!/^[0-9a-f]{64}$/.test(process.env.CONTROLLER_SHA256)) throw Error('reviewed controller SHA256 required');
++          const digest = createHash('sha256').update(await readFile(process.env.PREFLIGHT_CONTROLLER)).digest('hex');
++          if (digest !== process.env.CONTROLLER_SHA256) throw Error('reviewed controller changed');
++          await mkdir('.artifacts/preflight', { recursive: true });
++          NODE
++      - name: Checkout fixed remote baseline source
++        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
++        with:
++          repository: biomejs/biome
++          ref: 2405c7620169bd0719166af09a8d89cc76fb37fb
++          path: .artifacts/preflight/source
++          persist-credentials: false
++      - name: Assemble fixed inputs (actual toolchain strings are recorded by controller)
++        run: |
++          node --input-type=module <<'NODE'
++          import { createHash } from 'node:crypto';
++          import { readFile, writeFile } from 'node:fs/promises';
++          const digest = bytes => createHash('sha256').update(bytes).digest('hex');
++          const inventory = {};
++          for (const file of ['baseline-controller.mjs', 'build-baseline.sh', 'baseline-workflow.yml']) inventory[file] = digest(await readFile('integration/vivarium/preflight/' + file));
++          const sourceFileDigests = {
++            'Cargo.lock': '09a29db28021791e2b6f56ca4ef4b84e662d751d65ead621f6df6c6ea8b0d3c9',
++            'Cargo.toml': 'cb98a39bf77ec6183540bc198338bcc3bcc539ec3d5fba10c165426702e51667',
++            'rust-toolchain.toml': 'bd7b06458e86e1606ce6f793b95b4ede16832ad87ce9e7262e42d66b6a54a257',
++            '.cargo/config.toml': '55e1096e26df831c9aca829c83fe9383d913a402dccc0b8a3c4920ff44769ab7',
++          };
++          const inputs = {
++            schemaVersion: 1, tool: 'biome', versionOrName: 'baseline-2405c7620169bd0719166af09a8d89cc76fb37fb',
++            repository: 'https://github.com/biomejs/biome', commit: '2405c7620169bd0719166af09a8d89cc76fb37fb',
++            target: 'x86_64-unknown-linux-musl', builderInventory: inventory,
++            image: 'docker.io/library/rust@sha256:6d9066cf04ed2cc9d1a406016f4c9b2574bafda23f9e88bcad8e5d24fa6aec8e',
++            cargoLockSha256: sourceFileDigests['Cargo.lock'], sourceFileDigests,
++            dependencies: [{ tool: 'cargo-lock', repository: 'https://github.com/biomejs/biome', commit: '2405c7620169bd0719166af09a8d89cc76fb37fb', digest: sourceFileDigests['Cargo.lock'] }],
++            sourcePatches: [], environment: { RUSTUP_TOOLCHAIN: '1.98.1', CARGO_INCREMENTAL: '0' },
++            cargoArgs: ['build', '--locked', '--release', '--target', 'x86_64-unknown-linux-musl', '--package', 'biome_cli'],
++          };
++          await writeFile(process.env.PREFLIGHT_INPUT_TEMPLATE, JSON.stringify(inputs), { flag: 'wx' });
++          NODE
++      - name: Build once and validate same-key compilation skip
++        run: bash integration/vivarium/preflight/build-baseline.sh
++      - name: Retain actual trial evidence (no Release publication)
++        if: always()
++        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
++        with:
++          name: terrarium-migration-baseline-${{ github.run_id }}
++          path: |
++            .artifacts/preflight/*-receipt.json
++            .artifacts/preflight/actual-inputs.json
++            .artifacts/preflight/cache/*/biome
++            .artifacts/preflight/cache/*/build-info.json
++          if-no-files-found: error
++          retention-days: 1
+diff --git a/.github/workflows/vivarium-verdict-self-test.yml b/.github/workflows/vivarium-verdict-self-test.yml
+--- a/.github/workflows/vivarium-verdict-self-test.yml
++++ b/.github/workflows/vivarium-verdict-self-test.yml
+@@ -1,17 +1,94 @@
+-name: vivarium-verdict self-test
+-
+-on:
+-  workflow_dispatch:
+-  schedule:
+-    - cron: '0 3 * * 1'
+-
+-permissions:
+-  contents: read
+-  packages: read
+-
+-jobs:
+-  bash-local-shadows-exit:
+-    if: github.repository_owner == 'aletheia-works'
+-    uses: ./.github/workflows/vivarium-verdict.yml
+-    with:
+-      slug: bash-local-shadows-exit
++name: Terrarium migration baseline trial (proposal)
++
++on:
++  workflow_dispatch:
++    inputs:
++      controller_sha256:
++        description: Reviewed baseline-controller.mjs SHA256 (required, no latest)
++        required: true
++        type: string
++
++permissions:
++  contents: read
++
++concurrency:
++  group: terrarium-migration-fixed-biome-baseline
++  cancel-in-progress: false
++
++jobs:
++  baseline:
++    runs-on: ubuntu-24.04
++    timeout-minutes: 250
++    env:
++      CONTROLLER_SHA256: ${{ inputs.controller_sha256 }}
++      PREFLIGHT_CONTROLLER: integration/vivarium/preflight/baseline-controller.mjs
++      PREFLIGHT_INPUT_TEMPLATE: .artifacts/preflight/template.json
++      PREFLIGHT_ACTUAL_INPUTS: .artifacts/preflight/actual-inputs.json
++      PREFLIGHT_CACHE: .artifacts/preflight/cache
++      PREFLIGHT_SOURCE: .artifacts/preflight/source
++      PREFLIGHT_FIRST_RECEIPT: .artifacts/preflight/first-receipt.json
++      PREFLIGHT_REUSE_RECEIPT: .artifacts/preflight/reuse-receipt.json
++    steps:
++      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
++        with:
++          persist-credentials: false
++      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
++        with:
++          node-version: '24.21.0'
++      - name: Validate reviewed controller and allocate trial directories
++        run: |
++          node --input-type=module <<'NODE'
++          import { createHash } from 'node:crypto';
++          import { mkdir, readFile } from 'node:fs/promises';
++          if (!/^[0-9a-f]{64}$/.test(process.env.CONTROLLER_SHA256)) throw Error('reviewed controller SHA256 required');
++          const digest = createHash('sha256').update(await readFile(process.env.PREFLIGHT_CONTROLLER)).digest('hex');
++          if (digest !== process.env.CONTROLLER_SHA256) throw Error('reviewed controller changed');
++          await mkdir('.artifacts/preflight', { recursive: true });
++          NODE
++      - name: Checkout fixed remote baseline source
++        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
++        with:
++          repository: biomejs/biome
++          ref: 2405c7620169bd0719166af09a8d89cc76fb37fb
++          path: .artifacts/preflight/source
++          persist-credentials: false
++      - name: Assemble fixed inputs (actual toolchain strings are recorded by controller)
++        run: |
++          node --input-type=module <<'NODE'
++          import { createHash } from 'node:crypto';
++          import { readFile, writeFile } from 'node:fs/promises';
++          const digest = bytes => createHash('sha256').update(bytes).digest('hex');
++          const inventory = {};
++          for (const file of ['baseline-controller.mjs', 'build-baseline.sh', 'baseline-workflow.yml']) inventory[file] = digest(await readFile('integration/vivarium/preflight/' + file));
++          const sourceFileDigests = {
++            'Cargo.lock': '09a29db28021791e2b6f56ca4ef4b84e662d751d65ead621f6df6c6ea8b0d3c9',
++            'Cargo.toml': 'cb98a39bf77ec6183540bc198338bcc3bcc539ec3d5fba10c165426702e51667',
++            'rust-toolchain.toml': 'bd7b06458e86e1606ce6f793b95b4ede16832ad87ce9e7262e42d66b6a54a257',
++            '.cargo/config.toml': '55e1096e26df831c9aca829c83fe9383d913a402dccc0b8a3c4920ff44769ab7',
++          };
++          const inputs = {
++            schemaVersion: 1, tool: 'biome', versionOrName: 'baseline-2405c7620169bd0719166af09a8d89cc76fb37fb',
++            repository: 'https://github.com/biomejs/biome', commit: '2405c7620169bd0719166af09a8d89cc76fb37fb',
++            target: 'x86_64-unknown-linux-musl', builderInventory: inventory,
++            image: 'docker.io/library/rust@sha256:6d9066cf04ed2cc9d1a406016f4c9b2574bafda23f9e88bcad8e5d24fa6aec8e',
++            cargoLockSha256: sourceFileDigests['Cargo.lock'], sourceFileDigests,
++            dependencies: [{ tool: 'cargo-lock', repository: 'https://github.com/biomejs/biome', commit: '2405c7620169bd0719166af09a8d89cc76fb37fb', digest: sourceFileDigests['Cargo.lock'] }],
++            sourcePatches: [], environment: { RUSTUP_TOOLCHAIN: '1.98.1', CARGO_INCREMENTAL: '0' },
++            cargoArgs: ['build', '--locked', '--release', '--target', 'x86_64-unknown-linux-musl', '--package', 'biome_cli'],
++          };
++          await writeFile(process.env.PREFLIGHT_INPUT_TEMPLATE, JSON.stringify(inputs), { flag: 'wx' });
++          NODE
++      - name: Build once and validate same-key compilation skip
++        run: bash integration/vivarium/preflight/build-baseline.sh
++      - name: Retain actual trial evidence (no Release publication)
++        if: always()
++        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
++        with:
++          name: terrarium-migration-baseline-${{ github.run_id }}
++          path: |
++            .artifacts/preflight/*-receipt.json
++            .artifacts/preflight/actual-inputs.json
++            .artifacts/preflight/cache/*/biome
++            .artifacts/preflight/cache/*/build-info.json
++          if-no-files-found: error
++          retention-days: 1

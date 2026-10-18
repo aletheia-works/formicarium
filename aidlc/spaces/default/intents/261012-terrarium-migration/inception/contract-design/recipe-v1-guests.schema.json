@@ -1,0 +1,225 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:formicarium:terrarium-migration:recipe-v1-guests",
+  "title": "Vivarium recipe schema_version 1 with optional guests",
+  "description": "Per-recipe metadata sibling of a recipe's tracked sources (README.md / repro.* / index.html / Dockerfile) under src/layer{1,2,3}_*/<slug>/recipe.json. Single source of truth for the facets the gallery filters on (language / symptom / severity / tags) and the expectations the regression suite will assert (expected_verdict / expected_runtime). Replaces the hand-curated overlay at docs/site/_data/recipe-facets.json (retired 2026-05-18). Consumed by docs/scripts/generate-recipes-index.ts (merges the fields into the public docs/site/public/api/recipes.json catalogue), by src/layer1_wasm/scripts/highlight-repros.ts (reads language to pick the Shiki bundle), and by src/layer1_wasm/tests/repro.spec.ts via the generated catalogue (reads expected_verdict / expected_runtime for the regression suite). Adding a new recipe = creating its directory + this file; the projects.json overlay remains the only out-of-recipe edit, and only when a new project debuts.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "language"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "description": "Schema version literal. Always 1 for files validating against this schema; breaking changes ship as a sibling schema (recipe.v2.schema.json) per ADR-0018."
+    },
+    "language": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Primary source language of the reproduction. Layer 1 uses the value to pick a Shiki bundle for syntax highlighting (so the value must be a Shiki BundledLanguage ID such as 'python', 'ruby', 'php', 'rust', 'javascript', 'shell', 'sql', 'c'); Layer 2/3 only use it for gallery filtering. 'unknown' is allowed as a degraded default but should be replaced as soon as a maintainer can label the recipe."
+    },
+    "symptom": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Short kebab-case label for the bug shape (e.g. 'dtype-mismatch', 'lost-update-data-race'). Surfaced in the gallery as a facet; the value space is intentionally open — pick the most descriptive existing tag if possible, coin a new one if not."
+    },
+    "severity": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Short label for the bug's severity class (e.g. 'bug', 'regression', 'spec-violation', 'footgun', 'datarace'). Surfaced as a gallery facet. Like symptom, intentionally open — see existing recipe.json files for the value space in use."
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Free-form tags surfaced in the gallery filter chips. Conventionally includes the upstream project name, the language feature involved, and any relevant standards or libraries. Order is preserved as authored."
+    },
+    "expected_verdict": {
+      "enum": [
+        "reproduced",
+        "unreproduced"
+      ],
+      "description": "Verdict the regression suite (src/layer1_wasm/tests/repro.spec.ts and equivalents) expects the recipe page to produce. Currently 'reproduced' for every shipped recipe — when an upstream fix lands and the runtime picks it up, the suite turns the flip into a CI failure so a maintainer can decide whether to update / retire the recipe. Required in practice for Layer 1 / Layer 2 recipes: src/layer1_wasm/tests/repro.spec.ts refuses to start when the field is missing or off-enum. Schema keeps it optional so external_examples and future layers can ship recipe.json without owning this field; ADR-0018 spec evolution policy reserves required-promotion for v2."
+    },
+    "expected_runtime": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Runtime identifier the recipe's verdict envelope reports in `__VIVARIUM_RESULT__.runtime.name`. For Layer 1: 'pyodide' / 'ruby.wasm' / 'php-wasm' / 'rust-wasi' / 'terrarium' / 'browser' (the smoke test). For Layer 2: 'docker-snapshot'. Layer 3 ships no recipes, so it has no established value. Asserted by the regression suite alongside expected_verdict, and required in practice on the same terms: src/layer1_wasm/tests/repro.spec.ts refuses to start when the value is missing or unrecognised."
+    },
+    "path_a": {
+      "type": "boolean",
+      "description": "Whether the recipe page mounts the Path A \"Try a fix\" panel (enablePathA). Layer 1 only; absent means no."
+    },
+    "upstream": {
+      "description": "The released upstream version the recipe's baseline runs, for recipes whose baseline is pinned to an upstream release rather than to a runtime's bundled copy. Layer 1 only. The upstream-bump workflow compares it with the upstream's latest release every day and, when they differ, opens a pull request that moves the pin everywhere it appears in the recipe's non-Markdown files; that pull request's regression run then shows whether the bug still reproduces on the new release.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "registry",
+            "package",
+            "version"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "registry": {
+              "const": "pypi"
+            },
+            "package": {
+              "type": "string",
+              "minLength": 1,
+              "description": "PyPI project name."
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Pinned release, exactly as written in the recipe's files."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "registry",
+            "repository",
+            "version",
+            "commit"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "registry": {
+              "const": "github"
+            },
+            "repository": {
+              "type": "string",
+              "pattern": "^[^/\\s]+/[^/\\s]+$",
+              "description": "owner/name of the GitHub repository whose latest release is tracked."
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Tag of the pinned release."
+            },
+            "commit": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$",
+              "description": "Commit the tag points to; the recipe fetches this commit."
+            }
+          }
+        }
+      ]
+    },
+    "upstream_pr": {
+      "type": "string",
+      "pattern": "^https://github\\.com/[^/]+/[^/]+/pull/[0-9]+$",
+      "description": "The upstream pull request that fixes the bug, for recipes that do not use fix-candidate.json (whose upstream_pr plays the same role). The retire-merged workflow checks it every day and, once it is merged, opens a pull request that removes the recipe."
+    },
+    "fix_candidate": {
+      "type": "object",
+      "description": "The branch a Layer 1 recipe's fix-candidate pane builds from source, pinned to a commit, for recipes that do not use fix-candidate.json (whose source.commit plays the same role for fork wheels). The upstream-bump workflow compares the pin with the branch head (or its latest published build for Terrarium recipes) every day and, when they differ, opens a pull request that moves the commit, and its first eight characters, everywhere they appear in the recipe's non-Markdown files.",
+      "required": [
+        "repository",
+        "branch",
+        "commit"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "repository": {
+          "type": "string",
+          "pattern": "^[^/\\s]+/[^/\\s]+$",
+          "description": "owner/name of the GitHub repository holding the branch."
+        },
+        "branch": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Branch the fix is developed on, usually the head of the upstream pull request."
+        },
+        "commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$",
+          "description": "Pinned commit the recipe builds."
+        }
+      }
+    },
+    "guests": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "tool",
+          "repository",
+          "commit",
+          "fixture",
+          "versionOrName",
+          "elfSha256",
+          "buildInfoSha256"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "tool": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+          },
+          "repository": {
+            "type": "string",
+            "pattern": "^[^/\\s]+/[^/\\s]+$"
+          },
+          "commit": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          },
+          "fixture": {
+            "type": "string",
+            "minLength": 1
+          },
+          "versionOrName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "elfSha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "buildInfoSha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "reference": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "pr": {
+                "type": "string"
+              },
+              "branch": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "schema_version": 1,
+      "language": "python",
+      "symptom": "lalr-construction-infinite-loop",
+      "severity": "bug",
+      "tags": [
+        "lark",
+        "lalr",
+        "cyk",
+        "grammar-priority",
+        "infinite-loop"
+      ],
+      "expected_verdict": "reproduced",
+      "expected_runtime": "pyodide"
+    }
+  ]
+}

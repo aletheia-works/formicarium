@@ -1,0 +1,20 @@
+{
+  "stage": "infrastructure-design",
+  "unit": "u4-command",
+  "upstream_ids": ["NFR2.1", "NFR2.2", "NFR3.1", "NFR3.2", "NFR3.3", "NFR4.1", "NFR4.2", "NFR5.1", "NFR6.1", "NFR7.1", "NFR7.2", "NFR8.1", "NFR8.2"],
+  "coverage": [
+    { "id": "NFR2.1", "status": "OK", "target": "Pipeline 5 既存回帰" },
+    { "id": "NFR2.2", "status": "OK", "target": "Pipeline 6/11 固定分母の全realm生coverage" },
+    { "id": "NFR3.1", "status": "OK", "target": "Pipeline 3 入力境界の単体試験" },
+    { "id": "NFR3.2", "status": "OK", "target": "Pipeline 3/4 guest path・URL注入なしの試験" },
+    { "id": "NFR3.3", "status": "OK", "target": "Pipeline 4 結果bytes・検証済みcopyのconsumer試験" },
+    { "id": "NFR4.1", "status": "OK", "target": "Pipeline 3/4 取消の順序とinstall/run取消" },
+    { "id": "NFR4.2", "status": "OK", "target": "Pipeline 3 timeout既定値" },
+    { "id": "NFR5.1", "status": "OK", "target": "Pipeline 4/7 競合BUSYと連続操作、B1 command-behavior" },
+    { "id": "NFR6.1", "status": "OK", "target": "Pipeline 4/7 Node/3browser consumer" },
+    { "id": "NFR7.1", "status": "OK", "target": "Pipeline 3/4 非ASCII保持とlsの並べ替え" },
+    { "id": "NFR7.2", "status": "OK", "target": "Pipeline 3/4 予約名の振分け試験" },
+    { "id": "NFR8.1", "status": "OK", "target": "Pipeline 7/9/10/11/12 同じSHAの証拠とB1" },
+    { "id": "NFR8.2", "status": "OK", "target": "Deployment, Secrets and Rollback" }
+  ]
+}

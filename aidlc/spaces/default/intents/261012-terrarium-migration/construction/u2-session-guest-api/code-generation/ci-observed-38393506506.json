@@ -1,0 +1,32 @@
+{
+  "recordKind": "observed-ci-summary",
+  "assembledAt": "2026-10-13T12:48:19.183Z",
+  "conclusion": "success",
+  "sourceCommit": "268b323d96bfbcd2eb2fe0e03d5941eedc033871",
+  "sourceIdentity": "93e5957fccb5e862c13f8f1f56a10e97699ee64214004b9ce9a9f7d77f6f17de",
+  "candidateSha256": "e68fec9379c70008dd43d4980bd756336b94297c1dd376f0e1aabbc3297a2ae0",
+  "runURL": "https://github.com/Marukome0743/formicarium/actions/runs/38393506506",
+  "runID": 38393506506,
+  "attempt": 1,
+  "jobID": 115282845549,
+  "repository": "Marukome0743/formicarium",
+  "workflow": ".github/workflows/migration-session-u2.yml",
+  "artifactID": 11814487608,
+  "artifactSha256": "a10834eca73b5ca5e904cec4d8c645d62d861f6dd3dc5532905d71f2bf769b83",
+  "manifestSha256": "a79383c154d16b6f990e007f66c38eda89763961e2fd35fe815b362f40083dcf",
+  "signatureVerified": true,
+  "coverage": {
+    "files": 16,
+    "realms": 1370,
+    "total": 1334,
+    "covered": 1199,
+    "skipped": 0,
+    "pct": 89.88,
+    "threshold": 80,
+    "passed": true
+  },
+  "acceptancePassed": false,
+  "laterUnits": "U3/U4/B1未受入",
+  "realSafari": "未検証",
+  "provenance": "GitHub run API conclusion + connector artifact metadata + downloaded ZIP hash + bound reports; not a workflow self-declared conclusion"
+}

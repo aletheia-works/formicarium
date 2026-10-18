@@ -1,0 +1,88 @@
+{
+  "stage": "functional-design",
+  "unit": "u2-session-guest-api",
+  "upstream_ids": [
+    "FR2",
+    "FR5",
+    "FR6"
+  ],
+  "coverage": [
+    {
+      "id": "FR2",
+      "status": "OK",
+      "target": "BR2.1 BR2.2 BR2.3 BR2.9"
+    },
+    {
+      "id": "FR5",
+      "status": "OK",
+      "target": "BR2.4 BR2.5 BR2.6 BR2.7 BR2.8 BR2.12"
+    },
+    {
+      "id": "FR6",
+      "status": "OK",
+      "target": "BR2.10 BR2.11"
+    }
+  ],
+  "reverse": [
+    {
+      "id": "BR2.1",
+      "status": "N/A",
+      "target": "FR2 direct requirement; User Stories skipped"
+    },
+    {
+      "id": "BR2.2",
+      "status": "N/A",
+      "target": "FR2 direct requirement; User Stories skipped"
+    },
+    {
+      "id": "BR2.3",
+      "status": "N/A",
+      "target": "FR2 direct requirement; User Stories skipped"
+    },
+    {
+      "id": "BR2.4",
+      "status": "N/A",
+      "target": "FR5 direct requirement; User Stories skipped"
+    },
+    {
+      "id": "BR2.5",
+      "status": "N/A",
+      "target": "FR5 direct requirement; User Stories skipped"
+    },
+    {
+      "id": "BR2.6",
+      "status": "N/A",
+      "target": "FR5 direct requirement; User Stories skipped"
+    },
+    {
+      "id": "BR2.7",
+      "status": "N/A",
+      "target": "FR5 direct requirement; User Stories skipped"
+    },
+    {
+      "id": "BR2.8",
+      "status": "N/A",
+      "target": "FR5 and compatibility contract; User Stories skipped"
+    },
+    {
+      "id": "BR2.9",
+      "status": "N/A",
+      "target": "FR2 input contract; User Stories skipped"
+    },
+    {
+      "id": "BR2.10",
+      "status": "N/A",
+      "target": "FR6 direct requirement; User Stories skipped"
+    },
+    {
+      "id": "BR2.11",
+      "status": "N/A",
+      "target": "FR6 direct requirement; User Stories skipped"
+    },
+    {
+      "id": "BR2.12",
+      "status": "N/A",
+      "target": "FR5/C02 path resolution; User Stories skipped"
+    }
+  ]
+}

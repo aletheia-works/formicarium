@@ -1,0 +1,1 @@
+FORMICARIUM_CANDIDATE=.artifacts/migration-session/candidate-49df6ae6-977f-4cad-9391-633083a2cd1c/package.manifest.json FORMICARIUM_CONSUMER=/private/tmp/formicarium-migration-session-consumer-2c80314e-8bd9-473c-b564-9305d69d360b FORMICARIUM_SESSION_GUEST=.artifacts/u2-release-inputs/aube-v2.7.0/aube FORMICARIUM_SESSION_LOCAL_ONLY=1 mise run migration-session-completion
