@@ -84,7 +84,7 @@ test('current supplier rejects count and duplicate inventories', async (t) => {
     blinkSourceDirty: false,
     files: PACKAGE_FILES.map((path) => ({ path, sha256: sha256(path) })),
   };
-  assert.equal(manifest.files.length, 24);
+  assert.equal(manifest.files.length, PACKAGE_FILES.length);
   await writeFile(manifestPath, JSON.stringify(manifest));
   await verifyInstalledPackage({
     packageRoot,

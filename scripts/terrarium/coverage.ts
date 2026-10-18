@@ -30,7 +30,7 @@ const { createInstrumenter } = instrumentLibrary;
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 // Historical Terrarium component: these fourteen files belong to the original
-// U1 proof, never to the current twenty-one-file distribution denominator.
+// U1 proof, never to the current distribution denominator.
 export const HISTORICAL_U1_JS = Object.freeze([
   'runtime/contracts.js',
   'runtime/public.js',
