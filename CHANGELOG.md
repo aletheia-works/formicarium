@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.3.0](https://github.com/aletheia-works/formicarium/compare/v0.2.1...v0.3.0) (2026-10-18)
+
+
+### Features
+
+* **package:** ship a single-file browser package Worker ([#38](https://github.com/aletheia-works/formicarium/issues/38)) ([227a6cf](https://github.com/aletheia-works/formicarium/commit/227a6cf9321b6e39cdbf2bc8a1b1755b77e8542e))
+* **runtime:** add guest validation, install and command APIs ([#29](https://github.com/aletheia-works/formicarium/issues/29)) ([f5bc078](https://github.com/aletheia-works/formicarium/commit/f5bc078c6c0b1460e92497c222c864c3ae71c5a1))
+* **showcase:** add the U5 fixed guest check and the U7 showcase guests ([#31](https://github.com/aletheia-works/formicarium/issues/31)) ([880cfd4](https://github.com/aletheia-works/formicarium/commit/880cfd4ad913fbd10d0c58d73fb158af7c5c2042))
+
+
+### Bug Fixes
+
+* **migration:** compare the U2 coverage report with the distribution inventory ([#35](https://github.com/aletheia-works/formicarium/issues/35)) ([2a79860](https://github.com/aletheia-works/formicarium/commit/2a79860351b7bdeabff8b3424393694943a6a6bb))
+
 ## [0.2.1](https://github.com/aletheia-works/formicarium/compare/v0.2.0...v0.2.1) (2026-10-11)
 
 
