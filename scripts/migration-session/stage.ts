@@ -37,7 +37,6 @@ export async function sessionSourceInventory(root = workspace) {
     'tests/tooling/publication-alignment.test.js',
     'tests/tooling/publication-version.test.ts',
     'tests/tooling/publication-version.test.js',
-    '.github/workflows/migration-session-u2.yml',
   ];
   for (const directory of [
     'runtime',

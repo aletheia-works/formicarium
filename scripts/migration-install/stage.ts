@@ -15,11 +15,7 @@ const workspace = fileURLToPath(new URL('../../', import.meta.url));
 /** Retains the shared regression source inventory, and adds every U3 test/task. */
 export async function installSourceInventory(root = workspace) {
   const shared = await sessionSourceInventory(root);
-  const paths: string[] = [
-    'tsconfig.json',
-    'tsconfig.tests.json',
-    '.github/workflows/migration-install-u3.yml',
-  ];
+  const paths: string[] = ['tsconfig.json', 'tsconfig.tests.json'];
   for (const directory of [
     'scripts/migration-install',
     'tests/migration-install',

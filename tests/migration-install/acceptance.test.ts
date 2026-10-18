@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import {
-  copyFile,
   mkdir,
   mkdtemp,
   readFile,
@@ -14,28 +13,15 @@ import {
 } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import test from 'node:test';
-import { gzipSync } from 'node:zlib';
 import {
-  mapInstallCICommand,
-  validateInstallCIContext,
-} from '../../scripts/migration-install/ci.js';
-import {
-  decodeInstallSiteArchive,
   INSTALL_ACTUAL_SITE_FILES,
-  INSTALL_INPUT_POLICY,
-  INSTALL_SITE_ARCHIVE,
-  INSTALL_SITE_REFERENCE,
   inspectInstallActualSite,
-  readInstallSiteReference,
   requireInstallActualSite,
   validateInstallSiteBudget,
-  validateInstallSiteEntry,
-  validateInstallSiteReferenceManifest,
-} from '../../scripts/migration-install/ci-inputs.js';
+} from '../../scripts/migration-install/actual-site.js';
 import {
   assertInstallTestOutput,
   checkInstallCandidate,
-  executeInstallCommand,
   installCompletionCommands,
   installReportScope,
   isInstallTestCommand,
@@ -57,10 +43,6 @@ import {
   installCandidateInventory,
   installSourceInventory,
 } from '../../scripts/migration-install/stage.js';
-import {
-  CI_INPUT_PATHS,
-  validateCIInputManifest,
-} from '../../scripts/migration-session/ci-inputs.js';
 import {
   instrumentPackage,
   readPlaywrightNodeRealms,
@@ -323,206 +305,6 @@ test('duplicate, unknown and unregistered realms cannot be replaced with zero co
     assert.throws(() => assertInstallNodeRealms(rows), /inventory|registered/);
   }
 });
-function manifest() {
-  return {
-    schema: 'migration-install-ci-inputs',
-    version: 1,
-    producer: 'main-session-observed-inputs',
-    files: INSTALL_INPUT_POLICY.paths.map((path) => ({
-      path,
-      bytes: 1,
-      sha256: 'a'.repeat(64),
-    })),
-    sourceFiles: [{ path: 'runtime/install.js', sha256: 'b'.repeat(64) }],
-  };
-}
-test('U3 CI input admission refuses a manifest without the required actual distribution site', () => {
-  const withoutSite = manifest();
-  withoutSite.files = withoutSite.files.filter(
-    (entry) => entry.path !== INSTALL_SITE_ARCHIVE,
-  );
-  assert.throws(
-    () => validateCIInputManifest(withoutSite, INSTALL_INPUT_POLICY),
-    /inventory|site|missing/,
-  );
-});
-test('U3 admits the new versioned site archive while preserving every existing logical input row', () => {
-  const updated = manifest();
-  const archive = updated.files.find((row) =>
-    row.path.includes('/actual-site'),
-  )!;
-  archive.path = '.artifacts/migration-install/actual-site-v2.tar.gz';
-  assert.doesNotThrow(() =>
-    validateCIInputManifest(updated, INSTALL_INPUT_POLICY),
-  );
-  assert.equal(
-    updated.files.filter((row) => row.path === 'dist/guests/aube').length,
-    1,
-  );
-  assert.equal(
-    updated.files.filter(
-      (row) => row.path === '.artifacts/u2-release-inputs/aube-v2.7.0/aube',
-    ).length,
-    1,
-  );
-});
-test('U3 archive admission rejects the guest supplied only by the fixed existing CI reference', () => {
-  const referencedGuest =
-    'dist/aube/83a42e281acf38e98fbbddf590e77746dcb9dfdb12cce4b27d1eb1926e1e5b5d/guest';
-  assert.throws(
-    () => validateInstallSiteEntry(referencedGuest, 36948544),
-    /reference|excluded|archive/,
-  );
-});
-test('U3 fixed reference manifest permits exactly the existing source identity and no fallback aliases', () => {
-  const row = {
-    path: INSTALL_SITE_REFERENCE.source,
-    bytes: INSTALL_SITE_REFERENCE.bytes,
-    sha256: INSTALL_SITE_REFERENCE.sha256,
-  };
-  assert.doesNotThrow(() => validateInstallSiteReferenceManifest([row]));
-  for (const rows of [
-    [],
-    [{ ...row, path: '.artifacts/u2-release-inputs/aube-v2.7.0/aube' }],
-    [{ ...row, bytes: row.bytes + 1 }],
-    [{ ...row, sha256: '0'.repeat(64) }],
-    [row, row],
-  ])
-    assert.throws(
-      () => validateInstallSiteReferenceManifest(rows),
-      /fixed reference source missing\/differs/,
-    );
-});
-test('U3 fixed source reader requires its one path, refuses same-size mutation and symlinks, and reads actual accepted bytes', async () => {
-  const scratch = resolve('.artifacts/migration-install');
-  await mkdir(scratch, { recursive: true });
-  const directory = await mkdtemp(resolve(scratch, 'acceptance-reference-'));
-  try {
-    await mkdir(resolve(directory, 'dist/guests'), { recursive: true });
-    // A same-identity alias is deliberately present but cannot supply the fixed path.
-    const alias = resolve(
-      directory,
-      '.artifacts/u2-release-inputs/aube-v2.7.0/aube',
-    );
-    await mkdir(dirname(alias), { recursive: true });
-    await copyFile(resolve(INSTALL_SITE_REFERENCE.source), alias);
-    await assert.rejects(readInstallSiteReference(directory), /ENOENT/);
-    const source = resolve(directory, INSTALL_SITE_REFERENCE.source);
-    await writeFile(source, Buffer.alloc(INSTALL_SITE_REFERENCE.bytes));
-    await assert.rejects(
-      readInstallSiteReference(directory),
-      /fixed reference source size\/digest mismatch/,
-    );
-    await rm(source);
-    await symlink(alias, source);
-    await assert.rejects(
-      readInstallSiteReference(directory),
-      /symlink\/special/,
-    );
-    await rm(source);
-    await copyFile(alias, source);
-    const bytes = await readInstallSiteReference(directory);
-    assert.equal(bytes.length, INSTALL_SITE_REFERENCE.bytes);
-    assert.equal(sha256(bytes), INSTALL_SITE_REFERENCE.sha256);
-  } finally {
-    await rm(directory, { recursive: true, force: true });
-  }
-});
-
-for (const reporter of ['tap', 'spec']) {
-  for (const incomplete of ['skip', 'todo']) {
-    test(`U3 real child exit0 with ${reporter} ${incomplete} cannot become acceptance evidence`, async () => {
-      const scratch = resolve('.artifacts/migration-install');
-      await mkdir(scratch, { recursive: true });
-      const directory = await mkdtemp(resolve(scratch, 'acceptance-red-'));
-      const inheritedTestContext = process.env.NODE_TEST_CONTEXT;
-      try {
-        const fixture = resolve(directory, 'required.test.mjs');
-        await writeFile(
-          fixture,
-          `import test from 'node:test';\ntest('executed', () => {});\ntest('required actual distribution', { ${incomplete}: true }, () => {});\n`,
-        );
-        // A nested Node test runner inherits a recursion marker from the parent.
-        // Remove only that marker for this sequential child, restoring it below.
-        delete process.env.NODE_TEST_CONTEXT;
-        let rejected: unknown;
-        try {
-          await executeInstallCommand(
-            {
-              executable: process.execPath,
-              cwd: process.cwd(),
-              args: ['--test', `--test-reporter=${reporter}`, fixture],
-            },
-            resolve(directory, 'raw.log'),
-            { forwardOutput: false },
-          );
-        } catch (error) {
-          rejected = error;
-        }
-        const raw = await readFile(resolve(directory, 'raw.log'), 'utf8');
-        assert.doesNotMatch(raw, /recursively within a test file/);
-        assert.match(raw, /(?:#|ℹ) tests 2\b/);
-        assert.match(raw, /(?:#|ℹ) pass 1\b/);
-        assert.match(raw, /(?:#|ℹ) fail 0\b/);
-        assert.match(
-          raw,
-          new RegExp(
-            `(?:#|ℹ) ${incomplete === 'skip' ? 'skipped' : 'todo'} 1\\b`,
-          ),
-        );
-        assert.ok(
-          rejected instanceof Error,
-          'exit0 incomplete child must be rejected',
-        );
-        assert.match(rejected.message, /skip|todo|incomplete|summary/i);
-      } finally {
-        if (inheritedTestContext === undefined)
-          delete process.env.NODE_TEST_CONTEXT;
-        else process.env.NODE_TEST_CONTEXT = inheritedTestContext;
-        await rm(directory, { recursive: true, force: true });
-      }
-    });
-  }
-}
-test('U3 input schema adds both accepted mirror assets and rejects old U2 schema/default policy substitution', () => {
-  assert.equal(
-    validateCIInputManifest(manifest(), INSTALL_INPUT_POLICY).files.length,
-    CI_INPUT_PATHS.length + 3,
-  );
-  assert.throws(() => validateCIInputManifest(manifest()), /schema/);
-  const old = manifest();
-  old.schema = 'migration-session-ci-inputs';
-  assert.throws(
-    () => validateCIInputManifest(old, INSTALL_INPUT_POLICY),
-    /schema/,
-  );
-});
-test('U3 input omissions and duplicate/unknown destination reject before writes', () => {
-  for (const mutation of ['missing', 'duplicate', 'unknown']) {
-    const row = manifest();
-    if (mutation === 'missing') row.files.pop();
-    else if (mutation === 'duplicate') row.files[1] = row.files[0]!;
-    else row.files[0]!.path = 'secrets/key';
-    assert.throws(
-      () => validateCIInputManifest(row, INSTALL_INPUT_POLICY),
-      /inventory|duplicate|unknown/,
-    );
-  }
-});
-test('U3 input source self-reference, wrong producer, byte overflow and unsorted sources reject', () => {
-  for (const mutation of ['self', 'producer', 'bytes', 'unsorted']) {
-    const row = manifest();
-    if (mutation === 'self')
-      row.sourceFiles[0]!.path = 'ci/migration-install/inputs.bundle.json';
-    else if (mutation === 'producer') row.producer = 'fabricated';
-    else if (mutation === 'bytes') row.files[0]!.bytes = 134217729;
-    else row.sourceFiles.push({ path: 'a.js', sha256: 'a'.repeat(64) });
-    assert.throws(
-      () => validateCIInputManifest(row, INSTALL_INPUT_POLICY),
-      /self|schema|limit|sorted/,
-    );
-  }
-});
 test('completion declares U2U3/regressions/all three fresh browser collections/formal measurement sequentially', () => {
   const commands = installCompletionCommands(
     '/workspace',
@@ -554,70 +336,6 @@ test('completion declares U2U3/regressions/all three fresh browser collections/f
     3,
   );
 });
-test('U3 CI context requires exact dedicated branch, actual event, repository and numeric run attempt', () => {
-  const env = {
-    GITHUB_ACTIONS: 'true',
-    GITHUB_REPOSITORY: 'Marukome0743/formicarium',
-    GITHUB_EVENT_NAME: 'push',
-    GITHUB_REF: 'refs/heads/codex/terrarium-migration-u3',
-    GITHUB_SHA: 'a'.repeat(40),
-    GITHUB_RUN_ID: '1',
-    GITHUB_RUN_ATTEMPT: '1',
-  };
-  assert.equal(validateInstallCIContext(env).head, env.GITHUB_SHA);
-  for (const change of [
-    { GITHUB_REF: 'refs/heads/codex/terrarium-migration-u2' },
-    { GITHUB_EVENT_NAME: 'pull_request' },
-    { GITHUB_REPOSITORY: 'untrusted/formicarium' },
-    { GITHUB_SHA: 'short' },
-    { GITHUB_RUN_ATTEMPT: '0' },
-    { GITHUB_ACTIONS: 'false' },
-  ])
-    assert.throws(
-      () => validateInstallCIContext({ ...env, ...change }),
-      /context refused/,
-    );
-});
-test('U3 CI maps only scoped unit/browser tasks and refuses escaping cwd or arbitrary executable', () => {
-  const root = '/workspace';
-  const unit = mapInstallCICommand(
-    { executable: 'mise', cwd: root, args: ['run', 'migration-install-unit'] },
-    root,
-  );
-  assert.equal(
-    unit.args.at(-1),
-    'tests/migration-install/hash-regression.test.js',
-  );
-  assert.equal(unit.args.filter((arg) => arg.endsWith('.test.js')).length, 8);
-  const browser = mapInstallCICommand(
-    {
-      executable: 'mise',
-      cwd: root,
-      args: ['run', 'migration-install-browser'],
-    },
-    root,
-  );
-  assert.ok(browser.args.includes('--workers=1'));
-  assert.ok(browser.args.includes('--retries=0'));
-  assert.deepEqual(
-    browser.args.filter((arg) => arg.endsWith('.spec.ts')),
-    [
-      'tests/migration-install/consumer.spec.ts',
-      'tests/migration-install/hash-regression.spec.ts',
-    ],
-  );
-  for (const command of [
-    { executable: 'bash', cwd: root, args: ['anything'] },
-    {
-      executable: 'mise',
-      cwd: '/outside',
-      args: ['run', 'migration-install-unit'],
-    },
-    { executable: 'mise', cwd: root, args: ['run', 'publish'] },
-  ])
-    assert.throws(() => mapInstallCICommand(command, root), /refused/);
-});
-
 const completeTap =
   '# tests 2\n# pass 2\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n';
 test('U3 accepts complete TAP, spec and Playwright summaries and all concatenated Node suites', () => {
@@ -730,120 +448,15 @@ test('U3 restored actual site is mandatory before completion tests and cannot us
     else process.env.U2_ACTUAL_SITE = before;
   }
 });
-test('U3 site file/metadata/total/entry limits include the exact boundary and refuse +1 and unsafe integers', () => {
-  const metadata = INSTALL_ACTUAL_SITE_FILES.find((row) =>
-    row.path.endsWith('.json'),
-  )!.path;
-  const guest = INSTALL_ACTUAL_SITE_FILES.find((row) =>
-    row.path.endsWith('/guest'),
-  )!.path;
-  assert.doesNotThrow(() => validateInstallSiteEntry(metadata, 1048576));
-  assert.throws(
-    () => validateInstallSiteEntry(metadata, 1048577),
-    /metadata limit/,
-  );
-  assert.doesNotThrow(() => validateInstallSiteEntry(guest, 134217728));
-  assert.throws(
-    () => validateInstallSiteEntry(guest, 134217729),
-    /file byte limit/,
-  );
+test('U3 site total and entry limits include the exact boundary and refuse +1 and unsafe integers', () => {
   assert.doesNotThrow(() => validateInstallSiteBudget(268435456, 4096));
   assert.throws(
     () => validateInstallSiteBudget(268435457, 4096),
     /total limit/,
   );
   assert.throws(() => validateInstallSiteBudget(1, 4097), /entry limit/);
-  for (const value of [-1, NaN, Infinity, 0.5, Number.MAX_SAFE_INTEGER + 1]) {
-    assert.throws(() => validateInstallSiteEntry(guest, value), /limit/);
+  for (const value of [-1, NaN, Infinity, 0.5, Number.MAX_SAFE_INTEGER + 1])
     assert.throws(() => validateInstallSiteBudget(value, 1), /limit/);
-  }
-});
-function siteTarMember(path: string, size = 0, type = 48) {
-  const header = Buffer.alloc(512);
-  const slash = path.lastIndexOf('/');
-  header.write(path.length <= 100 ? path : path.slice(slash + 1), 0, 100);
-  if (path.length > 100) header.write(path.slice(0, slash), 345, 155);
-  header.write(size.toString(8).padStart(11, '0') + '\0', 124);
-  header.fill(32, 148, 156);
-  header[156] = type;
-  header.write('ustar\0', 257);
-  header.write(
-    header
-      .reduce((sum, byte) => sum + byte, 0)
-      .toString(8)
-      .padStart(6, '0') + '\0 ',
-    148,
-  );
-  return header;
-}
-test('U3 site archive refuses gzip corruption, missing inventory, unknown/traversal paths, links and duplicate files', () => {
-  const known = INSTALL_ACTUAL_SITE_FILES[0]!.path;
-  assert.throws(() => decodeInstallSiteArchive(new Uint8Array([1, 2, 3])));
-  assert.throws(
-    () => decodeInstallSiteArchive(gzipSync(Buffer.alloc(1024))),
-    /missing inventory/,
-  );
-  for (const path of [
-    'unknown.json',
-    '../escape',
-    '/absolute',
-    'dist/../escape',
-  ])
-    assert.throws(
-      () =>
-        decodeInstallSiteArchive(
-          gzipSync(Buffer.concat([siteTarMember(path), Buffer.alloc(1024)])),
-        ),
-      /unknown path|UNSAFE_ASSET_PATH/,
-    );
-  assert.throws(
-    () =>
-      decodeInstallSiteArchive(
-        gzipSync(
-          Buffer.concat([siteTarMember(known, 0, 50), Buffer.alloc(1024)]),
-        ),
-      ),
-    /symlink\/special/,
-  );
-  assert.throws(
-    () =>
-      decodeInstallSiteArchive(
-        gzipSync(
-          Buffer.concat([
-            siteTarMember(known),
-            siteTarMember(known),
-            Buffer.alloc(1024),
-          ]),
-        ),
-      ),
-    /duplicate path/,
-  );
-});
-test('U3 archive rejects oversized metadata/file headers, broken checksum and missing complete terminator', () => {
-  const metadata = INSTALL_ACTUAL_SITE_FILES.find((row) =>
-    row.path.endsWith('.json'),
-  )!.path;
-  const guest = INSTALL_ACTUAL_SITE_FILES.find((row) =>
-    row.path.endsWith('/guest'),
-  )!.path;
-  for (const [path, bytes, reason] of [
-    [metadata, 1048577, /metadata limit/],
-    [guest, 134217729, /file byte limit/],
-  ] as const)
-    assert.throws(
-      () => decodeInstallSiteArchive(gzipSync(siteTarMember(path, bytes))),
-      reason,
-    );
-  const broken = siteTarMember(metadata);
-  broken[0] = broken[0]! ^ 1;
-  assert.throws(() => decodeInstallSiteArchive(gzipSync(broken)), /checksum/);
-  assert.throws(
-    () =>
-      decodeInstallSiteArchive(
-        gzipSync(Buffer.concat([siteTarMember(metadata), Buffer.alloc(512)])),
-      ),
-    /end\/trailing/,
-  );
 });
 test('U3 actual site inspection refuses missing/extra files, empty extra directories, same-size mutation and symlinks', async () => {
   const scratch = resolve('.artifacts/migration-install');

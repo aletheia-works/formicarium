@@ -14,12 +14,6 @@ import {
   validateB1,
 } from '../../scripts/migration-command/b1.js';
 import {
-  COMMAND_BRANCH,
-  mapCommandCICommand,
-  validateCommandCIContext,
-} from '../../scripts/migration-command/ci.js';
-import { COMMAND_INPUT_POLICY } from '../../scripts/migration-command/ci-inputs.js';
-import {
   checkCommandCandidate,
   checkCommandCIEvidence,
   commandCompletionCommands,
@@ -42,7 +36,6 @@ import {
   commandSourceInventory,
 } from '../../scripts/migration-command/stage.js';
 import { INSTALL_REALMS } from '../../scripts/migration-install/coverage.js';
-import { validateCIInputManifest } from '../../scripts/migration-session/ci-inputs.js';
 import { readPlaywrightNodeRealms } from '../../scripts/package/coverage.js';
 import { FIRST_PARTY_JS, sha256 } from '../../scripts/package/stage-package.js';
 
@@ -488,105 +481,6 @@ test('completion is sequential U2/U3/U4 suites, regressions, fresh coverage and 
     ['scripts/migration-command/measure.js', '/x/measure'],
   );
 });
-test('U4 CI context requires the dedicated U4 branch and refuses the U3 branch', () => {
-  const env = {
-    GITHUB_ACTIONS: 'true',
-    GITHUB_REPOSITORY: 'Marukome0743/formicarium',
-    GITHUB_EVENT_NAME: 'push',
-    GITHUB_REF: COMMAND_BRANCH,
-    GITHUB_SHA: 'a'.repeat(40),
-    GITHUB_RUN_ID: '1',
-    GITHUB_RUN_ATTEMPT: '1',
-  };
-  assert.equal(validateCommandCIContext(env).head, 'a'.repeat(40));
-  for (const ref of [
-    'refs/heads/codex/terrarium-migration-u3',
-    'refs/heads/main',
-    'refs/pull/1/merge',
-  ])
-    assert.throws(() => validateCommandCIContext({ ...env, GITHUB_REF: ref }));
-  assert.throws(() =>
-    validateCommandCIContext({ ...env, GITHUB_EVENT_NAME: 'pull_request' }),
-  );
-});
-test('U4 CI maps only its scoped unit task and refuses unknown tasks, escapes and executables', () => {
-  const root = process.cwd();
-  const unit = mapCommandCICommand(
-    { executable: 'mise', args: ['run', 'migration-command-unit'], cwd: root },
-    root,
-  );
-  assert.equal(unit.executable, process.execPath);
-  assert.deepEqual(
-    unit.args.filter((arg) => arg.startsWith('tests/')),
-    [
-      'runner-ready',
-      'parse',
-      'dispatch',
-      'public',
-      'consumer',
-      'acceptance',
-    ].map((name) => `tests/migration-command/${name}.test.js`),
-  );
-  for (const command of [
-    { executable: 'mise', args: ['run', 'migration-command-stage'], cwd: root },
-    { executable: 'mise', args: ['run', 'migration-command-unit'], cwd: '/' },
-    { executable: '/bin/sh', args: ['-c', 'true'], cwd: root },
-    {
-      executable: process.execPath,
-      args: ['scripts/migration-command/coverage.js', 'prepare', '/etc/x'],
-      cwd: root,
-    },
-    {
-      executable: process.execPath,
-      args: ['scripts/migration-command/measure.js', '/etc/x'],
-      cwd: root,
-    },
-  ])
-    assert.throws(() => mapCommandCICommand(command, root), /refused|escapes/);
-});
-test('every U4 completion step, including the U4 measure entry, is accepted by the U4 CI mapping', () => {
-  const root = process.cwd();
-  const planned = commandCompletionCommands(
-    root,
-    resolve(root, '.artifacts/migration-command/x/coverage'),
-    resolve(root, '.artifacts/migration-command/x/measure'),
-  );
-  for (const item of planned)
-    assert.doesNotThrow(
-      () => mapCommandCICommand(item.command, root),
-      item.label,
-    );
-  const measure = planned.find((item) => item.label === 'measure')!.command;
-  assert.deepEqual(mapCommandCICommand(measure, root).args, measure.args);
-  assert.equal(measure.args[0], 'scripts/migration-command/measure.js');
-});
-test('the U4 workflow keeps U3 safety: read-only, own branch, serial, 360 min, 7-day raw evidence', async () => {
-  const [u4, u3] = await Promise.all(
-    [
-      '.github/workflows/migration-command-u4.yml',
-      '.github/workflows/migration-install-u3.yml',
-    ].map((path) => readFile(resolve(path), 'utf8')),
-  );
-  assert.match(u4, /^permissions:\n {2}contents: read\n/m);
-  assert.match(u4, /branches: \[codex\/terrarium-migration-b1\]/);
-  assert.match(u4, /refs\/heads\/codex\/terrarium-migration-b1'/);
-  assert.match(u4, /cancel-in-progress: false/);
-  assert.match(u4, /timeout-minutes: 360/);
-  assert.match(u4, /retention-days: 7/);
-  assert.match(u4, /persist-credentials: false/);
-  assert.equal(/write|secrets\.|NPM_TOKEN|id-token/.test(u4), false);
-  for (const path of [
-    'completion-*/b1-acceptance.json',
-    'completion-*/*.log',
-    'coverage-playwright-node/**/*.jsonl',
-    'measurement/trials/*.json',
-  ])
-    assert.ok(u4.includes(path), path);
-  const pins = (text: string) =>
-    [...text.matchAll(/uses: (\S+@[a-f0-9]{40})/g)].map((row) => row[1]).sort();
-  assert.deepEqual(pins(u4), pins(u3));
-  assert.equal(u4.includes('codex/terrarium-migration-u3'), false);
-});
 test('U4 realms extend U3 by three Node Workers and three browser cases without dropping any', () => {
   // One more real Worker comes from the real-guest blink.log regression in public.test.
   assert.equal(COMMAND_REALMS.nodeWorkers, INSTALL_REALMS.nodeWorkers + 3);
@@ -647,38 +541,6 @@ test('preflightEvidenceId is read from the structurally re-assessed U1 record', 
   const preflight = await readPreflightEvidenceId(process.cwd());
   assert.equal(preflight.evidenceId, 'u1-real-browser-ci-attempt-2');
   assert.match(preflight.sha256, /^[a-f0-9]{64}$/);
-});
-test('the U4 input bundle refuses self-referencing sources under its own directory', () => {
-  assert.equal(COMMAND_INPUT_POLICY.sourcePrefix, 'ci/migration-command/');
-  const files = COMMAND_INPUT_POLICY.paths.map((path) => ({
-    path,
-    bytes: 1,
-    sha256: 'a'.repeat(64),
-  }));
-  const manifest = (sourceFiles: { path: string; sha256: string }[]) => ({
-    schema: COMMAND_INPUT_POLICY.schema,
-    version: 1,
-    producer: 'main-session-observed-inputs',
-    files,
-    sourceFiles,
-  });
-  validateCIInputManifest(
-    manifest([{ path: 'runtime/command.ts', sha256: 'a'.repeat(64) }]),
-    COMMAND_INPUT_POLICY,
-  );
-  assert.throws(
-    () =>
-      validateCIInputManifest(
-        manifest([
-          {
-            path: 'ci/migration-command/inputs.bundle.json',
-            sha256: 'a'.repeat(64),
-          },
-        ]),
-        COMMAND_INPUT_POLICY,
-      ),
-    /self reference/,
-  );
 });
 test('the U4 measure entry runs the U3 measurement with the U4 source inventory', () => {
   assert.equal(typeof measureCommand, 'function');

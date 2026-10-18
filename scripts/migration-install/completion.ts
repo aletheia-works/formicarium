@@ -11,7 +11,7 @@ import {
   PACKAGE_FILES,
   sha256,
 } from '../package/stage-package.js';
-import { requireInstallActualSite } from './ci-inputs.js';
+import { requireInstallActualSite } from './actual-site.js';
 import { INSTALL_REALMS } from './coverage.js';
 import { summarizeInstallTrials } from './measure.js';
 import {

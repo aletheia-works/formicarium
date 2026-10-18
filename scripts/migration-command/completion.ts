@@ -3,7 +3,7 @@ import { mkdir, open, readFile, rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { consumerInput } from '../../tests/migration-session/consumer-input.js';
-import { requireInstallActualSite } from '../migration-install/ci-inputs.js';
+import { requireInstallActualSite } from '../migration-install/actual-site.js';
 import {
   assertInstallTestOutput,
   executeInstallCommand,

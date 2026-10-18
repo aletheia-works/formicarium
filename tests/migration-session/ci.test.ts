@@ -3,10 +3,6 @@ import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { test } from 'node:test';
 import {
-  mapCICommand,
-  validateCIContext,
-} from '../../scripts/migration-session/ci.js';
-import {
   BLINK_IDENTITY,
   inspectRestoredCore,
   validateBlinkLock,
@@ -106,79 +102,6 @@ test('synthetic producer, size, unknown field and source self-reference fail clo
   const self = fixture();
   self.sourceFiles[0]!.path = 'ci/migration-session/inputs.bundle.json';
   assert.throws(() => validateCIInputManifest(self), /self reference/);
-});
-test('CI context mock accepts exact fork push and refuses local/mismatched identities', () => {
-  const env = {
-    GITHUB_ACTIONS: 'true',
-    GITHUB_REPOSITORY: 'Marukome0743/formicarium',
-    GITHUB_EVENT_NAME: 'push',
-    GITHUB_REF: 'refs/heads/codex/terrarium-migration-u2',
-    GITHUB_SHA: 'a'.repeat(40),
-    GITHUB_RUN_ID: '123',
-    GITHUB_RUN_ATTEMPT: '1',
-  };
-  assert.equal(validateCIContext(env).head, env.GITHUB_SHA);
-  for (const patch of [
-    { GITHUB_ACTIONS: 'false' },
-    { GITHUB_REPOSITORY: 'aletheia-works/formicarium' },
-    { GITHUB_REF: 'refs/heads/main' },
-    { GITHUB_SHA: 'short' },
-    { GITHUB_RUN_ID: '0' },
-  ])
-    assert.throws(
-      () => validateCIContext({ ...env, ...patch }),
-      /context refused/,
-    );
-});
-test('task adapter keeps exact declared five-test and browser scopes', () => {
-  const root = process.cwd();
-  const unit = mapCICommand(
-    { executable: 'mise', args: ['run', 'migration-session-unit'], cwd: root },
-    root,
-  );
-  assert.equal(unit.executable, process.execPath);
-  assert.equal(unit.args.length, 7);
-  assert.equal(unit.args.at(-1), 'tests/migration-session/consumer.test.js');
-  const browser = mapCICommand(
-    {
-      executable: 'mise',
-      args: ['run', 'migration-session-browser'],
-      cwd: root,
-    },
-    root,
-  );
-  assert.deepEqual(browser.args, [
-    'node_modules/@playwright/test/cli.js',
-    'test',
-    '--config',
-    'tests/migration-session/playwright.config.ts',
-    'tests/migration-session/consumer.spec.ts',
-  ]);
-  assert.deepEqual(
-    mapCICommand(
-      { executable: 'mise', args: ['run', 'build'], cwd: root },
-      root,
-    ).args,
-    ['scripts/ci/tasks.ts', 'build'],
-  );
-});
-test('adapter refuses unknown task, shell executor, escaping cwd and Node entry', () => {
-  const root = process.cwd();
-  for (const command of [
-    { executable: 'mise', args: ['run', 'publish'], cwd: root },
-    { executable: 'bash', args: ['-c', 'true'], cwd: root },
-    {
-      executable: process.execPath,
-      args: ['--test'],
-      cwd: resolve(root, '..'),
-    },
-    {
-      executable: process.execPath,
-      args: ['-e', 'process.exit(0)'],
-      cwd: root,
-    },
-  ])
-    assert.throws(() => mapCICommand(command, root), /refused/);
 });
 async function withBundle(
   run: (root: string, manifestPath: string, blob: string) => Promise<void>,

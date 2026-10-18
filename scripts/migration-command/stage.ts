@@ -34,10 +34,7 @@ export function assertCommandDistribution(
 /** Retains the U2+U3 regression inventory, and adds every U4 test, task and doc. */
 export async function commandSourceInventory(root = workspace) {
   const shared = await installSourceInventory(root);
-  const paths: string[] = [
-    'docs/command-api.md',
-    '.github/workflows/migration-command-u4.yml',
-  ];
+  const paths: string[] = ['docs/command-api.md'];
   for (const directory of [
     'scripts/migration-command',
     'tests/migration-command',
