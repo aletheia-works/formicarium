@@ -17,11 +17,13 @@ import { createInstrumenter } from 'istanbul-lib-instrument';
 import type { Measurement } from '../../scripts/coverage-types.js';
 import {
   BROWSER_TITLES,
+  CURRENT_U1_REALMS,
   componentImport,
   copyCoverageDependencies,
   executionVerifierSource,
   FILES,
   finalizeNodeMeasurement,
+  HISTORICAL_U1_JS,
   mergeMeasurements,
   nodePreloadSource,
   prepareCoverage,
@@ -401,6 +403,126 @@ test('immutable U1 import preserves original realm names and rejects wrong pack/
     'original generation follows the bound report, not a collector constant',
   );
   assert.deepEqual(imported.originalRealmNames, report.realmNames);
+  const historicalU2Sixteen = structuredClone(report);
+  for (const path of [
+    'runtime/guest-validation.js',
+    'runtime/session-port.js',
+  ]) {
+    historicalU2Sixteen.files.push({ ...report.files[0], path });
+    historicalU2Sixteen.digests.push({ ...report.digests[0], path });
+  }
+  assert.throws(
+    () => componentImport(f.inventory, historicalU2Sixteen, 'e'.repeat(64)),
+    /denominator/,
+    'historical U2 sixteen-file distribution is not historical fourteen-file proof',
+  );
+  const currentTwentyThree = structuredClone(historicalU2Sixteen);
+  for (const name of [
+    'install-catalog',
+    'install-transfer',
+    'install-archive',
+    'install-lifecycle',
+    'install',
+    'command-parse',
+    'command',
+  ]) {
+    const path = `runtime/${name}.js`;
+    currentTwentyThree.files.push({ ...report.files[0], path });
+    currentTwentyThree.digests.push({ ...report.digests[0], path });
+  }
+  assert.equal(currentTwentyThree.files.length, 23);
+  assert.throws(
+    () => componentImport(f.inventory, currentTwentyThree, 'e'.repeat(64)),
+    /planned realm inventory/,
+    'a current-generation report must also carry the migration Node Worker realm',
+  );
+  currentTwentyThree.realmNames = [...CURRENT_U1_REALMS];
+  assert.throws(
+    () => componentImport(f.inventory, currentTwentyThree, 'e'.repeat(64)),
+    /planned realm inventory/,
+    'a current-generation report must carry its Playwright runner realms',
+  );
+  currentTwentyThree.realmNames.push('playwright:package:4242');
+  const sameGeneration = componentImport(
+    {
+      ...f.inventory,
+      u1Report: '/record/u1-coverage-v11/coverage-report.json',
+    },
+    currentTwentyThree,
+    'e'.repeat(64),
+  );
+  assert.deepEqual(
+    Object.keys(sameGeneration.coverage).sort(),
+    [...HISTORICAL_U1_JS].sort(),
+    'only the historical fourteen files are imported from the same generation',
+  );
+  assert.deepEqual(sameGeneration.originalRealmNames, [
+    ...CURRENT_U1_REALMS,
+    'playwright:package:4242',
+  ]);
+  const historicalWithRunner = structuredClone(report);
+  historicalWithRunner.realmNames.push('playwright:package:4242');
+  assert.throws(
+    () => componentImport(f.inventory, historicalWithRunner, 'e'.repeat(64)),
+    /planned realm inventory/,
+    'a historical fourteen-file report never carries runner realms',
+  );
+  const historicalWithMigrationRealm = structuredClone(report);
+  historicalWithMigrationRealm.realmNames = [...CURRENT_U1_REALMS];
+  assert.throws(
+    () =>
+      componentImport(
+        f.inventory,
+        historicalWithMigrationRealm,
+        'e'.repeat(64),
+      ),
+    /planned realm inventory/,
+    'a historical fourteen-file report never carries the migration realm',
+  );
+  const changedSource = structuredClone(currentTwentyThree);
+  changedSource.digests[0] = {
+    ...changedSource.digests[0],
+    sourceSha256: 'f'.repeat(64),
+  };
+  assert.throws(
+    () =>
+      componentImport(
+        {
+          ...f.inventory,
+          u1Report: '/record/u1-coverage-v11/coverage-report.json',
+        },
+        changedSource,
+        'e'.repeat(64),
+      ),
+    /source changed/,
+    'a same-generation report with differing historical source is rejected',
+  );
+  for (const path of [
+    'runtime/guest-validation.js',
+    'runtime/session-port.js',
+  ]) {
+    const newModule = structuredClone(report);
+    newModule.files[0].path = path;
+    newModule.digests[0].path = path;
+    assert.throws(
+      () => componentImport(f.inventory, newModule, 'e'.repeat(64)),
+      /denominator/,
+      'current U2 modules cannot inherit historical U1 component proof',
+    );
+  }
+  assert.throws(
+    () => componentImport(f.inventory, report, 'e'.repeat(64)),
+    /original report path/,
+  );
+  assert.throws(
+    () =>
+      componentImport(
+        { ...f.inventory, u1Report: 'u1-coverage-v11/coverage-report.json' },
+        report,
+        'e'.repeat(64),
+      ),
+    /original report path/,
+  );
   assert.throws(
     () => componentImport(f.inventory, report, 'e'.repeat(64)),
     /original report path/,

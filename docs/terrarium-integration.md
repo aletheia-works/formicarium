@@ -1,5 +1,25 @@
 # terrarium への組み込み方の調査メモ（FR8.1）
 
+## 2026-10-14: 現在の候補と歴史的証拠の配布境界
+
+現在のpackage/publication準備一覧はinstallの5モジュールを含む21第一者JS／31 package filesです。新しいcoverageでは全21JSを分母とし、未収集ファイルを除外しません。旧U2の16JS／26files、旧U1の14JSとTerrarium/releaseの固定24-file coverageは当時の証拠として保持します。現在候補へ流用しません。現在候補は既存公開gateの `U2 publication missing module coverage; U4/B1 evidence required` で拒否され、今回の一覧整合では公開を許可しません。U3の性能受入・専用CIと後続U4/B1の証拠・個別公開承認は未完です。
+
+今回の現在コードの確認には `scripts/migration-preflight/current-completion.js` の新しい入口を使います。今回未使用の旧 `scripts/migration-session/completion.js` はU2の16JSを要求する固定入口として保持し、21JS候補には使いません。過去のU2結果・bindingを現在の成功へ再ラベルしません。
+
+## 2026-10-13: 廃止・機能移管 U2 の API
+
+当時の配布一覧の互換修正では publication の準備を16 JS/26 package filesへ合わせました。歴史的 Terrarium/release の24-file coverage（U1の14 JS＋旧integration10）は別の固定一覧で保持します。歴史的 pack だけが既存の独立 source/pack/map/realm 検査の対象です。U2 26-file pack は既存公開 gate で `U2 publication missing module coverage; U4/B1 evidence required` として拒否します。任意の追加 field や local U2 report でこの公開条件を補いません。新 module を含む実公開は後続 U4/B1 の全証拠と別途承認が必要です。
+
+今回の移管では caller が固定 catalog の `GuestExpectation` を渡します。公開 root に `validateGuest(bytes, expected)`、`fixtureToFsEntries(entries)`、`runValidatedGuest(session, handle, options?)`、`registerValidatedGuest(session, tool, handle, { signal }?)` を追加します。公開型は `GuestBuildInfo`、`GuestExpectation`、`GuestHandle` です。C02 の予約 token/epoch・registry は session 内部の所有物で、package exports へ追加しません。
+
+検証は全 ELF SHA256 と未知 field を含む canonical metadata SHA256 を照合し、private handle に copy を保持します。別 instance/偽 handle、dynamic ELF、不正 metadata、fixture root 逸脱・link loop・hardlink 内容不一致を `INVALID_INPUT` として拒否します。上限は ELF 128 MiB、metadata 1 MiB、fixture 256 MiB/4096 entries、UTF-8 path 4096 bytes です。`registerValidatedGuest` は同じ session の予約を用いて atomic に登録します。raw run、validated run、登録、FS の競合は `BUSY`、reset/dispose による取消は `ABORTED`、dispose 後は `DISPOSED` です。reset は cleanup を待って seed FS/cwd を復元し registry を消去します。失敗した run の snapshot は commit しません。
+
+検証済み（main session）：guest/fixture 17 件、reservation と既存 state/lifecycle 33 件、C03 public 8 件、独立 consumer 8 件、同じ新 0.3.0 pack の三ブラウザ 9 件（17.5 秒、worker 1/retry 0）。型 fixture、実 aube 2.7.0、copy、競合、取消を検査しました。0.3.0 は staging 内の暫定版で、公開済み 0.2.1 の代わりに公開したものではありません。公開済み core とローカル core は Emscripten 6.0.12/6.0.10 の違いがあり byte 同一とは扱いません。
+
+この時点ではU2 最終配布 coverage と統合前 CI、実機 Safari は未検証でした。U2のcoverageは当時の固定16第一者JS全体を分母とし、既存25 Node Worker/33 browserケースにU2 realmを加える設計でした。U1の固定14ファイル証拠は歴史的前提として保持し、新候補の受入証拠へ再ラベルしません。U3取得/install、U4 command/C06/B1と公開はこのU2単位の対象外です。
+
+`mise run migration-session-stage` は `FORMICARIUM_SESSION_SOURCE`（main が観測した base revision）を必要とし、実 working-source inventory SHA を別に保存します。`mise run migration-session-completion` は fresh candidate、独立 consumer、guest の実 path を必須とします。統合前 CI の固定証拠が欠ければ最終完了は実行前に拒否します。`FORMICARIUM_SESSION_LOCAL_ONLY=1` は local 暫定検証のみを行い、`acceptancePassed=false` と CI 未検証を記録します。初回の共通コマンド実行には具体入力と対象を示す別途承認が必要です。
+
 intent `261005-pitchfork-on-blink` の調査メモです。terrarium（ツールごとに wasm にビルドして、ブラウザの端末で 1 つの CLI を動かす）
 で、ツールごとのビルドの代わりに formicarium（x86-64 の static-musl バイナリをそのまま blink で動かす）を使う方法をまとめます。
 組み込みそのものは行っていません（requirements.md の Out of Scope）。
@@ -129,7 +149,23 @@ Node.js は `tests/node/pitchfork-basic.test.mjs` を 3 回実行したときの
 - 実機の Safari（macOS）では確かめていない（WebKit で代用。既存の未解決事項と同じ）
 - 組み込みの API：案 A の場合、`runtime/` を npm パッケージとして切り出すか、terrarium に写すか
 
-## 7. U3 common runtime adoption（2026-10-08）
+## 7. U3の過去の修復候補（2026-10-08、現在の対象は9節）
+
+現候補は同一U1 v8 pack（runtime14/全24files）と修復済みU2 site-repair-v1。aube2.7.0/2.6.1とpitchfork2.30.0を固定し、現在の公式最新版とは断定しない。U2はreview-03 READY・承認済み。tools defaultsはローカル検証用に再構成した値である。以下の過去2.30.1/旧packの結果を現候補へ流用しない。
+
+mainは `.artifacts/u3-inputs-repair-v1` へpack/manifest/guest全11files/resolver3jsを集め、固定16filesのsize/digest descriptorを記録した。元descriptorと公開archive provenanceは旧証拠として保存した。terrariumでは次の正式経路を使用する。
+
+```sh
+node scripts/prepare-formicarium.mjs --from /Users/mutoakio/Documents/formicarium/.artifacts/u3-inputs-repair-v1 --output /Users/mutoakio/Documents/terrarium/.vendor/formicarium-inputs-repair-v1
+```
+
+通常dependencyをこの新rootのtarballへ変更し、mainが通常Bun install、次に `bun install --frozen-lockfile` を実行した（lockfileVersion1）。その後 `FORMICARIUM_INPUTS_ROOT=/Users/mutoakio/Documents/terrarium/.vendor/formicarium-inputs-repair-v1` を指定し、正式 `stage-formicarium.mjs --check` と `mise run terrarium:formicarium-build` で `.vendor/site-formicarium` を生成した。上のnode/bunはmiseの直接実体、子process PATHにも直接binを設定する。既存default `.vendor/formicarium-inputs` は旧入力のまま保持し、default rootの検査を新候補の成功と呼ばない。新rootはFORMICARIUM_INPUTS_ROOT、prepareの入力は --from/--output を明示する。
+
+検証済み：mainでcatalog12pass、sibling unit27pass、型/正式build/stage exit0、bridge6pass（三browser、1worker/retry0）。旧runtime13/mjs在庫、旧Worker URL監視、旧2.30.1期待、collectorの元世代固定値は各main Redの後にsource/試験oracleを修正した。現在の基準parentは `0aa94fde1e33230efb96e8763f0fa811ce1cdd80`、旧60dd0dcは歴史的基準として区別する。
+
+現在のcoverageはU1固定14＋U2固定3＋U3固定7＝24、80% floorを維持する。検証済み：fresh `.artifacts/u3-coverage-repair-v2/report.json` は1451/1801 lines（80.56%、skipped0、passedtrue）、measured Node27pass/三browser45pass。generation `e0ed4541-cb8a-46de-815c-d4ffca9a837a`、source `26cc8d1960fb1bd60147cea98e9ecbad68bf114088d30f9fc7796a8230360c24`、candidate `711ea20e91ca7cb2e5aa9b91b5dbd3d2e2dbfbfb4aeda40702197449a72f0d4d` に束縛した。U1 v11の同一pack/source/maps/1253元realm証拠はimmutable importであり、今回の新規U1実行へ再ラベルしない。最終formal build3 steps、Node U3 tests21、Biome TS9/sibling8filesもmainで成功。baseline identityは `.artifacts/u3-identity-repair-v1/identity.json` の明示した現在parentへ結合する。native reviewとsource admissionは未完了。証拠の詳細はU3 code-generation/main-verification.mdを参照する。実Pages、公開RC受入れ、実Safari、統合前CIも未検証。
+
+## 8. 過去のU3 common runtime adoption観測（現候補の合格へ流用しない）
 
 本intentで承認した構成では、terrariumは通常dependencyとして同じformicarium npm tarballを導入する。
 旧設計の未決事項のうち、runtimeの複製・汎用shell追加は採用しない。
@@ -202,3 +238,30 @@ CORPは隔離自体を有効化しない。隔離不足のfixtureは親も子も
 正常ケースの通知・marker生成、拒否ケースの通知・Worker request0という基準は維持する。
 実GitHub Pagesのresponse headersと任意header設定可否は未検証であり、
 このlocal配信条件での成功を実Pagesの成功とは扱わない。
+
+
+## 9. 正式owner成果の受入れ（2026-10-08）
+
+terrarium intent `261008-formicarium-integration-2` が製品ソースの修正とレビューを所有する。正式READY requestは `review:00ea057e81e3a59480e2c2297b99eeb6`。code-generation/build-and-testの人のApproveと正式完了記録を確認した。U3はこの成果をread-only入力として受け入れる。以前の外部write claimsはU3 recordの `archive/pre-owner-acceptance-20261008/source-manifest.json` に原bytesで保存し、変更の履歴を抹消しない。
+
+検証済み：source78の集合SHA `b70c328cf9d309a18a6dc06eccde0817b0c3a78bf6f7b513ea4cb159beee2f99`、入力16、15実行ログ、formicarium69/legacy22 entriesを現在bytesと照合した。正式receiptのrawSHA、matching auditのreview/approval/completion、独立review本文をpinした。ownerの136unit/45専用browser/legacy34成功＋2既存skipは外部で実行された結果であり、今回の新規件数へ合算しない。
+
+現在の固定入力rootは terrarium `.vendor/formicarium-inputs-integration-2`、BT siteは `.vendor/site-formicarium-integration-2-bt` と `.vendor/site-legacy-integration-2-bt`。供給URLは明示入力が必須で、遠隔到達性は未検証。既存候補や入力を書き換えず、同一U1 v8 tarball、aube2.7.0/2.6.1とpitchfork2.30.0を消費する。7節の過去候補とは区別する。
+
+formicarium側の `scripts/terrarium/acceptance.ts` は正式記録とファイル内容を検査し、欠落・重複・改変・path逸脱・symlink・失敗command・不成立承認を拒否する。正式build後の実owner CLIはexit0で `.artifacts/u3-owner-acceptance-v1/acceptance.json` を生成した。受入れ原bytesは同ディレクトリへ保存し、外部の過去検証として表示する。外部receiptを発行・編集しない。
+
+新規観測：mainのconsumer6件は三ブラウザー全成功。fresh `.artifacts/u3-coverage-owner-v1` は測定Node30件/専用browser45件成功、固定24の1451/1801 lines（80.56%、skipped0、passedtrue）。generation `08c74c3b-bafa-43cf-a251-15bd5c212633`、配布source identity `26cc8d1960fb1bd60147cea98e9ecbad68bf114088d30f9fc7796a8230360c24`、candidate file identity `45e230fb6541e26683b313b9d5e28101296d0f80aa434f49d561123fcb0c120e`。sourceは以前と同bytesでもcandidateが異なるため、新しい実行結果で判定した。同pack U1 v11の1253realmは明示immutable importのままである。
+
+U3正式レビューと完了は別の正式記録で判定する。実Pages/service-worker、公開RC、実Safari、遠隔CI、配布URLの到達性は未検証。統合前CIと80%条件を維持し、公開・push・PR・tag・deployはこの受入れに含めない。
+
+## 10. 固定auditと現ローカル候補の修復（2026-10-10）
+
+9節のowner承認はU1v8/pitchfork2.30.0の歴史的成果である。現在auditへの追記で旧pin不一致を検出し、元snapshotを変更せずbyte-prefixとbounded allowlistを検査する方式へ修復した。元111851bytes、現113715bytes、許可13event/1864bytesを別々に保存し、正式owner受入れv3はexit0。未知event、承認/工程transition、revocation、旧領域変更、取得中driftは拒否する。
+
+新ローカル候補`.artifacts/u3-current-v9-v2`はU1v9、clean core a882fb2f、aube2.7.0/pitchfork2.30.1を使用する。owner source78のread-only copy、追加固定gen-css/CSS/LICENSE、通常npm install、宣言済みgen/Bun bundle、U2正式producer、owner正式assembleCandidateを使用した。assemblyにはlocal sourceRoot/inputs/destinationとmain生成bundle callbackを明示し、外部ownerのbuild・source変更はない。supplier元10資産を固定し、新tools.defaultだけv2.30.1へ変更した新11資産/descriptor16を検査する。
+
+検証済み：v2の完全host assembly completed_ready、bridge6成功12.7秒、terminal/iframe45成功1.0分。配信rootはsiteで、web/index.html・terminal.mjs・bundle・root入口を含む。v1のiframe host欠落失敗、site/webを配信rootにした中断、collector v2のescaping symlink拒否は原記録を保持する。
+
+collectorは依存の実bytesをowned workspaceへdereference copyし、source前後・copy SHA、cycle/special fileを検査する。escaping linkをseal許可へ変更しない。main観測は回帰16成功、fresh coverage v3 seal成功、Node30成功/155assertions、browser45成功1.3分、report exit0。固定24＝U1十四/U2三/U3七、1450/1801 lines（80.51%、skipped0、passedtrue）、全realm、generation/source/candidate/execution bindingを確認した。同pack U1v14の14source/maps/1253realmはstrict immutable importで、今回の新U1実行ではない。
+
+元owner承認、新ローカル非計測成功、fresh測定を別々に保存する。旧80.56%を新候補へ再ラベルしない。このU3候補の実Safari、公開RC、遠隔CI、実Pages/service-worker、remote URL到達性は未検証であり、公開操作は含めない。

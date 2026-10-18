@@ -14,6 +14,9 @@ import type {
   WorkerHandle,
 } from './contracts.js';
 import { errorCode } from './contracts.js';
+import { invalid } from './errors.js';
+import type { GuestHandle } from './guest-validation.js';
+import { bindSessionPort, type Reservation } from './session-port.js';
 import type { SessionState } from './state.js';
 
 interface Decision {
@@ -22,6 +25,10 @@ interface Decision {
   result?: RunResult;
 }
 interface ActiveRun extends Identity {
+  reservation: Reservation;
+  releaseOnFinish: boolean;
+  completed: Promise<void>;
+  complete(): void;
   input: ReturnType<typeof validateRun>;
   phase: 'preparing' | 'running' | 'terminating' | 'settled';
   startedAt: number;
@@ -55,7 +62,7 @@ function spawnErrorCode(error: unknown): ErrorCode {
 import type { ExecutionError } from './errors.js';
 import { failure, safeCause } from './errors.js';
 import { identity, inspectMessage, joinBytes } from './protocol.js';
-import { validateRun } from './validation.js';
+import { normalizePath, validateRun } from './validation.js';
 
 let nextSessionId = 0;
 const defaultClock = () => globalThis.performance?.now() ?? Date.now();
@@ -74,8 +81,10 @@ export function createLifecycle(
 ): Session {
   let active: ActiveRun | null = null;
   let generation = 0;
-  let disposed = false;
   let disposal: Promise<void> | null = null;
+  let disposalFinished = false;
+  let resetting: Promise<void> | null = null;
+  let cleanupFailure: unknown;
 
   const received = (run: ActiveRun) => ({
     runId: run.runId,
@@ -108,22 +117,28 @@ export function createLifecycle(
         ...received(run),
         cause: safeCause(error?.code ?? 'EXECUTION'),
       });
-      disposed = true;
+      cleanupFailure = error;
+      state.dispose();
     }
-    if (disposed) state.dispose();
+    if (state.isDisposed) state.dispose();
     else if (!error) {
       try {
-        state.commit(run.decision.snapshot);
+        state.commit(run.decision.snapshot, run.reservation);
       } catch (cause) {
         error = runFailure(
           run,
-          errorCode(cause) === 'SNAPSHOT' ? 'SNAPSHOT' : 'EXECUTION',
+          errorCode(cause) === 'SNAPSHOT'
+            ? 'SNAPSHOT'
+            : errorCode(cause) === 'ABORTED'
+              ? 'ABORTED'
+              : 'EXECUTION',
         );
       }
     }
-    state.release();
+    if (run.releaseOnFinish) state.release(run.reservation);
     active = null;
     run.phase = 'settled';
+    run.complete();
     if (error) run.reject(error);
     else
       run.resolve({
@@ -142,7 +157,8 @@ export function createLifecycle(
       // Abort/dispose can invalidate a validated done candidate during cleanup.
       if (decision.error?.code === 'ABORTED' && !run.decision.error)
         run.decision = decision;
-      if (disposed) run.decision = { error: runFailure(run, 'ABORTED') };
+      if (state.isDisposed)
+        run.decision = { error: runFailure(run, 'ABORTED') };
       return;
     }
     run.phase = 'terminating';
@@ -177,7 +193,7 @@ export function createLifecycle(
       terminate(run, { error: runFailure(run, 'TIMEOUT') });
       return;
     }
-    if (run.input.signal?.aborted || disposed) {
+    if (run.input.signal?.aborted || state.isDisposed) {
       terminate(run, { error: runFailure(run, 'ABORTED') });
       return;
     }
@@ -209,19 +225,36 @@ export function createLifecycle(
     }
   }
 
-  function run(options: RunOptions): Promise<RunResult> {
+  function run(
+    options: RunOptions,
+    reserved?: Reservation,
+  ): Promise<RunResult> {
     let input: ReturnType<typeof validateRun>;
     let entries: FsEntry[];
+    let reservation: Reservation;
     try {
-      state.assertIdle();
+      if (reserved) state.assertCurrent(reserved);
+      else state.assertIdle();
       input = validateRun(options, state.home);
-      entries = state.reserve();
+      reservation = reserved ?? state.acquire('run');
+      entries = state.snapshot(reservation);
+      input.signal = input.signal
+        ? AbortSignal.any([input.signal, reservation.signal])
+        : reservation.signal;
     } catch (error) {
       return Promise.reject(error);
     }
     generation++;
     const startedAt = clock();
+    let complete!: () => void;
+    const completed = new Promise<void>((resolve) => {
+      complete = resolve;
+    });
     const handle: ActiveRun = {
+      reservation,
+      releaseOnFinish: !reserved,
+      completed,
+      complete,
       sessionId,
       runId: `${sessionId}:${generation}`,
       generation,
@@ -278,17 +311,33 @@ export function createLifecycle(
   }
 
   function dispose(): Promise<void> {
-    if (disposal && active) return disposal;
-    if (disposed && !active) return Promise.resolve();
-    disposed = true;
-    state.dispose();
-    if (!active) return Promise.resolve();
-    disposal = new Promise((resolve, reject) => {
-      active!.disposeResolve = resolve;
-      active!.disposeReject = reject;
-    });
-    terminate(active, { error: runFailure(active, 'ABORTED') });
+    if (disposal && !disposalFinished) return disposal;
+    if (state.isDisposed && !active) return Promise.resolve();
+    const waiting = state.beginDispose();
+    disposal = waiting
+      .then(() => {
+        state.dispose();
+        if (cleanupFailure) throw cleanupFailure;
+      })
+      .finally(() => {
+        disposalFinished = true;
+      });
     return disposal;
+  }
+  function reset(): Promise<void> {
+    if (state.isDisposed)
+      return Promise.reject(failure('DISPOSED', 'Session has been disposed'));
+    if (resetting) return resetting;
+    const waiting = state.beginReset();
+    resetting = waiting
+      .then(() => {
+        if (cleanupFailure) throw cleanupFailure;
+        state.finishReset();
+      })
+      .finally(() => {
+        resetting = null;
+      });
+    return resetting;
   }
 
   const operation =
@@ -300,13 +349,89 @@ export function createLifecycle(
         return Promise.reject(error);
       }
     };
-  return Object.freeze({
+  const fsOperation =
+    <A extends unknown[], R>(fn: (reservation: Reservation, ...args: A) => R) =>
+    (...args: A): Promise<R> => {
+      let reservation: Reservation;
+      try {
+        reservation = state.acquire('fs');
+      } catch (error) {
+        return Promise.reject(error);
+      }
+      try {
+        return Promise.resolve(fn(reservation, ...args));
+      } catch (error) {
+        return Promise.reject(error);
+      } finally {
+        state.release(reservation);
+      }
+    };
+  const session = Object.freeze({
     run,
     dispose,
-    readFile: operation(state.readFile.bind(state)),
-    remove: operation(state.remove.bind(state)),
-    listEntries: operation(state.listEntries.bind(state)),
-    setCwd: operation(state.setCwd.bind(state)),
-    reset: operation(state.reset.bind(state)),
+    readFile: fsOperation((r, path: string) => state.readFile(path, r)),
+    remove: fsOperation((r, path: string) => state.remove(path, r)),
+    listEntries: fsOperation((r, path?: string) => state.listEntries(path, r)),
+    setCwd: fsOperation((r, path: string) => state.setCwd(path, r)),
+    reset,
   });
+  bindSessionPort(session, {
+    acquire: operation((kind: 'run' | 'install' | 'fs') => state.acquire(kind)),
+    commitGuest: operation((r: Reservation, tool: string, guest: GuestHandle) =>
+      state.commitGuest(r, tool, guest),
+    ),
+    runInstalled: (r, tool, args, options) => {
+      try {
+        return run(
+          { ...options, guest: state.installedGuest(r, tool), args },
+          r,
+        );
+      } catch (error) {
+        return Promise.reject(error);
+      }
+    },
+    release: async (r) => {
+      const current = active;
+      if (current?.reservation === r) await current.completed;
+      state.release(r);
+    },
+    builtin: operation((r: Reservation, argv: readonly string[]) => {
+      state.assertCurrent(r);
+      invalid(
+        Array.isArray(argv) &&
+          argv.every((arg) => typeof arg === 'string' && !arg.includes('\0')),
+        'builtin argv invalid',
+      );
+      let stdout = new Uint8Array();
+      if (argv[0] === 'ls' && argv.length <= 2)
+        stdout = new TextEncoder().encode(
+          state
+            .listEntries(argv[1], r)
+            .map((entry) => entry.path.slice(entry.path.lastIndexOf('/') + 1))
+            .join('\n') + '\n',
+        );
+      else if (argv[0] === 'cat' && argv.length === 2)
+        stdout = state.readFile(argv[1]!, r);
+      else if (argv[0] === 'cd' && argv.length === 2) state.setCwd(argv[1]!, r);
+      else if (argv[0] === 'rm' && argv[1] === '-rf' && argv.length === 3)
+        state.remove(argv[2]!, r);
+      else invalid(false, 'builtin argv unsupported');
+      return {
+        kind: 'builtin' as const,
+        exitCode: 0,
+        stdout,
+        stderr: new Uint8Array(),
+      };
+    }),
+    resolvePath: (path: string) => {
+      invalid(
+        typeof path === 'string' && path !== '',
+        'path must be non-empty',
+      );
+      return normalizePath(
+        path.startsWith('/') ? path : `${state.cwd}/${path}`,
+      );
+    },
+  });
+  return session;
 }

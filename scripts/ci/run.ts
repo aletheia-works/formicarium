@@ -10,7 +10,6 @@ import {
 import {
   FILES,
   prepareCoverage as prepareU3,
-  REQUIRED_U1_REALMS,
   reportCoverage as reportU3,
   sealCoverage,
 } from '../terrarium/coverage.js';
@@ -37,6 +36,32 @@ const output = resolve(root, '.artifacts/ci-results');
 const node = process.execPath;
 const playwright = resolve(root, 'node_modules/@playwright/test/cli.js');
 const results: CheckResult[] = [];
+/** Self-contained guest validation, install and command unit suites. */
+const MIGRATION_COVERAGE_SUITES = Object.freeze([
+  'migration-session',
+  'migration-install',
+  'migration-command',
+]);
+const MIGRATION_COVERAGE_TESTS = Object.freeze([
+  'migration-session/fixture',
+  'migration-session/guest-validation',
+  'migration-session/reservation',
+  'migration-install/catalog',
+  'migration-install/hash-regression',
+  'migration-install/lifecycle',
+  'migration-install/public',
+  'migration-install/transfer',
+  'migration-command/dispatch',
+  'migration-command/parse',
+  'migration-command/public',
+]);
+/** Real guest runs in migration-command/public start one more Node Worker. */
+const MIGRATION_COVERAGE_NODE_WORKERS: number = JSON.parse(
+  await readFile(
+    new URL('../package/coverage-inventory.json', import.meta.url),
+    'utf8',
+  ),
+).node.migrationWorkers;
 async function command(
   id: string,
   args: string[],
@@ -293,6 +318,13 @@ export async function runVerification(
   }
   const u1 = resolve(root, '.artifacts/u1-coverage-v1000001');
   await prepareU1({ source: installedPackage, out: u1 });
+  // The guest validation, install and command modules are first-party package
+  // JS too; their self-contained unit suites run against the same instrumented
+  // copy so the fixed inventory keeps every distributed file in its denominator.
+  for (const suite of MIGRATION_COVERAGE_SUITES)
+    await cp(resolve(root, 'tests', suite), resolve(u1, 'tests', suite), {
+      recursive: true,
+    });
   results.push(
     await command('u1-node', [
       node,
@@ -315,6 +347,9 @@ export async function runVerification(
         'node-worker',
         'consumer',
       ].map((name) => resolve(u1, `tests/package/${name}.test.js`)),
+      ...MIGRATION_COVERAGE_TESTS.map((path) =>
+        resolve(u1, `tests/${path}.test.js`),
+      ),
     ]),
   );
   results.push(
@@ -340,6 +375,7 @@ export async function runVerification(
     out: u1,
     browserResults: resolve(u1, 'browser-results'),
     candidatePath: process.env.FORMICARIUM_CANDIDATE,
+    extraNodeWorkers: MIGRATION_COVERAGE_NODE_WORKERS,
   });
   const u3 = resolve(root, '.artifacts/ci-coverage-fixed24');
   const prepared = await prepareU3({
@@ -398,7 +434,11 @@ export async function runVerification(
   validateCoverage(coverage, {
     files: FILES,
     tarballSha256: hash(await readFile(resolve(root, manifest.tarball))),
-    u1Realms: REQUIRED_U1_REALMS,
+    // Bind to the realms of this run's U1 report; componentImport has already
+    // checked them against the planned inventory.
+    u1Realms: JSON.parse(
+      await readFile(resolve(u1, 'coverage-report.json'), 'utf8'),
+    ).realmNames,
   });
   validateChecks(results);
   await verifyPins(resolve(inputRoot, 'payload'), manifest.files);

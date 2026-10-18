@@ -20,7 +20,6 @@ import type {
   CoverageInventory,
   Measurement,
 } from '../coverage-types.js';
-import { FIRST_PARTY_JS } from '../package/stage-package.js';
 import { directoryIdentity, sha256 } from './evidence.js';
 
 const { createCoverageMap } = coverageLibrary;
@@ -30,6 +29,24 @@ import instrumentLibrary from 'istanbul-lib-instrument';
 const { createInstrumenter } = instrumentLibrary;
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
+// Historical Terrarium component: these fourteen files belong to the original
+// U1 proof, never to the current twenty-one-file distribution denominator.
+export const HISTORICAL_U1_JS = Object.freeze([
+  'runtime/contracts.js',
+  'runtime/public.js',
+  'runtime/errors.js',
+  'runtime/validation.js',
+  'runtime/state.js',
+  'runtime/lifecycle.js',
+  'runtime/protocol.js',
+  'runtime/worker-execution.js',
+  'runtime/core.js',
+  'runtime/guest-io.js',
+  'runtime/node/api.js',
+  'runtime/node/package-worker.js',
+  'runtime/web/api.js',
+  'runtime/web/package-worker.js',
+]);
 export const U2_FILES = ['manifest', 'fixtures', 'resolver'].map(
   (name) => `integration/terrarium/guest-distribution/${name}.js`,
 );
@@ -44,7 +61,7 @@ export const U3_FILES = [
   .map((name) => `terrarium/packages/terrarium/src/${name}.ts`)
   .concat('terrarium/web/terminal.mjs');
 export const FILES = Object.freeze([
-  ...FIRST_PARTY_JS,
+  ...HISTORICAL_U1_JS,
   ...U2_FILES,
   ...U3_FILES,
 ]);
@@ -89,6 +106,21 @@ export const REQUIRED_U1_REALMS = Object.freeze([
     ]),
   ),
 ]);
+// The same-generation U1 report also covers the current package files, the
+// Node Workers started by the migration unit tests and the Playwright runner
+// processes (named by pid); only the historical fourteen files are imported.
+const CURRENT_U1_JS = Object.freeze([...u1Inventory.files] as string[]);
+export const CURRENT_U1_REALMS = Object.freeze([
+  ...REQUIRED_U1_REALMS,
+  ...Array.from(
+    { length: u1Inventory.node.migrationWorkers },
+    (_, index) => `node-worker-${u1Inventory.node.workers + index + 1}`,
+  ),
+]);
+const sameSet = (values: readonly string[], expected: readonly string[]) =>
+  values.length === expected.length &&
+  new Set(values).size === expected.length &&
+  values.every((value) => expected.includes(value));
 const save = (filename: string, value: unknown) =>
   writeFile(filename, `${JSON.stringify(value, null, 2)}\n`);
 const json = async (filename: string) =>
@@ -236,19 +268,33 @@ export function componentImport(
     if (!report.realmNames.some((name) => name.startsWith(prefix)))
       throw new Error('U1 component realm missing');
   }
+  const paths = report.files.map((file) => file.path);
+  const generation = sameSet(paths, HISTORICAL_U1_JS)
+    ? { files: HISTORICAL_U1_JS, realms: REQUIRED_U1_REALMS, runners: false }
+    : sameSet(paths, CURRENT_U1_JS)
+      ? { files: CURRENT_U1_JS, realms: CURRENT_U1_REALMS, runners: true }
+      : undefined;
   if (
-    JSON.stringify([...report.realmNames].sort()) !==
-    JSON.stringify([...REQUIRED_U1_REALMS].sort())
-  )
-    throw new Error('U1 planned realm inventory differs');
-  if (
-    report.files.length !== FIRST_PARTY_JS.length ||
-    new Set(report.files.map((file) => file.path)).size !==
-      FIRST_PARTY_JS.length
+    !generation ||
+    !sameSet(
+      report.digests.map((file) => file.path),
+      generation.files,
+    )
   )
     throw new Error('U1 denominator differs');
+  const runner = (name: string) =>
+    /^playwright:package:[1-9][0-9]*$/.test(name);
+  const runners = report.realmNames.filter(runner);
+  if (
+    !sameSet(
+      report.realmNames.filter((name) => !runner(name)),
+      generation.realms,
+    ) ||
+    (generation.runners ? runners.length === 0 : runners.length !== 0)
+  )
+    throw new Error('U1 planned realm inventory differs');
   const coverage: Record<string, FileCoverageData> = {};
-  for (const path of FIRST_PARTY_JS) {
+  for (const path of HISTORICAL_U1_JS) {
     const file = structuredClone(
       inventory.metadata.find((row) => row.path === path)!,
     );

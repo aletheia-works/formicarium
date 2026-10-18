@@ -112,7 +112,6 @@ test('run reservation is synchronous and all public operations reject BUSY', asy
     session.remove('/work/input'),
     session.listEntries(),
     session.setCwd('/work'),
-    session.reset(),
   ])
     await assert.rejects(promise, { code: 'BUSY' });
   done(workers[0]);

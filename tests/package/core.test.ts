@@ -78,6 +78,8 @@ function assetsFixture() {
 }
 test('core descriptor owns argv and package-relative asset layout', () => {
   assert.deepEqual(blinkCore.argv('/guest/program', ['one'], ['-s']), [
+    '-L',
+    '/dev/null',
     '-s',
     '/guest/program',
     'one',

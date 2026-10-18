@@ -1,11 +1,39 @@
 import { createHash } from 'node:crypto';
 
-// Fixed publication inventory: byte-for-byte value parity is checked against the existing provider.
+// Historical 0.1.0 evidence inventory: recorded RC/stable evidence binds these
+// fourteen modules, so it stays fixed (see HISTORICAL_U1_JS in terrarium coverage).
+export const HISTORICAL_FIRST_PARTY_JS = Object.freeze([
+  'runtime/contracts.js',
+  'runtime/public.js',
+  'runtime/errors.js',
+  'runtime/validation.js',
+  'runtime/state.js',
+  'runtime/lifecycle.js',
+  'runtime/protocol.js',
+  'runtime/worker-execution.js',
+  'runtime/core.js',
+  'runtime/guest-io.js',
+  'runtime/node/api.js',
+  'runtime/node/package-worker.js',
+  'runtime/web/api.js',
+  'runtime/web/package-worker.js',
+]);
+// Current package inventory: byte-for-byte value parity is checked against the
+// package staging provider (scripts/package/stage-package.ts).
 export const FIRST_PARTY_JS = Object.freeze([
   'runtime/contracts.js',
   'runtime/public.js',
   'runtime/errors.js',
   'runtime/validation.js',
+  'runtime/guest-validation.js',
+  'runtime/session-port.js',
+  'runtime/install-catalog.js',
+  'runtime/install-transfer.js',
+  'runtime/install-archive.js',
+  'runtime/install-lifecycle.js',
+  'runtime/install.js',
+  'runtime/command-parse.js',
+  'runtime/command.js',
   'runtime/state.js',
   'runtime/lifecycle.js',
   'runtime/protocol.js',
@@ -47,7 +75,7 @@ export const U3_FILES = [
   .map((name) => `terrarium/packages/terrarium/src/${name}.ts`)
   .concat('terrarium/web/terminal.mjs');
 export const FILES = Object.freeze([
-  ...FIRST_PARTY_JS,
+  ...HISTORICAL_FIRST_PARTY_JS,
   ...U2_FILES,
   ...U3_FILES,
 ]);

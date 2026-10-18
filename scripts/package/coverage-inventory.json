@@ -6,6 +6,15 @@
     "runtime/public.js",
     "runtime/errors.js",
     "runtime/validation.js",
+    "runtime/guest-validation.js",
+    "runtime/session-port.js",
+    "runtime/install-catalog.js",
+    "runtime/install-transfer.js",
+    "runtime/install-archive.js",
+    "runtime/install-lifecycle.js",
+    "runtime/install.js",
+    "runtime/command-parse.js",
+    "runtime/command.js",
     "runtime/state.js",
     "runtime/lifecycle.js",
     "runtime/protocol.js",
@@ -24,7 +33,8 @@
       "nodeApi": 4,
       "nodeWorker": 3,
       "realConsumer": 18
-    }
+    },
+    "migrationWorkers": 1
   },
   "browserProjects": ["chromium", "firefox", "webkit"],
   "browserCases": {

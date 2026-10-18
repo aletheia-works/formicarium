@@ -14,7 +14,7 @@
   "host": {
     "os": "Windows_NT 10.0.26300 x64",
     "cpu": "example x8",
-    "node": "24.21.0"
+    "node": "26.12.0"
   },
   "runs": [
     {

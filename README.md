@@ -40,6 +40,46 @@ Filesystem entries are copied at input and output. Persisted roots are cwd/home;
 
 Default assets resolve relative to the installed package. Explicit `assets` requires absolute loaderURL, wasmURL, buildInfoURL and workerURL. Loader/wasm SHA-256 digests and clean pinned core metadata are checked before initialization. The checked loader bytes are evaluated without rereading the original URL. Node uses a run-specific directory with mode 0700 and an exclusive loader copy with mode 0400; pthreads use that same copy. The host owns these files and browser Blob URLs, stops owned Workers before releasing them, and releases resources after normal completion, abort, timeout or disposal even when the root Worker is forcibly terminated. Missing or mixed assets reject with `ASSET_LOAD`; initialization failure is `CORE_INIT`. See `THIRD_PARTY_NOTICES.md` and `assets/build-info.json` for provenance. Local test observations are recorded in the active AI-DLC U1 record; real Safari and full product regression/CI remain separate verification obligations.
 
+## terrarium 移管の guest・install・command API（0.3.0 候補）
+
+terrarium の機能を formicarium へ移すため、root export に次の API を加えている。0.3.0 の候補で、公開はrelease-pleaseと個別の承認を経て行う。B1 の正式な受入（全 realm の coverage、正式 36 試行、署名付き CI）と実機 Safari は、この README の時点で未検証である。
+
+### guest の検証と登録（U2）
+
+```js
+import { createSession } from '@aletheia-works/formicarium/node';
+import {
+  validateGuest, fixtureToFsEntries, runValidatedGuest,
+  registerValidatedGuest, decodeUtf8,
+} from '@aletheia-works/formicarium';
+
+// expected は呼出し元の固定カタログから渡す。
+// { elfSha256, buildInfoSha256, identity: GuestBuildInfo }
+const guest = validateGuest(guestBytes, expected);
+const entries = fixtureToFsEntries([
+  { path: '/work/input', type: 'file', mode: 0o644,
+    inodeId: 'input', data: new TextEncoder().encode('example') },
+]);
+const session = await createSession({ entries });
+try {
+  await registerValidatedGuest(session, 'tool', guest);
+  const result = await runValidatedGuest(session, guest, { args: ['--version'] });
+  console.log(result.exitCode, decodeUtf8(result.stdout));
+} finally { await session.dispose(); }
+```
+
+`validateGuest` と `fixtureToFsEntries` は同期である。guest は static ELF64 little-endian x86-64 Linux で最大 128 MiB、canonical build metadata は最大 1 MiB。fixture は最大 4096 entries・合計 256 MiB・UTF-8 path 4096 bytes で、root からの逸脱、symlink loop、矛盾する hardlink を拒否する。guest・metadata・fixture の bytes は内部へ copy し、以後の入力の変更は実行に反映しない。handle の複製や、別の package instance で作った handle は `INVALID_INPUT` になる。
+
+run・登録・FS 操作は session ごとに同じ排他を使い、競合は `BUSY` になる。`reset()` は実行を取り消して cleanup を待ち、登録・FS・cwd を初期状態へ戻す。`dispose()` は cleanup の後に終端となり、以後は `DISPOSED` になる。取消は `ABORTED`、guest の非ゼロ exit は従来どおり結果として返す。内部の予約 API は package exports に公開しない。
+
+### カタログからの install（U3）
+
+`createInstaller(session, catalog)` は、呼出し元が用意した固定カタログを検証・copy する。`installer.install('tool')` 又は `installer.install('tool@version')` で HTTPS 上の ELF・tar.gz を取得・検証し、同じ session へ登録する。既定版はカタログの defaults だけから選ぶ。通信や登録の失敗で旧 guest を置き換えず、run・FS・別の install との競合は `BUSY` になる。公開型、カタログの必須情報、取消・進捗・エラーと例は [install API](docs/install-api.md) を参照。
+
+### 端末の command（U4）
+
+`createCommandSession(session, { catalog })` は 1 行の文字列を解釈し、`ls [path]`・`cat path`・`cd path`・`rm -rf path` を session の FS 操作へ、`install <selection>` を同じカタログの install へ、それ以外を登録済み guest の実行へ振り分ける。shell の構文（pipe・リダイレクト・変数展開・glob など）は展開せず `INVALID_INPUT` にする。各 command は session の予約を 1 回だけ使い、直接の API や別の command session との競合は `BUSY` になる。結果の stdout・stderr は原本の bytes で、表示への変換と表示の上限は UI 側の責任である。構文、予約名、取消と timeout、UI への受渡しの条件は [command API](docs/command-api.md) を参照。
+
 ## この PoC でしていること
 
 [jart/blink](https://github.com/jart/blink)（x86-64 Linux のユーザーモードエミュレータ）の fork

@@ -38,6 +38,8 @@ export const blinkCore = {
   },
   /**
    * コアに渡すコマンドライン。blink は `blink [flags] <program> [args...]` の形で受け取る。
+   * blink は -L がないと cwd に blink.log を作るので、先頭で /dev/null へ向ける。
+   * 後ろの coreFlags の -L が優先されるので、診断ではログの場所を上書きできる。
    * @param {string} guestPath 仮想ファイルシステム上のゲストのパス
    * @param {string[]} args ゲストに渡す引数
    * @param {string[]} [coreFlags] コア自身へのフラグ（診断用。例：blink の -s はシステムコールの記録）
@@ -47,7 +49,7 @@ export const blinkCore = {
     args: readonly string[],
     coreFlags: readonly string[] = [],
   ) {
-    return [...coreFlags, guestPath, ...args];
+    return ['-L', '/dev/null', ...coreFlags, guestPath, ...args];
   },
 };
 
