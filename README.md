@@ -80,6 +80,10 @@ run・登録・FS 操作は session ごとに同じ排他を使い、競合は `
 
 `createCommandSession(session, { catalog })` は 1 行の文字列を解釈し、`ls [path]`・`cat path`・`cd path`・`rm -rf path` を session の FS 操作へ、`install <selection>` を同じカタログの install へ、それ以外を登録済み guest の実行へ振り分ける。shell の構文（pipe・リダイレクト・変数展開・glob など）は展開せず `INVALID_INPUT` にする。各 command は session の予約を 1 回だけ使い、直接の API や別の command session との競合は `BUSY` になる。結果の stdout・stderr は原本の bytes で、表示への変換と表示の上限は UI 側の責任である。構文、予約名、取消と timeout、UI への受渡しの条件は [command API](docs/command-api.md) を参照。
 
+## showcase の最新版ゲスト（U7 暫定候補）
+
+[`showcase/`](showcase/) は、aube・pitchfork・Biome の最新の安定版を解決・取得（公式の static musl 資産がない pitchfork は source build）・検証し、公開 export（`@aletheia-works/formicarium`、`/node`、`/browser`）だけを使って Node・Chromium・Firefox・WebKit で `--version` を受入して、showcase の候補（catalog と manifest）を作ります。本体の `runtime/`・`types/` からは参照せず、境界は機械検査します。専用の CI は [`.github/workflows/showcase.yml`](.github/workflows/showcase.yml) です。構成と手順は [showcase の README](showcase/README.md) を参照して下さい。この追加時点で受入・CI は未検証、実機Safariも未検証です。
+
 ## この PoC でしていること
 
 [jart/blink](https://github.com/jart/blink)（x86-64 Linux のユーザーモードエミュレータ）の fork

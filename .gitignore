@@ -99,6 +99,11 @@ aidlc/diagnostics/
 # aidlc/spaces/*/intents/*/<phase>/<stage>/*.md (artifacts + diary).
 # END AI-DLC:gitignore
 
+# showcase: staged package and acquire/staging work area (never committed)
+/showcase/node_modules/
+/showcase/.work/
+/showcase/.probe/
+
 # formicarium build outputs
 .vendor/
 dist/

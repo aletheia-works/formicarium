@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "distributeCaller": ".github/workflows/showcase-site.yml",
+  "reuseWorkflows": [
+    ".github/workflows/showcase.yml",
+    ".github/workflows/showcase-site.yml"
+  ]
+}

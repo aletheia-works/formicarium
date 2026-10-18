@@ -28,9 +28,49 @@
       "!**/playwright-report",
       "!**/*.js",
       "!**/*.js.map",
-      "!package-lock.json"
+      "!package-lock.json",
+      "!showcase/fixtures",
+      "!showcase/tests/boundary-fixtures",
+      "!showcase/.work"
     ]
   },
+  "overrides": [
+    {
+      "includes": ["showcase/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "**/runtime/**",
+                      "**/types/**",
+                      "../../runtime/**",
+                      "../../types/**",
+                      "../../../runtime/**",
+                      "../../../types/**"
+                    ],
+                    "message": "showcase は公開 export（@aletheia-works/formicarium、/node、/browser）だけを使う。本体の内部を import しない。"
+                  },
+                  {
+                    "group": [
+                      "@aletheia-works/formicarium/**",
+                      "!@aletheia-works/formicarium/node",
+                      "!@aletheia-works/formicarium/browser"
+                    ],
+                    "message": "package 内部の path ではなく公開 export を使う。"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
   "formatter": {
     "enabled": true,
     "indentStyle": "space",

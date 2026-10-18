@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "repositories": [
+    "https://github.com/aubepkg/aube",
+    "https://github.com/jdx/pitchfork",
+    "https://github.com/biomejs/biome"
+  ]
+}

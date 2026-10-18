@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "tools": [
+    {
+      "tool": "aube",
+      "repository": "https://github.com/aubepkg/aube",
+      "tagPattern": "^v(\\d+\\.\\d+\\.\\d+)$",
+      "fixture": "aube-local-deps",
+      "acquire": {
+        "kind": "release-asset",
+        "asset": "aube-{tag}-x86_64-unknown-linux-musl.tar.gz",
+        "format": "tar.gz",
+        "archiveEntry": "aube"
+      }
+    },
+    {
+      "tool": "pitchfork",
+      "repository": "https://github.com/jdx/pitchfork",
+      "tagPattern": "^v(\\d+\\.\\d+\\.\\d+)$",
+      "fixture": "pitchfork-basic",
+      "acquire": {
+        "kind": "source-build",
+        "builder": "cargo",
+        "binary": "pitchfork",
+        "ui": {
+          "directory": "ui",
+          "runner": "aube",
+          "install": ["install", "--frozen-lockfile"],
+          "build": ["run", "build"],
+          "output": "dist/index.html"
+        }
+      }
+    },
+    {
+      "tool": "biome",
+      "repository": "https://github.com/biomejs/biome",
+      "tagPattern": "^@biomejs/biome@(\\d+\\.\\d+\\.\\d+)$",
+      "fixture": "biome-basic",
+      "acquire": {
+        "kind": "release-asset",
+        "asset": "biome-linux-x64-musl",
+        "format": "elf"
+      }
+    }
+  ]
+}
