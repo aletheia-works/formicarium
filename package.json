@@ -88,7 +88,7 @@
     "migration:preflight:verify": "node scripts/migration-preflight/verify.js",
     "migration:preflight:current-unit": "node --test --test-concurrency=1 tests/migration-preflight/current-completion.test.js",
     "migration:preflight:completion": "node scripts/migration-preflight/completion.js",
-    "migration:session:unit": "node --test --test-concurrency=1 tests/migration-session/guest-validation.test.js tests/migration-session/fixture.test.js tests/migration-session/reservation.test.js tests/migration-session/public.test.js tests/migration-session/consumer.test.js",
+    "migration:session:unit": "node --test --test-concurrency=1 tests/migration-session/guest-validation.test.js tests/migration-session/fixture.test.js tests/migration-session/reservation.test.js tests/migration-session/public.test.js tests/migration-session/consumer.test.js tests/migration-session/completion.test.js",
     "migration:session:browser": "node node_modules/@playwright/test/cli.js test --config tests/migration-session/playwright.config.ts tests/migration-session/consumer.spec.ts",
     "migration:session:stage": "node scripts/migration-session/stage.js",
     "migration:session:completion": "node scripts/migration-session/completion.js",

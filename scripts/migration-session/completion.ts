@@ -77,6 +77,25 @@ export async function checkSessionCandidate(
   return candidate;
 }
 
+/** Reject a failed report, another threshold or pack, or a report that omits distributed JS. */
+export function assertSessionCoverageReport(
+  report: {
+    passed: unknown;
+    threshold: unknown;
+    candidateSha256: unknown;
+    files: readonly unknown[];
+  },
+  candidateSha256: string,
+) {
+  if (
+    !report.passed ||
+    report.threshold !== 80 ||
+    report.candidateSha256 !== candidateSha256 ||
+    report.files.length !== FIRST_PARTY_JS.length
+  )
+    throw Error('U2 current candidate coverage incomplete');
+}
+
 export async function runSessionCompletion(
   options: { root?: string; execute?: Executor } = {},
 ) {
@@ -241,16 +260,12 @@ export async function runSessionCompletion(
       observed.push(value);
     });
     await checkSessionCandidate(candidatePath, root);
-    const report = JSON.parse(
-      await readFile(resolve(coverage, 'coverage-report.json'), 'utf8'),
+    assertSessionCoverageReport(
+      JSON.parse(
+        await readFile(resolve(coverage, 'coverage-report.json'), 'utf8'),
+      ),
+      candidate.tarball.sha256,
     );
-    if (
-      !report.passed ||
-      report.threshold !== 80 ||
-      report.candidateSha256 !== candidate.tarball.sha256 ||
-      report.files.length !== 16
-    )
-      throw Error('U2 current candidate coverage incomplete');
     const receipt = {
       schemaVersion: 1,
       unit: 'u2-session-guest-api',
