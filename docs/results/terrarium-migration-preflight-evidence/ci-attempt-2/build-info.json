@@ -1,0 +1,79 @@
+{
+  "buildKey": "6e5ad9483e52dc1b99e01bd492671d9ce160a99e01e48a36adbd748cd6f6322d",
+  "builderHash": "51d98103cf3b04cd69b2ad813284d8c9c0a3caeadd6a21fa86c4816db7851a78",
+  "dependencies": [
+    {
+      "commit": "2405c7620169bd0719166af09a8d89cc76fb37fb",
+      "digest": "09a29db28021791e2b6f56ca4ef4b84e662d751d65ead621f6df6c6ea8b0d3c9",
+      "repository": "https://github.com/biomejs/biome",
+      "tool": "cargo-lock"
+    },
+    {
+      "commit": "9368161bd37f74fb11747ba79197f8480aaca7dc",
+      "digest": "a916626a876f64c6b6fb32a6bf0fa93351d09fae0aa7684135642390da647e60",
+      "repository": "https://gitlab.alpinelinux.org/alpine/aports",
+      "tool": "make"
+    }
+  ],
+  "elfSha256": "256fe184205f99a4652691f18098b0e2ceff0e676083baf7077dca68ce3b77c9",
+  "inputs": {
+    "builderHash": "51d98103cf3b04cd69b2ad813284d8c9c0a3caeadd6a21fa86c4816db7851a78",
+    "builderInventory": {
+      "baseline-controller.mjs": "910a820b869a9ce39fbbebe2e1c41e07d0df779ace2018b04499cf79bccaff9f",
+      "baseline-workflow.yml": "01ecf45e69d5dec7ebb56d386416acadb99a957cff08facaff862a9f5f62ae73",
+      "build-baseline.sh": "eb1b90bc946609159023cb267fcb087cd3455edc7d86bd6935cdc3438dada2b5"
+    },
+    "cargo": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+    "cargoArgs": [
+      "build",
+      "--locked",
+      "--release",
+      "--target",
+      "x86_64-unknown-linux-musl",
+      "--package",
+      "biome_cli"
+    ],
+    "cargoLockSha256": "09a29db28021791e2b6f56ca4ef4b84e662d751d65ead621f6df6c6ea8b0d3c9",
+    "commit": "2405c7620169bd0719166af09a8d89cc76fb37fb",
+    "dependencies": [
+      {
+        "commit": "2405c7620169bd0719166af09a8d89cc76fb37fb",
+        "digest": "09a29db28021791e2b6f56ca4ef4b84e662d751d65ead621f6df6c6ea8b0d3c9",
+        "repository": "https://github.com/biomejs/biome",
+        "tool": "cargo-lock"
+      },
+      {
+        "commit": "9368161bd37f74fb11747ba79197f8480aaca7dc",
+        "digest": "a916626a876f64c6b6fb32a6bf0fa93351d09fae0aa7684135642390da647e60",
+        "repository": "https://gitlab.alpinelinux.org/alpine/aports",
+        "tool": "make"
+      }
+    ],
+    "environment": { "CARGO_INCREMENTAL": "0", "RUSTUP_TOOLCHAIN": "1.98.1" },
+    "image": "docker.io/library/rust@sha256:6d9066cf04ed2cc9d1a406016f4c9b2574bafda23f9e88bcad8e5d24fa6aec8e",
+    "repository": "https://github.com/biomejs/biome",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+    "schemaVersion": 1,
+    "sourceFileDigests": {
+      ".cargo/config.toml": "55e1096e26df831c9aca829c83fe9383d913a402dccc0b8a3c4920ff44769ab7",
+      "Cargo.lock": "09a29db28021791e2b6f56ca4ef4b84e662d751d65ead621f6df6c6ea8b0d3c9",
+      "Cargo.toml": "cb98a39bf77ec6183540bc198338bcc3bcc539ec3d5fba10c165426702e51667",
+      "rust-toolchain.toml": "bd7b06458e86e1606ce6f793b95b4ede16832ad87ce9e7262e42d66b6a54a257"
+    },
+    "sourcePatches": [],
+    "target": "x86_64-unknown-linux-musl",
+    "tool": "biome",
+    "versionOrName": "baseline-2405c7620169bd0719166af09a8d89cc76fb37fb"
+  },
+  "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "schemaVersion": 1,
+  "source": {
+    "commit": "2405c7620169bd0719166af09a8d89cc76fb37fb",
+    "repository": "https://github.com/biomejs/biome"
+  },
+  "sourcePatches": [],
+  "target": "x86_64-unknown-linux-musl",
+  "tool": "biome",
+  "versionExitCode": 0,
+  "versionOrName": "baseline-2405c7620169bd0719166af09a8d89cc76fb37fb"
+}

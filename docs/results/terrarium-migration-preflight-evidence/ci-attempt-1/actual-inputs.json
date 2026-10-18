@@ -1,0 +1,43 @@
+{
+  "builderHash": "850c7f12ca27421ce7525ff601d5772bb620e1845b96bb1330ac18588a586311",
+  "builderInventory": {
+    "baseline-controller.mjs": "581071ad54af94289aaf378f7c0a77b28cfa375babf476ccf226f9981ca5116a",
+    "baseline-workflow.yml": "c6307dfe2f239a830b24309329f152870ae1a0a013bf701754b1544d1088a0ea",
+    "build-baseline.sh": "eb1b90bc946609159023cb267fcb087cd3455edc7d86bd6935cdc3438dada2b5"
+  },
+  "cargo": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+  "cargoArgs": [
+    "build",
+    "--locked",
+    "--release",
+    "--target",
+    "x86_64-unknown-linux-musl",
+    "--package",
+    "biome_cli"
+  ],
+  "cargoLockSha256": "09a29db28021791e2b6f56ca4ef4b84e662d751d65ead621f6df6c6ea8b0d3c9",
+  "commit": "2405c7620169bd0719166af09a8d89cc76fb37fb",
+  "dependencies": [
+    {
+      "commit": "2405c7620169bd0719166af09a8d89cc76fb37fb",
+      "digest": "09a29db28021791e2b6f56ca4ef4b84e662d751d65ead621f6df6c6ea8b0d3c9",
+      "repository": "https://github.com/biomejs/biome",
+      "tool": "cargo-lock"
+    }
+  ],
+  "environment": { "CARGO_INCREMENTAL": "0", "RUSTUP_TOOLCHAIN": "1.98.1" },
+  "image": "docker.io/library/rust@sha256:6d9066cf04ed2cc9d1a406016f4c9b2574bafda23f9e88bcad8e5d24fa6aec8e",
+  "repository": "https://github.com/biomejs/biome",
+  "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "schemaVersion": 1,
+  "sourceFileDigests": {
+    ".cargo/config.toml": "55e1096e26df831c9aca829c83fe9383d913a402dccc0b8a3c4920ff44769ab7",
+    "Cargo.lock": "09a29db28021791e2b6f56ca4ef4b84e662d751d65ead621f6df6c6ea8b0d3c9",
+    "Cargo.toml": "cb98a39bf77ec6183540bc198338bcc3bcc539ec3d5fba10c165426702e51667",
+    "rust-toolchain.toml": "bd7b06458e86e1606ce6f793b95b4ede16832ad87ce9e7262e42d66b6a54a257"
+  },
+  "sourcePatches": [],
+  "target": "x86_64-unknown-linux-musl",
+  "tool": "biome",
+  "versionOrName": "baseline-2405c7620169bd0719166af09a8d89cc76fb37fb"
+}

@@ -1,0 +1,8 @@
+{
+  "blinkCommit": "a882fb2f3df14115b7e46f6812fb296eef5934d7",
+  "blinkSourceDirty": false,
+  "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.10 (d6c521a7f05449857c76bd99e396895583cf2083)",
+  "mode": "container",
+  "configure": "--disable-jit CFLAGS=-O2 -pthread LDFLAGS=-pthread",
+  "link": "-O2 -pthread -sPROXY_TO_PTHREAD -sPTHREAD_POOL_SIZE=16 -sALLOW_MEMORY_GROWTH=1 -sMAXIMUM_MEMORY=1GB -sINITIAL_MEMORY=128MB -sSTACK_SIZE=8MB -sDEFAULT_PTHREAD_STACK_SIZE=2MB -sMODULARIZE=1 -sEXPORT_ES6=1 -sEXPORT_NAME=createBlink -sEXIT_RUNTIME=1 -sENVIRONMENT=web,worker,node -sFORCE_FILESYSTEM=1 -sEXPORTED_RUNTIME_METHODS=FS,ENV"
+}

@@ -1,0 +1,34 @@
+2026-10-12T18:31:58.4242073Z   cache-oblivious    : 1
+2026-10-12T18:31:58.4242338Z   cxx                : 0
+2026-10-12T18:31:58.4242710Z   ===============================================================================
+2026-10-12T18:31:58.4243901Z   running: cd "/work/target/x86_64-unknown-linux-musl/release/build/tikv-jemalloc-sys-7f08c84518e46920/out/build" && MAKEFLAGS="-j --jobserver-fds=3,11 --jobserver-auth=3,11" "make"
+2026-10-12T18:31:58.4244804Z 
+2026-10-12T18:31:58.4244913Z   --- stderr
+2026-10-12T18:31:58.4245066Z 
+2026-10-12T18:31:58.4246078Z   thread 'main' (8222) panicked at /usr/local/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tikv-jemalloc-sys-0.6.1+5.3.0-1-ge13ca993e8ccb9ba9847cc330696e02839f328f7/build.rs:407:19:
+2026-10-12T18:31:58.4247340Z   failed to execute command: No such file or directory (os error 2)
+2026-10-12T18:31:58.4248021Z   note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+2026-10-12T18:31:58.4248728Z warning: build failed, waiting for other jobs to finish...
+2026-10-12T18:32:23.8199957Z Error response from daemon: No such container: migration-preflight-635898fa-586b-417f-92a8-b1b5c48b55d9
+2026-10-12T18:32:23.8223899Z file:///home/runner/work/vivarium/vivarium/integration/vivarium/preflight/baseline-controller.mjs:285
+2026-10-12T18:32:23.8224548Z       throw Error("fixed baseline command/identity failed");
+2026-10-12T18:32:23.8224934Z             ^
+2026-10-12T18:32:23.8225083Z 
+2026-10-12T18:32:23.8225341Z Error: fixed baseline command/identity failed
+2026-10-12T18:32:23.8226133Z     at command (file:///home/runner/work/vivarium/vivarium/integration/vivarium/preflight/baseline-controller.mjs:285:13)
+2026-10-12T18:32:23.8227099Z     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+2026-10-12T18:32:23.8228457Z     at async buildInContainer (file:///home/runner/work/vivarium/vivarium/integration/vivarium/preflight/baseline-controller.mjs:318:5)
+2026-10-12T18:32:23.8229540Z     at async runBaseline (file:///home/runner/work/vivarium/vivarium/integration/vivarium/preflight/baseline-controller.mjs:239:20)
+2026-10-12T18:32:23.8230399Z     at async file:///home/runner/work/vivarium/vivarium/integration/vivarium/preflight/baseline-controller.mjs:378:21
+2026-10-12T18:32:23.8230757Z 
+2026-10-12T18:32:23.8230830Z Node.js v24.21.0
+2026-10-12T18:32:23.8278390Z ##[error]Process completed with exit code 1.
+2026-10-12T18:32:23.8350187Z ##[group]Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+2026-10-12T18:32:23.8350855Z with:
+2026-10-12T18:32:23.8351055Z   name: terrarium-migration-baseline-38290361603
+2026-10-12T18:32:23.8351643Z   path: .artifacts/preflight/*-receipt.json
+.artifacts/preflight/actual-inputs.json
+.artifacts/preflight/cache/*/biome
+.artifacts/preflight/cache/*/build-info.json
+
+2026-10-12T18:32:23.8352217Z   if-no-files-found: error

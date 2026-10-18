@@ -1,0 +1,13 @@
+$ aube install
+[exit 0]
+$ rm -rf node_modules
+[exit 0]
+$ aube install --frozen-lockfile
+[exit 0]
+$ aube list
+app@1.0.0 /work/app
+
+dependencies:
+├── filedep 1.0.0
+└── linked 2.0.0
+[exit 0]

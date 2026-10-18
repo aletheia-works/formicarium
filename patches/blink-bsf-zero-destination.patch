@@ -1,0 +1,23 @@
+diff --git a/blink/machine.c b/blink/machine.c
+index ad309eb2b8..ca0e8e640b 100644
+--- a/blink/machine.c
++++ b/blink/machine.c
+@@ -1087,9 +1087,15 @@
+ }
+ 
+ static void Bitscan(P, u64 op(u64, struct Machine *)) {
+-  WriteRegister(
+-      rde, RegRexrReg(m, rde),
+-      op(ReadMemory(rde, GetModrmRegisterWordPointerReadOszRexw(A)), m));
++  u64 x = ReadMemory(rde, GetModrmRegisterWordPointerReadOszRexw(A));
++  u64 result = op(x, m);
++  // BSF's zero-input destination is architecturally undefined. Preserve it
++  // for native compatibility: mimalloc initializes it to the operand width
++  // before BSF and relies on that value when the source is zero. AluBsf still
++  // sets ZF; other operations and nonzero inputs keep their existing writes.
++  if (op != AluBsf || x) {
++    WriteRegister(rde, RegRexrReg(m, rde), result);
++  }
+   if (IsMakingPath(m)) {
+     Jitter(A,
+            "wB"     // res0 = GetRegOrMem[force16+bit](RexbRm)

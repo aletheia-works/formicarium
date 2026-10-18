@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "75e4adf0a51db8fcc1af25676d54fc81fa09efee",
+  "trial": {
+    "tool": "biome",
+    "browser": "firefox",
+    "trial": 4,
+    "version": "2.5.15",
+    "url": "https://localhost:4182/mirror/biome.elf",
+    "finalUrl": "https://localhost:4182/mirror/biome.elf",
+    "digest": "42b6fd3662fc1fc3075a370414478aa3ed82fd43d28430bbfb81ebd02cbde656",
+    "cors": "passed",
+    "exitCode": 0,
+    "stdoutDigest": "1db1dfc3729a07347620f6a6834e01a6663672f880801e30416b1ad433ab89c8",
+    "phasesMs": {
+      "fetch": 84.78,
+      "extract": 0,
+      "digest": 154.58,
+      "validate": 6.5,
+      "register": 7.4599999999999795,
+      "run": 494
+    }
+  },
+  "stdout": "Version: 2.5.15\n\n",
+  "stderr": "",
+  "environment": {
+    "browserVersion": "155.0",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:155.0) Gecko/20100101 Firefox/155.0",
+    "isolated": "true",
+    "cache": "new context and new session per trial; asset fetch cache=no-store; server Cache-Control=no-store",
+    "coverage": "uninstrumented performance path",
+    "origin": "https://localhost:4182",
+    "certificateFingerprint": "8ceefca11574e696f6841f9644a9e88029b8b0b852429f3c3cfb59d30adf139f",
+    "tlsProtocol": "TLS 1.3",
+    "tlsIssuer": "formicarium-preflight-localhost-20261012",
+    "tlsSubject": "formicarium-preflight-localhost-20261012",
+    "condition": "HTTPS mirror remeasurement; upstream official URL and raw digest retained separately in mirror inventory",
+    "coreMetadataSha256": "d150bd44bfe6a79103e5322f36a3f5cef0cbc5bddb4dcaea444848ed4b22f8c5",
+    "coreOriginalInfoSha256": "1fbffc142253fcd793da2bad8981146949ef18c7134629467f08b4375a750818",
+    "coreLoaderSha256": "3f00350cc66a27e55188c7647abfd7c18a33d46ff2c747a03013b0da457db5bd",
+    "coreWasmSha256": "a180e20a5c5e208d74cb0b1cd5e6e6e28f61c5afff0cc581cb50bbbcfa9dcbe2",
+    "coreCommit": "a882fb2f3df14115b7e46f6812fb296eef5934d7",
+    "coreInputCondition": "existing original core bytes match observed baseline package pins; assetDigests supplemented only in immutable HTTP response"
+  }
+}

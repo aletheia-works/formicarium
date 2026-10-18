@@ -1,0 +1,66 @@
+name: U2 provisional integration verification
+on:
+  push:
+    branches: [codex/terrarium-migration-u2]
+permissions:
+  contents: read
+concurrency:
+  group: migration-session-u2-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    if: github.repository == 'Marukome0743/formicarium' && github.ref == 'refs/heads/codex/terrarium-migration-u2'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26.12.0
+          package-manager-cache: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.3
+      - name: Bind verified Bun executable
+        shell: bash
+        run: |
+          bun_executable="$(command -v bun)"
+          [[ "$bun_executable" = /* && -x "$bun_executable" && "$bun_executable" != *$'\n'* && "$bun_executable" != *$'\r'* ]]
+          bun_version="$("$bun_executable" --version)"
+          [[ "$bun_version" = '1.4.3' ]]
+          printf 'BUN_EXECUTABLE=%s\n' "$bun_executable" >> "$GITHUB_ENV"
+          printf 'Verified Bun executable: %s\nVersion: %s\n' "$bun_executable" "$bun_version"
+      - run: node scripts/ci/tasks.ts install-frozen --cacheless
+      - run: node scripts/ci/tasks.ts build
+      - run: node scripts/ci/tasks.ts typecheck
+      - run: node --test --test-concurrency=1 tests/migration-session/ci.test.js
+      - name: Restore fixed core objects without network or imported Git configuration
+        run: node scripts/migration-session/ci-core.js ci/migration-session/inputs.bundle.json
+      - run: node node_modules/@playwright/test/cli.js install --with-deps chromium firefox webkit
+      - name: Prepare bound payload and independent provisional consumer
+        run: node scripts/migration-session/ci.js prepare ci/migration-session/inputs.bundle.json "$RUNNER_TEMP/formicarium-u2-consumer-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" .artifacts/migration-session/ci-context.json
+      - name: Sequential U2 suites and all sixteen distribution files coverage
+        run: node scripts/migration-session/ci.js verify .artifacts/migration-session/ci-context.json
+      - name: Preserve metadata and raw realm observations
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: migration-session-u2-${{ github.run_id }}-${{ github.run_attempt }}
+          retention-days: 1
+          if-no-files-found: error
+          include-hidden-files: true
+          path: |
+            .artifacts/migration-session/ci-context.json
+            .artifacts/migration-session/core-restore.json
+            .artifacts/migration-session/candidate-*/package.manifest.json
+            .artifacts/migration-session/completion-*/local-provisional-report.json
+            .artifacts/migration-session/completion-*/ci-job-observations.json
+            .artifacts/migration-session/completion-*/incomplete.json
+            .artifacts/migration-session/completion-*/coverage/coverage-report.json
+            .artifacts/migration-session/completion-*/coverage/coverage-metadata.json
+            .artifacts/migration-session/completion-*/coverage/coverage-node*.json
+            .artifacts/migration-session/completion-*/coverage/coverage-session-node*.json
+            .artifacts/migration-session/completion-*/coverage/session-collection-boundary.json
+            .artifacts/migration-session/completion-*/coverage/**/coverage-realms.json

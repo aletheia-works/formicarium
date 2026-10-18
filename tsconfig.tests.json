@@ -2,5 +2,9 @@
   "extends": "./tsconfig.json",
   "compilerOptions": { "noUncheckedIndexedAccess": false },
   "include": ["tests/**/*.ts", "web/globals.d.ts"],
-  "exclude": ["tests/package/types-invalid.ts"]
+  "exclude": [
+    "tests/package/types-invalid.ts",
+    "tests/migration-install/types-invalid.ts",
+    "tests/migration-command/types-invalid.ts"
+  ]
 }

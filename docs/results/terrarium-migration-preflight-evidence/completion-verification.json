@@ -1,0 +1,18 @@
+{
+  "status": "passed",
+  "exitCode": 0,
+  "record": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u1-migration-preflight/code-generation/completion-verification.md",
+  "recordSha256": "3b079ae65c341ac32e7281d8bcf14bdf720ddca4c467c7602325e7e2c385b805",
+  "verificationInput": ".artifacts/migration-preflight/completion-coverage-9e86fe76-cdcc-4289-bbe2-fea7e13cc466/verification-input.json",
+  "coverage": {
+    "path": "docs/results/terrarium-migration-preflight-evidence/completion-coverage-report.json",
+    "sha256": "b9eb6ca08b33d144684c0aa761c24188222ad3a3ef3e584b2b21900654db57e8",
+    "lines": {
+      "total": 982,
+      "covered": 862,
+      "skipped": 0,
+      "pct": 87.78
+    },
+    "realms": 1253
+  }
+}

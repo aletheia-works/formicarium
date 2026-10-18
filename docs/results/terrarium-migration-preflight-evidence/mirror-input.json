@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "75e4adf0a51db8fcc1af25676d54fc81fa09efee",
+  "metadataProducer": {
+    "kind": "release-derived-metadata",
+    "node": "v24.21.0",
+    "files": [
+      {
+        "path": "integration/terrarium/guest-distribution/fixtures.js",
+        "sha256": "9e5eee286d91bdf887b9c68a27ab05b582fcd03b9cf115507dd155ad44e1200b"
+      },
+      {
+        "path": "integration/terrarium/guest-distribution/manifest.js",
+        "sha256": "09c3f9ea51d0d7a11cdfbcc28904701d9d669bce7a157a6896506a7ea5a3bd87"
+      },
+      {
+        "path": "integration/terrarium/guest-distribution/resolver.js",
+        "sha256": "34b6e1b9f497a4e0eb1fb8d15db752a6096fc27d7dceeac4c5f598a2db237efd"
+      },
+      {
+        "path": "mise.toml",
+        "sha256": "dcf710b446658fecd9e25e6907d459a05ef0b52e13abee6d76e1fddd2f953d0c"
+      },
+      {
+        "path": "runtime/contracts.js",
+        "sha256": "763c6dfb7acc0aa00b7bc707b55594c70d183f56a20b1a4be9fef97a6e7f8272"
+      },
+      {
+        "path": "runtime/validation.js",
+        "sha256": "c06e80d288d9c7552193764a158d59d5f97341fab03282daaea71bc46f745ba0"
+      },
+      {
+        "path": "scripts/migration-preflight/assets.js",
+        "sha256": "5c793cef472965c200838c283cbf49aea8bf59a0579c3fdaf23b6efc1024e758"
+      },
+      {
+        "path": "scripts/migration-preflight/assets.ts",
+        "sha256": "2f166697be82326f511c4ebc6fbf888cd8b9c348c1a55e7dc9dcb133e80418ef"
+      }
+    ],
+    "official": [
+      {
+        "tool": "aube",
+        "version": "2.7.0",
+        "repository": "https://github.com/aubepkg/aube",
+        "commit": "d36fec01764689ef6d99a5e43de98925b571d67f",
+        "assetId": 619364159,
+        "url": "https://github.com/aubepkg/aube/releases/download/v2.7.0/aube-v2.7.0-x86_64-unknown-linux-musl.tar.gz",
+        "size": 22235806,
+        "downloadSha256": "fc2384d58c560415f6afdfdc7c0f2d10b10f464da608bf1d8be5c8936db68666",
+        "elfSha256": "c7d7d13692d01c5f6adc5511c40adc6b3769080b7c433b44c411a3e52ebcd99e",
+        "format": "tar.gz",
+        "archiveEntry": "aube"
+      },
+      {
+        "tool": "biome",
+        "version": "2.5.15",
+        "repository": "https://github.com/biomejs/biome",
+        "commit": "0b4c11f553a7e702f9851af139662e1de45dc131",
+        "assetId": 601227631,
+        "url": "https://github.com/biomejs/biome/releases/download/%40biomejs/biome%402.5.15/biome-linux-x64-musl",
+        "size": 66123120,
+        "downloadSha256": "42b6fd3662fc1fc3075a370414478aa3ed82fd43d28430bbfb81ebd02cbde656",
+        "elfSha256": "42b6fd3662fc1fc3075a370414478aa3ed82fd43d28430bbfb81ebd02cbde656",
+        "format": "elf"
+      }
+    ]
+  },
+  "assets": [
+    {
+      "tool": "aube",
+      "version": "2.7.0",
+      "url": "https://localhost:4182/mirror/aube.tar.gz",
+      "format": "tar.gz",
+      "archiveEntry": "aube",
+      "downloadSha256": "fc2384d58c560415f6afdfdc7c0f2d10b10f464da608bf1d8be5c8936db68666",
+      "elfSha256": "c7d7d13692d01c5f6adc5511c40adc6b3769080b7c433b44c411a3e52ebcd99e",
+      "buildInfoSha256": "aa60274235844c663776d02b619d06890882201a9d4bbc84a129cf0b465dbe40",
+      "buildInfo": {
+        "schemaVersion": 1,
+        "tool": "aube",
+        "versionOrName": "2.7.0",
+        "source": {
+          "repository": "https://github.com/aubepkg/aube",
+          "commit": "d36fec01764689ef6d99a5e43de98925b571d67f"
+        },
+        "target": "x86_64-unknown-linux-musl",
+        "rustc": null,
+        "sourcePatches": [],
+        "dependencies": [],
+        "builderHash": "b58c2ac06ef3f406b0878aff64ba42bfab438f0933e7845f413257429c2de704",
+        "buildKey": "13c3297d781936d4ef35811a138f994da87d517c7096d5b523392f0f01688113",
+        "elfSha256": "c7d7d13692d01c5f6adc5511c40adc6b3769080b7c433b44c411a3e52ebcd99e",
+        "provenance": {
+          "kind": "official-release",
+          "assetId": 619364159,
+          "archiveSha256": "fc2384d58c560415f6afdfdc7c0f2d10b10f464da608bf1d8be5c8936db68666",
+          "upstreamBuildInputs": "unverified",
+          "metadataProducer": "U1 release-derived metadata, not upstream compilation"
+        }
+      }
+    },
+    {
+      "tool": "biome",
+      "version": "2.5.15",
+      "url": "https://localhost:4182/mirror/biome.elf",
+      "format": "elf",
+      "downloadSha256": "42b6fd3662fc1fc3075a370414478aa3ed82fd43d28430bbfb81ebd02cbde656",
+      "elfSha256": "42b6fd3662fc1fc3075a370414478aa3ed82fd43d28430bbfb81ebd02cbde656",
+      "buildInfoSha256": "879eef5e300589847edc0f4510ed24fbf9ac6428993b01ec96f2a88f326eef8f",
+      "buildInfo": {
+        "schemaVersion": 1,
+        "tool": "biome",
+        "versionOrName": "2.5.15",
+        "source": {
+          "repository": "https://github.com/biomejs/biome",
+          "commit": "0b4c11f553a7e702f9851af139662e1de45dc131"
+        },
+        "target": "x86_64-unknown-linux-musl",
+        "rustc": null,
+        "sourcePatches": [],
+        "dependencies": [],
+        "builderHash": "b58c2ac06ef3f406b0878aff64ba42bfab438f0933e7845f413257429c2de704",
+        "buildKey": "fc5b5829a1bfdac9f01054465c389817e9116ef53a349ee2ccf815bfb268ee94",
+        "elfSha256": "42b6fd3662fc1fc3075a370414478aa3ed82fd43d28430bbfb81ebd02cbde656",
+        "provenance": {
+          "kind": "official-release",
+          "assetId": 601227631,
+          "archiveSha256": "42b6fd3662fc1fc3075a370414478aa3ed82fd43d28430bbfb81ebd02cbde656",
+          "upstreamBuildInputs": "unverified",
+          "metadataProducer": "U1 release-derived metadata, not upstream compilation"
+        }
+      }
+    }
+  ],
+  "mirror": {
+    "schemaVersion": 1,
+    "sourceCommit": "95fd4886d3a7c3eedeeb4cf869cf7544955a9e49",
+    "origin": "https://localhost:4182",
+    "entries": [
+      {
+        "tool": "aube",
+        "version": "2.7.0",
+        "sourceCommit": "d36fec01764689ef6d99a5e43de98925b571d67f",
+        "originalUrl": "https://github.com/aubepkg/aube/releases/download/v2.7.0/aube-v2.7.0-x86_64-unknown-linux-musl.tar.gz",
+        "mirrorUrl": "https://localhost:4182/mirror/aube.tar.gz",
+        "file": "/Users/mutoakio/Documents/formicarium/.artifacts/migration-preflight/mirror-assets-attempt-1/aube.tar.gz",
+        "sha256": "fc2384d58c560415f6afdfdc7c0f2d10b10f464da608bf1d8be5c8936db68666",
+        "bytes": 22235806,
+        "upstreamFinalUrl": null,
+        "redirects": null,
+        "acquisition": "verified-local-pin-reuse"
+      },
+      {
+        "tool": "biome",
+        "version": "2.5.15",
+        "sourceCommit": "0b4c11f553a7e702f9851af139662e1de45dc131",
+        "originalUrl": "https://github.com/biomejs/biome/releases/download/%40biomejs/biome%402.5.15/biome-linux-x64-musl",
+        "mirrorUrl": "https://localhost:4182/mirror/biome.elf",
+        "file": "/Users/mutoakio/Documents/formicarium/.artifacts/migration-preflight/mirror-assets-attempt-1/biome.elf",
+        "sha256": "42b6fd3662fc1fc3075a370414478aa3ed82fd43d28430bbfb81ebd02cbde656",
+        "bytes": 66123120,
+        "upstreamFinalUrl": "https://release-assets.githubusercontent.com/github-production-release-asset/671654508/f0dca348-9181-459e-b7ee-f2886d760fef",
+        "redirects": 1,
+        "acquisition": "manual-HTTPS-download"
+      }
+    ]
+  }
+}

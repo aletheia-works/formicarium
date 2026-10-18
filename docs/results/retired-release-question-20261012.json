@@ -1,0 +1,20 @@
+{
+  "status": "superseded-by-completed-publication",
+  "question": {
+    "id": "5463f058",
+    "text": "terrariumでformicarium RCの受入れが問題なく完了したため、受入れ証拠を確認し、formicariumのstable正式リリースを準備・検証する。公開対象・CI・公開設定を確認し、実際の公開前に具体的な内容を提示して承認を得る。vivarium・terrariumと同じYAML中心の公開workflowを利用し、既存のRC受入れ・差分・coverage検証を維持する。",
+    "proposedScope": "",
+    "origin": "front",
+    "newWork": true,
+    "createdAt": "2026-10-11T06:27:29.568Z"
+  },
+  "evidence": {
+    "github": [
+      "https://github.com/aletheia-works/formicarium/releases/tag/v0.1.0",
+      "https://github.com/aletheia-works/formicarium/releases/tag/v0.2.1"
+    ],
+    "npm": "https://registry.npmjs.org/@aletheia-works%2fformicarium/latest",
+    "npmLatest": "0.2.1"
+  },
+  "note": "User authorized retirement after confirming publication; no workflow approval or completion state changed."
+}

@@ -1,0 +1,5 @@
+ref=v2.30.1
+commit=1054549e85470b08d9507e2c82c850959a4b3914
+patch=patches/pitchfork-2.29.0-musl-ioctl.patch sha256=1e307ed8c3009ead22a08c5615fda5b30ac42cdc79726bbb722e10b5426dbac6
+ui-node=v24.18.1
+ui-index-sha256=28b532667fdc84da92b50b8eeeacc06ec64e8bac64de3b3f1547dd3dd76ec911

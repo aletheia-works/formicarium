@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "evidence": "docs/results/terrarium-migration-preflight-evidence/acceptance-evidence.json",
+  "inventory": "docs/results/terrarium-migration-preflight-evidence/mirror-input.json",
+  "baselineInputs": "docs/results/terrarium-migration-preflight-evidence/ci-attempt-2/actual-inputs.json",
+  "firstReceipt": "docs/results/terrarium-migration-preflight-evidence/ci-attempt-2/first-receipt.json",
+  "reuseReceipt": "docs/results/terrarium-migration-preflight-evidence/ci-attempt-2/reuse-receipt.json",
+  "baselineDirectory": ".artifacts/migration-preflight/ci-attempt-2/cache/6e5ad9483e52dc1b99e01bd492671d9ce160a99e01e48a36adbd748cd6f6322d",
+  "coverageReport": "docs/results/terrarium-migration-preflight-evidence/coverage-report.json",
+  "candidateManifest": ".artifacts/migration-preflight-baseline-package.manifest.json",
+  "suites": [
+    {
+      "name": "preflight-unit",
+      "command": "mise run migration-preflight-unit",
+      "sourceCommit": "29e04c3a109cb74ea0257c1ec33639476c8b58c1",
+      "recordKind": "observed-command-summary",
+      "exitCode": 0,
+      "passed": 55,
+      "failed": 0,
+      "skipped": 0,
+      "record": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u1-migration-preflight/code-generation/final-verification.md",
+      "recordSha256": "354d265d6f4fcc38bebfe9b8a471b754642a88a955e43281a06ef84b57875b33"
+    },
+    {
+      "name": "preflight-browser",
+      "command": "mise run migration-preflight-browser",
+      "sourceCommit": "75e4adf0a51db8fcc1af25676d54fc81fa09efee",
+      "recordKind": "observed-command-summary",
+      "exitCode": 0,
+      "passed": 36,
+      "failed": 0,
+      "skipped": 0,
+      "record": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u1-migration-preflight/code-generation/main-verification.md",
+      "recordSha256": "4ce3f3c1b970135fd114fe4e51557905c909d189b7ff5e269669bd800240a8e2"
+    },
+    {
+      "name": "package-consumer",
+      "command": "FORMICARIUM_CANDIDATE=/Users/mutoakio/Documents/formicarium/.artifacts/migration-preflight-baseline-package.manifest.json FORMICARIUM_CONSUMER=/private/tmp/formicarium-migration-preflight-consumer mise run test-consumer",
+      "sourceCommit": "fb601c57b0c94c27789a630bef4b692285578988",
+      "recordKind": "observed-command-summary",
+      "exitCode": 0,
+      "passed": 189,
+      "failed": 0,
+      "skipped": 0,
+      "record": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u1-migration-preflight/code-generation/final-verification.md",
+      "recordSha256": "354d265d6f4fcc38bebfe9b8a471b754642a88a955e43281a06ef84b57875b33"
+    },
+    {
+      "name": "node-regression",
+      "command": "/Users/mutoakio/.local/share/mise/installs/node/24/bin/node --test tests/node/build.test.js tests/node/probe.test.js tests/node/aube-1645.test.js",
+      "sourceCommit": "fb601c57b0c94c27789a630bef4b692285578988",
+      "recordKind": "observed-command-summary",
+      "exitCode": 0,
+      "passed": 28,
+      "failed": 0,
+      "skipped": 0,
+      "record": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u1-migration-preflight/code-generation/final-verification.md",
+      "recordSha256": "354d265d6f4fcc38bebfe9b8a471b754642a88a955e43281a06ef84b57875b33"
+    },
+    {
+      "name": "browser-regression",
+      "command": "/Users/mutoakio/.local/share/mise/installs/node/24/bin/node node_modules/@playwright/test/cli.js test tests/browser/probe.spec.ts tests/browser/aube-1645.spec.ts --workers=1 --retries=0 --output .artifacts/migration-preflight/browser-regression-final-v1",
+      "sourceCommit": "fb601c57b0c94c27789a630bef4b692285578988",
+      "recordKind": "observed-command-summary",
+      "exitCode": 0,
+      "passed": 33,
+      "failed": 0,
+      "skipped": 0,
+      "record": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u1-migration-preflight/code-generation/final-verification.md",
+      "recordSha256": "354d265d6f4fcc38bebfe9b8a471b754642a88a955e43281a06ef84b57875b33"
+    },
+    {
+      "name": "coverage",
+      "command": "/Users/mutoakio/.local/share/mise/installs/node/24/bin/node scripts/package/coverage.js report .artifacts/migration-preflight/coverage-final-v1 .artifacts/migration-preflight/coverage-final-v1/browser-results .artifacts/migration-preflight-baseline-package.manifest.json",
+      "sourceCommit": "fb601c57b0c94c27789a630bef4b692285578988",
+      "recordKind": "observed-command-summary",
+      "exitCode": 0,
+      "passed": 214,
+      "failed": 0,
+      "skipped": 0,
+      "record": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u1-migration-preflight/code-generation/final-verification.md",
+      "recordSha256": "354d265d6f4fcc38bebfe9b8a471b754642a88a955e43281a06ef84b57875b33"
+    }
+  ]
+}

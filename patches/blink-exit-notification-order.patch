@@ -1,0 +1,18 @@
+diff --git a/blink/blink.c b/blink/blink.c
+index dfefab35a7..b6040396a1 100644
+--- a/blink/blink.c
++++ b/blink/blink.c
+@@ -360,10 +360,9 @@
+ #if defined(__EMSCRIPTEN__)
+ void exit(int status) {
+ #ifdef __EMSCRIPTEN_PTHREADS__
+-  // With -sPROXY_TO_PTHREAD the runtime keeps itself alive for the proxied
+-  // main thread, so _exit() never reaches Module.onExit. Report the status
+-  // to the embedder from the main JS thread before exiting.
+-  MAIN_THREAD_EM_ASM({ if (Module['onExit']) Module['onExit']($0); }, status);
++  // Let the runtime report Module.onExit after terminating pthread workers.
++  // An early notification lets the embedder start the next instance before
++  // this runtime has finished shutting down and duplicates the final callback.
+   // Shut the runtime down for real, which also terminates the pthread
+   // Web Workers; _exit() would leave them running, and an embedder that
+   // starts another instance would accumulate workers until none start.

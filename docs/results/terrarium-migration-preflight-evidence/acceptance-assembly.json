@@ -1,0 +1,263 @@
+{
+  "schemaVersion": 1,
+  "status": "incomplete",
+  "assembledAt": "2026-10-12T22:20:10.189Z",
+  "trialSourceCommit": "75e4adf0a51db8fcc1af25676d54fc81fa09efee",
+  "originalTrialFiles": [
+    {
+      "path": "trials/aube.chromium.0.json",
+      "sha256": "9591b9afaa25228a3584a3a35ef1d2958470d8dce1957d123c6c62e449aba802"
+    },
+    {
+      "path": "trials/aube.chromium.1.json",
+      "sha256": "e6d740ae3fa6c5a8291d707f5f49d8125a747f666d600f4e94b31af4670ff42d"
+    },
+    {
+      "path": "trials/aube.chromium.2.json",
+      "sha256": "9b444013a6c1410a5525130c72e8ecfafddf621c05df37ccedc8733b54fc41b9"
+    },
+    {
+      "path": "trials/aube.chromium.3.json",
+      "sha256": "80df5b3aa4c0ce93bfc9452c05b520245cc21f975b6619caf3c7a9bdb394813c"
+    },
+    {
+      "path": "trials/aube.chromium.4.json",
+      "sha256": "1084dd587ba186f367491e92569614a63e4376595da95e7d65272201dc20bb6b"
+    },
+    {
+      "path": "trials/aube.chromium.5.json",
+      "sha256": "7d0478cba9c19a75cb01f2e3b23a088b11c445da14b226f076c9d16e814f9e82"
+    },
+    {
+      "path": "trials/aube.firefox.0.json",
+      "sha256": "2bd945fcff2a2ec6bfd7edc014fa1b8ac2a32ee19c2211e51821cb8ac390f7d1"
+    },
+    {
+      "path": "trials/aube.firefox.1.json",
+      "sha256": "4cdcde1ccf4f9ac48f49ffaac060f0462244e1d3daec5a309fc01dae83924ef4"
+    },
+    {
+      "path": "trials/aube.firefox.2.json",
+      "sha256": "4629fbf34628e003c657960b25165156df3ca92621fb0e5edf3cfc0701b6beee"
+    },
+    {
+      "path": "trials/aube.firefox.3.json",
+      "sha256": "9eb71371eab5eefa8f9786ca413d0b4e5698cf9f1093e783d01dcc9b648a8ba5"
+    },
+    {
+      "path": "trials/aube.firefox.4.json",
+      "sha256": "83793c9befb34d9f21c76575b78a87799ccbd4e321bd310a3a79b45f30c72f59"
+    },
+    {
+      "path": "trials/aube.firefox.5.json",
+      "sha256": "b6c7dd2d5bb27f27bfe4536987b71086504e444e2d921e198b3cce424d7a83ad"
+    },
+    {
+      "path": "trials/aube.webkit.0.json",
+      "sha256": "88a9edf15ad31d1db2926074dcf1c4db0495589b2c3ca3ec1b8736028ab9acc2"
+    },
+    {
+      "path": "trials/aube.webkit.1.json",
+      "sha256": "f483ac64c113c903310031711554afaf8c40364a05eee3bef03603cafc9d4c6c"
+    },
+    {
+      "path": "trials/aube.webkit.2.json",
+      "sha256": "ec03e64915d7c713f730ec7bce79b82f39e011b39dd8a3af2b3bfcf05f205672"
+    },
+    {
+      "path": "trials/aube.webkit.3.json",
+      "sha256": "2a4a6a936e1e6e62ceb92a7c0d8f6baa70c07830fe06c4fb9b0a5194b5151ba6"
+    },
+    {
+      "path": "trials/aube.webkit.4.json",
+      "sha256": "55f4ba2484a663a1c1266ce072ebd6513d148c98f763a7c6d8b999ebdf62dd7c"
+    },
+    {
+      "path": "trials/aube.webkit.5.json",
+      "sha256": "ca60aa7e337634925422c5d64badd252787d65f8a7505332e3c2f7f1b72f2dc2"
+    },
+    {
+      "path": "trials/biome.chromium.0.json",
+      "sha256": "67f6c4022fb5e9f3428da0d9a2288d1bda0ab22ec801be2bfd689d1a92f41fcb"
+    },
+    {
+      "path": "trials/biome.chromium.1.json",
+      "sha256": "b81a2a9d311d7e0dee2e9f73720961d666299193a6f16d87ef4fc15211f6d9e7"
+    },
+    {
+      "path": "trials/biome.chromium.2.json",
+      "sha256": "1574cdb400ff4eca623d51af6626cae6083d64724f4382e40181072dc5ecf261"
+    },
+    {
+      "path": "trials/biome.chromium.3.json",
+      "sha256": "b285a1f6305d5f06e655d90c0c2b708c9b794cc1f199b4ebc58b30daa36cefb9"
+    },
+    {
+      "path": "trials/biome.chromium.4.json",
+      "sha256": "9af587c064cbfb03a581d65c6fa2de87b145e65533e4f292e37c870e60509b47"
+    },
+    {
+      "path": "trials/biome.chromium.5.json",
+      "sha256": "f8c6a2b6ac593681c6bd8430ad3ab02ca3b387a7b8396d1fc8c87b2438ab69d9"
+    },
+    {
+      "path": "trials/biome.firefox.0.json",
+      "sha256": "e27c77a6a5b0cc8c21722e37480aa1f521f4e09ed63325375ec22bf69a652227"
+    },
+    {
+      "path": "trials/biome.firefox.1.json",
+      "sha256": "679c993cd02df4b4ac4482bf1b3e95b3e48fd55cac950d32d3ef3c71f44b72fd"
+    },
+    {
+      "path": "trials/biome.firefox.2.json",
+      "sha256": "e0f2c93fc2b81b7382c0ec397d18fa8f9984e3919fc7fde57bf3790071d8d7f5"
+    },
+    {
+      "path": "trials/biome.firefox.3.json",
+      "sha256": "8c66ad2978130593c189706368dc2251aec637444473ca5cff1dd02f3c70f725"
+    },
+    {
+      "path": "trials/biome.firefox.4.json",
+      "sha256": "4a8fbc0495a9142a91fa3338205a1c5ee638975f6419784f596f526fdf40a598"
+    },
+    {
+      "path": "trials/biome.firefox.5.json",
+      "sha256": "f1232986df08d649c925fe30b664fef86b8c5ddc8564907e1da34f9bba0b4287"
+    },
+    {
+      "path": "trials/biome.webkit.0.json",
+      "sha256": "8f550fc52ff00cf6df0b0042bdd4e15d8ec55ff2363a46319e4db7abe38937bf"
+    },
+    {
+      "path": "trials/biome.webkit.1.json",
+      "sha256": "11328ed682b8ca715d9385a7a0e7025f4d0cb9167ef82a47315b46e8a63cef09"
+    },
+    {
+      "path": "trials/biome.webkit.2.json",
+      "sha256": "18aad39416aa8693a3d6e64ca21753ccc9087a41a7221507a8905dbee5935e05"
+    },
+    {
+      "path": "trials/biome.webkit.3.json",
+      "sha256": "0c401ec0964afb54145c46b5b75efb471e8b3c0f579485ca962bc76c17b0f04f"
+    },
+    {
+      "path": "trials/biome.webkit.4.json",
+      "sha256": "3ff7ea8ea50217f70617999d45b5a5762821452dd39d5d3baacc693ca182cc31"
+    },
+    {
+      "path": "trials/biome.webkit.5.json",
+      "sha256": "91a901a83cd292e9881a86910bd3fcf4f1b5e5fa319470e5de57241f28d18787"
+    }
+  ],
+  "ciFiles": [
+    {
+      "path": "ci-attempt-2/actual-inputs.json",
+      "sha256": "a858dbf1e0fe820ae38314598cda20b0df71e174c0c4ff7f2c94f1951fdc4749"
+    },
+    {
+      "path": "ci-attempt-2/first-receipt.json",
+      "sha256": "57e397278083822ba8674379912b4dd52e288d9c7a1eb202136d3f2221b51d7c"
+    },
+    {
+      "path": "ci-attempt-2/reuse-receipt.json",
+      "sha256": "a61253dba99d74d4bc66158ac71854a5e5ffde2a7fe0cd02c3c1417a9fa6d554"
+    },
+    {
+      "path": "ci-attempt-2/build-info.json",
+      "sha256": "21171712fdf324eb3739dbc579c7d6cb7a3d8ff05bd5e68f8c0868ff22886ee0"
+    }
+  ],
+  "ciElf": {
+    "path": ".artifacts/migration-preflight/ci-attempt-2/cache/6e5ad9483e52dc1b99e01bd492671d9ce160a99e01e48a36adbd748cd6f6322d/biome",
+    "sha256": "256fe184205f99a4652691f18098b0e2ceff0e676083baf7077dca68ce3b77c9"
+  },
+  "coverage": {
+    "path": "coverage-report.json",
+    "sha256": "fa324323e6a95ae94064f4c2d1b6c1f3f6a71f001dc3f3c41a3d431b46ca9d6a",
+    "lines": {
+      "total": 982,
+      "covered": 862,
+      "skipped": 0,
+      "pct": 87.78
+    },
+    "realms": 1253
+  },
+  "regression": {
+    "record": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u1-migration-preflight/code-generation/final-verification.md",
+    "recordSha256": "354d265d6f4fcc38bebfe9b8a471b754642a88a955e43281a06ef84b57875b33",
+    "suites": [
+      {
+        "name": "preflight-unit",
+        "command": "mise run migration-preflight-unit",
+        "sourceCommit": "29e04c3a109cb74ea0257c1ec33639476c8b58c1",
+        "recordKind": "observed-command-summary",
+        "exitCode": 0,
+        "passed": 55,
+        "failed": 0,
+        "skipped": 0,
+        "record": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u1-migration-preflight/code-generation/final-verification.md",
+        "recordSha256": "354d265d6f4fcc38bebfe9b8a471b754642a88a955e43281a06ef84b57875b33"
+      },
+      {
+        "name": "preflight-browser",
+        "command": "mise run migration-preflight-browser",
+        "sourceCommit": "75e4adf0a51db8fcc1af25676d54fc81fa09efee",
+        "recordKind": "observed-command-summary",
+        "exitCode": 0,
+        "passed": 36,
+        "failed": 0,
+        "skipped": 0,
+        "record": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u1-migration-preflight/code-generation/main-verification.md",
+        "recordSha256": "4ce3f3c1b970135fd114fe4e51557905c909d189b7ff5e269669bd800240a8e2"
+      },
+      {
+        "name": "package-consumer",
+        "command": "FORMICARIUM_CANDIDATE=/Users/mutoakio/Documents/formicarium/.artifacts/migration-preflight-baseline-package.manifest.json FORMICARIUM_CONSUMER=/private/tmp/formicarium-migration-preflight-consumer mise run test-consumer",
+        "sourceCommit": "fb601c57b0c94c27789a630bef4b692285578988",
+        "recordKind": "observed-command-summary",
+        "exitCode": 0,
+        "passed": 189,
+        "failed": 0,
+        "skipped": 0,
+        "record": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u1-migration-preflight/code-generation/final-verification.md",
+        "recordSha256": "354d265d6f4fcc38bebfe9b8a471b754642a88a955e43281a06ef84b57875b33"
+      },
+      {
+        "name": "node-regression",
+        "command": "/Users/mutoakio/.local/share/mise/installs/node/24/bin/node --test tests/node/build.test.js tests/node/probe.test.js tests/node/aube-1645.test.js",
+        "sourceCommit": "fb601c57b0c94c27789a630bef4b692285578988",
+        "recordKind": "observed-command-summary",
+        "exitCode": 0,
+        "passed": 28,
+        "failed": 0,
+        "skipped": 0,
+        "record": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u1-migration-preflight/code-generation/final-verification.md",
+        "recordSha256": "354d265d6f4fcc38bebfe9b8a471b754642a88a955e43281a06ef84b57875b33"
+      },
+      {
+        "name": "browser-regression",
+        "command": "/Users/mutoakio/.local/share/mise/installs/node/24/bin/node node_modules/@playwright/test/cli.js test tests/browser/probe.spec.ts tests/browser/aube-1645.spec.ts --workers=1 --retries=0 --output .artifacts/migration-preflight/browser-regression-final-v1",
+        "sourceCommit": "fb601c57b0c94c27789a630bef4b692285578988",
+        "recordKind": "observed-command-summary",
+        "exitCode": 0,
+        "passed": 33,
+        "failed": 0,
+        "skipped": 0,
+        "record": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u1-migration-preflight/code-generation/final-verification.md",
+        "recordSha256": "354d265d6f4fcc38bebfe9b8a471b754642a88a955e43281a06ef84b57875b33"
+      },
+      {
+        "name": "coverage",
+        "command": "/Users/mutoakio/.local/share/mise/installs/node/24/bin/node scripts/package/coverage.js report .artifacts/migration-preflight/coverage-final-v1 .artifacts/migration-preflight/coverage-final-v1/browser-results .artifacts/migration-preflight-baseline-package.manifest.json",
+        "sourceCommit": "fb601c57b0c94c27789a630bef4b692285578988",
+        "recordKind": "observed-command-summary",
+        "exitCode": 0,
+        "passed": 214,
+        "failed": 0,
+        "skipped": 0,
+        "record": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u1-migration-preflight/code-generation/final-verification.md",
+        "recordSha256": "354d265d6f4fcc38bebfe9b8a471b754642a88a955e43281a06ef84b57875b33"
+      }
+    ]
+  }
+}

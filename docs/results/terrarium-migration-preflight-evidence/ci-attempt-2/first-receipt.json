@@ -1,0 +1,15 @@
+{
+  "buildKey": "6e5ad9483e52dc1b99e01bd492671d9ce160a99e01e48a36adbd748cd6f6322d",
+  "elfSha256": "256fe184205f99a4652691f18098b0e2ceff0e676083baf7077dca68ce3b77c9",
+  "buildInfoSha256": "21171712fdf324eb3739dbc579c7d6cb7a3d8ff05bd5e68f8c0868ff22886ee0",
+  "compileSkipped": false,
+  "versionExitCode": 0,
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-12T22:15:34.202Z",
+  "source": {
+    "repository": "https://github.com/biomejs/biome",
+    "commit": "2405c7620169bd0719166af09a8d89cc76fb37fb"
+  },
+  "sourceCommit": "b6921789c70cecf45635f1b22524dc8abf8698db",
+  "ciRunUrl": "https://github.com/Marukome0743/vivarium/actions/runs/38311656181"
+}

@@ -1,0 +1,97 @@
+name: Terrarium migration baseline trial (proposal)
+
+on:
+  workflow_dispatch:
+    inputs:
+      controller_sha256:
+        description: Reviewed baseline-controller.mjs SHA256 (required, no latest)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terrarium-migration-fixed-biome-baseline
+  cancel-in-progress: false
+
+jobs:
+  baseline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 250
+    env:
+      CONTROLLER_SHA256: ${{ inputs.controller_sha256 }}
+      PREFLIGHT_CONTROLLER: integration/vivarium/preflight/baseline-controller.mjs
+      PREFLIGHT_INPUT_TEMPLATE: .artifacts/preflight/template.json
+      PREFLIGHT_ACTUAL_INPUTS: .artifacts/preflight/actual-inputs.json
+      PREFLIGHT_CACHE: .artifacts/preflight/cache
+      PREFLIGHT_SOURCE: .artifacts/preflight/source
+      PREFLIGHT_FIRST_RECEIPT: .artifacts/preflight/first-receipt.json
+      PREFLIGHT_REUSE_RECEIPT: .artifacts/preflight/reuse-receipt.json
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '26.12.0'
+      - name: Validate reviewed controller and allocate trial directories
+        run: |
+          node --input-type=module <<'NODE'
+          import { createHash } from 'node:crypto';
+          import { mkdir, readFile } from 'node:fs/promises';
+          if (!/^[0-9a-f]{64}$/.test(process.env.CONTROLLER_SHA256)) throw Error('reviewed controller SHA256 required');
+          const digest = createHash('sha256').update(await readFile(process.env.PREFLIGHT_CONTROLLER)).digest('hex');
+          if (digest !== process.env.CONTROLLER_SHA256) throw Error('reviewed controller changed');
+          await mkdir('.artifacts/preflight', { recursive: true });
+          NODE
+      - name: Checkout fixed remote baseline source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: biomejs/biome
+          ref: 2405c7620169bd0719166af09a8d89cc76fb37fb
+          path: .artifacts/preflight/source
+          persist-credentials: false
+      - name: Assemble fixed inputs (actual toolchain strings are recorded by controller)
+        run: |
+          node --input-type=module <<'NODE'
+          import { createHash } from 'node:crypto';
+          import { readFile, writeFile } from 'node:fs/promises';
+          const digest = bytes => createHash('sha256').update(bytes).digest('hex');
+          const inventory = {};
+          for (const file of ['baseline-controller.mjs', 'build-baseline.sh', 'baseline-workflow.yml']) inventory[file] = digest(await readFile('integration/vivarium/preflight/' + file));
+          const sourceFileDigests = {
+            'Cargo.lock': '09a29db28021791e2b6f56ca4ef4b84e662d751d65ead621f6df6c6ea8b0d3c9',
+            'Cargo.toml': 'cb98a39bf77ec6183540bc198338bcc3bcc539ec3d5fba10c165426702e51667',
+            'rust-toolchain.toml': 'bd7b06458e86e1606ce6f793b95b4ede16832ad87ce9e7262e42d66b6a54a257',
+            '.cargo/config.toml': '55e1096e26df831c9aca829c83fe9383d913a402dccc0b8a3c4920ff44769ab7',
+          };
+          const inputs = {
+            schemaVersion: 1, tool: 'biome', versionOrName: 'baseline-2405c7620169bd0719166af09a8d89cc76fb37fb',
+            repository: 'https://github.com/biomejs/biome', commit: '2405c7620169bd0719166af09a8d89cc76fb37fb',
+            target: 'x86_64-unknown-linux-musl', builderInventory: inventory,
+            image: 'docker.io/library/rust@sha256:6d9066cf04ed2cc9d1a406016f4c9b2574bafda23f9e88bcad8e5d24fa6aec8e',
+            cargoLockSha256: sourceFileDigests['Cargo.lock'], sourceFileDigests,
+            dependencies: [
+              { tool: 'cargo-lock', repository: 'https://github.com/biomejs/biome', commit: '2405c7620169bd0719166af09a8d89cc76fb37fb', digest: sourceFileDigests['Cargo.lock'] },
+              { tool: 'make', repository: 'https://gitlab.alpinelinux.org/alpine/aports', commit: '9368161bd37f74fb11747ba79197f8480aaca7dc', digest: 'a916626a876f64c6b6fb32a6bf0fa93351d09fae0aa7684135642390da647e60' }
+            ],
+            sourcePatches: [], environment: { RUSTUP_TOOLCHAIN: '1.98.1', CARGO_INCREMENTAL: '0' },
+            cargoArgs: ['build', '--locked', '--release', '--target', 'x86_64-unknown-linux-musl', '--package', 'biome_cli'],
+          };
+          await writeFile(process.env.PREFLIGHT_INPUT_TEMPLATE, JSON.stringify(inputs), { flag: 'wx' });
+          NODE
+      - name: Build once and validate same-key compilation skip
+        run: bash integration/vivarium/preflight/build-baseline.sh
+      - name: Retain actual trial evidence (no Release publication)
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: terrarium-migration-baseline-${{ github.run_id }}
+          path: |
+            .artifacts/preflight/*-receipt.json
+            .artifacts/preflight/actual-inputs.json
+            .artifacts/preflight/cache/*/biome
+            .artifacts/preflight/cache/*/build-info.json
+          if-no-files-found: error
+          retention-days: 7
