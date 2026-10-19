@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   apply:
-    if: github.repository == 'aletheia-works/formicarium' && vars.FORMICARIUM_INFRA_APPLY_ENABLED == 'true'
+    if: github.repository == 'aletheia-works/formicarium'
     uses: aletheia-works/.github/.github/workflows/terraform-apply.yml@4f9b6d6865f083952f13557c91eaf839045e55e1 # v1.0.0
     with:
       working_directory: infra/github

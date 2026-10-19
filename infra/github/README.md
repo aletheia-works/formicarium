@@ -63,11 +63,10 @@ fmt、Contentsはfmtとstate backup、Actionsはstate artifact、Variablesはsta
 - `terraform-apply.yml`: main変更または手動実行で共通Apply。
 - `terraform-state-backup.yml`: 週次・Apply成功後・手動実行で共通backup。
 
-Applyとbackupはrepository variable `FORMICARIUM_INFRA_APPLY_ENABLED=true` が
-設定されるまでskipします。導入PRのmergeだけでは設定を書き換えません。
-有効化前にPlanをレビューし、特にimport対象と必須check名を確認します。
-有効化と初回Applyは別途承認して実行します。npm公開設定・公開workflowの
-有効化はこのmoduleの管理対象ではありません。
+`infra/github/**` を変えるPRは、mergeするとそのままApplyされます（vivariumと
+同じ）。merge前にPRのPlanのcommentをレビューし、特にimport対象と必須check名を
+確認します。npm公開設定・公開workflowの有効化はこのmoduleの管理対象では
+ありません。
 
 共通workflowは同じstate artifact名でPlan/Apply/backupを直列化します。
 正本はActions artifact `terraform-state`、場所はvariable `LATEST_APPLY_RUN_ID`。
