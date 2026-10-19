@@ -1,0 +1,89 @@
+---
+// Terminal pages only (BR4.3): the documentation pages never render this, so
+// they load neither the terminal module nor the isolation scripts.
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+// A static import: Astro emits it as page CSS (a dynamic CSS import from the
+// client script was referenced but never written to the build output).
+import '@xterm/xterm/css/xterm.css';
+import {
+  TERMINAL_ATTRIBUTE,
+  type TerminalPageData,
+} from '../terminal/page-data.ts';
+import { statusText } from '../terminal/status.ts';
+
+interface Props {
+  data: TerminalPageData;
+  title: string;
+  description: string;
+  intro: string;
+  help: string;
+  hintsTitle: string;
+  hints: readonly string[];
+}
+const { data, title, description, intro, help, hintsTitle, hints } =
+  Astro.props;
+const base = data.base;
+const host = { [TERMINAL_ATTRIBUTE]: JSON.stringify(data) };
+---
+
+<StarlightPage
+  frontmatter={{
+    title,
+    description,
+    tableOfContents: false,
+    head: [
+      { tag: 'script', attrs: { src: `${base}coi-config.js` } },
+      { tag: 'script', attrs: { src: `${base}coi-serviceworker.js` } },
+    ],
+  }}
+>
+  <p>{intro}</p>
+  <slot />
+  <p
+    class="terminal-status"
+    role="status"
+    aria-live="polite"
+    data-testid="terminal-status"
+  >
+    {statusText({ kind: 'isolating' }, data.locale)}
+  </p>
+  <div class="terminal-host" {...host} data-testid="terminal-host"></div>
+  <p class="terminal-omitted" data-testid="terminal-omitted" hidden></p>
+  <p>{help}</p>
+  <p>{hintsTitle}</p>
+  <ul class="terminal-hints" data-testid="terminal-hints">
+    {hints.map((hint) => <li><code>{hint}</code></li>)}
+  </ul>
+</StarlightPage>
+
+<script>
+  import { startTerminalPage } from '../terminal/terminal-host.ts';
+  startTerminalPage(document);
+</script>
+
+<style>
+  .terminal-host {
+    width: 100%;
+    min-width: 0;
+    height: 32rem;
+    max-height: 70vh;
+    box-sizing: border-box;
+    padding: 0.5rem;
+    background: #0d1117;
+    border-radius: 0.5rem;
+    overflow: hidden;
+  }
+  .terminal-host:focus-within {
+    outline: 2px solid var(--sl-color-text-accent);
+    outline-offset: 2px;
+  }
+  .terminal-status,
+  .terminal-omitted {
+    overflow-wrap: anywhere;
+  }
+  @media (max-width: 40rem) {
+    .terminal-host {
+      height: 24rem;
+    }
+  }
+</style>

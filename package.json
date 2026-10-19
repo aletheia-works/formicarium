@@ -109,7 +109,13 @@
     "showcase:unit": "node --test --test-concurrency=1 --experimental-test-coverage --test-coverage-include='showcase/scripts/**' --test-coverage-lines=80 showcase/tests/runner-ready.test.ts showcase/tests/config.test.ts showcase/tests/resolve.test.ts showcase/tests/acquire.test.ts showcase/tests/archive.test.ts showcase/tests/build-key.test.ts showcase/tests/build.test.ts showcase/tests/reuse.test.ts showcase/tests/catalog.test.ts showcase/tests/pack.test.ts showcase/tests/candidate.test.ts showcase/tests/boundary.test.ts showcase/tests/mode.test.ts showcase/tests/workflow.test.ts",
     "showcase:boundary": "node showcase/scripts/boundary.ts",
     "showcase:accept-node": "node showcase/scripts/accept-node.ts",
-    "showcase:accept-browser": "node node_modules/@playwright/test/cli.js test --config showcase/tests/playwright.config.ts --workers=1 --retries=0"
+    "showcase:accept-browser": "node node_modules/@playwright/test/cli.js test --config showcase/tests/playwright.config.ts --workers=1 --retries=0",
+    "showcase-site:prepare": "node showcase/site/scripts/build-site.ts prepare",
+    "showcase-site:assemble": "node showcase/site/scripts/build-site.ts assemble",
+    "showcase-site:typecheck": "node showcase/site/node_modules/typescript/bin/tsc -p showcase/site/tsconfig.json",
+    "showcase-site:unit": "node --test --test-concurrency=1 --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=showcase/site/.work/coverage/lcov.info showcase/site/tests/unit/*.test.ts",
+    "showcase-site:accept": "node node_modules/@playwright/test/cli.js test --config showcase/site/tests/playwright.config.ts --workers=1 --retries=0",
+    "showcase-site:coverage": "node showcase/site/tests/coverage/merge-coverage.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",

@@ -1,0 +1,34 @@
+---
+title: Linux CLIs in your browser
+description: formicarium runs unmodified x86-64 Linux command-line tools inside a web page.
+template: splash
+hero:
+  title: Linux CLIs in your browser
+  tagline: formicarium is a user-mode x86-64 Linux emulator compiled to WebAssembly. It runs real, unmodified CLI binaries in this tab.
+  actions:
+    - text: Choose a tool
+      link: /formicarium/tools/
+      icon: right-arrow
+    - text: Empty terminal
+      link: /formicarium/terminal/
+      variant: secondary
+    - text: Get started
+      link: /formicarium/guides/getting-started/
+      variant: minimal
+---
+
+formicarium runs [blink](https://github.com/jart/blink) on WebAssembly: a
+static x86-64 Linux executable starts without a kernel or a virtual machine,
+and its system calls are answered inside the browser.
+
+- **Runs in your browser.** The tools and their sample projects run in Web
+  Workers in this tab. No server executes your commands.
+- **Your data stays here.** Files you create live in the page's session and are
+  gone when you reload. Nothing leaves the browser.
+- **Real binaries.** The showcase installs the latest stable aube, pitchfork and
+  Biome that passed its Node, Chromium, Firefox and WebKit acceptance.
+
+Open [the tools](/formicarium/tools/) to try a tool with a sample project, or
+start from [an empty terminal](/formicarium/terminal/) and install one yourself.
+The [guides](/formicarium/guides/getting-started/) explain how to embed the same
+public API in your own page.

@@ -1,0 +1,38 @@
+---
+import TerminalPage from '../../components/TerminalPage.astro';
+import { requireStrings, stringsFor } from '../../i18n/strings.ts';
+import { loadSiteData } from '../../site-data.ts';
+import type { TerminalPageData } from '../../terminal/page-data.ts';
+
+export function getStaticPaths() {
+  return [
+    { params: { lang: undefined }, props: { locale: 'en' as const } },
+    { params: { lang: 'ja' }, props: { locale: 'ja' as const } },
+  ];
+}
+const { locale } = Astro.props;
+const site = loadSiteData();
+requireStrings(site.tools.map((tool) => tool.tool));
+const strings = stringsFor(locale);
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+const data: TerminalPageData = {
+  mode: 'empty',
+  locale,
+  base,
+  tool: null,
+  version: null,
+  catalog: site.catalog,
+  fixture: null,
+  formicarium: site.formicarium,
+};
+---
+
+<TerminalPage
+  data={data}
+  title={strings.terminal.title}
+  description={strings.terminal.description}
+  intro={strings.terminal.intro}
+  help={strings.terminalHelp}
+  hintsTitle={strings.terminal.hints}
+  hints={site.tools.map((tool) => `install ${tool.tool}`)}
+/>

@@ -1,0 +1,42 @@
+---
+title: Embedding
+description: Run guests in your own page with the public formicarium API.
+---
+
+import { Code } from '@astrojs/starlight/components';
+import PackageInstall from '../../../components/PackageInstall.astro';
+import example from '../../../examples/embedding.ts?raw';
+
+The showcase terminals use only the public exports of
+`@aletheia-works/formicarium`: `createSession` from `/browser` and
+`createCommandSession` from the package root. Your page can do the same.
+
+<PackageInstall locale="en" />
+
+## Requirements
+
+- **Same origin.** The Worker (`runtime/web/package-worker.bundle.js`), the
+  loader (`assets/blink.mjs`), the wasm and `build-info.json` must be served
+  from your page's origin. Pass their absolute URLs as `assets`.
+- **Cross-origin isolation.** Serve COOP `same-origin` and COEP `require-corp`,
+  or use a service worker such as coi-serviceworker on static hosting.
+- **CSP.** The loader runs as a Blob module: allow `blob:` in `script-src` and
+  `worker-src`, and `'wasm-unsafe-eval'` for WebAssembly.
+- **Guests.** Use a catalog (`GuestCatalog`) whose entries name same-origin
+  guest files with their SHA256 and `build-info.json`. `install <tool>` checks
+  every byte before it registers a guest.
+
+## Example
+
+This code is type-checked against the pack this site was built from.
+
+<Code code={example} lang="ts" title="embedding.ts" />
+
+## Output and display
+
+`CommandSession.execute` returns the original `stdout` and `stderr` bytes of
+each command. For a guest run they also arrive in chunks through `onOutput`;
+write one or the other, not both. Decode the bytes for display and never treat
+them as HTML. `onProgress` reports `totalBytes: null` when the total is unknown,
+which differs from `0`. Pass an `AbortSignal` to cancel, and dispose the
+session when the page goes away.

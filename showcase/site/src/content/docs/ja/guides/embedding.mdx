@@ -1,0 +1,42 @@
+---
+title: 組込み
+description: formicarium の公開 API で、自分の page で guest を動かす。
+---
+
+import { Code } from '@astrojs/starlight/components';
+import PackageInstall from '../../../../components/PackageInstall.astro';
+import example from '../../../../examples/embedding.ts?raw';
+
+showcase の端末は `@aletheia-works/formicarium` の公開 export だけを使います：
+`/browser` の `createSession` と、package の root の `createCommandSession` です。
+自分の page でも同じことができます。
+
+<PackageInstall locale="ja" />
+
+## 条件
+
+- **同じ origin。** Worker（`runtime/web/package-worker.bundle.js`）、loader
+  （`assets/blink.mjs`）、wasm、`build-info.json` を page と同じ origin から配り、
+  その絶対 URL を `assets` に渡します。
+- **クロスオリジン分離。** COOP `same-origin` と COEP `require-corp` を送るか、
+  静的な hosting では coi-serviceworker などの service worker を使います。
+- **CSP。** loader は Blob の module として動くので、`script-src` と
+  `worker-src` に `blob:` を、WebAssembly に `'wasm-unsafe-eval'` を許します。
+- **guest。** 同じ origin の guest の file と、その SHA256 と `build-info.json`
+  を書いた catalog（`GuestCatalog`）を使います。`install <tool>` はすべての bytes
+  を確かめてから guest を登録します。
+
+## 例
+
+この code は、このサイトを作った pack の型で型検査しています。
+
+<Code code={example} lang="ts" title="embedding.ts" />
+
+## 出力と表示
+
+`CommandSession.execute` は command ごとに元の `stdout` と `stderr` の bytes を
+返します。guest の実行では同じ bytes が `onOutput` でも少しずつ届くので、どちらか
+一方だけを書きます。表示のときは bytes を文字に decode し、HTML として扱いません。
+`onProgress` は全体の大きさが分からないとき `totalBytes: null` を返し、`0` とは
+区別します。取り消すには `AbortSignal` を渡し、page を離れるときは session を
+dispose します。

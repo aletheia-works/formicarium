@@ -64,6 +64,106 @@ test('only public entries, node builtins, showcase paths and test tooling are im
   );
 });
 
+// The site probes live in boundary-fixtures/site/ (not scanned): import-like
+// text in this file would itself be reported.
+test('site: Astro, Starlight and xterm (and their subpaths) are allowed below showcase/site only', async () => {
+  const source = await probe('site/site-imports.ts');
+  assert.deepEqual(checkShowcaseFile('showcase/site/src/x.ts', source), []);
+  assert.equal(
+    checkShowcaseFile('showcase/scripts/x.ts', source).filter(
+      (item) => item.kind === 'unknown-import',
+    ).length,
+    7,
+  );
+  assert.deepEqual(
+    checkShowcaseFile(
+      'showcase/site/src/x.ts',
+      await probe('site/look-alike.ts'),
+    ).map((item) => item.reference),
+    ['astro-evil', '@xterm/xterm-evil'],
+  );
+});
+
+test('site: Playwright and v8-to-istanbul are allowed below showcase/site/tests only', async () => {
+  const source = await probe('site/test-tools.ts');
+  assert.deepEqual(
+    checkShowcaseFile('showcase/site/tests/coverage/merge.ts', source),
+    [],
+  );
+  assert.deepEqual(
+    checkShowcaseFile('showcase/site/src/x.ts', source).map(
+      (item) => item.kind,
+    ),
+    ['unknown-import', 'unknown-import'],
+  );
+});
+
+test('site: .astro frontmatter and <script> imports are checked; <script src> must stay same-origin', async () => {
+  const page = await probe('site/page.astro');
+  assert.deepEqual(
+    checkShowcaseFile('showcase/site/src/pages/x.astro', page).map(
+      (item) => `${item.kind} ${item.reference}`,
+    ),
+    [
+      'script-src https://cdn.example/x.js',
+      'script-src //cdn.example/y.js',
+      'internal-import ../../../../runtime/errors.ts',
+      'internal-import @aletheia-works/formicarium/runtime/core.js',
+    ],
+  );
+});
+
+test('site: a computed import() is refused outside the formicarium loader', async () => {
+  const computed = await probe('site/computed-import.ts');
+  assert.deepEqual(
+    checkShowcaseFile('showcase/site/src/terminal/other.ts', computed).map(
+      (item) => item.kind,
+    ),
+    ['dynamic-import'],
+  );
+  assert.deepEqual(
+    checkShowcaseFile(
+      'showcase/site/src/terminal/formicarium-loader.ts',
+      computed,
+    ),
+    [],
+  );
+  assert.deepEqual(
+    checkShowcaseFile(
+      'showcase/site/src/x.ts',
+      await probe('site/literal-import.ts'),
+    ),
+    [],
+  );
+});
+
+test('site: build output, Astro types, node_modules and the staged pack are not scanned', async () => {
+  const root = join(SHOWCASE_ROOT, '.work', `boundary-site-${process.pid}`);
+  const bad = await probe('site/bare-import.ts');
+  try {
+    for (const directory of [
+      'dist/_astro',
+      '.astro',
+      'node_modules/x',
+      '.work',
+      'public/_formicarium/0.3.0',
+    ]) {
+      await mkdir(join(root, 'showcase', 'site', directory), {
+        recursive: true,
+      });
+      await writeFile(join(root, 'showcase', 'site', directory, 'a.js'), bad);
+    }
+    assert.deepEqual(await scanTree(root), []);
+    await writeFile(join(root, 'showcase', 'site', 'b.ts'), bad);
+    assert.deepEqual(
+      (await scanTree(root)).map((item) => item.file),
+      ['showcase/site/b.ts'],
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 // Biome 2.5 answers stdin linting with exit 1 and no rule names whatever the
 // input, so each probe is linted as a real file under the showcase override.
 const PROBE_DIRECTORY = join(SHOWCASE_ROOT, '.probe');

@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "threshold": 80,
+  "note": "security-design S2 の分母。名前を変えたら code-summary に対応を書き、file を増減するときは理由を示して人の承認を受ける。未実行・未計測の file は 0% として残し、report に無ければ失敗にする。",
+  "files": [
+    "src/terminal/terminal-host.ts",
+    "src/terminal/output.ts",
+    "src/terminal/buffer.ts",
+    "src/terminal/keys.ts",
+    "src/terminal/status.ts",
+    "src/terminal/fetch-limited.ts",
+    "src/terminal/fixture-index.ts",
+    "src/terminal/catalog.ts",
+    "src/terminal/formicarium-loader.ts",
+    "src/terminal/omitted-notice.ts",
+    "src/i18n/strings.ts",
+    "scripts/verify-candidate.ts",
+    "scripts/fetch-verify-candidate.ts",
+    "scripts/stage-formicarium.ts",
+    "scripts/build-fixture-index.ts",
+    "scripts/build-site-identity.ts",
+    "scripts/inject-csp.ts",
+    "scripts/inventory.ts",
+    "scripts/check-site.ts",
+    "scripts/notices.ts",
+    "scripts/evidence.ts",
+    "scripts/deploy-guard.ts",
+    "scripts/post-deploy-check.ts",
+    "scripts/serve-pages-like.ts",
+    "scripts/summary.ts",
+    "src/terminal/page-data.ts",
+    "src/model/model-error.ts",
+    "src/model/fixture-index.ts",
+    "src/model/site-identity.ts",
+    "src/model/inventory.ts",
+    "src/model/evidence.ts",
+    "src/site-data.ts",
+    "scripts/common.ts",
+    "scripts/build-site.ts"
+  ],
+  "addedBeyondS2": [
+    {
+      "path": "src/terminal/page-data.ts",
+      "reason": "端末の page の埋込み data の型と検証（terminal-host と check-site が共有）。人の承認待ち"
+    },
+    {
+      "path": "src/model/model-error.ts",
+      "reason": "計画 Step 3 の data model（共通の検証）。S2 の一覧に無い。人の承認待ち"
+    },
+    {
+      "path": "src/model/fixture-index.ts",
+      "reason": "計画 Step 3 の data model。人の承認待ち"
+    },
+    {
+      "path": "src/model/site-identity.ts",
+      "reason": "計画 Step 3 の data model。人の承認待ち"
+    },
+    {
+      "path": "src/model/inventory.ts",
+      "reason": "計画 Step 3 の data model。人の承認待ち"
+    },
+    {
+      "path": "src/model/evidence.ts",
+      "reason": "計画 Step 3 の data model（C10）。人の承認待ち"
+    },
+    {
+      "path": "src/site-data.ts",
+      "reason": "build の時に page が読む site data。人の承認待ち"
+    },
+    {
+      "path": "scripts/common.ts",
+      "reason": "script の共通（原因の code、CLI、URL の query を落とす helper）。人の承認待ち"
+    },
+    {
+      "path": "scripts/build-site.ts",
+      "reason": "計画 Step 18 の build の組立て。人の承認待ち"
+    }
+  ],
+  "excluded": [
+    {
+      "path": "src/**/*.astro",
+      "reason": "markup と module の呼出しだけ（処理は .ts に置く）"
+    },
+    {
+      "path": "src/content.config.ts",
+      "reason": "Starlight の collection の設定"
+    },
+    { "path": "astro.config.mjs", "reason": "Astro・Starlight の設定" },
+    {
+      "path": "src/examples/embedding.ts",
+      "reason": "guide に載せる例。実行しない（pack の型で型検査だけ行う）"
+    },
+    {
+      "path": "public/coi-config.js",
+      "reason": "第三者の coi-serviceworker が読む設定の値だけ"
+    },
+    {
+      "path": "tests/**",
+      "reason": "試験の file と試験の道具（tests/coverage/merge-coverage.ts、tests/accept/harness を含む）"
+    },
+    {
+      "path": "dist/**, .astro/**, node_modules/**, public/_formicarium/**",
+      "reason": "生成物、xterm などの第三者の code、formicarium の pack"
+    }
+  ]
+}

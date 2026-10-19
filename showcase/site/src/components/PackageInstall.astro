@@ -1,0 +1,38 @@
+---
+// S18: the npm instructions appear only when the build found this exact pack
+// (same version, same integrity) on the npm registry.
+import { loadSiteData } from '../site-data.ts';
+
+interface Props {
+  locale: 'en' | 'ja';
+}
+const { locale } = Astro.props;
+const { npm } = loadSiteData();
+const page = `https://www.npmjs.com/package/@aletheia-works/formicarium/v/${npm.version}`;
+---
+
+{
+  npm.published ? (
+    <div data-testid="package-install">
+      <p>
+        {locale === 'ja'
+          ? `この guide は formicarium ${npm.version} の pack（候補の版）に合わせて書いています。npm から入れるには：`
+          : `This guide matches the formicarium ${npm.version} pack (the candidate's version). Install it from npm:`}
+      </p>
+      <pre>
+        <code>npm install @aletheia-works/formicarium@{npm.version}</code>
+      </pre>
+      <p>
+        <a href={page}>
+          {locale === 'ja' ? 'npm の page' : 'The package on npm'}
+        </a>
+      </p>
+    </div>
+  ) : (
+    <p data-testid="package-unpublished">
+      {locale === 'ja'
+        ? `この guide は formicarium ${npm.version} の pack（候補の版）に合わせて書いています。この版は npm に未公開です（同じ integrity の版を npm で確かめられませんでした）。`
+        : `This guide matches the formicarium ${npm.version} pack (the candidate's version). This version is not published on npm (the registry has no release with the same integrity).`}
+    </p>
+  )
+}

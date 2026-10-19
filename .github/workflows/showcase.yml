@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - showcase/**
+      - '!showcase/site/**'
       - .github/workflows/showcase.yml
       - runtime/**
       - types/**
@@ -11,6 +12,7 @@ on:
     branches: [main]
     paths:
       - showcase/**
+      - '!showcase/site/**'
       - .github/workflows/showcase.yml
       - runtime/**
       - types/**

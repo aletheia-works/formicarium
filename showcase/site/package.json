@@ -1,0 +1,23 @@
+{
+  "name": "@aletheia-works/formicarium-showcase-site",
+  "version": "0.0.0",
+  "private": true,
+  "description": "formicarium の showcase の site（Astro と Starlight、en・ja）。U7 の受入済み候補だけを配る",
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=26.12.0"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "0.42.6",
+    "@xterm/addon-fit": "0.11.0",
+    "@xterm/xterm": "6.0.0",
+    "astro": "7.4.0",
+    "coi-serviceworker": "0.1.7"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.5",
+    "typescript": "7.0.2",
+    "v8-to-istanbul": "9.3.0"
+  }
+}

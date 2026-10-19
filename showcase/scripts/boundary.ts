@@ -7,7 +7,9 @@ export type ViolationKind =
   | 'internal-import'
   | 'unknown-import'
   | 'reverse-dependency'
-  | 'fixture-share';
+  | 'fixture-share'
+  | 'dynamic-import'
+  | 'script-src';
 export interface Violation {
   kind: ViolationKind;
   file: string;
@@ -24,14 +26,68 @@ export const PUBLIC_ENTRIES: readonly string[] = Object.freeze([
 export const TEST_PACKAGES: readonly string[] = Object.freeze([
   '@playwright/test',
 ]);
-const SOURCE = /\.(?:[cm]?ts|[cm]?js)$/;
+/**
+ * U8 site (security-design S1): below showcase/site only, these packages, a
+ * `/` subpath of them, and Astro's `astro:` virtual modules.
+ */
+export const SITE_PACKAGES: readonly string[] = Object.freeze([
+  'astro',
+  '@astrojs/starlight',
+  '@xterm/xterm',
+  '@xterm/addon-fit',
+]);
+/** Test tooling allowed below showcase/site/tests only. */
+export const SITE_TEST_PACKAGES: readonly string[] = Object.freeze([
+  '@playwright/test',
+  'v8-to-istanbul',
+]);
+/** The one site module that may import a computed URL (staged formicarium). */
+export const SITE_LOADER = 'showcase/site/src/terminal/formicarium-loader.ts';
+const SOURCE = /\.(?:[cm]?ts|[cm]?js|astro)$/;
 /** Directories that hold data, generated files or intentional violations. */
 const SKIPPED = new Set([
   'showcase/node_modules',
   'showcase/.work',
   'showcase/fixtures',
   'showcase/tests/boundary-fixtures',
+  'showcase/site/dist',
+  'showcase/site/.astro',
+  'showcase/site/node_modules',
+  'showcase/site/.work',
+  'showcase/site/public/_formicarium',
 ]);
+
+const packageMatch = (specifier: string, names: readonly string[]) =>
+  names.some((name) => specifier === name || specifier.startsWith(`${name}/`));
+
+/**
+ * Source parts of an `.astro` file: the frontmatter between the first two
+ * `---` lines and the body of every `<script>`. Markup is not code.
+ */
+export function astroSource(text: string): {
+  code: string;
+  scriptSources: string[];
+} {
+  const parts: string[] = [];
+  const frontmatter = /^\s*---\r?\n([\s\S]*?)\r?\n---/.exec(text);
+  if (frontmatter) parts.push(frontmatter[1]!);
+  const scriptSources: string[] = [];
+  for (const match of text.matchAll(
+    /<script\b([^>]*)>([\s\S]*?)<\/script>/gi,
+  )) {
+    const src = /\ssrc\s*=\s*(?:"([^"]*)"|'([^']*)'|\{([^}]*)\})/i.exec(
+      ` ${match[1] ?? ''}`,
+    );
+    if (src) scriptSources.push(src[1] ?? src[2] ?? src[3] ?? '');
+    parts.push(match[2] ?? '');
+  }
+  return { code: parts.join('\n'), scriptSources };
+}
+
+/** `import(` whose argument is not a string literal. */
+const COMPUTED_IMPORT = /\bimport\s*\((?:\s|\/\*[\s\S]*?\*\/)*(?![\s'"`]|\/\*)/;
+/** A `<script src>` may only name a path of the same origin. */
+const SAME_ORIGIN_SRC = /^(?:\.{0,2}\/(?!\/)|[\w.-]+(?:\/|$))[^:]*$/;
 const BODY_ROOTS = Object.freeze(['runtime', 'types', 'scripts']);
 
 /** Static import/export-from/dynamic import/require specifiers. */
@@ -62,18 +118,39 @@ const below = (path: string, directory: string) =>
   path === directory || path.startsWith(`${directory}/`);
 
 /** Checks one file below showcase/ (repo-relative POSIX path). */
-export function checkShowcaseFile(file: string, source: string): Violation[] {
+export function checkShowcaseFile(file: string, text: string): Violation[] {
   const violations: Violation[] = [];
   const add = (kind: ViolationKind, reference: string) =>
     violations.push({ kind, file, reference });
+  const astro = file.endsWith('.astro') ? astroSource(text) : null;
+  const source = astro ? astro.code : text;
+  const site = below(file, 'showcase/site');
+  for (const src of astro?.scriptSources ?? [])
+    if (!SAME_ORIGIN_SRC.test(src)) add('script-src', src);
+  if (site && file !== SITE_LOADER && COMPUTED_IMPORT.test(source))
+    add('dynamic-import', 'import(<computed>)');
   for (const specifier of importSpecifiers(source)) {
     if (specifier.startsWith('node:')) continue;
     if (PUBLIC_ENTRIES.includes(specifier)) continue;
     if (TEST_PACKAGES.includes(specifier) && below(file, 'showcase/tests'))
       continue;
+    if (
+      site &&
+      (packageMatch(specifier, SITE_PACKAGES) || specifier.startsWith('astro:'))
+    )
+      continue;
+    if (
+      below(file, 'showcase/site/tests') &&
+      packageMatch(specifier, SITE_TEST_PACKAGES)
+    )
+      continue;
     if (isRelative(specifier)) {
       const target = resolveFrom(file, specifier);
-      if (!below(target, 'showcase') || below(target, 'showcase/node_modules'))
+      if (
+        !below(target, 'showcase') ||
+        below(target, 'showcase/node_modules') ||
+        below(target, 'showcase/site/node_modules')
+      )
         add('internal-import', specifier);
       continue;
     }

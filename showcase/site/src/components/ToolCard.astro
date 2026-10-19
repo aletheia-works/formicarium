@@ -1,0 +1,47 @@
+---
+interface Props {
+  tool: string;
+  href: string;
+  label: string;
+  version: string;
+  summary: string;
+  open: string;
+}
+const { tool, href, label, version, summary, open } = Astro.props;
+---
+
+<a class="tool-card" href={href} data-testid="tool-card" data-tool={tool}>
+  <strong>{label}</strong>
+  <span class="tool-version">{label} {version}</span>
+  <span>{summary}</span>
+  <span class="tool-open">{open} →</span>
+</a>
+
+<style>
+  .tool-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1.25rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.75rem;
+    color: var(--sl-color-text);
+    text-decoration: none;
+    min-width: 0;
+  }
+  .tool-card:hover,
+  .tool-card:focus-visible {
+    border-color: var(--sl-color-text-accent);
+    background: var(--sl-color-gray-6);
+  }
+  .tool-card:focus-visible {
+    outline: 2px solid var(--sl-color-text-accent);
+    outline-offset: 2px;
+  }
+  .tool-card strong {
+    font-size: 1.25rem;
+  }
+  .tool-open {
+    color: var(--sl-color-text-accent);
+  }
+</style>

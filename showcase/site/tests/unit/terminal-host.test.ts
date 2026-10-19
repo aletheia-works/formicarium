@@ -1,0 +1,396 @@
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import test from 'node:test';
+import type {
+  CommandOptions,
+  CommandResult,
+  FsEntry,
+  SessionOptions,
+} from '@aletheia-works/formicarium';
+import type { LoadedFormicarium } from '../../src/terminal/formicarium-loader.ts';
+import type { TerminalPageData } from '../../src/terminal/page-data.ts';
+import {
+  attachPageEvents,
+  type HostOptions,
+  nextCwd,
+  passKey,
+  TerminalHost,
+} from '../../src/terminal/terminal-host.ts';
+import { chunked, fakeTimers } from './helpers.ts';
+
+const sha = (text: string) => createHash('sha256').update(text).digest('hex');
+const encode = (text: string) => new TextEncoder().encode(text);
+const fixtureText = JSON.stringify({
+  schemaVersion: 1,
+  fixture: 'aube-local-deps',
+  entries: [
+    { path: 'app', type: 'dir', mode: 0o755 },
+    {
+      path: 'app/package.json',
+      type: 'file',
+      mode: 0o644,
+      sha256: sha('{}'),
+      size: 2,
+      bytes: 'e30=',
+    },
+  ],
+});
+const catalogText = JSON.stringify({
+  schemaVersion: 1,
+  catalogId: 'c',
+  defaults: { aube: '2.7.2' },
+  entries: [{ tool: 'aube', url: 'guests/aube/2.7.2/aube.tar.gz' }],
+});
+const fetchImpl = (async (url: string) =>
+  chunked([
+    encode(url.endsWith('catalog.json') ? catalogText : fixtureText),
+  ])) as unknown as typeof fetch;
+
+function data(
+  mode: 'empty' | 'preinstalled',
+  overrides: Partial<TerminalPageData> = {},
+): TerminalPageData {
+  return {
+    mode,
+    locale: 'en',
+    base: '/formicarium/',
+    tool: mode === 'preinstalled' ? 'aube' : null,
+    version: mode === 'preinstalled' ? '2.7.2' : null,
+    catalog: { path: 'catalog.json', sha256: sha(catalogText) },
+    fixture:
+      mode === 'preinstalled'
+        ? {
+            path: 'demo-fixtures/aube-local-deps.json',
+            sha256: sha(fixtureText),
+          }
+        : null,
+    formicarium: {
+      version: '0.3.0',
+      base: '_formicarium/0.3.0/',
+      root: 'r',
+      browser: 'b',
+      assets: { loader: 'l', wasm: 'w', worker: 'k', buildInfo: 'i' },
+      files: [],
+    },
+    ...overrides,
+  };
+}
+
+type Execute = (
+  line: string,
+  options: CommandOptions,
+) => Promise<CommandResult>;
+const result = (
+  kind: CommandResult['kind'],
+  stdout = '',
+  exitCode = 0,
+  extra: Partial<CommandResult> = {},
+): CommandResult => ({
+  kind,
+  exitCode,
+  stdout: encode(stdout),
+  stderr: new Uint8Array(),
+  ...extra,
+});
+const installed = (tool = 'aube') =>
+  result('install', `installed ${tool} 2.7.2\n`, 0, {
+    installation: {
+      operationId: 'o',
+      tool,
+      versionOrName: '2.7.2',
+      digest: 'd',
+      buildKey: 'k',
+    },
+  });
+
+function harness(
+  mode: 'empty' | 'preinstalled',
+  execute: Execute,
+  extra: Partial<HostOptions> = {},
+) {
+  const writes: string[] = [];
+  const lines: string[] = [];
+  const sessions: SessionOptions[] = [];
+  const cwds: string[] = [];
+  let disposed = 0;
+  const terminal = {
+    write: (text: string) => writes.push(text),
+    reset: () => writes.push('<reset>'),
+    focus() {},
+    dispose: () => writes.push('<dispose>'),
+  };
+  const loaded = {
+    root: {
+      fixtureToFsEntries: (entries: readonly FsEntry[]) => entries,
+      createCommandSession: () => ({
+        execute: (line: string, options: CommandOptions = {}) => {
+          lines.push(line);
+          return execute(line, options);
+        },
+      }),
+    },
+    browser: {
+      createSession: async (options: SessionOptions) => {
+        sessions.push(options);
+        return {
+          dispose: async () => void disposed++,
+          setCwd: async (path: string) => void cwds.push(path),
+        };
+      },
+    },
+    assets: { loaderURL: 'l', wasmURL: 'w', workerURL: 'k', buildInfoURL: 'i' },
+  } as unknown as LoadedFormicarium;
+  const status = { textContent: '' as string | null };
+  const omitted = { textContent: '' as string | null, hidden: true as boolean };
+  const root = { dataset: {} as Record<string, string | undefined> };
+  const host = new TerminalHost({
+    data: data(mode),
+    terminal,
+    status,
+    omitted,
+    root,
+    pageUrl: 'https://localhost:8443/formicarium/tools/aube/',
+    isolation: () => ({ isolated: true, serviceWorker: 'controlled' }),
+    load: async () => loaded,
+    fetchImpl,
+    ...extra,
+  });
+  return {
+    host,
+    writes,
+    lines,
+    sessions,
+    cwds,
+    status,
+    omitted,
+    root,
+    disposed: () => disposed,
+  };
+}
+const settle = () => new Promise((done) => setImmediate(done));
+/** Typing then Enter (one onData with text and CR would be a paste). */
+const type = (host: TerminalHost, line: string) => {
+  host.onData(line);
+  host.onData('\r');
+};
+
+test('a tool page installs its tool after placing the fixture below /work', async () => {
+  const h = harness('preinstalled', async () => installed());
+  const states: string[] = [];
+  const observe = setInterval(() => states.push(h.host.state), 0);
+  await h.host.start();
+  clearInterval(observe);
+  assert.equal(h.host.state, 'ready');
+  assert.equal(h.root.dataset.state, 'ready');
+  assert.deepEqual(h.lines, ['install aube']);
+  assert.deepEqual(
+    h.sessions[0]!.entries!.map((entry) => entry.path),
+    ['/work', '/work/app', '/work/app/package.json'],
+  );
+  // The persistence root covers /work; the shell starts in /work/app.
+  assert.equal(h.sessions[0]!.cwd, '/work');
+  assert.deepEqual(h.cwds, ['/work/app']);
+  assert.equal(h.status.textContent, 'Ready: aube 2.7.2');
+  assert.ok(h.writes.join('').endsWith('installed aube 2.7.2\n/work/app$ '));
+});
+
+test('a failed or cancelled automatic install leaves ready_failed_install and accepts a retry', async () => {
+  let calls = 0;
+  const h = harness('preinstalled', async (_line, options) => {
+    calls += 1;
+    if (calls === 1)
+      throw Object.assign(new Error('HTTP 404'), { code: 'ASSET_LOAD' });
+    options.onProgress?.({
+      operationId: 'o',
+      sequence: 1,
+      phase: 'fetch',
+      processedBytes: 3,
+      totalBytes: null,
+    });
+    return installed();
+  });
+  await h.host.start();
+  assert.equal(h.host.state, 'ready_failed_install');
+  assert.match(
+    h.status.textContent!,
+    /Install failed \(ASSET_LOAD: HTTP 404\)/,
+  );
+  assert.match(h.writes.join(''), /ASSET_LOAD: HTTP 404\n/);
+  type(h.host, 'install aube');
+  await settle();
+  assert.equal(h.host.state, 'ready');
+  assert.equal(calls, 2);
+});
+
+test('Ctrl-C cancels a running command; its late output is not shown', async () => {
+  let release: (value: CommandResult) => void = () => {};
+  const h = harness('empty', (line, options) => {
+    if (line === 'aube --version')
+      return new Promise((done) => {
+        release = done;
+        options.signal?.addEventListener('abort', () => {
+          options.onOutput?.({
+            runId: 'r',
+            sequence: 0,
+            stream: 'stdout',
+            bytes: encode('late output\n'),
+          });
+          done(result('guest', 'late output\n', 130));
+        });
+      });
+    return Promise.resolve(result('builtin'));
+  });
+  await h.host.start();
+  type(h.host, 'aube --version');
+  await settle();
+  assert.equal(h.host.state, 'running');
+  h.host.onData('typed while running');
+  h.host.onData('\x03');
+  await settle();
+  assert.equal(h.host.state, 'ready');
+  const text = h.writes.join('');
+  assert.match(text, /ABORTED: the command was cancelled/);
+  assert.doesNotMatch(text, /late output|typed while running/);
+  assert.equal(h.status.textContent, 'Cancelled (ABORTED).');
+  release(result('guest'));
+});
+
+test('the empty terminal runs builtins once, follows cd and reports empty output', async () => {
+  const h = harness('empty', async (line, options) => {
+    if (line === 'ls') return result('builtin', 'package.json\n');
+    if (line === 'cd ..') return result('builtin');
+    if (line === 'missing')
+      throw Object.assign(new Error('no guest named missing'), {
+        code: 'NOT_FOUND',
+      });
+    options.onOutput?.({
+      runId: 'r',
+      sequence: 0,
+      stream: 'stdout',
+      bytes: encode('boom'),
+    });
+    return result('guest', 'boom', 3);
+  });
+  await h.host.start();
+  assert.equal(h.status.textContent, 'Ready. No tool is installed yet.');
+  assert.deepEqual(
+    h.sessions[0]!.entries!.map((entry) => entry.path),
+    ['/work', '/work/app'],
+  );
+  type(h.host, 'ls');
+  await settle();
+  assert.equal(h.writes.join('').split('package.json').length - 1, 1);
+  type(h.host, 'cd ..');
+  await settle();
+  assert.equal(h.status.textContent, '(no output)');
+  assert.equal(h.host.cwd, '/work');
+  type(h.host, 'aube x');
+  await settle();
+  assert.match(h.writes.join(''), /boom\nexit code 3\n\/work\$ $/);
+  type(h.host, 'missing');
+  await settle();
+  assert.equal(h.host.state, 'ready');
+  assert.equal(
+    h.status.textContent,
+    'The last command failed (NOT_FOUND: no guest named missing).',
+  );
+  assert.match(
+    h.writes.join(''),
+    /NOT_FOUND: no guest named missing\n\/work\$ $/,
+  );
+});
+
+test('isolation that never comes fails the page after the wait; no input is taken', async () => {
+  const clock = fakeTimers();
+  const h = harness('empty', async () => result('builtin'), {
+    isolation: () => ({ isolated: false, serviceWorker: 'pending' }),
+    timers: clock.timers,
+  });
+  await h.host.start();
+  assert.equal(h.host.state, 'isolating');
+  assert.equal(h.status.textContent, 'Preparing cross-origin isolation…');
+  clock.fire();
+  assert.equal(h.host.state, 'failed');
+  assert.match(h.status.textContent!, /Allow service workers/);
+  h.host.onData('ls\r');
+  assert.deepEqual(h.lines, []);
+  const blocked = harness('empty', async () => result('builtin'), {
+    isolation: () => ({ isolated: false, serviceWorker: 'unsupported' }),
+  });
+  await blocked.host.start();
+  assert.equal(blocked.host.state, 'failed');
+});
+
+test('a catalog that does not match the page fails loading with its cause', async () => {
+  const h = harness('empty', async () => result('builtin'), {
+    data: data('empty', {
+      catalog: { path: 'catalog.json', sha256: 'f'.repeat(64) },
+    }),
+  });
+  await h.host.start();
+  assert.equal(h.host.state, 'failed');
+  assert.deepEqual(h.sessions, []);
+  assert.match(
+    h.status.textContent!,
+    /^EXECUTION: digest-mismatch: SHA256 differs \(https:\/\/localhost:8443\/formicarium\/catalog\.json\)\. Reload/,
+  );
+  h.host.onData('l');
+  assert.deepEqual(h.lines, []);
+});
+
+test('pagehide disposes; pageshow from the back-forward cache reloads; Tab is passed on', async () => {
+  let release: (value: CommandResult) => void = () => {};
+  const h = harness('empty', (line) =>
+    line === 'aube'
+      ? new Promise((done) => (release = done))
+      : Promise.resolve(result('builtin')),
+  );
+  await h.host.start();
+  type(h.host, 'aube');
+  await settle();
+  const events = new EventTarget();
+  let reloads = 0;
+  attachPageEvents(events, h.host, () => reloads++);
+  events.dispatchEvent(new Event('pagehide'));
+  await settle();
+  assert.equal(h.host.state, 'disposed');
+  assert.equal(h.disposed(), 1);
+  assert.ok(h.writes.includes('<dispose>'));
+  release(result('guest', 'after dispose'));
+  await settle();
+  assert.doesNotMatch(h.writes.join(''), /after dispose/);
+  events.dispatchEvent(
+    Object.assign(new Event('pageshow'), { persisted: false }),
+  );
+  events.dispatchEvent(
+    Object.assign(new Event('pageshow'), { persisted: true }),
+  );
+  assert.equal(reloads, 1);
+  assert.equal(passKey({ key: 'Tab' }), false);
+  assert.equal(passKey({ key: 'a' }), true);
+});
+
+test('more than 1 MiB of output redraws the tail and shows the omitted notice', async () => {
+  const h = harness('empty', async (_line, options) => {
+    for (let index = 0; index < 11; index++)
+      options.onOutput?.({
+        runId: 'r',
+        sequence: index,
+        stream: 'stdout',
+        bytes: encode(`${'x'.repeat(99999)}\n`),
+      });
+    return result('guest');
+  });
+  await h.host.start();
+  type(h.host, 'aube');
+  await settle();
+  assert.ok(h.writes.includes('<reset>'));
+  assert.equal(h.omitted.hidden, false);
+  assert.match(
+    h.omitted.textContent!,
+    /^Earlier output omitted \(\d+ bytes, \d+ lines\)$/,
+  );
+  assert.equal(nextCwd('/work/app', 'cd ../x'), '/work/x');
+  assert.equal(nextCwd('/work/app', 'cd /tmp'), '/tmp');
+  assert.equal(nextCwd('/work/app', 'ls'), null);
+});

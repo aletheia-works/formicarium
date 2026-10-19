@@ -1,0 +1,56 @@
+---
+import TerminalPage from '../../../components/TerminalPage.astro';
+import { HINTS, requireStrings, stringsFor } from '../../../i18n/strings.ts';
+import { loadSiteData, toolOf } from '../../../site-data.ts';
+import type { TerminalPageData } from '../../../terminal/page-data.ts';
+
+export function getStaticPaths() {
+  const site = loadSiteData();
+  return site.tools.flatMap((tool) => [
+    {
+      params: { lang: undefined, tool: tool.tool },
+      props: { locale: 'en' as const },
+    },
+    {
+      params: { lang: 'ja', tool: tool.tool },
+      props: { locale: 'ja' as const },
+    },
+  ]);
+}
+const { locale } = Astro.props;
+const site = loadSiteData();
+requireStrings(site.tools.map((tool) => tool.tool));
+const tool = toolOf(site, String(Astro.params.tool));
+const strings = stringsFor(locale);
+const label =
+  strings.tool[tool.tool as keyof typeof strings.tool]?.label ?? tool.tool;
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+const prefix = locale === 'ja' ? `${base}ja/` : base;
+const data: TerminalPageData = {
+  mode: 'preinstalled',
+  locale,
+  base,
+  tool: tool.tool,
+  version: tool.version,
+  catalog: site.catalog,
+  fixture: tool.fixtureIndex,
+  formicarium: site.formicarium,
+};
+---
+
+<TerminalPage
+  data={data}
+  title={strings.toolPage.title(label)}
+  description={strings.toolPage.description(label)}
+  intro={strings.toolPage.intro}
+  help={strings.terminalHelp}
+  hintsTitle={strings.toolPage.hints}
+  hints={HINTS[tool.tool] ?? []}
+>
+  <p>
+    <a href={`${prefix}tools/`} data-testid="tool-page-all-tools"
+      >{strings.toolPage.allTools}</a
+    >
+    · {label} {tool.version} · <a href={tool.repository}>{tool.repository}</a>
+  </p>
+</TerminalPage>

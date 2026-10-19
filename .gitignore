@@ -103,6 +103,18 @@ aidlc/diagnostics/
 /showcase/node_modules/
 /showcase/.work/
 /showcase/.probe/
+# showcase site (U8): inputs, build outputs and files copied in at build time
+/showcase/site/.work/
+/showcase/site/.astro/
+/showcase/site/dist/
+/showcase/site/public/_formicarium/
+/showcase/site/public/guests/
+/showcase/site/public/licenses/
+/showcase/site/public/demo-fixtures/
+/showcase/site/public/catalog.json
+/showcase/site/public/NOTICES.md
+/showcase/site/public/coi-serviceworker.js
+/showcase/site/tooling/astro-check/node_modules/
 
 # formicarium build outputs
 .vendor/

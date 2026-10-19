@@ -1,0 +1,33 @@
+---
+title: ブラウザで動く Linux の CLI
+description: formicarium は、変更していない x86-64 Linux の command line のツールを web の page の中で動かします。
+template: splash
+hero:
+  title: ブラウザで動く Linux の CLI
+  tagline: formicarium は WebAssembly に compile した user mode の x86-64 Linux エミュレータです。変更していない本物の CLI の binary をこの tab の中で動かします。
+  actions:
+    - text: ツールを選ぶ
+      link: /formicarium/ja/tools/
+      icon: right-arrow
+    - text: 空の端末
+      link: /formicarium/ja/terminal/
+      variant: secondary
+    - text: はじめに
+      link: /formicarium/ja/guides/getting-started/
+      variant: minimal
+---
+
+formicarium は [blink](https://github.com/jart/blink) を WebAssembly の上で
+動かします。static な x86-64 Linux の実行 file を kernel や仮想機械なしで起動し、
+その system call にブラウザの中で答えます。
+
+- **ブラウザの中で動く。** ツールと試しの project はこの tab の Web Worker で
+  動きます。command を実行する server はありません。
+- **データはブラウザの外へ出ない。** 作った file は page の session の中だけに
+  あり、再読み込みで消えます。
+- **本物の binary。** showcase は、Node・Chromium・Firefox・WebKit の受入を通った
+  最新の安定版の aube・pitchfork・Biome を導入します。
+
+[ツール](/formicarium/ja/tools/)を開くと試しの project でツールを試せます。
+[空の端末](/formicarium/ja/terminal/)から自分で導入することもできます。
+同じ公開 API を自分の page に組み込む方法は[ガイド](/formicarium/ja/guides/getting-started/)にあります。

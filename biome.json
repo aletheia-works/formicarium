@@ -31,10 +31,31 @@
       "!package-lock.json",
       "!showcase/fixtures",
       "!showcase/tests/boundary-fixtures",
-      "!showcase/.work"
+      "!showcase/.work",
+      "!showcase/site/.astro",
+      "!showcase/site/.work",
+      "!showcase/site/dist",
+      "!showcase/site/node_modules",
+      "!showcase/site/public/_formicarium",
+      "!showcase/site/public/guests",
+      "!showcase/site/public/catalog.json",
+      "!showcase/site/public/demo-fixtures",
+      "!showcase/site/public/coi-serviceworker.js",
+      "!showcase/site/tooling/astro-check/node_modules"
     ]
   },
   "overrides": [
+    {
+      "includes": ["showcase/site/**/*.astro"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noUnusedVariables": "off",
+            "noUnusedImports": "off"
+          }
+        }
+      }
+    },
     {
       "includes": ["showcase/**"],
       "linter": {
