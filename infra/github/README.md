@@ -40,10 +40,12 @@ required check, since unrelated PRs would otherwise wait for a missing check.
 2. Resource ownerを `aletheia-works`、Repository accessを
    **Only select repositories → formicarium** にします。
 3. Repository permissionsで次を **Read and write** にします。
-   **Administration、Actions、Contents、Issues、Pull requests、Variables**。
+   **Administration、Actions、Contents、Issues、Pull requests、Variables、Pages**。
    Metadataは自動のRead-onlyです。Organization permissionsは不要です。
-   Checksという項目を追加する必要はありません。Secrets、Pages、Environments、
-   Workflowsを管理するresourceは今回含んでいないため、その書込権限も不要です。
+   Checksという項目を追加する必要はありません。Secrets、Workflowsを管理する
+   resourceは含んでいないため、その書込権限は不要です。Environmentsの権限は
+   environmentのsecretと変数だけに使われ、environment自体はAdministrationで
+   作るので不要です。
 4. Generate tokenで発行し、必要なら組織の承認を完了します。
 5. [formicarium Actions secrets](https://github.com/aletheia-works/formicarium/settings/secrets/actions)
    で `TF_TOKEN_GITHUB` を編集（なければNew repository secret）し、tokenを登録します。
@@ -53,6 +55,21 @@ required check, since unrelated PRs would otherwise wait for a missing check.
 [GitHub fine-grained token permissions](https://docs.github.com/en/rest/authentication/permissions-required-for-fine-grained-personal-access-tokens)。
 Administrationは設定・保護、Issuesはlabel・失敗通知、Pull requestsはplanコメント・
 fmt、Contentsはfmtとstate backup、Actionsはstate artifact、Variablesはstate run IDに使用します。
+PagesはPagesの有効化（`github_repository_pages.this`、`build_type = "workflow"`）に、
+Administrationは `github-pages` environment（保護された branch だけ、最初の deploy の
+承認者）にも使用します。
+
+## Showcase site の Pages
+
+1. token に Pages の権限があるかを確かめ、無ければ作り直して secret を更新します。
+2. OpenTofu の PR を merge すると Apply されます。fork の PR では Plan が skip される
+   ので、Apply の log で、Pages の作成・`github-pages` environment の作成（又は更新）
+   だけで、branch の保護・label・変数に変更が無いことを確かめます。
+3. その後に showcase の site と workflow の PR を merge します（先に入れると
+   schedule が Pages の無い状態で失敗します）。
+4. 最初の deploy を承認者（JamBalaya56562、user ID 88115388）が承認し、site を
+   確かめた後、承認者を外す PR を別に出します（内容を示して承認を受けてから）。
+5. Pages を無効にする変更は site を消すので、内容を示して承認を受けてから行います。
 
 ## Workflows and rollout
 
