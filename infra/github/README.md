@@ -63,8 +63,7 @@ changes and fails any other run with a failed or skipped site job.
 Administrationは設定・保護、Issuesはlabel・失敗通知、Pull requestsはplanコメント・
 fmt、Contentsはfmtとstate backup、Actionsはstate artifact、Variablesはstate run IDに使用します。
 PagesはPagesの有効化（`github_repository_pages.this`、`build_type = "workflow"`）に、
-Administrationは `github-pages` environment（保護された branch だけ、最初の deploy の
-承認者）にも使用します。
+Administrationは `github-pages` environment（保護された branch だけ）にも使用します。
 
 ## Showcase site の Pages
 
@@ -73,9 +72,10 @@ Administrationは `github-pages` environment（保護された branch だけ、�
    ので、Apply の log で、Pages の作成・`github-pages` environment の作成（又は更新）
    だけで、branch の保護・label・変数に変更が無いことを確かめます。
 3. その後に showcase の site と workflow の PR を merge します（先に入れると
-   schedule が Pages の無い状態で失敗します）。
-4. 最初の deploy を承認者（JamBalaya56562、user ID 88115388）が承認し、site を
-   確かめた後、承認者を外す PR を別に出します（内容を示して承認を受けてから）。
+   配布の run が Pages の無い状態で失敗します）。
+4. 最初の deploy（run 39422079965）は承認者（JamBalaya56562、user ID 88115388）が
+   承認しました。site を確かめた後に承認者を外したので、以降の deploy は承認なしで、
+   main からだけ動きます。
 5. Pages を無効にする変更は site を消すので、内容を示して承認を受けてから行います。
 
 ## Workflows and rollout

@@ -30,17 +30,14 @@ import {
   id = var.repository_name
 }
 
-# U8 showcase site: only protected branches (main) deploy to Pages, and the
-# first deployment waits for this reviewer. A later PR removes the reviewer
-# after the first site has been checked. The environment GitHub may
-# create when Pages is enabled is updated in place (the API call is a PUT).
+# U8 showcase site: only protected branches (main) deploy to Pages. The
+# environment GitHub may create when Pages is enabled is updated in place (the
+# API call is a PUT).
 resource "github_repository_environment" "github_pages" {
   repository  = github_repository.this.name
   environment = "github-pages"
-  reviewers {
-    # JamBalaya56562 (the CODEOWNERS maintainer), by GitHub user ID.
-    users = [88115388]
-  }
+  # No reviewers: the first deployment (run 39422079965) was approved by hand,
+  # and later ones deploy without approval. Only main may deploy.
   deployment_branch_policy {
     protected_branches     = true
     custom_branch_policies = false
