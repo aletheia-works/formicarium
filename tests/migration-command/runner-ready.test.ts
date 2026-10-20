@@ -9,6 +9,7 @@ const U4_UNIT_FILES = [
   'public',
   'consumer',
   'acceptance',
+  'acceptance-ci',
 ];
 
 test('U4 runner executes Node 26.12.0 ESM with the string and encoding primitives the parser uses', () => {
@@ -53,7 +54,7 @@ test('U4 runner keeps the root export, Bun manager and the updated @types/node l
   }
 });
 
-test('U4 unit task names exactly the six approved files by path, without globs', async () => {
+test('U4 unit task names exactly the seven approved files by path, without globs', async () => {
   // mise-tasks/migration/command-unit.sh runs this package.json script.
   const { scripts } = JSON.parse(
     await readFile(new URL('../../package.json', import.meta.url), 'utf8'),

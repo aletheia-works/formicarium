@@ -1,0 +1,159 @@
+name: Migration acceptance
+# Manual only: one formal U1–U4/B1 acceptance run of a main commit. The job runs
+# the U4 completion in local-provisional mode; the main session then observes
+# the finished run through the REST API (scripts/migration-command/observe-ci.ts)
+# and runs the formal completions with that observed record. No secrets, no
+# write permission, and every quality target stays in the code it already has.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: migration-acceptance
+  cancel-in-progress: false
+jobs:
+  accept:
+    if: github.repository == 'aletheia-works/formicarium' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    permissions:
+      contents: read
+    env:
+      # Only node and bun are installed below; tasks never install the rest.
+      MISE_TASK_RUN_AUTO_INSTALL: 'false'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@fc42bcc7ddbf51124c30f95a877a0c5168a3bfde # v5.2.1
+        with:
+          install: true
+          install_args: node bun
+          cache: false
+          experimental: true
+      - name: Put the resolved Node and Bun first on PATH (no shims)
+        shell: bash
+        run: |
+          set -euo pipefail
+          node_bin="$(mise which node)"
+          bun_bin="$(mise which bun)"
+          [[ "$node_bin" = /* && -x "$node_bin" && "$bun_bin" = /* && -x "$bun_bin" ]]
+          printf '%s\n' "$(dirname "$node_bin")" "$(dirname "$bun_bin")" >> "$GITHUB_PATH"
+          printf 'FORMICARIUM_CI_BUN=%s\n' "$bun_bin" >> "$GITHUB_ENV"
+      - name: Record the tool versions this run uses
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$(command -v node)" = "$(mise which node)" ]]
+          [[ "$(command -v bun)" = "$(mise which bun)" ]]
+          printf 'node %s\nbun %s\nmise %s\n' "$(node --version)" "$(bun --version)" "$(mise --version)"
+      - run: mise run install-frozen
+      - run: mise run build
+      - run: mise run typecheck
+      - name: Restore the fixed core and the U2 inputs (git bundle, no network)
+        run: node scripts/migration-session/ci-core.js ci/migration-session/inputs.bundle.json
+      - name: Fetch and check the three acceptance inputs, restore the actual site
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/migration-command/acceptance-inputs.js restore ci/migration-command/inputs.json
+          printf 'U2_ACTUAL_SITE=%s/.artifacts/migration-install/actual-site\n' "$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
+      - run: node node_modules/@playwright/test/cli.js install --with-deps chromium firefox webkit
+      - name: Stage this commit and install it in an independent consumer
+        shell: bash
+        env:
+          FORMICARIUM_SESSION_SOURCE: ${{ github.sha }}
+          npm_config_cache: ${{ runner.temp }}/npm-cache
+        run: |
+          set -euo pipefail
+          candidate="$(mise run migration-command-stage | tail -n 1)"
+          [[ "$candidate" = "$GITHUB_WORKSPACE"/.artifacts/migration-command/candidate-*/package.manifest.json && -f "$candidate" ]]
+          tarball="$(node -e 'process.stdout.write(JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")).tarball.path)' "$candidate")"
+          [[ -f "$tarball" ]]
+          consumer="$RUNNER_TEMP/formicarium-u4-consumer-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          mkdir "$consumer"
+          (cd "$consumer" && npm install --ignore-scripts --no-audit --no-fund "$tarball")
+          {
+            printf 'FORMICARIUM_CANDIDATE=%s\n' "$candidate"
+            printf 'FORMICARIUM_CONSUMER=%s\n' "$consumer"
+            printf 'FORMICARIUM_SESSION_GUEST=%s\n' "$GITHUB_WORKSPACE/.artifacts/u2-release-inputs/aube-v2.7.0/aube"
+          } >> "$GITHUB_ENV"
+      - name: Create a job-only localhost CA and leaf (CA key deleted at once)
+        run: node showcase/scripts/tls.ts create >> "$GITHUB_ENV"
+      - name: Trust only this job CA (system store, NSS and a dedicated Firefox profile)
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libnss3-tools
+          sudo install -m 644 "$SHOWCASE_TLS_CA" /usr/local/share/ca-certificates/formicarium-migration-job-ca.crt
+          sudo update-ca-certificates
+          mkdir -p "$HOME/.pki/nssdb"
+          certutil -N --empty-password -d "sql:$HOME/.pki/nssdb"
+          certutil -A -d "sql:$HOME/.pki/nssdb" -n formicarium-migration-job-ca -t 'C,,' -i "$SHOWCASE_TLS_CA"
+          profile="$GITHUB_WORKSPACE/showcase/.work/tls/firefox-profile"
+          mkdir "$profile"
+          certutil -N --empty-password -d "sql:$profile"
+          certutil -A -d "sql:$profile" -n formicarium-migration-job-ca -t 'C,,' -i "$SHOWCASE_TLS_CA"
+          [[ -f "$profile/cert9.db" && ! -L "$profile/cert9.db" ]]
+          {
+            printf 'FORMICARIUM_INSTALL_TLS_CERT=%s\n' "$SHOWCASE_TLS_CERT"
+            printf 'FORMICARIUM_INSTALL_TLS_KEY=%s\n' "$SHOWCASE_TLS_KEY"
+            printf 'FORMICARIUM_INSTALL_TLS_SHA256=%s\n' "$SHOWCASE_TLS_SHA256"
+            printf 'FORMICARIUM_INSTALL_FIREFOX_PROFILE=%s\n' "$profile"
+          } >> "$GITHUB_ENV"
+      # U2/U3/U4 suites, regressions, 23 JS all-realm coverage, formal 36
+      # trials and the 31 B1 rows, with the targets already in the code.
+      - name: U4 completion (local-provisional; the formal row comes from the observed run)
+        env:
+          FORMICARIUM_COMMAND_LOCAL_ONLY: '1'
+        run: mise run migration-command-completion
+      - name: Remove only this job CA trust, Firefox profile and private keys
+        if: always()
+        shell: bash
+        run: |
+          crt=/usr/local/share/ca-certificates/formicarium-migration-job-ca.crt
+          if [[ -f "$crt" ]]; then
+            sudo rm -- "$crt"
+            sudo update-ca-certificates
+          fi
+          if certutil -L -d "sql:$HOME/.pki/nssdb" -n formicarium-migration-job-ca >/dev/null 2>&1; then
+            certutil -D -d "sql:$HOME/.pki/nssdb" -n formicarium-migration-job-ca
+          fi
+          rm -rf -- showcase/.work/tls
+          [[ ! -e "$crt" && ! -e showcase/.work/tls ]]
+          if certutil -L -d "sql:$HOME/.pki/nssdb" -n formicarium-migration-job-ca >/dev/null 2>&1; then
+            echo 'job CA is still present in the NSS database' >&2
+            exit 1
+          fi
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: migration-acceptance-candidate-${{ github.run_id }}-${{ github.run_attempt }}
+          retention-days: 7
+          if-no-files-found: error
+          include-hidden-files: true
+          path: |
+            .artifacts/migration-command/candidate-*/package.manifest.json
+            .artifacts/migration-command/candidate-*/package/aletheia-works-formicarium-0.3.0.tgz
+            .artifacts/migration-command/completion-*/local-provisional-report.json
+            .artifacts/migration-command/completion-*/b1-acceptance.json
+            .artifacts/migration-command/completion-*/incomplete.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: migration-acceptance-completion-${{ github.run_id }}-${{ github.run_attempt }}
+          retention-days: 7
+          if-no-files-found: error
+          include-hidden-files: true
+          path: |
+            .artifacts/migration-session/core-restore.json
+            .artifacts/migration-command/acceptance-inputs-*.json
+            .artifacts/migration-command/completion-*/*.log
+            .artifacts/migration-command/completion-*/*.json
+            .artifacts/migration-command/completion-*/coverage/*.json
+            .artifacts/migration-command/completion-*/coverage/coverage-playwright-node/**/*.json
+            .artifacts/migration-command/completion-*/coverage/coverage-playwright-node/**/*.jsonl
+            .artifacts/migration-command/completion-*/coverage/**/coverage-realms.json
+            .artifacts/migration-command/completion-*/measurement/*.json
+            .artifacts/migration-command/completion-*/measurement/trials/*.json

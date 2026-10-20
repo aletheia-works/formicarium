@@ -1,0 +1,27 @@
+{
+  "schema": "migration-command-acceptance-inputs",
+  "version": 1,
+  "files": [
+    {
+      "name": "aube.tar.gz",
+      "url": "https://github.com/aubepkg/aube/releases/download/v2.7.0/aube-v2.7.0-x86_64-unknown-linux-musl.tar.gz",
+      "bytes": 22235806,
+      "sha256": "fc2384d58c560415f6afdfdc7c0f2d10b10f464da608bf1d8be5c8936db68666",
+      "path": ".artifacts/migration-preflight/mirror-assets-attempt-1/aube.tar.gz"
+    },
+    {
+      "name": "biome.elf",
+      "url": "https://github.com/biomejs/biome/releases/download/%40biomejs/biome%402.5.15/biome-linux-x64-musl",
+      "bytes": 66123120,
+      "sha256": "42b6fd3662fc1fc3075a370414478aa3ed82fd43d28430bbfb81ebd02cbde656",
+      "path": ".artifacts/migration-preflight/mirror-assets-attempt-1/biome.elf"
+    },
+    {
+      "name": "actual-site-v2.tar.gz",
+      "url": "https://github.com/aletheia-works/formicarium/releases/download/migration-inputs-actual-site-v2/actual-site-v2.tar.gz",
+      "bytes": 36727106,
+      "sha256": "9c0dd08a854487501c5b2dcd2dc9ce5f703bddf993fc0156586776c2cf63307f",
+      "path": ".artifacts/migration-install/actual-site-v2.tar.gz"
+    }
+  ]
+}
