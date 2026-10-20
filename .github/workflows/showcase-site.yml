@@ -52,7 +52,10 @@ jobs:
           count=$(wc -l < "$files")
           echo "files: $count"
           # The API lists at most 3000 files; a longer PR builds the site.
-          if [ "$count" -ge 3000 ] || grep -qE '^(showcase/site/|showcase/scripts/|\.github/workflows/showcase-site\.yml$)' "$files"; then
+          # The site also reads U7's tools.json, fixtures and b1-pack.json, so a
+          # PR changing them verifies the site too (push still deploys only on
+          # the site paths; deploy those inputs by hand).
+          if [ "$count" -ge 3000 ] || grep -qE '^(showcase/site/|showcase/scripts/|showcase/fixtures/|showcase/tools\.json$|showcase/b1-pack\.json$|\.github/workflows/showcase-site\.yml$)' "$files"; then
             echo site=true >> "$GITHUB_OUTPUT"
           else
             echo site=false >> "$GITHUB_OUTPUT"
@@ -528,8 +531,8 @@ jobs:
           if-no-files-found: error
           path: showcase/site/.work/evidence/pre/
   deploy:
-    needs: [build, accept-chromium, accept-firefox, accept-webkit, coverage, evidence]
-    if: ${{ !cancelled() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && needs.build.result == 'success' && needs.accept-chromium.result == 'success' && needs.accept-firefox.result == 'success' && needs.accept-webkit.result == 'success' && needs.coverage.result == 'success' && needs.evidence.result == 'success' }}
+    needs: [candidate, build, accept-chromium, accept-firefox, accept-webkit, coverage, evidence]
+    if: ${{ !cancelled() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && needs.candidate.result == 'success' && needs.build.result == 'success' && needs.accept-chromium.result == 'success' && needs.accept-firefox.result == 'success' && needs.accept-webkit.result == 'success' && needs.coverage.result == 'success' && needs.evidence.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:

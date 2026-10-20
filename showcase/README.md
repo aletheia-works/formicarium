@@ -133,8 +133,6 @@ summary には「最後に配布可能な候補を作った run からの日数�
 
 ## 未検証のこと
 
-- `distribute` の実行（U8 の最初の配布で確かめる。`b1-pack.json` の Release から pack を
-  取得して照合するところまでは、手元で本物の Release に向けて確かめた）。
 - 実機 Safari。
 - 単体試験は showcase の script 全体の行 coverage 80% 以上を満たすが、`accept-node.ts`
   （子 process での受入）と `tls.ts`（job 専用の CA）の多くの経路は単体試験では通らず、
@@ -144,3 +142,10 @@ summary には「最後に配布可能な候補を作った run からの日数�
 `manifest.json` の 13 個の資産の SHA256 と大きさ、受入 log と catalog の SHA256、
 candidateId の再計算がすべて一致し、3 ツールの build-info、`NOTICES.md` と 5 個の
 license があった。
+
+`distribute` の実行：2026-10-20 の main `94970a9e` の push で、U8 の
+`showcase-site.yml` run 39422079965 が `showcase.yml` を `mode: distribute` で呼び、
+`b1-pack.json` の Release の pack（`a3370ca4…`）で候補を作り、その候補で site の
+配布まで成功した。「配布の契機」の節の candidate job の summary の日数は、
+`showcase/tests/candidate.test.ts` の `days since the last distributable run, and the
+job summary line` が根拠である（run の summary の値は確かめていない）。

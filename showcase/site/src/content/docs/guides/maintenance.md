@@ -23,9 +23,16 @@ on `main`, wait for it to succeed, then re-run the pull request.
 - **A change of the site broke it.** Revert the change on `main`. The revert's
   push deploys the site again; check that its `verify-deployment` succeeds (if
   that run fails, run `showcase-site.yml` by hand on `main`).
-- **A new tool release broke it.** Disable the workflow in Actions (the previous
-  site stays), adjust the tool's conditions in `showcase/tools.json` by pull
-  request, enable the workflow again and run it by hand on `main`.
+- **A new tool release broke it.** The previous site stays, since a failed run
+  never deploys. Adjust the tool's conditions in `showcase/tools.json` by pull
+  request (the pull request verifies the site), merge it, then run
+  `showcase-site.yml` by hand on `main`. Do not disable the workflow: its
+  `showcase-site-required` check is required on `main`, so no pull request
+  could merge while it is disabled.
+
+A pull request that changes `showcase/tools.json`, `showcase/fixtures/` or
+`showcase/b1-pack.json` verifies the site too, but its push does not deploy;
+deploy those changes with a manual run on `main`.
 
 Failed builds and acceptance never deploy, so the previous site stays. An old
 run cannot be deployed again: the deploy job refuses a run older than the
@@ -33,9 +40,12 @@ newest deployment.
 
 ## First deployment
 
-The `github-pages` environment holds a reviewer for the first deployment only.
-After the first site has been checked, remove the reviewer by an OpenTofu pull
-request in `infra/github`.
+The first deployment (run 39422079965) was approved by a reviewer of the
+`github-pages` environment. After the site was checked, the reviewer was
+removed by an OpenTofu pull request in `infra/github`, so later deployments
+need no approval. A deployment still runs only for a push or a manual run on
+`main` (the environment accepts protected branches only), only after every
+earlier job succeeded, and only when no newer run has already deployed.
 
 ## Dependencies
 

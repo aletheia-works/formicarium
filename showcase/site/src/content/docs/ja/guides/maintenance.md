@@ -23,9 +23,15 @@ PR の run をやり直します。
 - **サイトの変更が原因。** `main` で変更を revert します。revert の push がサイトを
   deploy し直すので、その run の `verify-deployment` の成功を確かめます（その run が
   失敗したら、`main` から `showcase-site.yml` を手動で実行します）。
-- **ツールの新しい release が原因。** Actions の画面で workflow を無効にし（前回の
-  サイトが残ります）、`showcase/tools.json` のツールの条件を PR で直してから有効に
-  戻し、`main` から手動で実行します。
+- **ツールの新しい release が原因。** 失敗した run は deploy しないので、前回の
+  サイトが残ります。`showcase/tools.json` のツールの条件を PR で直し（PR でサイトを
+  検証します）、merge してから `main` で `showcase-site.yml` を手動で実行します。
+  workflow を無効にしてはいけません。その `showcase-site-required` の check は
+  `main` の必須の check なので、無効の間はどの PR も merge できなくなります。
+
+`showcase/tools.json`・`showcase/fixtures/`・`showcase/b1-pack.json` を変える PR も
+サイトを検証しますが、その push では deploy しません。`main` での手動の実行で
+配布します。
 
 build や受入の失敗では deploy しないので、前回のサイトが残ります。古い run を
 もう一度 deploy することはできません。deploy の job は、最新の deploy より古い
@@ -33,8 +39,11 @@ run を拒否します。
 
 ## 最初の deploy
 
-`github-pages` の environment には、最初の deploy のためだけに承認者を置きます。
-最初のサイトを確かめた後、`infra/github` の OpenTofu の PR で承認者を外します。
+最初の deploy（run 39422079965）は、`github-pages` の environment の承認者が承認
+しました。サイトを確かめた後、`infra/github` の OpenTofu の PR で承認者を外したので、
+以後の deploy に承認は要りません。それでも deploy は、`main` への push か `main` での
+手動の実行のとき（environment は保護された branch だけを受け付けます）、前の job が
+すべて成功したとき、より新しい run がまだ deploy していないときだけ動きます。
 
 ## 依存
 

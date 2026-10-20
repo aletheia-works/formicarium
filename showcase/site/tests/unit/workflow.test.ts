@@ -198,12 +198,13 @@ test('triggers: manual, every PR, and push on the site paths; no schedule', () =
     'showcase/scripts/**',
   ])
     assert.equal(head.split(`- ${path}\n`).length - 1, 1, path);
-  // The changes job matches the same three paths on a PR.
+  // On a PR the changes job matches the same three paths and the U7 inputs
+  // the site build reads (tools.json, fixtures, b1-pack.json).
   assert.ok(
     table
       .get('changes')!
       .includes(
-        "grep -qE '^(showcase/site/|showcase/scripts/|\\.github/workflows/showcase-site\\.yml$)'",
+        "grep -qE '^(showcase/site/|showcase/scripts/|showcase/fixtures/|showcase/tools\\.json$|showcase/b1-pack\\.json$|\\.github/workflows/showcase-site\\.yml$)'",
       ),
   );
   assert.deepEqual([...table.keys()], ALL);
@@ -264,6 +265,7 @@ test('showcase-site-required needs every job but the summary and always reports'
 
 test('deploy needs every earlier gate and runs only when distributing and all succeeded', () => {
   assert.deepEqual(needsOf('deploy'), [
+    'candidate',
     'build',
     'accept-chromium',
     'accept-firefox',
@@ -323,6 +325,26 @@ test('deploy needs every earlier gate and runs only when distributing and all su
     }),
     false,
   );
+});
+
+test('a distribute run whose candidate did not succeed never deploys', () => {
+  const condition = field('deploy', 'if')!;
+  const others = Object.fromEntries(
+    needsOf('deploy')
+      .filter((need) => need !== 'candidate')
+      .map((need) => [need, 'success']),
+  );
+  for (const event of ['push', 'workflow_dispatch'])
+    for (const candidate of ['skipped', 'failure', 'cancelled'])
+      assert.equal(
+        evaluate(condition, {
+          event,
+          ref: 'refs/heads/main',
+          results: { ...others, candidate },
+        }),
+        false,
+        `${event} ${candidate}`,
+      );
 });
 
 test('pages write, id-token write and deploy-pages exist only in the deploy job', () => {
