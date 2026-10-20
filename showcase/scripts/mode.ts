@@ -18,8 +18,8 @@ export interface ModeContext {
 
 /**
  * In a called workflow the github context belongs to the caller, so
- * distribute is accepted only when main's trusted U8 workflow, started by
- * schedule or workflow_dispatch on main, asked for it. Every direct trigger
+ * distribute is accepted only when main's trusted U8 workflow, started by a
+ * push or workflow_dispatch on main, asked for it. Every direct trigger
  * of showcase.yml (pull_request, push, workflow_dispatch) has no mode input
  * and stays verify.
  */
@@ -30,10 +30,7 @@ export function acceptMode(
   const mode = context.inputMode ?? '';
   if (mode === '' || mode === 'verify') return 'verify';
   if (mode !== 'distribute') fail('mode-rejected', `unknown mode ${mode}`);
-  if (
-    context.eventName !== 'schedule' &&
-    context.eventName !== 'workflow_dispatch'
-  )
+  if (context.eventName !== 'push' && context.eventName !== 'workflow_dispatch')
     fail('mode-rejected', `distribute refused for event ${context.eventName}`);
   if (context.ref !== 'refs/heads/main')
     fail('mode-rejected', 'distribute requires refs/heads/main');

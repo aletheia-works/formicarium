@@ -17,7 +17,7 @@ const trusted = validateTrustedCallers(
 const u8 = `owner/repo/${trusted.distributeCaller}@refs/heads/main`;
 const context = (overrides: Partial<ModeContext>): ModeContext => ({
   inputMode: 'distribute',
-  eventName: 'schedule',
+  eventName: 'push',
   ref: 'refs/heads/main',
   workflowRef: u8,
   repository: 'owner/repo',
@@ -56,7 +56,7 @@ test('every direct trigger without a mode input stays verify', () => {
   );
 });
 
-test('distribute is accepted only from main U8 started by schedule or workflow_dispatch', () => {
+test('distribute is accepted only from main U8 started by push or workflow_dispatch', () => {
   assert.equal(acceptMode(context({}), trusted), 'distribute');
   assert.equal(
     acceptMode(context({ eventName: 'workflow_dispatch' }), trusted),
@@ -64,10 +64,10 @@ test('distribute is accepted only from main U8 started by schedule or workflow_d
   );
 });
 
-test('distribute from pull_request, push or another event is refused', () => {
+test('distribute from pull_request, schedule or another event is refused', () => {
   for (const eventName of [
     'pull_request',
-    'push',
+    'schedule',
     'pull_request_target',
     undefined,
   ])
@@ -129,7 +129,7 @@ test('the context is read from the GitHub Actions environment', () => {
   assert.deepEqual(
     modeFromEnvironment({
       SHOWCASE_MODE: 'distribute',
-      GITHUB_EVENT_NAME: 'schedule',
+      GITHUB_EVENT_NAME: 'push',
       GITHUB_REF: 'refs/heads/main',
       GITHUB_WORKFLOW_REF: u8,
       GITHUB_REPOSITORY: 'owner/repo',

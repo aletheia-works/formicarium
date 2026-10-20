@@ -3,9 +3,6 @@ import { createGitHubApi } from '../../scripts/github.ts';
 import { fail, runCli, summary } from './common.ts';
 import { deployedRuns } from './deploy-guard.ts';
 
-/** NFR8.9: the distribute run fails once the last deployment is this old. */
-export const STALE_DAYS = 2;
-
 export interface JobResult {
   name: string;
   result: string;
@@ -14,8 +11,6 @@ export interface RunSummary {
   markdown: string;
   days: number | null;
   failedJobs: string[];
-  /** true only for a distribute run with an earlier deployment ≥ 2 days old. */
-  fail: boolean;
 }
 
 /** `needs` of the summary job (toJSON(needs)) as job name/result pairs. */
@@ -36,6 +31,11 @@ export function jobResults(needsJson: string): JobResult[] {
     .sort((a, b) => (a.name < b.name ? -1 : 1));
 }
 
+/**
+ * The run summary only reports: the site deploys when its sources change, so
+ * an old deployment is not a failure (the NFR8.9 two-day check was dropped
+ * with the daily schedule).
+ */
 export function summarize(input: {
   distribute: boolean;
   lastDeployAt: string | null;
@@ -46,21 +46,15 @@ export function summarize(input: {
   const failedJobs = input.jobs
     .filter((job) => job.result === 'failure' || job.result === 'cancelled')
     .map((job) => job.name);
-  const stale = input.distribute && days !== null && days >= STALE_DAYS;
   const markdown = [
     '## showcase site',
     '',
     `- mode: ${input.distribute ? 'distribute' : 'verify'}`,
     `- 最後に deploy した run からの日数: ${days === null ? 'まだ deploy していない' : `${days}日`}`,
     `- 失敗した job: ${failedJobs.length ? failedJobs.join(', ') : 'なし'}`,
-    ...(stale
-      ? [
-          `- 日次の配布が ${days} 日止まっている（${STALE_DAYS} 日以上で失敗にする）`,
-        ]
-      : []),
     '',
   ].join('\n');
-  return { markdown, days, failedJobs, fail: stale };
+  return { markdown, days, failedJobs };
 }
 
 /** The jobs each kind of run must finish with success (showcase-site-required). */
@@ -163,6 +157,4 @@ else if (import.meta.main)
     });
     await summary(result.markdown);
     console.log(result.markdown);
-    if (result.fail)
-      fail('stale-deploy', `last deployment is ${result.days} days old`);
   });

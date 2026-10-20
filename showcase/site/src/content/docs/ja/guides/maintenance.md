@@ -1,17 +1,15 @@
 ---
 title: 保守
-description: showcase のサイトの日次 build・監視・切戻し・依存の確認。
+description: showcase のサイトの build・監視・切戻し・依存の確認。
 ---
 
-## 日次の build と監視
+## build と監視
 
-`showcase-site.yml` の run は、最後の deploy からの日数と失敗した job を job
-summary に書きます。distribute の run は、以前の deploy があってそれが2日以上前
-のときに失敗します。schedule の run の失敗は、その workflow の cron を最後に
-変えた人に通知されます。
-
-月に1回、Actions の画面で **Showcase site** が有効なままか確かめます。活動の
-無い public repository の schedule は GitHub が止めます。
+サイトは、`main` への push がサイトを変えたときと、`main` から
+`showcase-site.yml` を手動で実行したときに deploy します。日次の run はありません。
+各 run は、最後の deploy からの日数と失敗した job を job summary に書きます。
+deploy が古いことは失敗になりません。**Showcase guests** の新しい候補を配布する
+ときは、`main` から `showcase-site.yml` を手動で実行します。
 
 ## 候補が無いとき
 
@@ -22,9 +20,9 @@ PR の run をやり直します。
 
 ## 切戻し
 
-- **サイトの変更が原因。** `main` で変更を revert し、`main` から
-  `showcase-site.yml` を手動で実行して `verify-deployment` の成功を確かめます。
-  push だけでは deploy しません。
+- **サイトの変更が原因。** `main` で変更を revert します。revert の push がサイトを
+  deploy し直すので、その run の `verify-deployment` の成功を確かめます（その run が
+  失敗したら、`main` から `showcase-site.yml` を手動で実行します）。
 - **ツールの新しい release が原因。** Actions の画面で workflow を無効にし（前回の
   サイトが残ります）、`showcase/tools.json` のツールの条件を PR で直してから有効に
   戻し、`main` から手動で実行します。

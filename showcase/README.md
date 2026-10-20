@@ -37,7 +37,7 @@ fixture の共有は `scripts/boundary.ts` と Biome の `noRestrictedImports` �
 
 | 工程 | script | 内容 |
 |---|---|---|
-| mode | `scripts/mode.ts` | `verify`（既定）か `distribute`。`distribute` は main の U8 workflow（`schedule`・`workflow_dispatch`）からの呼出しだけ |
+| mode | `scripts/mode.ts` | `verify`（既定）か `distribute`。`distribute` は main の U8 workflow（main への `push`・`workflow_dispatch`）からの呼出しだけ |
 | 解決 | `scripts/resolve.ts` | `releases/latest`（draft・prerelease を除く）、annotated tag を辿った 40 桁の commit、資産の digest・size・URL、license。`resolutions.json` に 1 回だけ書く |
 | pack | `scripts/pack.ts` | `verify`：同じ commit を本体の stager と `npm pack` で包む。`distribute`：`b1-pack.json` の Release の pack と C06 の証拠を取得し `packSha256` を照合 |
 | 取得 | `scripts/acquire.ts` | C11 の規則（HTTPS、credential なし、redirect 5 hop、120 s、128 MiB）で取得し、SHA256・size を照合、tar.gz を検査、公開 `validateGuest` で検証 |
@@ -96,8 +96,9 @@ mise run showcase-accept-browser   # SHOWCASE_TLS_* と、job CA を信頼した
 
 `showcase.yml` は `pull_request`・`push`（main）・`workflow_dispatch`・
 `workflow_call` で動く。直接の実行には `mode` の入力がなく、常に `verify` になる。
-`distribute` は、`trusted-callers.json` の `distributeCaller` が main から
-`schedule` か `workflow_dispatch` で呼んだときだけ受け付ける。U8 は `candidate`
+`distribute` は、`trusted-callers.json` の `distributeCaller` が main への
+`push` か main の `workflow_dispatch` で呼んだときだけ受け付ける（`schedule` は
+拒否する。U8 は日次の実行をやめた）。U8 は `candidate`
 job が成功し、出力 `distributable` が `true` のときだけ配布を始める。
 
 ## B1 の pack の Release
@@ -114,12 +115,12 @@ prerelease の [`b1-a3370ca4df1f`](https://github.com/aletheia-works/formicarium
    上書きと削除はしない。
 3. `b1-pack.json` に tag・資産名・SHA256 を書く PR を出し、main に入れる。
 
-## 定期実行の確認（月 1 回）
+## 配布の契機
 
-public repository では、活動がないと `schedule` の workflow が自動で無効になり、
-そのときは run も通知も起きない。月に 1 回、人間が Actions の画面で U8 の
-workflow が有効であることを確かめる。各 run の `candidate` job の summary には
-「最後に配布可能な候補を作った run からの日数」が出る。
+U8 は日次の実行をやめ、サイトの変更が main に入ったときと main からの手動の実行で
+配布する。ゲストの新しい候補（新しい release の取込み）は自動では配布されないので、
+人間が main から U8 の workflow を手動で実行する。各 run の `candidate` job の
+summary には「最後に配布可能な候補を作った run からの日数」が出る。
 
 ## 切り戻し（Rollback）
 

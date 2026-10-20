@@ -1,17 +1,15 @@
 ---
 title: Maintenance
-description: Daily build, monitoring, rollback and dependency checks of the showcase site.
+description: Builds, monitoring, rollback and dependency checks of the showcase site.
 ---
 
-## Daily build and monitoring
+## Builds and monitoring
 
-Each run of `showcase-site.yml` writes a job summary with the days since the
-last deployment and the jobs that failed. A distribute run fails when an
-earlier deployment exists and is two days old or more. Failed scheduled runs
-notify the person who last changed the workflow's cron.
-
-Once a month, open Actions and confirm that **Showcase site** is still enabled:
-GitHub disables schedules of public repositories without activity.
+The site deploys when a push to `main` changes it, and when `showcase-site.yml`
+is run by hand on `main`; there is no daily run. Each run writes a job summary
+with the days since the last deployment and the jobs that failed. An old
+deployment is not a failure. To deploy a new guest candidate of
+**Showcase guests**, run `showcase-site.yml` by hand on `main`.
 
 ## When the candidate is missing
 
@@ -22,9 +20,9 @@ on `main`, wait for it to succeed, then re-run the pull request.
 
 ## Rollback
 
-- **A change of the site broke it.** Revert the change on `main`, then run
-  `showcase-site.yml` by hand on `main` and check that `verify-deployment`
-  succeeds. A push alone never deploys.
+- **A change of the site broke it.** Revert the change on `main`. The revert's
+  push deploys the site again; check that its `verify-deployment` succeeds (if
+  that run fails, run `showcase-site.yml` by hand on `main`).
 - **A new tool release broke it.** Disable the workflow in Actions (the previous
   site stays), adjust the tool's conditions in `showcase/tools.json` by pull
   request, enable the workflow again and run it by hand on `main`.

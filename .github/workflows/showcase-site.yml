@@ -1,7 +1,6 @@
 name: Showcase site
 on:
-  schedule:
-    - cron: '17 4 * * *'
+  # No timed trigger: the site deploys when its sources change on main, or by hand.
   workflow_dispatch:
   # Every PR runs (showcase-site-required must report); the changes job
   # decides whether the site jobs run.
@@ -20,8 +19,8 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 env:
   ASTRO_TELEMETRY_DISABLED: '1'
-# DIST (distribute) = (schedule || workflow_dispatch) && refs/heads/main. Every
-# other run (PR, push, manual run of another branch) verifies and never deploys.
+# DIST (distribute) = (push || workflow_dispatch) && refs/heads/main. Every
+# other run (PR, manual run of another branch) verifies and never deploys.
 # A job whose `if:` has no status function also needs every ancestor job to
 # succeed, and each path skips the other path's jobs, so every condition after
 # the entry jobs starts with !cancelled().
@@ -59,7 +58,7 @@ jobs:
             echo site=false >> "$GITHUB_OUTPUT"
           fi
   candidate:
-    if: (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     permissions:
       contents: read
       actions: read
@@ -68,7 +67,7 @@ jobs:
       mode: distribute
   fetch-candidate:
     needs: changes
-    if: ${{ !((github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main') && needs.changes.outputs.site == 'true' }}
+    if: ${{ !((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main') && needs.changes.outputs.site == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -96,7 +95,7 @@ jobs:
           path: showcase/site/.work/inputs/candidate/
   verify-pack:
     needs: changes
-    if: ${{ !((github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main') && needs.changes.outputs.site == 'true' }}
+    if: ${{ !((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main') && needs.changes.outputs.site == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -530,7 +529,7 @@ jobs:
           path: showcase/site/.work/evidence/pre/
   deploy:
     needs: [build, accept-chromium, accept-firefox, accept-webkit, coverage, evidence]
-    if: ${{ !cancelled() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && needs.build.result == 'success' && needs.accept-chromium.result == 'success' && needs.accept-firefox.result == 'success' && needs.accept-webkit.result == 'success' && needs.coverage.result == 'success' && needs.evidence.result == 'success' }}
+    if: ${{ !cancelled() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && needs.build.result == 'success' && needs.accept-chromium.result == 'success' && needs.accept-firefox.result == 'success' && needs.accept-webkit.result == 'success' && needs.coverage.result == 'success' && needs.evidence.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -630,7 +629,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          SHOWCASE_DIST: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' }}
+          SHOWCASE_DIST: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' }}
           SHOWCASE_NEEDS: ${{ toJSON(needs) }}
         run: node showcase/site/scripts/summary.ts
   required:
@@ -649,7 +648,7 @@ jobs:
           package-manager-cache: false
       - name: Every job this run needs succeeded (a PR without site changes passes)
         env:
-          SHOWCASE_DIST: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' }}
+          SHOWCASE_DIST: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' }}
           SHOWCASE_SITE: ${{ needs.changes.outputs.site }}
           SHOWCASE_NEEDS: ${{ toJSON(needs) }}
         run: node showcase/site/scripts/summary.ts --required

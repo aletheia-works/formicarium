@@ -34,34 +34,19 @@ test('job results are read from needs and failed jobs are named', () => {
   assert.throws(() => jobResults('{'), /needs JSON invalid/);
 });
 
-test('a distribute run fails only when an earlier deployment is two days old or more', () => {
-  const at = (days: number) =>
-    new Date(NOW.getTime() - days * 86400000).toISOString();
-  assert.equal(
-    summarize({ distribute: true, lastDeployAt: at(1.9), now: NOW, jobs: [] })
-      .fail,
-    false,
-  );
-  const stale = summarize({
-    distribute: true,
-    lastDeployAt: at(2),
-    now: NOW,
-    jobs: [],
-  });
-  assert.equal(stale.fail, true);
-  assert.equal(stale.days, 2);
-  assert.match(stale.markdown, /日次の配布が 2 日止まっている/);
-});
-
-test('a verify run only shows the days, whatever their number', () => {
-  const result = summarize({
-    distribute: false,
-    lastDeployAt: '2026-09-01T00:00:00Z',
-    now: NOW,
-    jobs,
-  });
-  assert.equal(result.fail, false);
-  assert.match(result.markdown, /最後に deploy した run からの日数: 48日/);
+test('an old deployment never fails a run: the summary only shows the days', () => {
+  for (const distribute of [true, false]) {
+    const result = summarize({
+      distribute,
+      lastDeployAt: '2026-09-01T00:00:00Z',
+      now: NOW,
+      jobs,
+    });
+    assert.equal(result.days, 48);
+    assert.ok(!('fail' in result));
+    assert.match(result.markdown, /最後に deploy した run からの日数: 48日/);
+    assert.doesNotMatch(result.markdown, /日次|止まっている/);
+  }
 });
 
 test('without any deployment yet the summary only says so', () => {
@@ -71,7 +56,6 @@ test('without any deployment yet the summary only says so', () => {
     now: NOW,
     jobs: [],
   });
-  assert.equal(result.fail, false);
   assert.equal(result.days, null);
   assert.match(result.markdown, /まだ deploy していない/);
 });

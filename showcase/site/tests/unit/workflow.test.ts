@@ -185,11 +185,11 @@ const VERIFY_RUN = [
   'required',
 ];
 const DIST =
-  "(github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'";
+  "(github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'";
 
-test('triggers: daily at 04:17 UTC, manual, every PR, and push on the site paths', () => {
+test('triggers: manual, every PR, and push on the site paths; no schedule', () => {
   const head = workflow.slice(0, workflow.indexOf('permissions:'));
-  assert.match(head, /schedule:\n {4}- cron: '17 4 \* \* \*'/);
+  assert.doesNotMatch(head, /schedule:|cron:/);
   assert.match(head, /^ {2}workflow_dispatch:$/m);
   assert.match(head, /^ {2}pull_request:\n {2}push:\n {4}branches: \[main\]/m);
   for (const path of [
@@ -211,13 +211,14 @@ test('triggers: daily at 04:17 UTC, manual, every PR, and push on the site paths
 
 test('each event runs its jobs, and nothing after build is skipped by mistake', () => {
   assert.deepEqual(
-    runs('schedule'),
+    runs('push'),
     ALL.filter((name) => !['fetch-candidate', 'verify-pack'].includes(name)),
   );
-  assert.deepEqual(runs('workflow_dispatch'), runs('schedule'));
+  assert.deepEqual(runs('workflow_dispatch'), runs('push'));
   assert.deepEqual(runs('workflow_dispatch', 'refs/heads/feature'), VERIFY_RUN);
   assert.deepEqual(runs('pull_request', 'refs/pull/7/merge'), VERIFY_RUN);
-  assert.deepEqual(runs('push'), VERIFY_RUN);
+  // A schedule is not a trigger any more; were one added, it would not deploy.
+  assert.deepEqual(runs('schedule'), VERIFY_RUN);
   assert.deepEqual(runs('pull_request', 'refs/pull/7/merge', 'false'), [
     'changes',
     'summary',
@@ -279,7 +280,7 @@ test('deploy needs every earlier gate and runs only when distributing and all su
   );
   assert.equal(
     evaluate(condition, {
-      event: 'schedule',
+      event: 'push',
       ref: 'refs/heads/main',
       results: base,
     }),
@@ -289,7 +290,7 @@ test('deploy needs every earlier gate and runs only when distributing and all su
     for (const result of ['failure', 'skipped', 'cancelled'])
       assert.equal(
         evaluate(condition, {
-          event: 'schedule',
+          event: 'push',
           ref: 'refs/heads/main',
           results: { ...base, [need]: result },
         }),
@@ -312,8 +313,8 @@ test('deploy needs every earlier gate and runs only when distributing and all su
   ]);
   assert.equal(
     evaluate(field('build', 'if')!, {
-      event: 'push',
-      ref: 'refs/heads/main',
+      event: 'pull_request',
+      ref: 'refs/pull/7/merge',
       results: {
         candidate: 'skipped',
         'fetch-candidate': 'success',
@@ -379,9 +380,12 @@ test("the candidate job holds every permission showcase.yml's jobs ask for", () 
   );
 });
 
-test('PR and push runs never call showcase.yml and never deploy; summary fails only when distributing', () => {
-  for (const event of ['pull_request', 'push']) {
-    const ran = runs(event);
+test('PR runs and manual runs of another branch never call showcase.yml and never deploy', () => {
+  for (const [event, ref] of [
+    ['pull_request', 'refs/pull/7/merge'],
+    ['workflow_dispatch', 'refs/heads/feature'],
+  ] as const) {
+    const ran = runs(event, ref);
     assert.ok(!ran.includes('candidate') && !ran.includes('deploy'), event);
   }
   const summary = table.get('summary')!;
@@ -398,8 +402,12 @@ test('PR and push runs never call showcase.yml and never deploy; summary fails o
     false,
   );
   assert.equal(
-    evaluate(dist!, { event: 'schedule', ref: 'refs/heads/main', results: {} }),
+    evaluate(dist!, { event: 'push', ref: 'refs/heads/main', results: {} }),
     true,
+  );
+  assert.equal(
+    evaluate(dist!, { event: 'schedule', ref: 'refs/heads/main', results: {} }),
+    false,
   );
   assert.match(summary, /SHOWCASE_NEEDS: \$\{\{ toJSON\(needs\) \}\}/);
 });

@@ -1,6 +1,6 @@
 ---
 title: Releases
-description: formicarium package releases and the daily showcase deployment.
+description: formicarium package releases and the showcase deployment.
 ---
 
 ## The package
@@ -12,8 +12,10 @@ provenance. An existing version is never replaced.
 
 ## The showcase
 
-`showcase-site.yml` runs every day at 04:17 UTC and can be started by hand on
-`main`. Only these two runs distribute:
+`showcase-site.yml` runs when a push to `main` changes the site
+(`showcase/site/**`, `showcase/scripts/**` or the workflow itself) and can be
+started by hand on `main`. There is no daily run, so a new guest candidate is
+deployed by a manual run. Only these two runs distribute:
 
 1. `showcase.yml` builds and accepts a candidate in `distribute` mode, with the
    package that B1 accepted (`showcase/b1-pack.json`). Until that Release
@@ -25,5 +27,5 @@ provenance. An existing version is never replaced.
    check that no newer run has already deployed.
 5. The deployed `site-identity.json` is read back until it names this run.
 
-Pull requests and pushes build and accept the site with the newest candidate
-of `main` but never deploy. Any failure leaves the previous site in place.
+Pull requests and manual runs of another branch build and accept the site with
+the newest candidate of `main` but never deploy. Any failure leaves the previous site in place.
