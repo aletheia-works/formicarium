@@ -48,42 +48,16 @@ resource "github_repository_environment" "github_pages" {
   depends_on = [github_repository_pages.this]
 }
 
-# Main is moving from the classic protection to the ruleset below (as in
-# vivarium and terrarium): integrations/github 6.13.0 sends every existing
-# check twice when it updates github_branch_protection_v3 (provider #3420),
-# so that resource can no longer be changed. Both apply until a later PR
-# removes the classic protection.
+# Main is protected by the ruleset below (as in vivarium and terrarium). The
+# classic protection it replaced is removed: integrations/github 6.13.0 sent
+# every existing check twice when it updated github_branch_protection_v3
+# (provider #3420), so that resource could no longer be changed.
 locals {
   # showcase-site-required runs on every PR and passes a PR without site
   # changes, so requiring it never leaves an unrelated PR waiting.
   required_checks = ["quality", "commit-format", "ci-required", "check / Commitlint", "showcase-site-required"]
 }
-resource "github_branch_protection_v3" "main" {
-  repository                      = github_repository.this.name
-  branch                          = "main"
-  enforce_admins                  = true
-  require_signed_commits          = true
-  require_conversation_resolution = true
-  required_status_checks {
-    strict = true
-    checks = [for context in local.required_checks : "${context}:15368"]
-  }
-  required_pull_request_reviews {
-    dismiss_stale_reviews           = true
-    require_code_owner_reviews      = false
-    required_approving_review_count = 0
-    require_last_push_approval      = false
-  }
-  lifecycle {
-    prevent_destroy = true
-  }
-}
-import {
-  to = github_branch_protection_v3.main
-  id = "${var.repository_name}:main"
-}
-
-# The same rules as the classic protection: administrators have no bypass
+# The same rules as the former classic protection: administrators have no bypass
 # (enforce_admins), and branches must be up to date (strict). Force pushes
 # and deletion stay blocked; only squash merges are allowed, so linear history
 # changes nothing.

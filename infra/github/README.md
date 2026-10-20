@@ -3,18 +3,17 @@
 The layout and reusable Plan, Apply, fmt and state-backup workflows follow
 [vivarium](https://github.com/aletheia-works/vivarium/tree/main/infra/github) and
 [terrarium](https://github.com/aletheia-works/terrarium/tree/main/infra/github).
-OpenTofu manages the existing repository, existing labels and main protection.
+OpenTofu manages the existing repository, existing labels and the main ruleset.
 Import blocks adopt these resources from an empty state.
 
-formicarium first adopted its existing classic main protection. It is moving
-to a `main` ruleset like those repositories, because integrations/github 6.13.0
-sends every existing check twice when it updates `github_branch_protection_v3`
-([provider #3420](https://github.com/integrations/terraform-provider-github/issues/3420)),
-so the classic resource can no longer be changed. The ruleset keeps the same
-settings (signed commits, no bypass for administrators, up-to-date branches,
-resolved conversations and the required checks below), and also blocks force
-pushes and deletion and requires linear history. Both apply until a later PR
-removes the classic protection.
+formicarium first adopted its existing classic main protection, then moved to
+a `main` ruleset like those repositories, because integrations/github 6.13.0
+sent every existing check twice when it updated `github_branch_protection_v3`
+([provider #3420](https://github.com/integrations/terraform-provider-github/issues/3420)).
+The ruleset keeps the same settings (signed commits, no bypass for
+administrators, up-to-date branches, resolved conversations and the required
+checks below), and also blocks force pushes and deletion and requires linear
+history. The classic protection is removed.
 
 ## Required checks
 
@@ -26,8 +25,7 @@ removes the classic protection.
 | `check / Commitlint` | Organization reusable commitlint workflow |
 | `showcase-site-required` | U8 showcase site: Chromium/Firefox/WebKit acceptance, coverage and evidence (`showcase-site.yml`) |
 
-All are bound to GitHub Actions app ID `15368`. The first three already exist in
-main protection; this module adds the observed shared Commitlint check. Product
+All are bound to GitHub Actions app ID `15368` in the `main` ruleset. Product
 Node and Chromium/Firefox/WebKit checks are covered by `ci-required`, which runs
 with `always()` and rejects failed/skipped prerequisites. Preserve these exact
 names when changing CI. Path-filtered infrastructure validation is not a global
