@@ -4,7 +4,15 @@
 // SHA256 before anything is written, and nothing is ever overwritten: an
 // existing destination is reused only when its bytes are the pinned bytes.
 import { randomUUID } from 'node:crypto';
-import { lstat, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
+import {
+  chmod,
+  lstat,
+  mkdir,
+  readdir,
+  rename,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import { dirname, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
@@ -16,11 +24,14 @@ import {
 import { CI_INPUT_LIMITS } from '../migration-session/ci-inputs.js';
 import { sha256 } from '../package/stage-package.js';
 import {
+  ASSET_LIMITS,
   fetchAsset,
   readBoundedFile,
   safeAssetPath,
   unpackTar,
+  unpackZip,
 } from '../release/publication-assets.js';
+import { ACCEPTANCE_REPOSITORY, GITHUB_API } from './observe-ci.js';
 
 export const ACCEPTANCE_INPUTS_MANIFEST = 'ci/migration-command/inputs.json';
 export const ACCEPTANCE_INPUTS_SCHEMA = 'migration-command-acceptance-inputs';
@@ -536,6 +547,214 @@ export async function restoreAcceptanceInputs(
   return path;
 }
 
+// The U2 git bundle carries an older, patched pitchfork; today's regressions
+// expect the unpatched pitchfork that main's own CI builds. These three files
+// are taken from main's CI run of the same commit, and nothing else from it.
+export const MAIN_CI_WORKFLOW = '.github/workflows/ci.yml';
+export const MAIN_CI_PITCHFORK_FILES = Object.freeze([
+  'guests/pitchfork',
+  'guests/pitchfork.build-info',
+  'guests/pitchfork.commit',
+]);
+export const mainCIGuestArtifactPrefix = (commit: string, runId: number) =>
+  `product-build-guests-${commit}-${runId}-`;
+export interface MainCIPitchforkOptions {
+  commit: string;
+  token: string;
+  root?: string;
+  fetcher?: typeof fetch;
+}
+type Json = Record<string, unknown>;
+const jsonObject = (value: unknown, what: string): Json => {
+  ensure(
+    value !== null && typeof value === 'object' && !Array.isArray(value),
+    `${what} object required`,
+  );
+  return value as Json;
+};
+const positiveInteger = (value: unknown) =>
+  typeof value === 'number' && Number.isSafeInteger(value) && value > 0;
+
+/** Exactly one completed, successful push run of main's CI at the commit. */
+export function checkMainCIRuns(list: Json, commit: string) {
+  ensure(
+    Array.isArray(list.workflow_runs) &&
+      list.total_count === list.workflow_runs.length &&
+      list.workflow_runs.length <= 100,
+    'main CI run list incomplete/paginated',
+  );
+  const runs = (list.workflow_runs as unknown[])
+    .map((raw) => jsonObject(raw, 'main CI run'))
+    .filter(
+      (run) =>
+        run.path === MAIN_CI_WORKFLOW &&
+        run.event === 'push' &&
+        run.head_branch === 'main' &&
+        run.head_sha === commit &&
+        run.status === 'completed' &&
+        run.conclusion === 'success' &&
+        jsonObject(run.repository, 'main CI run repository').full_name ===
+          ACCEPTANCE_REPOSITORY &&
+        jsonObject(run.head_repository, 'main CI run head repository')
+          .full_name === ACCEPTANCE_REPOSITORY &&
+        positiveInteger(run.id) &&
+        positiveInteger(run.run_attempt),
+    );
+  ensure(runs.length === 1, 'exactly one successful main CI run required');
+  return {
+    runId: runs[0]!.id as number,
+    attempt: runs[0]!.run_attempt as number,
+  };
+}
+/** The run's one unexpired guest product artifact, bound to the run and head. */
+export function checkMainCIGuestArtifact(
+  list: Json,
+  commit: string,
+  runId: number,
+  attempt: number,
+) {
+  ensure(
+    Array.isArray(list.artifacts) &&
+      list.total_count === list.artifacts.length &&
+      list.artifacts.length <= 100,
+    'main CI artifact list incomplete/paginated',
+  );
+  const name = `${mainCIGuestArtifactPrefix(commit, runId)}${attempt}`;
+  const rows = (list.artifacts as unknown[])
+    .map((raw) => jsonObject(raw, 'main CI artifact'))
+    .filter((row) => row.name === name);
+  ensure(rows.length === 1, `main CI artifact ${name} missing/duplicate`);
+  const row = rows[0]!;
+  const run = jsonObject(row.workflow_run, 'main CI artifact run');
+  ensure(
+    positiveInteger(row.id) &&
+      row.expired === false &&
+      typeof row.digest === 'string' &&
+      /^sha256:[a-f0-9]{64}$/.test(row.digest) &&
+      positiveInteger(row.size_in_bytes) &&
+      (row.size_in_bytes as number) <= ASSET_LIMITS.inputBytes &&
+      run.id === runId &&
+      run.head_sha === commit,
+    `main CI artifact ${name} differs/expired`,
+  );
+  return {
+    id: row.id as number,
+    name,
+    digest: row.digest as string,
+    sizeInBytes: row.size_in_bytes as number,
+  };
+}
+/** The three pitchfork files of the guest artifact; any of them missing is refused. */
+export function mainCIPitchforkFiles(zip: Uint8Array) {
+  const files = unpackZip(zip);
+  return MAIN_CI_PITCHFORK_FILES.map((path) => {
+    const bytes = files.get(path);
+    ensure(bytes && bytes.length > 0, `main CI artifact lacks ${path}`);
+    return { path, bytes };
+  });
+}
+
+/**
+ * Replaces dist/guests/pitchfork* with main's CI build of the same commit,
+ * after checking the run, the artifact and its digest, and keeps a receipt.
+ */
+export async function restoreMainCIPitchfork(options: MainCIPitchforkOptions) {
+  const { commit, token } = options;
+  ensure(/^[a-f0-9]{40}$/.test(commit), 'expected 40-hex commit required');
+  ensure(
+    typeof token === 'string' && token.length > 0,
+    'GitHub token required',
+  );
+  const root = resolve(options.root ?? process.cwd());
+  const fetcher = options.fetcher ?? fetch;
+  const prefix = `${GITHUB_API}/repos/${ACCEPTANCE_REPOSITORY}`;
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    Accept: 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28',
+  };
+  const json = async (path: string, what: string) =>
+    jsonObject(
+      JSON.parse(
+        (
+          await fetchAsset(
+            prefix + path,
+            ASSET_LIMITS.metadataBytes,
+            fetcher,
+            headers,
+          )
+        ).toString('utf8'),
+      ),
+      what,
+    );
+  const run = checkMainCIRuns(
+    await json(
+      `/actions/workflows/ci.yml/runs?branch=main&event=push&head_sha=${commit}&status=success&per_page=100`,
+      'main CI runs',
+    ),
+    commit,
+  );
+  const artifact = checkMainCIGuestArtifact(
+    await json(
+      `/actions/runs/${run.runId}/artifacts?per_page=100`,
+      'main CI artifacts',
+    ),
+    commit,
+    run.runId,
+    run.attempt,
+  );
+  const zip = await fetchAsset(
+    `${prefix}/actions/artifacts/${artifact.id}/zip`,
+    ASSET_LIMITS.inputBytes,
+    fetcher,
+    headers,
+    [],
+    120_000,
+    true,
+  );
+  ensure(
+    artifact.digest === `sha256:${sha256(zip)}` &&
+      zip.length === artifact.sizeInBytes,
+    `main CI artifact ${artifact.name} digest/size differs`,
+  );
+  const files = mainCIPitchforkFiles(zip);
+  const replaced: { path: string; bytes: number; sha256: string }[] = [];
+  for (const file of files) {
+    const target = resolve(root, 'dist', file.path);
+    const temporary = `${target}.${randomUUID()}.tmp`;
+    await mkdir(dirname(target), { recursive: true });
+    await writeFile(temporary, file.bytes, { flag: 'wx' });
+    // ZIP entries carry no mode; only the guest itself is executable.
+    await chmod(temporary, file.path === 'guests/pitchfork' ? 0o755 : 0o644);
+    await rename(temporary, target);
+    replaced.push({
+      path: `dist/${file.path}`,
+      bytes: file.bytes.length,
+      sha256: sha256(file.bytes),
+    });
+  }
+  const receipt = {
+    recordKind: 'main-ci-pitchfork',
+    assembledAt: new Date().toISOString(),
+    repository: ACCEPTANCE_REPOSITORY,
+    workflowPath: MAIN_CI_WORKFLOW,
+    commit,
+    runID: run.runId,
+    attempt: run.attempt,
+    artifact,
+    replaced,
+  };
+  const path = resolve(
+    root,
+    `.artifacts/migration-command/acceptance-inputs-main-ci-pitchfork-${run.runId}.json`,
+  );
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(path, `${JSON.stringify(receipt, null, 2)}\n`, {
+    flag: 'wx',
+  });
+  return { path, receipt };
+}
+
 if (
   process.argv[1] &&
   pathToFileURL(resolve(process.argv[1])).href === import.meta.url
@@ -544,7 +763,12 @@ if (
   const root = process.cwd();
   if (mode === 'restore' && path && !extra.length)
     console.log(await restoreAcceptanceInputs(root, resolve(path)));
-  else if (mode === 'inspect' && path && !extra.length)
+  else if (mode === 'main-ci-pitchfork' && path && !extra.length) {
+    const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+    ensure(token, 'GITHUB_TOKEN or GH_TOKEN required');
+    // The receipt path only; the token never reaches the output.
+    console.log((await restoreMainCIPitchfork({ commit: path, token })).path);
+  } else if (mode === 'inspect' && path && !extra.length)
     console.log(
       JSON.stringify(
         (await readAcceptanceInputs(root, resolve(path))).inputs,
@@ -572,6 +796,6 @@ if (
     );
   } else
     throw Error(
-      'usage: U4 acceptance-inputs.js restore ci/migration-command/inputs.json | inspect ci/migration-command/inputs.json | verify-archive <actual-site-v2.tar.gz>',
+      'usage: U4 acceptance-inputs.js restore ci/migration-command/inputs.json | main-ci-pitchfork <40-hex-commit> | inspect ci/migration-command/inputs.json | verify-archive <actual-site-v2.tar.gz>',
     );
 }

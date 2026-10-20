@@ -18,6 +18,8 @@ jobs:
     timeout-minutes: 360
     permissions:
       contents: read
+      # Read main's CI run of this commit and its guest artifact (pitchfork).
+      actions: read
     env:
       # Only node and bun are installed below; tasks never install the rest.
       MISE_TASK_RUN_AUTO_INSTALL: 'false'
@@ -52,6 +54,13 @@ jobs:
       - run: mise run typecheck
       - name: Restore the fixed core and the U2 inputs (git bundle, no network)
         run: node scripts/migration-session/ci-core.js ci/migration-session/inputs.bundle.json
+      # The bundle's pitchfork is the older patched build; today's regressions
+      # expect the unpatched one main's CI builds. Run this workflow after main's
+      # CI of the same commit has finished.
+      - name: Take pitchfork from main's CI run of this commit (three files only)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/migration-command/acceptance-inputs.js main-ci-pitchfork "$GITHUB_SHA"
       - name: Fetch and check the three acceptance inputs, restore the actual site
         shell: bash
         run: |

@@ -18,12 +18,19 @@ import {
   ACCEPTANCE_INPUT_DESTINATIONS,
   ACCEPTANCE_INPUTS_MANIFEST,
   type AcceptanceInputs,
+  checkMainCIGuestArtifact,
+  checkMainCIRuns,
   decodeSiteArchive,
   fetchAcceptanceInputs,
   inspectRestoredSite,
+  MAIN_CI_PITCHFORK_FILES,
+  MAIN_CI_WORKFLOW,
   MIRROR_INPUT_PATH,
+  mainCIGuestArtifactPrefix,
+  mainCIPitchforkFiles,
   readAcceptanceInputs,
   restoreActualSite,
+  restoreMainCIPitchfork,
   SITE_ARCHIVE,
   type SiteFile,
   validateAcceptanceInputs,
@@ -921,6 +928,261 @@ test('an unverified commit, a listed digest mismatch or a broken candidate artif
   );
 });
 
+// ------------------------------------------- pitchfork from main's own CI
+
+const MAIN_CI_RUN = 5151;
+function mainCIRun(): Record<string, unknown> {
+  return {
+    id: MAIN_CI_RUN,
+    run_attempt: 1,
+    path: MAIN_CI_WORKFLOW,
+    event: 'push',
+    head_branch: 'main',
+    head_sha: COMMIT,
+    status: 'completed',
+    conclusion: 'success',
+    repository: { full_name: 'aletheia-works/formicarium' },
+    head_repository: { full_name: 'aletheia-works/formicarium' },
+  };
+}
+const guestName = () => `${mainCIGuestArtifactPrefix(COMMIT, MAIN_CI_RUN)}1`;
+function guestArtifact(bytes: Buffer, patch: Record<string, unknown> = {}) {
+  return {
+    id: 77,
+    name: guestName(),
+    expired: false,
+    digest: `sha256:${sha256(bytes)}`,
+    size_in_bytes: bytes.length,
+    workflow_run: { id: MAIN_CI_RUN, head_sha: COMMIT },
+    ...patch,
+  };
+}
+const guestMembers = () => [
+  { name: 'guests/aube', bytes: Buffer.from('ci-built aube, never used') },
+  { name: 'guests/pitchfork', bytes: Buffer.from('unpatched pitchfork') },
+  {
+    name: 'guests/pitchfork.build-info',
+    bytes: Buffer.from('{"patches":[]}\n'),
+  },
+  {
+    name: 'guests/pitchfork.commit',
+    bytes: Buffer.from(`${'e'.repeat(40)}\n`),
+  },
+];
+function mainCIRoutes(zipBytes: Buffer, listed = zipBytes) {
+  const json = (value: unknown): Route => ({
+    status: 200,
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(value),
+  });
+  return new Map<string, Route>([
+    [
+      `${PREFIX}/actions/workflows/ci.yml/runs?branch=main&event=push&head_sha=${COMMIT}&status=success&per_page=100`,
+      json({ total_count: 1, workflow_runs: [mainCIRun()] }),
+    ],
+    [
+      `${PREFIX}/actions/runs/${MAIN_CI_RUN}/artifacts?per_page=100`,
+      json({ total_count: 1, artifacts: [guestArtifact(listed)] }),
+    ],
+    [
+      `${PREFIX}/actions/artifacts/77/zip`,
+      {
+        status: 302,
+        headers: {
+          location: 'https://productionresultssa1.blob.core.windows.net/77.zip',
+        },
+      },
+    ],
+    [
+      '/productionresultssa1.blob.core.windows.net/77.zip',
+      { status: 200, body: zipBytes },
+    ],
+  ]);
+}
+
+test("main's CI run must be one successful push run of ci.yml on main at the commit", () => {
+  const list = (...runs: Record<string, unknown>[]) => ({
+    total_count: runs.length,
+    workflow_runs: runs,
+  });
+  assert.deepEqual(checkMainCIRuns(list(mainCIRun()), COMMIT), {
+    runId: MAIN_CI_RUN,
+    attempt: 1,
+  });
+  for (const patch of [
+    { path: ACCEPTANCE_WORKFLOW },
+    { event: 'workflow_dispatch' },
+    { head_branch: 'feature' },
+    { head_sha: 'b'.repeat(40) },
+    { status: 'in_progress' },
+    { conclusion: 'failure' },
+    { repository: { full_name: 'someone/formicarium' } },
+    { head_repository: { full_name: 'someone/formicarium' } },
+  ])
+    assert.throws(
+      () => checkMainCIRuns(list({ ...mainCIRun(), ...patch }), COMMIT),
+      /exactly one successful main CI run/,
+      JSON.stringify(patch),
+    );
+  assert.throws(() => checkMainCIRuns(list(), COMMIT), /exactly one/);
+  assert.throws(
+    () =>
+      checkMainCIRuns(
+        list(mainCIRun(), { ...mainCIRun(), id: MAIN_CI_RUN + 1 }),
+        COMMIT,
+      ),
+    /exactly one/,
+  );
+  assert.throws(
+    () =>
+      checkMainCIRuns(
+        { total_count: 101, workflow_runs: [mainCIRun()] },
+        COMMIT,
+      ),
+    /paginated/,
+  );
+});
+test("main's guest artifact must be the run's one unexpired guest product with a sha256 digest", () => {
+  const bytes = Buffer.from('zip');
+  const list = (...artifacts: Record<string, unknown>[]) => ({
+    total_count: artifacts.length,
+    artifacts,
+  });
+  assert.equal(
+    checkMainCIGuestArtifact(
+      list(guestArtifact(bytes), { name: 'product-build-wasm-x' }),
+      COMMIT,
+      MAIN_CI_RUN,
+      1,
+    ).id,
+    77,
+  );
+  for (const patch of [
+    { name: `${mainCIGuestArtifactPrefix('b'.repeat(40), MAIN_CI_RUN)}1` },
+    { name: `${mainCIGuestArtifactPrefix(COMMIT, MAIN_CI_RUN)}2` },
+    { expired: true },
+    { digest: 'md5:x' },
+    { workflow_run: { id: MAIN_CI_RUN + 1, head_sha: COMMIT } },
+    { workflow_run: { id: MAIN_CI_RUN, head_sha: 'b'.repeat(40) } },
+  ])
+    assert.throws(
+      () =>
+        checkMainCIGuestArtifact(
+          list(guestArtifact(bytes, patch)),
+          COMMIT,
+          MAIN_CI_RUN,
+          1,
+        ),
+      /main CI artifact/,
+      JSON.stringify(patch),
+    );
+  assert.throws(
+    () =>
+      checkMainCIGuestArtifact(
+        list(guestArtifact(bytes), guestArtifact(bytes, { id: 78 })),
+        COMMIT,
+        MAIN_CI_RUN,
+        1,
+      ),
+    /missing\/duplicate/,
+  );
+});
+test('only the three pitchfork files are taken, and each of them is required', () => {
+  const files = mainCIPitchforkFiles(zip(guestMembers()));
+  assert.deepEqual(
+    files.map((file) => file.path),
+    [...MAIN_CI_PITCHFORK_FILES],
+  );
+  for (const missing of MAIN_CI_PITCHFORK_FILES)
+    assert.throws(
+      () =>
+        mainCIPitchforkFiles(
+          zip(guestMembers().filter((member) => member.name !== missing)),
+        ),
+      new RegExp(`lacks ${missing.replace('.', '\\.')}`),
+    );
+});
+test("pitchfork is replaced from main's CI, the rest of dist/guests is untouched, and no token is kept", async () => {
+  const root = await scratch('u4-acceptance-ci-pitchfork-');
+  const guests = resolve(root, 'dist/guests');
+  await mkdir(guests, { recursive: true });
+  for (const name of [
+    'aube',
+    ...MAIN_CI_PITCHFORK_FILES.map((p) => p.slice(7)),
+  ])
+    await writeFile(resolve(guests, name), `bundle ${name}`);
+  const bytes = zip(guestMembers());
+  try {
+    const wrong = await fakeServer(mainCIRoutes(bytes, Buffer.from('other')));
+    try {
+      await assert.rejects(
+        restoreMainCIPitchfork({
+          commit: COMMIT,
+          token: TOKEN,
+          root,
+          fetcher: wrong.fetcher,
+        }),
+        /digest\/size differs/,
+      );
+    } finally {
+      await wrong.close();
+    }
+    assert.equal(
+      await readFile(resolve(guests, 'pitchfork'), 'utf8'),
+      'bundle pitchfork',
+    );
+    const server = await fakeServer(mainCIRoutes(bytes));
+    try {
+      const restored = await restoreMainCIPitchfork({
+        commit: COMMIT,
+        token: TOKEN,
+        root,
+        fetcher: server.fetcher,
+      });
+      for (const member of guestMembers().slice(1)) {
+        const path = resolve(root, 'dist', member.name);
+        assert.deepEqual(await readFile(path), member.bytes);
+      }
+      assert.equal(
+        await readFile(resolve(guests, 'aube'), 'utf8'),
+        'bundle aube',
+      );
+      const { stat } = await import('node:fs/promises');
+      assert.equal(
+        (await stat(resolve(guests, 'pitchfork'))).mode & 0o777,
+        0o755,
+      );
+      assert.equal(
+        (await stat(resolve(guests, 'pitchfork.build-info'))).mode & 0o777,
+        0o644,
+      );
+      assert.deepEqual(
+        restored.receipt.replaced.map((row) => row.path),
+        MAIN_CI_PITCHFORK_FILES.map((path) => `dist/${path}`),
+      );
+      assert.equal(restored.receipt.runID, MAIN_CI_RUN);
+      assert.equal((await readFile(restored.path)).includes(TOKEN), false);
+      assert.deepEqual((await readdir(guests)).sort(), [
+        'aube',
+        'pitchfork',
+        'pitchfork.build-info',
+        'pitchfork.commit',
+      ]);
+      for (const request of server.seen)
+        assert.equal(
+          request.headers.authorization,
+          request.path.startsWith('/api.github.com/')
+            ? `Bearer ${TOKEN}`
+            : undefined,
+        );
+    } finally {
+      await server.close();
+    }
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 // -------------------------------------------------------------- workflow
 
 const WORKFLOW_TEXT = await readFile(ACCEPTANCE_WORKFLOW, 'utf8');
@@ -948,9 +1210,25 @@ test('the workflow is manual only, main of the upstream repository only, read-on
     "github.repository == 'aletheia-works/formicarium' && github.ref == 'refs/heads/main'",
   );
   assert.deepEqual(WORKFLOW.permissions, { contents: 'read' });
-  assert.deepEqual(JOB.permissions, { contents: 'read' });
+  // actions: read only reads main's CI run of the same commit (pitchfork).
+  assert.deepEqual(JOB.permissions, { contents: 'read', actions: 'read' });
   assert.doesNotMatch(WORKFLOW_TEXT, /:\s*write\b/);
-  assert.doesNotMatch(WORKFLOW_TEXT, /secrets\.|github\.token|GITHUB_TOKEN/);
+  assert.doesNotMatch(WORKFLOW_TEXT, /secrets\.|GITHUB_TOKEN/);
+  // The job token reaches one step only, as an environment variable.
+  const tokenSteps = STEPS.filter((step) =>
+    JSON.stringify(step).includes('github.token'),
+  );
+  assert.equal(tokenSteps.length, 1);
+  assert.deepEqual(Object.keys(tokenSteps[0]!.env ?? {}), ['GH_TOKEN']);
+  assert.match(
+    String(tokenSteps[0]!.env?.GH_TOKEN),
+    /^\$\{\{ github\.token \}\}$/,
+  );
+  assert.match(
+    tokenSteps[0]!.run!,
+    /acceptance-inputs\.js main-ci-pitchfork "\$GITHUB_SHA"$/,
+  );
+  assert.equal(WORKFLOW_TEXT.split('github.token').length - 1, 1);
   assert.equal(JOB['runs-on'], 'ubuntu-24.04');
   assert.equal(JOB['timeout-minutes'], 360);
   assert.equal(WORKFLOW.concurrency['cancel-in-progress'], false);
@@ -977,6 +1255,7 @@ test('the completion runs local-provisional after the inputs, the candidate and 
     /mise run build/,
     /mise run typecheck/,
     /ci-core\.js ci\/migration-session\/inputs\.bundle\.json/,
+    /acceptance-inputs\.js main-ci-pitchfork "\$GITHUB_SHA"/,
     /acceptance-inputs\.js restore ci\/migration-command\/inputs\.json/,
     /cli\.js install --with-deps chromium firefox webkit/,
     /mise run migration-command-stage/,
@@ -999,7 +1278,7 @@ test('the completion runs local-provisional after the inputs, the candidate and 
     WORKFLOW_TEXT,
     /FORMICARIUM_COMMAND_CI_EVIDENCE|TIMEOUT|THRESHOLD|--retries|--workers|retention-days: (?!7\b)/,
   );
-  const stage = STEPS[order[6]!]!;
+  const stage = STEPS[order[7]!]!;
   assert.match(
     String(stage.env?.FORMICARIUM_SESSION_SOURCE),
     /^\$\{\{ github\.sha \}\}$/,
