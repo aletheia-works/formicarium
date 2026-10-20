@@ -3,11 +3,9 @@ on:
   schedule:
     - cron: '17 4 * * *'
   workflow_dispatch:
+  # Every PR runs (showcase-site-required must report); the changes job
+  # decides whether the site jobs run.
   pull_request:
-    paths:
-      - showcase/site/**
-      - .github/workflows/showcase-site.yml
-      - showcase/scripts/**
   push:
     branches: [main]
     paths:
@@ -24,7 +22,42 @@ env:
   ASTRO_TELEMETRY_DISABLED: '1'
 # DIST (distribute) = (schedule || workflow_dispatch) && refs/heads/main. Every
 # other run (PR, push, manual run of another branch) verifies and never deploys.
+# A job whose `if:` has no status function also needs every ancestor job to
+# succeed, and each path skips the other path's jobs, so every condition after
+# the entry jobs starts with !cancelled().
 jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      site: ${{ steps.files.outputs.site }}
+    steps:
+      - id: files
+        name: Does this PR touch the site paths (every other event builds the site)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" != pull_request ]; then
+            echo site=true >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          files="$RUNNER_TEMP/pr-files.txt"
+          gh api --paginate "repos/$REPO/pulls/$PR_NUMBER/files?per_page=100" \
+            --jq '.[] | .filename, (.previous_filename // empty)' > "$files"
+          count=$(wc -l < "$files")
+          echo "files: $count"
+          # The API lists at most 3000 files; a longer PR builds the site.
+          if [ "$count" -ge 3000 ] || grep -qE '^(showcase/site/|showcase/scripts/|\.github/workflows/showcase-site\.yml$)' "$files"; then
+            echo site=true >> "$GITHUB_OUTPUT"
+          else
+            echo site=false >> "$GITHUB_OUTPUT"
+          fi
   candidate:
     if: (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     permissions:
@@ -34,7 +67,8 @@ jobs:
     with:
       mode: distribute
   fetch-candidate:
-    if: ${{ !((github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main') }}
+    needs: changes
+    if: ${{ !((github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main') && needs.changes.outputs.site == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -61,7 +95,8 @@ jobs:
           include-hidden-files: true
           path: showcase/site/.work/inputs/candidate/
   verify-pack:
-    if: ${{ !((github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main') }}
+    needs: changes
+    if: ${{ !((github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main') && needs.changes.outputs.site == 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -187,7 +222,7 @@ jobs:
             showcase/site/.work/inputs/resolve/pack/pack.json
   accept-chromium:
     needs: build
-    if: needs.build.result == 'success'
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
@@ -267,7 +302,7 @@ jobs:
             showcase/site/.work/coverage/v8/
   accept-firefox:
     needs: build
-    if: needs.build.result == 'success'
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
@@ -345,7 +380,7 @@ jobs:
             showcase/site/.work/logs/inventory-accept-firefox.json
   accept-webkit:
     needs: build
-    if: needs.build.result == 'success'
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
@@ -423,7 +458,7 @@ jobs:
             showcase/site/.work/logs/inventory-accept-webkit.json
   coverage:
     needs: [build, accept-chromium, accept-firefox, accept-webkit]
-    if: needs.build.result == 'success' && needs.accept-chromium.result == 'success' && needs.accept-firefox.result == 'success' && needs.accept-webkit.result == 'success'
+    if: ${{ !cancelled() && needs.build.result == 'success' && needs.accept-chromium.result == 'success' && needs.accept-firefox.result == 'success' && needs.accept-webkit.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -463,7 +498,7 @@ jobs:
           path: showcase/site/.work/coverage/report/
   evidence:
     needs: [build, accept-chromium, accept-firefox, accept-webkit, coverage]
-    if: needs.build.result == 'success' && needs.accept-chromium.result == 'success' && needs.accept-firefox.result == 'success' && needs.accept-webkit.result == 'success' && needs.coverage.result == 'success'
+    if: ${{ !cancelled() && needs.build.result == 'success' && needs.accept-chromium.result == 'success' && needs.accept-firefox.result == 'success' && needs.accept-webkit.result == 'success' && needs.coverage.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -495,7 +530,7 @@ jobs:
           path: showcase/site/.work/evidence/pre/
   deploy:
     needs: [build, accept-chromium, accept-firefox, accept-webkit, coverage, evidence]
-    if: (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && needs.build.result == 'success' && needs.accept-chromium.result == 'success' && needs.accept-firefox.result == 'success' && needs.accept-webkit.result == 'success' && needs.coverage.result == 'success' && needs.evidence.result == 'success'
+    if: ${{ !cancelled() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && needs.build.result == 'success' && needs.accept-chromium.result == 'success' && needs.accept-firefox.result == 'success' && needs.accept-webkit.result == 'success' && needs.coverage.result == 'success' && needs.evidence.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -556,7 +591,7 @@ jobs:
           path: showcase/site/.work/evidence/deployed/
   verify-deployment:
     needs: [build, deploy]
-    if: needs.deploy.result == 'success'
+    if: ${{ !cancelled() && needs.deploy.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -576,7 +611,7 @@ jobs:
           SHOWCASE_PAGE_URL: ${{ needs.deploy.outputs.page_url }}
         run: node showcase/site/scripts/post-deploy-check.ts
   summary:
-    needs: [candidate, fetch-candidate, verify-pack, build, accept-chromium, accept-firefox, accept-webkit, coverage, evidence, deploy, verify-deployment]
+    needs: [changes, candidate, fetch-candidate, verify-pack, build, accept-chromium, accept-firefox, accept-webkit, coverage, evidence, deploy, verify-deployment]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -598,3 +633,23 @@ jobs:
           SHOWCASE_DIST: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' }}
           SHOWCASE_NEEDS: ${{ toJSON(needs) }}
         run: node showcase/site/scripts/summary.ts
+  required:
+    name: showcase-site-required
+    needs: [changes, candidate, fetch-candidate, verify-pack, build, accept-chromium, accept-firefox, accept-webkit, coverage, evidence, deploy, verify-deployment]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '26.12.0'
+          package-manager-cache: false
+      - name: Every job this run needs succeeded (a PR without site changes passes)
+        env:
+          SHOWCASE_DIST: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' }}
+          SHOWCASE_SITE: ${{ needs.changes.outputs.site }}
+          SHOWCASE_NEEDS: ${{ toJSON(needs) }}
+        run: node showcase/site/scripts/summary.ts --required

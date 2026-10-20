@@ -50,6 +50,8 @@ interface Context {
   event: string;
   ref: string;
   results: Record<string, string>;
+  /** `needs.<job>.outputs.<name>` values, as `<job>.<name>`. */
+  outputs?: Record<string, string>;
 }
 function evaluate(expression: string, context: Context): Value {
   const source = expression.replace(/^\$\{\{\s*|\s*\}\}$/g, '');
@@ -74,6 +76,8 @@ function evaluate(expression: string, context: Context): Value {
     if (token === 'github.ref') return context.ref;
     const result = /^needs\.([\w-]+)\.result$/.exec(token);
     if (result) return context.results[result[1]!] ?? null;
+    const output = /^needs\.([\w-]+)\.outputs\.([\w-]+)$/.exec(token);
+    if (output) return context.outputs?.[`${output[1]!}.${output[2]!}`] ?? null;
     throw Error(`unknown token ${token}`);
   };
   const truthy = (value: Value) =>
@@ -110,25 +114,49 @@ function evaluate(expression: string, context: Context): Value {
   return value;
 }
 
-/** Jobs that run for an event when every job that runs succeeds. */
-function runs(event: string, ref = 'refs/heads/main'): string[] {
+/** Every job a job needs, directly or through the jobs it needs. */
+function ancestors(name: string, seen = new Set<string>()): Set<string> {
+  for (const need of needsOf(name))
+    if (!seen.has(need)) {
+      seen.add(need);
+      ancestors(need, seen);
+    }
+  return seen;
+}
+const STATUS_FUNCTION = /\b(?:always|cancelled|success|failure)\(\)/;
+
+/**
+ * Jobs that run for an event when every job that runs succeeds. As on
+ * GitHub, a condition without a status function also needs `success()`:
+ * every ancestor job, not only the direct needs, must have succeeded.
+ */
+function runs(event: string, ref = 'refs/heads/main', site = 'true'): string[] {
   const results: Record<string, string> = {};
+  const outputs = { 'changes.site': site };
   const ran: string[] = [];
   for (const name of table.keys()) {
     const condition = field(name, 'if');
     const ok = needsOf(name).every((need) => need in results);
     if (!ok) throw Error(`${name} needs a later job`);
-    const run =
+    const succeeded = [...ancestors(name)].every(
+      (need) => results[need] === 'success',
+    );
+    const value =
       condition === null
-        ? needsOf(name).every((need) => results[need] === 'success')
-        : evaluate(condition, { event, ref, results }) === true ||
-          evaluate(condition, { event, ref, results }) === 'distribute';
+        ? true
+        : evaluate(condition, { event, ref, results, outputs });
+    const run =
+      (condition === null || !STATUS_FUNCTION.test(condition)
+        ? succeeded
+        : true) &&
+      (value === true || value === 'distribute');
     results[name] = run ? 'success' : 'skipped';
     if (run) ran.push(name);
   }
   return ran;
 }
 const ALL = [
+  'changes',
   'candidate',
   'fetch-candidate',
   'verify-pack',
@@ -141,8 +169,10 @@ const ALL = [
   'deploy',
   'verify-deployment',
   'summary',
+  'required',
 ];
 const VERIFY_RUN = [
+  'changes',
   'fetch-candidate',
   'verify-pack',
   'build',
@@ -152,21 +182,30 @@ const VERIFY_RUN = [
   'coverage',
   'evidence',
   'summary',
+  'required',
 ];
 const DIST =
   "(github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'";
 
-test('triggers: daily at 04:17 UTC, manual, and PR/push on the site paths', () => {
+test('triggers: daily at 04:17 UTC, manual, every PR, and push on the site paths', () => {
   const head = workflow.slice(0, workflow.indexOf('permissions:'));
   assert.match(head, /schedule:\n {4}- cron: '17 4 \* \* \*'/);
   assert.match(head, /^ {2}workflow_dispatch:$/m);
-  assert.match(head, /^ {2}push:\n {4}branches: \[main\]/m);
+  assert.match(head, /^ {2}pull_request:\n {2}push:\n {4}branches: \[main\]/m);
   for (const path of [
     'showcase/site/**',
     '.github/workflows/showcase-site.yml',
     'showcase/scripts/**',
   ])
-    assert.equal(head.split(`- ${path}\n`).length - 1, 2, path);
+    assert.equal(head.split(`- ${path}\n`).length - 1, 1, path);
+  // The changes job matches the same three paths on a PR.
+  assert.ok(
+    table
+      .get('changes')!
+      .includes(
+        "grep -qE '^(showcase/site/|showcase/scripts/|\\.github/workflows/showcase-site\\.yml$)'",
+      ),
+  );
   assert.deepEqual([...table.keys()], ALL);
 });
 
@@ -179,6 +218,47 @@ test('each event runs its jobs, and nothing after build is skipped by mistake', 
   assert.deepEqual(runs('workflow_dispatch', 'refs/heads/feature'), VERIFY_RUN);
   assert.deepEqual(runs('pull_request', 'refs/pull/7/merge'), VERIFY_RUN);
   assert.deepEqual(runs('push'), VERIFY_RUN);
+  assert.deepEqual(runs('pull_request', 'refs/pull/7/merge', 'false'), [
+    'changes',
+    'summary',
+    'required',
+  ]);
+});
+
+test('every job after the entry jobs has a status function, so the other path cannot skip it', () => {
+  for (const name of ALL.filter(
+    (job) =>
+      !['changes', 'candidate', 'fetch-candidate', 'verify-pack'].includes(job),
+  ))
+    assert.match(field(name, 'if') ?? '', STATUS_FUNCTION, name);
+  for (const name of ['fetch-candidate', 'verify-pack']) {
+    assert.deepEqual(needsOf(name), ['changes']);
+    assert.ok(
+      field(name, 'if')!.includes("needs.changes.outputs.site == 'true'"),
+      name,
+    );
+  }
+  assert.match(
+    table.get('changes')!,
+    /permissions:\n {6}contents: read\n {6}pull-requests: read\n/,
+  );
+});
+
+test('showcase-site-required needs every job but the summary and always reports', () => {
+  assert.equal(field('required', 'name'), 'showcase-site-required');
+  assert.equal(field('required', 'if'), 'always()');
+  assert.deepEqual(
+    needsOf('required'),
+    ALL.filter((name) => !['summary', 'required'].includes(name)),
+  );
+  const body = table.get('required')!;
+  assert.equal(/SHOWCASE_DIST: \$\{\{ (.+) \}\}/.exec(body)?.[1], DIST);
+  assert.match(
+    body,
+    /SHOWCASE_SITE: \$\{\{ needs\.changes\.outputs\.site \}\}/,
+  );
+  assert.match(body, /SHOWCASE_NEEDS: \$\{\{ toJSON\(needs\) \}\}/);
+  assert.match(body, /node showcase\/site\/scripts\/summary\.ts --required/);
 });
 
 test('deploy needs every earlier gate and runs only when distributing and all succeeded', () => {
@@ -191,7 +271,7 @@ test('deploy needs every earlier gate and runs only when distributing and all su
     'evidence',
   ]);
   const condition = field('deploy', 'if')!;
-  assert.ok(condition.startsWith(DIST), condition);
+  assert.ok(condition.startsWith(`\${{ !cancelled() && ${DIST}`), condition);
   for (const need of needsOf('deploy'))
     assert.ok(condition.includes(`needs.${need}.result == 'success'`), need);
   const base = Object.fromEntries(
@@ -306,7 +386,7 @@ test('PR and push runs never call showcase.yml and never deploy; summary fails o
   }
   const summary = table.get('summary')!;
   assert.equal(field('summary', 'if'), 'always()');
-  assert.deepEqual(needsOf('summary'), ALL.slice(0, -1));
+  assert.deepEqual(needsOf('summary'), ALL.slice(0, -2));
   const dist = /SHOWCASE_DIST: \$\{\{ (.+) \}\}/.exec(summary)?.[1];
   assert.equal(dist, DIST);
   assert.equal(
@@ -331,6 +411,7 @@ test('timeouts, pinned actions, credentials and artifacts follow the infrastruct
       .map((name) => [name, Number(field(name, 'timeout-minutes'))]),
   );
   assert.deepEqual(timeouts, {
+    changes: 5,
     'fetch-candidate': 10,
     'verify-pack': 30,
     build: 30,
@@ -342,6 +423,7 @@ test('timeouts, pinned actions, credentials and artifacts follow the infrastruct
     deploy: 15,
     'verify-deployment': 15,
     summary: 5,
+    required: 5,
   });
   for (const [, action, ref, version] of workflow.matchAll(
     /uses: ([\w./-]+)@(\S+)(?: # (\S+))?/g,
@@ -358,7 +440,7 @@ test('timeouts, pinned actions, credentials and artifacts follow the infrastruct
     /actions\/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5\.0\.1/,
   );
   const checkouts = workflow.split('uses: actions/checkout@').slice(1);
-  assert.equal(checkouts.length, 11);
+  assert.equal(checkouts.length, 12);
   for (const checkout of checkouts)
     assert.match(
       checkout.split('\n      - ')[0]!,

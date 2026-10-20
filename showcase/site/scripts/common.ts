@@ -25,6 +25,7 @@ export type SiteCause =
   | 'api-failed'
   | 'deployment-mismatch'
   | 'stale-deploy'
+  | 'required-failed'
   | 'build-failed';
 
 export class SiteError extends Error {

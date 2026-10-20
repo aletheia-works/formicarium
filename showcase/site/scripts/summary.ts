@@ -63,7 +63,91 @@ export function summarize(input: {
   return { markdown, days, failedJobs, fail: stale };
 }
 
-if (import.meta.main)
+/** The jobs each kind of run must finish with success (showcase-site-required). */
+export const REQUIRED_JOBS = Object.freeze({
+  verify: [
+    'changes',
+    'fetch-candidate',
+    'verify-pack',
+    'build',
+    'accept-chromium',
+    'accept-firefox',
+    'accept-webkit',
+    'coverage',
+    'evidence',
+  ],
+  distribute: [
+    'changes',
+    'candidate',
+    'build',
+    'accept-chromium',
+    'accept-firefox',
+    'accept-webkit',
+    'coverage',
+    'evidence',
+    'deploy',
+    'verify-deployment',
+  ],
+} as const);
+
+export interface RequiredCheck {
+  /** `unrelated`: a PR that touches none of the site paths. */
+  mode: 'unrelated' | 'verify' | 'distribute';
+  /** Required jobs whose result is not success (a skip counts). */
+  missing: string[];
+  ok: boolean;
+  markdown: string;
+}
+
+/**
+ * The single required check of this workflow. A PR without site changes
+ * passes once the change detection succeeded; every other run passes only
+ * when each job of its kind succeeded, so a skipped job fails the check.
+ */
+export function requiredCheck(input: {
+  distribute: boolean;
+  /** `needs.changes.outputs.site`: 'true' or 'false'; anything else fails. */
+  site: string;
+  jobs: readonly JobResult[];
+}): RequiredCheck {
+  const results = new Map(input.jobs.map((job) => [job.name, job.result]));
+  const changes = results.get('changes') === 'success';
+  const unrelated = !input.distribute && changes && input.site === 'false';
+  const mode = input.distribute
+    ? 'distribute'
+    : unrelated
+      ? 'unrelated'
+      : 'verify';
+  const missing = unrelated
+    ? []
+    : !input.distribute && changes && input.site !== 'true'
+      ? ['changes']
+      : REQUIRED_JOBS[mode === 'distribute' ? 'distribute' : 'verify'].filter(
+          (name) => results.get(name) !== 'success',
+        );
+  const markdown = [
+    '## showcase site required check',
+    '',
+    `- mode: ${mode}`,
+    `- 成功していない必須の job: ${missing.length ? missing.join(', ') : 'なし'}`,
+    '',
+  ].join('\n');
+  return { mode, missing, ok: missing.length === 0, markdown };
+}
+
+if (import.meta.main && process.argv.includes('--required'))
+  await runCli('required', async () => {
+    const result = requiredCheck({
+      distribute: process.env.SHOWCASE_DIST === 'true',
+      site: process.env.SHOWCASE_SITE ?? '',
+      jobs: jobResults(process.env.SHOWCASE_NEEDS ?? '{}'),
+    });
+    await summary(result.markdown);
+    console.log(result.markdown);
+    if (!result.ok)
+      fail('required-failed', `not successful: ${result.missing.join(', ')}`);
+  });
+else if (import.meta.main)
   await runCli('summary', async () => {
     const repository = process.env.GITHUB_REPOSITORY ?? '';
     const runs = await deployedRuns(
