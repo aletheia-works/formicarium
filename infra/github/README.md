@@ -6,10 +6,15 @@ The layout and reusable Plan, Apply, fmt and state-backup workflows follow
 OpenTofu manages the existing repository, existing labels and main protection.
 Import blocks adopt these resources from an empty state.
 
-Unlike those repositories' rulesets, formicarium already has classic main
-protection. This module adopts it instead of adding overlapping protection.
-Existing settings (including signed commits, administrators subject to checks,
-up-to-date branches and resolved conversations) remain enabled.
+formicarium first adopted its existing classic main protection. It is moving
+to a `main` ruleset like those repositories, because integrations/github 6.13.0
+sends every existing check twice when it updates `github_branch_protection_v3`
+([provider #3420](https://github.com/integrations/terraform-provider-github/issues/3420)),
+so the classic resource can no longer be changed. The ruleset keeps the same
+settings (signed commits, no bypass for administrators, up-to-date branches,
+resolved conversations and the required checks below), and also blocks force
+pushes and deletion and requires linear history. Both apply until a later PR
+removes the classic protection.
 
 ## Required checks
 

@@ -48,7 +48,11 @@ resource "github_repository_environment" "github_pages" {
   depends_on = [github_repository_pages.this]
 }
 
-# Keep the existing classic protection; do not create a second overlapping ruleset.
+# Main is moving from the classic protection to the ruleset below (as in
+# vivarium and terrarium): integrations/github 6.13.0 sends every existing
+# check twice when it updates github_branch_protection_v3 (provider #3420),
+# so that resource can no longer be changed. Both apply until a later PR
+# removes the classic protection.
 locals {
   # showcase-site-required runs on every PR and passes a PR without site
   # changes, so requiring it never leaves an unrelated PR waiting.
@@ -77,4 +81,54 @@ resource "github_branch_protection_v3" "main" {
 import {
   to = github_branch_protection_v3.main
   id = "${var.repository_name}:main"
+}
+
+# The same rules as the classic protection: administrators have no bypass
+# (enforce_admins), and branches must be up to date (strict). Force pushes
+# and deletion stay blocked; only squash merges are allowed, so linear history
+# changes nothing.
+resource "github_repository_ruleset" "main" {
+  name        = "main"
+  repository  = github_repository.this.name
+  target      = "branch"
+  enforcement = "active"
+
+  conditions {
+    ref_name {
+      include = ["~DEFAULT_BRANCH"]
+      exclude = []
+    }
+  }
+
+  rules {
+    deletion                = true
+    non_fast_forward        = true
+    required_linear_history = true
+    required_signatures     = true
+
+    pull_request {
+      required_approving_review_count   = 0
+      dismiss_stale_reviews_on_push     = true
+      require_code_owner_review         = false
+      require_last_push_approval        = false
+      required_review_thread_resolution = true
+    }
+
+    required_status_checks {
+      strict_required_status_checks_policy = true
+
+      dynamic "required_check" {
+        for_each = local.required_checks
+
+        content {
+          context        = required_check.value
+          integration_id = 15368
+        }
+      }
+    }
+  }
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
