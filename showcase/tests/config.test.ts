@@ -20,7 +20,7 @@ const current = async () =>
 const rejects = (run: () => unknown, code: string) =>
   assert.throws(run, (error) => causeOf(error) === code);
 
-test('the committed tools.json, allow list, callers and B1 placeholder are valid', async () => {
+test('the committed tools.json, allow list, callers and B1 pack are valid', async () => {
   const tools = validateToolsConfig(await current(), allowed);
   assert.deepEqual(
     tools.tools.map((tool) => [tool.tool, tool.acquire.kind]),
@@ -38,7 +38,16 @@ test('the committed tools.json, allow list, callers and B1 placeholder are valid
     await readConfigFile('trusted-callers.json'),
   );
   assert.ok(callers.reuseWorkflows.includes('.github/workflows/showcase.yml'));
-  assert.equal(validateB1Pack(await readConfigFile('b1-pack.json')), null);
+  // The B1 acceptance pack of main 2e0358a2 (Release b1-a3370ca4df1f).
+  assert.deepEqual(validateB1Pack(await readConfigFile('b1-pack.json')), {
+    releaseTag: 'b1-a3370ca4df1f',
+    packAsset: 'aletheia-works-formicarium-0.3.0-b1-a3370ca4df1f.tgz',
+    packSha256:
+      'a3370ca4df1f969ca613fe7253c831933d594b14f9650c609a6ced4581834046',
+    evidenceAsset: 'b1-acceptance.json',
+    evidenceSha256:
+      '0c6e547fee04b6db7a49cfd171bfb6526d90f02f074ceec176cee7ba28f27a35',
+  });
   assert.equal(
     assetName('aube-{tag}-x86_64-unknown-linux-musl.tar.gz', 'v2.7.0', '2.7.0'),
     'aube-v2.7.0-x86_64-unknown-linux-musl.tar.gz',

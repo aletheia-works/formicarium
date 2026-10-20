@@ -16,7 +16,7 @@ showcase/
 ├── tools.json                # ツールの条件（repository・tag の形・資産・source build）
 ├── allowed-sources.json      # 受け付ける repository（main の定義だけを使う）
 ├── trusted-callers.json      # distribute を受け付ける U8 workflow と再利用元の workflow
-├── b1-pack.json              # B1 の pack の Release（作るまでは null）
+├── b1-pack.json              # B1 の pack の Release（b1-a3370ca4df1f）
 ├── fixtures/                 # demo fixture（U8 が使う。回帰用の fixtures/ とは別）
 ├── builders/cargo.sh         # cargo を絶対 path で呼ぶ builder
 ├── scripts/                  # 解決・取得・build・再利用・catalog・pack・候補・受入・境界
@@ -101,9 +101,12 @@ job が成功し、出力 `distributable` が `true` のときだけ配布を始
 
 ## B1 の pack の Release
 
-`distribute` は `b1-pack.json` が指す Release の pack を使う。今は `null` で、
-`distribute` は `b1-pack-unavailable` で失敗する。Release は、人間が対象
-（pack・C06 の証拠・その SHA256）を承認した後にだけ作る。
+`distribute` は `b1-pack.json` が指す Release の pack を使う。今は
+prerelease の [`b1-a3370ca4df1f`](https://github.com/aletheia-works/formicarium/releases/tag/b1-a3370ca4df1f)
+を指す（main `2e0358a2` から作った pack と、U4 の正式な完了確認の C06 の証拠。
+中の版の番号は `0.3.0` だが、npm の 0.3.0 とは中身が違う）。`b1-pack.json` が
+`null` のときは、`distribute` は `b1-pack-unavailable` で失敗する。Release は、
+人間が対象（pack・C06 の証拠・その SHA256）を承認した後にだけ作る。
 
 1. B1 受入で固定した pack と C06 `ApiAcceptance` の JSON を用意し、SHA256 を確かめる。
 2. prerelease の `b1-<packSha256 の先頭 12 桁>` を作り、2 つの資産と SHA256 の一覧を上げる。

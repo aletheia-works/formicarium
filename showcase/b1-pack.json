@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "releaseTag": null,
-  "packAsset": null,
-  "packSha256": null,
-  "evidenceAsset": null,
-  "evidenceSha256": null
+  "releaseTag": "b1-a3370ca4df1f",
+  "packAsset": "aletheia-works-formicarium-0.3.0-b1-a3370ca4df1f.tgz",
+  "packSha256": "a3370ca4df1f969ca613fe7253c831933d594b14f9650c609a6ced4581834046",
+  "evidenceAsset": "b1-acceptance.json",
+  "evidenceSha256": "0c6e547fee04b6db7a49cfd171bfb6526d90f02f074ceec176cee7ba28f27a35"
 }
