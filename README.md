@@ -82,7 +82,7 @@ run・登録・FS 操作は session ごとに同じ排他を使い、競合は `
 
 ## showcase の最新版ゲスト（U7 暫定候補）
 
-[`showcase/`](showcase/) は、aube・pitchfork・Biome の最新の安定版を解決・取得（公式の static musl 資産がない pitchfork は source build）・検証し、公開 export（`@aletheia-works/formicarium`、`/node`、`/browser`）だけを使って Node・Chromium・Firefox・WebKit で `--version` を受入して、showcase の候補（catalog と manifest）を作ります。本体の `runtime/`・`types/` からは参照せず、境界は機械検査します。専用の CI は [`.github/workflows/showcase.yml`](.github/workflows/showcase.yml) です。構成と手順は [showcase の README](showcase/README.md) を参照して下さい。この追加時点で受入・CI は未検証、実機Safariも未検証です。
+[`showcase/`](showcase/) は、aube・pitchfork・Biome の最新の安定版を解決・取得（公式の static musl 資産がない pitchfork は source build）・検証し、公開 export（`@aletheia-works/formicarium`、`/node`、`/browser`）だけを使って Node・Chromium・Firefox・WebKit で `--version` を受入して、showcase の候補（catalog と manifest）を作ります。本体の `runtime/`・`types/` からは参照せず、境界は機械検査します。専用の CI は [`.github/workflows/showcase.yml`](.github/workflows/showcase.yml) です。構成と手順は [showcase の README](showcase/README.md) を参照して下さい。受入（3ツール×Node・3ブラウザの12行）はCIで通っています（2026-10-20のmainではrun 39412286499）。`distribute` の実行はU8の最初の配布で確かめます。実機Safariは未検証です。
 
 ## この PoC でしていること
 

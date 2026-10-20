@@ -19,15 +19,25 @@ import {
   computeCandidateId,
   daysSince,
   fixtureInventorySha256,
+  lastDistributableAt,
   noticesText,
   summaryMarkdown,
 } from '../scripts/candidate.ts';
 import { buildCatalog, placeSite } from '../scripts/catalog.ts';
 import { causeOf } from '../scripts/errors.ts';
+import { createGitHubApi } from '../scripts/github.ts';
 import type { PackRecord } from '../scripts/pack.ts';
 import { type WorkLayout, writeJson } from '../scripts/paths.ts';
-import { commit } from './fixtures/github.ts';
+import {
+  bytes,
+  commit,
+  fakeFetch,
+  json,
+  type Route,
+  redirect,
+} from './fixtures/github.ts';
 import { officialRecord, resolutionsOf } from './fixtures/records.ts';
+import { zip } from './fixtures/tar.ts';
 import { withLayout } from './fixtures/work.ts';
 
 const fixtures = [
@@ -316,4 +326,124 @@ test('days since the last distributable run, and the job summary line', () => {
     noticesText(resolutionsOf(fixtures)),
   );
   assert.match(noticesText(resolutionsOf(fixtures)), /licenses\/aube-LICENSE/);
+});
+
+// ---- lastDistributableAt: previous main runs, read through a fake GitHub ----
+
+const runsApi = 'https://api.github.com/repos/owner/repo';
+const mainRun = (id: number, createdAt: string, path?: string) => ({
+  id,
+  path: path ?? '.github/workflows/showcase.yml',
+  head_branch: 'main',
+  event: 'push',
+  conclusion: 'success',
+  run_attempt: 1,
+  created_at: createdAt,
+});
+/** One run per entry: its artifact listing and, when it has a ZIP, the manifest. */
+function lastRoutes(
+  runs: Record<string, unknown>[],
+  candidates: Record<number, { expired?: boolean; distributable?: unknown }>,
+) {
+  const routes: Record<string, Route> = {
+    [`${runsApi}/actions/runs?branch=main&status=success&per_page=50`]: () =>
+      json({ workflow_runs: runs }),
+  };
+  for (const item of runs) {
+    const id = item.id as number;
+    const candidate = candidates[id];
+    routes[`${runsApi}/actions/runs/${id}/artifacts?name=showcase-candidate`] =
+      () =>
+        json({
+          artifacts: candidate
+            ? [
+                {
+                  id: id * 10,
+                  name: 'showcase-candidate',
+                  expired: candidate.expired ?? false,
+                },
+              ]
+            : [],
+        });
+    routes[`${runsApi}/actions/artifacts/${id * 10}/zip`] = redirect(
+      `https://blob.example/${id}.zip`,
+    );
+    routes[`https://blob.example/${id}.zip`] = () =>
+      bytes(
+        zip({
+          'manifest.json': JSON.stringify({
+            distributable: candidate?.distributable,
+          }),
+        }),
+      );
+  }
+  return routes;
+}
+/** downloadArtifact reads the storage URL with the global fetch. */
+async function withFetch<T>(
+  routes: Record<string, Route>,
+  run: (fetchImpl: ReturnType<typeof fakeFetch>) => Promise<T>,
+) {
+  const fetchImpl = fakeFetch(routes);
+  const original = globalThis.fetch;
+  globalThis.fetch = fetchImpl as typeof fetch;
+  try {
+    return await run(fetchImpl);
+  } finally {
+    globalThis.fetch = original;
+  }
+}
+const lastOf = (fetchImpl: ReturnType<typeof fakeFetch>, limit?: number) =>
+  lastDistributableAt(
+    createGitHubApi({ token: 'read', fetchImpl }),
+    'owner/repo',
+    limit,
+  );
+
+test('the newest trusted main run with a distributable candidate gives the time', async () => {
+  const routes = lastRoutes(
+    [
+      mainRun(30, '2026-10-19T00:00:00Z'),
+      mainRun(20, '2026-10-18T00:00:00Z'),
+      mainRun(10, '2026-10-17T00:00:00Z'),
+    ],
+    {
+      30: { distributable: false },
+      20: { distributable: true },
+      10: { distributable: true },
+    },
+  );
+  const at = await withFetch(routes, (fetchImpl) => lastOf(fetchImpl));
+  assert.equal(at, '2026-10-18T00:00:00Z');
+});
+test('expired, missing or non-distributable candidates and untrusted workflows give no time', async () => {
+  const routes = lastRoutes(
+    [
+      mainRun(40, '2026-10-19T00:00:00Z', '.github/workflows/other.yml'),
+      mainRun(30, '2026-10-18T00:00:00Z'),
+      mainRun(20, '2026-10-17T00:00:00Z'),
+      mainRun(10, '2026-10-16T00:00:00Z'),
+    ],
+    {
+      40: { distributable: true },
+      30: { expired: true, distributable: true },
+      20: { distributable: 'true' },
+    },
+  );
+  const seen = await withFetch(routes, async (fetchImpl) => ({
+    at: await lastOf(fetchImpl),
+    urls: fetchImpl.calls.map((call) => call.url),
+  }));
+  assert.equal(seen.at, null);
+  // The untrusted workflow's run and the expired artifact are never downloaded.
+  assert.ok(!seen.urls.some((url) => url.includes('/runs/40/')));
+  assert.ok(!seen.urls.includes('https://blob.example/30.zip'));
+});
+test('only the first `limit` eligible runs are read', async () => {
+  const routes = lastRoutes(
+    [mainRun(20, '2026-10-18T00:00:00Z'), mainRun(10, '2026-10-17T00:00:00Z')],
+    { 20: { distributable: false }, 10: { distributable: true } },
+  );
+  const at = await withFetch(routes, (fetchImpl) => lastOf(fetchImpl, 1));
+  assert.equal(at, null);
 });

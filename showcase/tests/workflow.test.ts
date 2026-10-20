@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import test from 'node:test';
+import { readConfigFile, validateTrustedCallers } from '../scripts/config.ts';
 import { REPOSITORY_ROOT } from '../scripts/paths.ts';
 
 const workflow = await readFile(
@@ -172,4 +173,44 @@ test('the showcase CI does not copy the heavy body regressions', () => {
       workflow,
       new RegExp(heavy.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
     );
+});
+
+/** The job blocks of a workflow text whose jobs call showcase.yml in distribute mode. */
+function distributeCallers(text: string): string[] {
+  const body = text.slice(text.indexOf('\njobs:\n'));
+  return body
+    .split(/\n(?= {2}[a-z][a-z0-9-]*:\n)/)
+    .filter((job) =>
+      /\n {4}uses: \.\/\.github\/workflows\/showcase\.yml\n {4}with:\n {6}mode: distribute\n/.test(
+        `${job}\n`,
+      ),
+    );
+}
+test("trusted-callers' distributeCaller exists and calls showcase.yml in distribute mode", async () => {
+  const trusted = validateTrustedCallers(
+    await readConfigFile('trusted-callers.json'),
+  );
+  const caller = await readFile(
+    join(REPOSITORY_ROOT, trusted.distributeCaller),
+    'utf8',
+  );
+  assert.equal(distributeCallers(caller).length, 1);
+  // The caller must be listed for reuse too, and the check must catch drift.
+  assert.ok(trusted.reuseWorkflows.includes(trusted.distributeCaller));
+  const job = (uses: string, mode: string) =>
+    `name: x\njobs:\n  candidate:\n    uses: ${uses}\n    with:\n      mode: ${mode}\n`;
+  assert.equal(
+    distributeCallers(job('./.github/workflows/showcase.yml', 'distribute'))
+      .length,
+    1,
+  );
+  assert.equal(
+    distributeCallers(job('./.github/workflows/other.yml', 'distribute'))
+      .length,
+    0,
+  );
+  assert.equal(
+    distributeCallers(job('./.github/workflows/showcase.yml', 'verify')).length,
+    0,
+  );
 });

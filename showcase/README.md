@@ -4,8 +4,9 @@
 受入し、showcase の候補（C09 `ShowcaseCandidateManifest`、catalog、guest）を作る。
 配布（Pages）は U8 が、この候補を受け取って行う。showcase は候補を長期保存しない。
 
-この文書の手順と試験は、追加した時点では実行していない（未検証）。実機 Safari は
-WebKit の結果で置き換えず、未検証として記録する。
+単体試験・境界の検査・`verify` の受入（3 ツール × Node・Chromium・Firefox・WebKit の
+12 行）は CI で通っている（最初は run 39113037176、2026-10-20 の main `c9b37c4a` では
+run 39412286499）。実機 Safari は WebKit の結果で置き換えず、未検証として記録する。
 
 ## 構成
 
@@ -131,6 +132,14 @@ workflow が有効であることを確かめる。各 run の `candidate` job �
 
 ## 未検証のこと
 
-- 単体試験・型検査・Biome・境界の検査・受入・CI は、追加した時点では実行していない。
-- 各ツールの最新 release の公式資産の形、pitchfork の upstream の toolchain の宣言。
+- `distribute` の実行（U8 の最初の配布で確かめる。`b1-pack.json` の Release から pack を
+  取得して照合するところまでは、手元で本物の Release に向けて確かめた）。
 - 実機 Safari。
+- 単体試験は showcase の script 全体の行 coverage 80% 以上を満たすが、`accept-node.ts`
+  （子 process での受入）と `tls.ts`（job 専用の CA）の多くの経路は単体試験では通らず、
+  CI の受入 job でだけ守られる。受入が壊れたときは、ここが局所的な回帰の検出の弱い所である。
+
+確かめたこと：2026-10-20 の main `c9b37c4a` の候補 artifact（run 39412286499）で、
+`manifest.json` の 13 個の資産の SHA256 と大きさ、受入 log と catalog の SHA256、
+candidateId の再計算がすべて一致し、3 ツールの build-info、`NOTICES.md` と 5 個の
+license があった。
