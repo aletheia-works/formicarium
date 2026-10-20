@@ -178,9 +178,9 @@ for (const [locale, prefix] of LOCALES)
       await page.keyboard.press('q');
       await page.keyboard.press('Control+c');
       await waitState(page, ['ready']);
-      const text = await terminalText(page);
-      expect(text).toContain('ABORTED');
-      expect(text).not.toMatch(/\$ install \w+q/);
+      // xterm draws written text later, so the rows are read until they show it.
+      await expect.poll(() => terminalText(page)).toContain('ABORTED');
+      expect(await terminalText(page)).not.toMatch(/\$ install \w+q/);
       await expect(page.getByTestId('terminal-status')).toHaveText(
         locale === 'ja'
           ? '取り消しました（ABORTED）。'
@@ -192,19 +192,28 @@ for (const [locale, prefix] of LOCALES)
         locale === 'ja' ? '（出力なし）' : '(no output)',
       );
       // A paste of 65537 bytes on one line (xterm reads the clipboard event).
-      await page
+      // Firefox hides the data of a synthetic paste event, so there the same
+      // line is inserted as text, which reaches the same limit.
+      const pasted = await page
         .locator('[data-terminal-host] textarea')
         .evaluate((textarea) => {
           const data = new DataTransfer();
           data.setData('text/plain', 'a'.repeat(65537));
-          textarea.dispatchEvent(
-            new ClipboardEvent('paste', {
-              clipboardData: data,
-              bubbles: true,
-              cancelable: true,
-            }),
-          );
+          const event = new ClipboardEvent('paste', {
+            clipboardData: data,
+            bubbles: true,
+            cancelable: true,
+          });
+          if (event.clipboardData?.getData('text/plain').length !== 65537)
+            return false;
+          textarea.dispatchEvent(event);
+          return true;
         });
+      if (!pasted) {
+        expect(info.project.name).toBe('firefox');
+        await page.locator('[data-terminal-host] textarea').focus();
+        await page.keyboard.insertText('a'.repeat(65537));
+      }
       await expect(page.getByTestId('terminal-status')).toContainText('65536');
       await page.keyboard.press('Control+c');
       expect(await cspViolations(page)).toEqual([]);
