@@ -19,6 +19,7 @@ up-to-date branches and resolved conversations) remain enabled.
 | `commit-format` | Trusted base commit format validator |
 | `ci-required` | Quality, commit-format and every product build/regression matrix job |
 | `check / Commitlint` | Organization reusable commitlint workflow |
+| `showcase-site-required` | U8 showcase site: Chromium/Firefox/WebKit acceptance, coverage and evidence (`showcase-site.yml`) |
 
 All are bound to GitHub Actions app ID `15368`. The first three already exist in
 main protection; this module adds the observed shared Commitlint check. Product
@@ -26,6 +27,9 @@ Node and Chromium/Firefox/WebKit checks are covered by `ci-required`, which runs
 with `always()` and rejects failed/skipped prerequisites. Preserve these exact
 names when changing CI. Path-filtered infrastructure validation is not a global
 required check, since unrelated PRs would otherwise wait for a missing check.
+`showcase-site.yml` instead runs on every PR: its `changes` job decides whether
+the site jobs run, and `showcase-site-required` passes a PR without site
+changes and fails any other run with a failed or skipped site job.
 
 ## Secret setup (日本語)
 

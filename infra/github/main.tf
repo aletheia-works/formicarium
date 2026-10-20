@@ -50,7 +50,9 @@ resource "github_repository_environment" "github_pages" {
 
 # Keep the existing classic protection; do not create a second overlapping ruleset.
 locals {
-  required_checks = ["quality", "commit-format", "ci-required", "check / Commitlint"]
+  # showcase-site-required runs on every PR and passes a PR without site
+  # changes, so requiring it never leaves an unrelated PR waiting.
+  required_checks = ["quality", "commit-format", "ci-required", "check / Commitlint", "showcase-site-required"]
 }
 resource "github_branch_protection_v3" "main" {
   repository                      = github_repository.this.name
