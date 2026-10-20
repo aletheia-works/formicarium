@@ -1,6 +1,11 @@
+# description, homepage_url and topics are the About box. homepage_url is the
+# showcase site that showcase-site.yml deploys; it is a literal, since
+# github_repository_pages depends on this resource.
 resource "github_repository" "this" {
   name                        = var.repository_name
-  description                 = "blink on WebAssembly proof of concept for Node.js and browsers"
+  description                 = "Run unmodified x86-64 Linux CLI binaries in the browser and Node.js — the blink emulator on WebAssembly, no kernel to boot."
+  homepage_url                = "https://aletheia-works.github.io/formicarium/"
+  topics                      = ["blink", "browser", "bug-reproduction", "cli", "developer-tools", "emulator", "linux", "nodejs", "webassembly", "x86-64"]
   visibility                  = "public"
   has_issues                  = true
   has_discussions             = false
