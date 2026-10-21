@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.4.0](https://github.com/aletheia-works/formicarium/compare/v0.3.0...v0.4.0) (2026-10-21)
+
+
+### Features
+
+* **infra:** add a main ruleset next to the classic protection ([#48](https://github.com/aletheia-works/formicarium/issues/48)) ([6d28dc7](https://github.com/aletheia-works/formicarium/commit/6d28dc7cd02e75d12f9f6dd86df5806859cca0af))
+* **infra:** drop the github-pages reviewer after the first deployment ([#55](https://github.com/aletheia-works/formicarium/issues/55)) ([8dd0e4a](https://github.com/aletheia-works/formicarium/commit/8dd0e4a4688165a4459644f45efbd2fcb5f2c02f))
+* **infra:** enable GitHub Pages for the showcase site ([#40](https://github.com/aletheia-works/formicarium/issues/40)) ([2aca919](https://github.com/aletheia-works/formicarium/commit/2aca91975eb5c2e591ffce526b666cceda0f6427))
+* **infra:** manage the About box: description, website and topics ([#56](https://github.com/aletheia-works/formicarium/issues/56)) ([68b7142](https://github.com/aletheia-works/formicarium/commit/68b7142173aec94f25e991fb53db4481a25e3238))
+* **infra:** remove the classic main protection ([#49](https://github.com/aletheia-works/formicarium/issues/49)) ([4aad181](https://github.com/aletheia-works/formicarium/commit/4aad18135184698648b5d3b98cee0120ba0c67f3))
+* **infra:** require showcase-site-required on main ([#46](https://github.com/aletheia-works/formicarium/issues/46)) ([42676b3](https://github.com/aletheia-works/formicarium/commit/42676b3a1c4cb1b2306a4f296ad96be428c750f6))
+* **migration:** add the formal U4/B1 acceptance workflow on main ([#50](https://github.com/aletheia-works/formicarium/issues/50)) ([22b662d](https://github.com/aletheia-works/formicarium/commit/22b662d2e98cacba6d465e7300aa267fe9644305))
+* remove terrarium from formicarium ([#58](https://github.com/aletheia-works/formicarium/issues/58)) ([5735433](https://github.com/aletheia-works/formicarium/commit/5735433de9a1af3df2ccc0db4973110dde5a3c29))
+* **showcase-site:** deploy when the site changes on main, drop the daily run ([#54](https://github.com/aletheia-works/formicarium/issues/54)) ([94970a9](https://github.com/aletheia-works/formicarium/commit/94970a9ecd375f7c67b9635a4ca115e4ebcbad70))
+* **showcase:** add the formicarium showcase site (U8) ([#43](https://github.com/aletheia-works/formicarium/issues/43)) ([c140ca9](https://github.com/aletheia-works/formicarium/commit/c140ca9a73f0627ebd0f18bb41f97a6613375316))
+* **showcase:** point b1-pack.json at the B1 acceptance pack ([#52](https://github.com/aletheia-works/formicarium/issues/52)) ([c9b37c4](https://github.com/aletheia-works/formicarium/commit/c9b37c4a95849f3323544333bf158f4134853117))
+
+
+### Bug Fixes
+
+* **migration:** refuse a malformed guest build-info as input and remove the temporary assets ([#59](https://github.com/aletheia-works/formicarium/issues/59)) ([d9772f8](https://github.com/aletheia-works/formicarium/commit/d9772f84be3d5a64b84d0f7c1e405aef37e72c03))
+* **migration:** refuse non-object guest catalogs and dependencies as input ([#62](https://github.com/aletheia-works/formicarium/issues/62)) ([2faec36](https://github.com/aletheia-works/formicarium/commit/2faec369bc1cd9631fdce0966f6a44bc11eec54b))
+* **migration:** take pitchfork from main's CI in the acceptance workflow ([#51](https://github.com/aletheia-works/formicarium/issues/51)) ([2e0358a](https://github.com/aletheia-works/formicarium/commit/2e0358a213681cc493d2665bdccabc761d59ccbe))
+* **showcase-site:** gate deploy on the candidate and fix the maintenance steps ([#57](https://github.com/aletheia-works/formicarium/issues/57)) ([c849713](https://github.com/aletheia-works/formicarium/commit/c8497135e10b57ff0349a3e4c6156a285c2757dd))
+* **showcase:** run the site acceptance and add a required check ([#44](https://github.com/aletheia-works/formicarium/issues/44)) ([9a35348](https://github.com/aletheia-works/formicarium/commit/9a35348fdf93f3444c166c9c77ba9848d3cfdabe))
+
 ## [0.3.0](https://github.com/aletheia-works/formicarium/compare/v0.2.1...v0.3.0) (2026-10-18)
 
 ### Features
