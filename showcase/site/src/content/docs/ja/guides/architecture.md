@@ -1,4 +1,5 @@
 ---
+
 title: 構成
 description: エミュレータ・公開 API・showcase のつながり。
 ---

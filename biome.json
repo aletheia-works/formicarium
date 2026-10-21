@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.6.2/schema.json",
   "vcs": {
     "enabled": false,
     "clientKind": "git",
@@ -29,6 +29,7 @@
       "!**/*.js",
       "!**/*.js.map",
       "!package-lock.json",
+      "!THIRD_PARTY_NOTICES.md",
       "!showcase/fixtures",
       "!showcase/tests/boundary-fixtures",
       "!showcase/.work",
@@ -104,6 +105,11 @@
       "quoteStyle": "single",
       "trailingCommas": "all",
       "semicolons": "always"
+    }
+  },
+  "yaml": {
+    "formatter": {
+      "quoteStyle": "single"
     }
   },
   "linter": {

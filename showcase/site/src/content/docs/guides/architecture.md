@@ -1,4 +1,5 @@
 ---
+
 title: Architecture
 description: How the emulator, the public API and the showcase fit together.
 ---

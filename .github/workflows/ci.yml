@@ -1,5 +1,5 @@
-name: "CI"
-"on":
+name: 'CI'
+'on':
   workflow_call:
     outputs:
       candidate-sha256:
@@ -13,121 +13,101 @@ name: "CI"
   workflow_dispatch:
     inputs:
       candidate-version:
-        description: "Optional RC version matching package.json (for example 0.2.0-rc.1); never publishes"
+        description: 'Optional RC version matching package.json (for example 0.2.0-rc.1); never publishes'
         required: false
         type: string
   pull_request: null
   push:
     branches:
-      - "main"
+      - 'main'
 env:
-  FORMICARIUM_CI_LATEST_TOOLS: "1"
+  FORMICARIUM_CI_LATEST_TOOLS: '1'
 permissions:
-  contents: "read"
+  contents: 'read'
 concurrency:
-  group: "ci-${{ github.event.pull_request.number || github.ref }}"
+  group: 'ci-${{ github.event.pull_request.number || github.ref }}'
   cancel-in-progress: true
 jobs:
   quality:
-    runs-on: "ubuntu-latest"
+    runs-on: 'ubuntu-latest'
     timeout-minutes: 30
     steps:
-      -
-        uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" # v7.0.1
+      - uses: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' # v7.0.1
         with:
-          ref: "${{ github.event.pull_request.head.sha || github.sha }}"
+          ref: '${{ github.event.pull_request.head.sha || github.sha }}'
           persist-credentials: false
-      -
-        uses: "actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1" # v7.1.0
+      - uses: 'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1' # v7.1.0
         with:
-          node-version: "latest"
+          node-version: 'latest'
           check-latest: true
           package-manager-cache: false
-      -
-        uses: "oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6" # v2.2.0
+      - uses: 'oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6' # v2.2.0
         with:
-          bun-version: "latest"
-      -
-        uses: "actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9" # v6.1.0
+          bun-version: 'latest'
+      - uses: 'actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9' # v6.1.0
         with:
-          path: "~/.bun/install/cache"
+          path: '~/.bun/install/cache'
           key: "${{ runner.os }}-bun-latest-node-latest-${{ hashFiles('bun.lock') }}"
-      -
-        run: "bun scripts/ci/tasks.ts install-frozen"
-      -
-        run: "git diff --exit-code -- bun.lock package.json"
-      -
-        name: "Use the latest Playwright without changing the dependency lock"
-        run: "bun add --dev --no-save --ignore-scripts @playwright/test@latest @biomejs/biome@latest typescript@latest"
-      -
-        run: "bun scripts/ci/tasks.ts lint"
-      -
-        run: "bun scripts/ci/tasks.ts typecheck"
-      -
-        run: "bun scripts/ci/tasks.ts build"
-      -
-        name: "Run light tests with the installed latest Bun"
-        run: "BUN_EXECUTABLE=\"$(command -v bun)\" bun scripts/ci/tasks.ts test-light"
+      - run: 'bun scripts/ci/tasks.ts install-frozen'
+      - run: 'git diff --exit-code -- bun.lock package.json'
+      - name: 'Use the latest Playwright without changing the dependency lock'
+        run: 'bun add --dev --no-save --ignore-scripts @playwright/test@latest @biomejs/biome@latest typescript@latest'
+      - run: 'bun scripts/ci/tasks.ts lint'
+      - run: 'bun scripts/ci/tasks.ts typecheck'
+      - run: 'bun scripts/ci/tasks.ts build'
+      - name: 'Run light tests with the installed latest Bun'
+        run: 'BUN_EXECUTABLE="$(command -v bun)" bun scripts/ci/tasks.ts test-light'
   product-build:
-    name: "Build (${{ matrix.component }})"
-    runs-on: "ubuntu-latest"
+    name: 'Build (${{ matrix.component }})'
+    runs-on: 'ubuntu-latest'
     timeout-minutes: 140
     strategy:
       fail-fast: false
       matrix:
         include:
-          -
-            component: "wasm"
-            image: "emscripten/emsdk:latest"
-            output: "dist/blink/"
-            source: "blink.lock"
-            lock: "mise-tasks/build/fetch-blink.sh"
-            script: "mise-tasks/build/blink-wasm.sh"
-          -
-            component: "probe"
-            image: "rust:alpine"
-            output: "dist/guests/"
-            source: "guest/probe/**"
-            lock: "guest/probe/Cargo.lock"
-            script: "mise-tasks/build/guests.sh"
-          -
-            component: "guests"
-            image: "rust:alpine"
-            output: "dist/guests/"
-            source: "mise-tasks/build/guests.sh"
-            lock: "scripts/lib/container.sh"
-            script: "mise-tasks/build/guests.sh"
+          - component: 'wasm'
+            image: 'emscripten/emsdk:latest'
+            output: 'dist/blink/'
+            source: 'blink.lock'
+            lock: 'mise-tasks/build/fetch-blink.sh'
+            script: 'mise-tasks/build/blink-wasm.sh'
+          - component: 'probe'
+            image: 'rust:alpine'
+            output: 'dist/guests/'
+            source: 'guest/probe/**'
+            lock: 'guest/probe/Cargo.lock'
+            script: 'mise-tasks/build/guests.sh'
+          - component: 'guests'
+            image: 'rust:alpine'
+            output: 'dist/guests/'
+            source: 'mise-tasks/build/guests.sh'
+            lock: 'scripts/lib/container.sh'
+            script: 'mise-tasks/build/guests.sh'
     env:
-      FORMICARIUM_CONTAINER: "docker"
-      FORMICARIUM_EMSDK_IMAGE: "emscripten/emsdk:latest"
-      AUBE_REF: "v2.7.0"
-      PITCHFORK_REF: "v2.30.1"
+      FORMICARIUM_CONTAINER: 'docker'
+      FORMICARIUM_EMSDK_IMAGE: 'emscripten/emsdk:latest'
+      AUBE_REF: 'v2.7.0'
+      PITCHFORK_REF: 'v2.30.1'
     steps:
-      -
-        uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" # v7.0.1
+      - uses: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' # v7.0.1
         with:
-          ref: "${{ github.event.pull_request.head.sha || github.sha }}"
+          ref: '${{ github.event.pull_request.head.sha || github.sha }}'
           persist-credentials: false
-      -
-        uses: "oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6" # v2.2.0
+      - uses: 'oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6' # v2.2.0
         with:
-          bun-version: "latest"
+          bun-version: 'latest'
         if: "matrix.component != 'probe'"
-      -
-        run: "bun install --frozen-lockfile --ignore-scripts"
+      - run: 'bun install --frozen-lockfile --ignore-scripts'
         if: "matrix.component != 'probe'"
-      -
-        run: "bun add --dev --no-save --ignore-scripts @playwright/test@latest @biomejs/biome@latest typescript@latest"
+      - run: 'bun add --dev --no-save --ignore-scripts @playwright/test@latest @biomejs/biome@latest typescript@latest'
         if: "matrix.component != 'probe'"
-      -
-        run: "bun run --bun build"
+      - run: 'bun run --bun build'
         if: "matrix.component != 'probe'"
-      -
-        name: "Resolve current compiler images"
-        id: "build-image"
+      - name: 'Resolve current compiler images'
+        id: 'build-image'
         env:
-          BUILD_IMAGE: "${{ matrix.image }}"
-          COMPONENT: "${{ matrix.component }}"
+          BUILD_IMAGE: '${{ matrix.image }}'
+          COMPONENT: '${{ matrix.component }}'
         run: |-
           docker pull "$BUILD_IMAGE"
           printf 'digest=%s\n' "$(docker image inspect --format '{{.Id}}' "$BUILD_IMAGE")" >> "$GITHUB_OUTPUT"
@@ -136,23 +116,20 @@ jobs:
             digest=$(docker image inspect --format '{{.Id}}' rust:alpine node:current-alpine | sha256sum | cut -d ' ' -f 1)
             printf 'ui-digest=%s\n' "$digest" >> "$GITHUB_OUTPUT"
           fi
-      -
-        name: "Cache wasm or probe by compiler and build inputs"
+      - name: 'Cache wasm or probe by compiler and build inputs'
         if: "matrix.component != 'guests'"
-        id: "product-cache"
-        uses: "actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9" # v6.1.0
+        id: 'product-cache'
+        uses: 'actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9' # v6.1.0
         with:
-          path: "${{ matrix.output }}"
+          path: '${{ matrix.output }}'
           key: "product-${{ matrix.component }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.build-image.outputs.digest }}-${{ hashFiles(matrix.source, matrix.lock, matrix.script, 'scripts/lib/container.sh', 'scripts/lib/node.sh') }}"
-      -
-        name: "Fetch fixed core source input"
+      - name: 'Fetch fixed core source input'
         env:
-          FORMICARIUM_MODERNIZATION_INPUT_URL: "https://raw.githubusercontent.com/aletheia-works/formicarium/674a7f0a1b1736a2df61a994ab2dac29dddb8ace/modernization-inputs.tar.gz"
-          FORMICARIUM_MODERNIZATION_INPUT_SHA256: "0b074f0ebc170fbabed0fbe1d8bfad9628247a4131f78223db8c343412c38730"
-        run: "python3 scripts/ci/install-modernization-inputs.py"
+          FORMICARIUM_MODERNIZATION_INPUT_URL: 'https://raw.githubusercontent.com/aletheia-works/formicarium/674a7f0a1b1736a2df61a994ab2dac29dddb8ace/modernization-inputs.tar.gz'
+          FORMICARIUM_MODERNIZATION_INPUT_SHA256: '0b074f0ebc170fbabed0fbe1d8bfad9628247a4131f78223db8c343412c38730'
+        run: 'python3 scripts/ci/install-modernization-inputs.py'
         if: "matrix.component == 'wasm' && steps.product-cache.outputs.cache-hit != 'true'"
-      -
-        name: "Prepare locked core source"
+      - name: 'Prepare locked core source'
         run: |-
           mkdir -p .artifacts/ci-candidate
           cp .ci-inputs/payload/.artifacts/ci-candidate/core-source.bundle .artifacts/ci-candidate/
@@ -168,58 +145,48 @@ jobs:
           });
           JS
         if: "matrix.component == 'wasm' && steps.product-cache.outputs.cache-hit != 'true'"
-      -
-        name: "Build wasm from the locked source"
+      - name: 'Build wasm from the locked source'
         if: "matrix.component == 'wasm' && steps.product-cache.outputs.cache-hit != 'true'"
-        run: "bash mise-tasks/build/blink-wasm.sh"
-      -
-        name: "Build static Linux probe guests"
+        run: 'bash mise-tasks/build/blink-wasm.sh'
+      - name: 'Build static Linux probe guests'
         if: "matrix.component == 'probe' && steps.product-cache.outputs.cache-hit != 'true'"
-        run: "bash mise-tasks/build/guests.sh probe"
-      -
-        name: "Verify BSF natively before trusting wasm tests"
+        run: 'bash mise-tasks/build/guests.sh probe'
+      - name: 'Verify BSF natively before trusting wasm tests'
         if: "matrix.component == 'probe'"
-        run: "docker run --rm -v \"$PWD/dist/guests:/guests:ro\" rust:alpine /guests/probe bsf-zero"
-      -
-        name: "Restore aube by Rust compiler and its own build inputs"
+        run: 'docker run --rm -v "$PWD/dist/guests:/guests:ro" rust:alpine /guests/probe bsf-zero'
+      - name: 'Restore aube by Rust compiler and its own build inputs'
         if: "matrix.component == 'guests'"
-        id: "aube-cache"
-        uses: "actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9" # v6.1.0
+        id: 'aube-cache'
+        uses: 'actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9' # v6.1.0
         with:
-          path: "dist/guests/aube*"
+          path: 'dist/guests/aube*'
           key: "product-aube-${{ runner.os }}-${{ runner.arch }}-${{ steps.build-image.outputs.digest }}-${{ env.AUBE_REF }}-${{ hashFiles('mise-tasks/build/guests.sh', 'scripts/lib/container.sh') }}"
-      -
-        name: "Build static Linux aube"
+      - name: 'Build static Linux aube'
         if: "matrix.component == 'guests' && steps.aube-cache.outputs.cache-hit != 'true'"
-        run: "bash mise-tasks/build/guests.sh aube"
-      -
-        name: "Save aube before downstream work can fail"
+        run: 'bash mise-tasks/build/guests.sh aube'
+      - name: 'Save aube before downstream work can fail'
         if: "matrix.component == 'guests' && steps.aube-cache.outputs.cache-hit != 'true'"
-        uses: "actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9" # v6.1.0
+        uses: 'actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9' # v6.1.0
         with:
-          path: "dist/guests/aube*"
-          key: "${{ steps.aube-cache.outputs.cache-primary-key }}"
-      -
-        name: "Restore pitchfork by compilers, aube bytes and build inputs"
+          path: 'dist/guests/aube*'
+          key: '${{ steps.aube-cache.outputs.cache-primary-key }}'
+      - name: 'Restore pitchfork by compilers, aube bytes and build inputs'
         if: "matrix.component == 'guests'"
-        id: "pitchfork-cache"
-        uses: "actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9" # v6.1.0
+        id: 'pitchfork-cache'
+        uses: 'actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9' # v6.1.0
         with:
-          path: "dist/guests/pitchfork*"
+          path: 'dist/guests/pitchfork*'
           key: "product-pitchfork-${{ runner.os }}-${{ runner.arch }}-${{ steps.build-image.outputs.ui-digest }}-${{ env.PITCHFORK_REF }}-${{ hashFiles('dist/guests/aube', 'mise-tasks/build/guests.sh', 'scripts/lib/container.sh') }}"
-      -
-        name: "Build unpatched pitchfork with the latest UI Node"
+      - name: 'Build unpatched pitchfork with the latest UI Node'
         if: "matrix.component == 'guests' && steps.pitchfork-cache.outputs.cache-hit != 'true'"
-        run: "bash mise-tasks/build/guests.sh pitchfork"
-      -
-        name: "Save pitchfork before downstream tests can fail"
+        run: 'bash mise-tasks/build/guests.sh pitchfork'
+      - name: 'Save pitchfork before downstream tests can fail'
         if: "matrix.component == 'guests' && steps.pitchfork-cache.outputs.cache-hit != 'true'"
-        uses: "actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9" # v6.1.0
+        uses: 'actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9' # v6.1.0
         with:
-          path: "dist/guests/pitchfork*"
-          key: "${{ steps.pitchfork-cache.outputs.cache-primary-key }}"
-      -
-        name: "Verify reproducible native baselines"
+          path: 'dist/guests/pitchfork*'
+          key: '${{ steps.pitchfork-cache.outputs.cache-primary-key }}'
+      - name: 'Verify reproducible native baselines'
         run: |-
           cp fixtures/baseline/aube-1645.native.txt "$RUNNER_TEMP/aube.native.txt"
           cp fixtures/baseline/pitchfork-basic.native.txt "$RUNNER_TEMP/pitchfork.native.txt"
@@ -228,77 +195,65 @@ jobs:
           diff -u "$RUNNER_TEMP/aube.native.txt" fixtures/baseline/aube-1645.native.txt
           diff -u "$RUNNER_TEMP/pitchfork.native.txt" fixtures/baseline/pitchfork-basic.native.txt
         if: "matrix.component == 'guests'"
-      -
-        name: "Share compiled products with downstream jobs"
-        uses: "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9" # v7.0.2
+      - name: 'Share compiled products with downstream jobs'
+        uses: 'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9' # v7.0.2
         with:
-          name: "product-build-${{ matrix.component }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}"
-          path: "dist/"
+          name: 'product-build-${{ matrix.component }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}'
+          path: 'dist/'
           retention-days: 7
-          if-no-files-found: "error"
+          if-no-files-found: 'error'
   product-regression:
-    name: "Product (${{ matrix.suite }})"
-    runs-on: "ubuntu-latest"
+    name: 'Product (${{ matrix.suite }})'
+    runs-on: 'ubuntu-latest'
     needs:
-      - "product-build"
+      - 'product-build'
     timeout-minutes: 90
     strategy:
       fail-fast: false
       max-parallel: 4
       matrix:
         suite:
-          - "node"
-          - "chromium"
-          - "firefox"
-          - "webkit"
+          - 'node'
+          - 'chromium'
+          - 'firefox'
+          - 'webkit'
     steps:
-      -
-        uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" # v7.0.1
+      - uses: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' # v7.0.1
         with:
-          ref: "${{ github.event.pull_request.head.sha || github.sha }}"
+          ref: '${{ github.event.pull_request.head.sha || github.sha }}'
           persist-credentials: false
-      -
-        uses: "actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1" # v7.1.0
+      - uses: 'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1' # v7.1.0
         with:
-          node-version: "latest"
+          node-version: 'latest'
           check-latest: true
           package-manager-cache: false
         if: "matrix.suite == 'node'"
-      -
-        uses: "oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6" # v2.2.0
+      - uses: 'oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6' # v2.2.0
         with:
-          bun-version: "latest"
-      -
-        run: "bun install --frozen-lockfile --ignore-scripts"
-      -
-        run: "bun add --dev --no-save --ignore-scripts @playwright/test@latest @biomejs/biome@latest typescript@latest"
-      -
-        run: "bun run --bun build"
-      -
-        name: "Download products built by this source and run attempt"
-        uses: "actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333" # v8.0.2
+          bun-version: 'latest'
+      - run: 'bun install --frozen-lockfile --ignore-scripts'
+      - run: 'bun add --dev --no-save --ignore-scripts @playwright/test@latest @biomejs/biome@latest typescript@latest'
+      - run: 'bun run --bun build'
+      - name: 'Download products built by this source and run attempt'
+        uses: 'actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333' # v8.0.2
         with:
-          pattern: "product-build-*-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}"
-          path: "dist"
+          pattern: 'product-build-*-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}'
+          path: 'dist'
           merge-multiple: true
-      -
-        name: "Restore guest executable permissions"
-        run: "chmod +x dist/guests/probe dist/guests/hello dist/guests/exit3 dist/guests/aube dist/guests/pitchfork"
-      -
-        name: "Record resolved tools for this suite"
+      - name: 'Restore guest executable permissions'
+        run: 'chmod +x dist/guests/probe dist/guests/hello dist/guests/exit3 dist/guests/aube dist/guests/pitchfork'
+      - name: 'Record resolved tools for this suite'
         run: |-
           bun --version
           bun node_modules/@playwright/test/cli.js --version
           cat /etc/os-release
-      -
-        name: "Fetch fixed core source input"
+      - name: 'Fetch fixed core source input'
         env:
-          FORMICARIUM_MODERNIZATION_INPUT_URL: "https://raw.githubusercontent.com/aletheia-works/formicarium/674a7f0a1b1736a2df61a994ab2dac29dddb8ace/modernization-inputs.tar.gz"
-          FORMICARIUM_MODERNIZATION_INPUT_SHA256: "0b074f0ebc170fbabed0fbe1d8bfad9628247a4131f78223db8c343412c38730"
-        run: "python3 scripts/ci/install-modernization-inputs.py"
+          FORMICARIUM_MODERNIZATION_INPUT_URL: 'https://raw.githubusercontent.com/aletheia-works/formicarium/674a7f0a1b1736a2df61a994ab2dac29dddb8ace/modernization-inputs.tar.gz'
+          FORMICARIUM_MODERNIZATION_INPUT_SHA256: '0b074f0ebc170fbabed0fbe1d8bfad9628247a4131f78223db8c343412c38730'
+        run: 'python3 scripts/ci/install-modernization-inputs.py'
         if: "matrix.suite == 'node'"
-      -
-        name: "Prepare locked core source"
+      - name: 'Prepare locked core source'
         run: |-
           mkdir -p .artifacts/ci-candidate
           cp .ci-inputs/payload/.artifacts/ci-candidate/core-source.bundle .artifacts/ci-candidate/
@@ -314,69 +269,60 @@ jobs:
           });
           JS
         if: "matrix.suite == 'node'"
-      -
-        name: "Checkout the locked core for Node source checks"
+      - name: 'Checkout the locked core for Node source checks'
         if: "matrix.suite == 'node'"
-        run: "bash mise-tasks/build/fetch-blink.sh"
-      -
-        name: "Run product regression tests on Node"
-        run: "node --test --test-concurrency=1 tests/node/build.test.js tests/node/runner.test.js tests/node/probe.test.js tests/node/session.test.js tests/node/aube-1645.test.js tests/node/pitchfork-basic.test.js"
+        run: 'bash mise-tasks/build/fetch-blink.sh'
+      - name: 'Run product regression tests on Node'
+        run: 'node --test --test-concurrency=1 tests/node/build.test.js tests/node/runner.test.js tests/node/probe.test.js tests/node/session.test.js tests/node/aube-1645.test.js tests/node/pitchfork-basic.test.js'
         if: "matrix.suite == 'node'"
-      -
-        name: "Install only this latest Playwright browser"
+      - name: 'Install only this latest Playwright browser'
         if: "matrix.suite != 'node'"
         env:
-          BROWSER: "${{ matrix.suite }}"
-        run: "bunx --bun --no-install playwright install --with-deps \"$BROWSER\""
-      -
-        name: "Run this browser suite with one worker and no retries"
+          BROWSER: '${{ matrix.suite }}'
+        run: 'bunx --bun --no-install playwright install --with-deps "$BROWSER"'
+      - name: 'Run this browser suite with one worker and no retries'
         if: "matrix.suite != 'node'"
         env:
-          BROWSER: "${{ matrix.suite }}"
-        run: "bun run --bun test:browser -- --project \"$BROWSER\" --workers=1 --retries=0"
-      -
-        name: "Retain this suite diagnostics"
-        if: "always()"
-        uses: "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9" # v7.0.2
+          BROWSER: '${{ matrix.suite }}'
+        run: 'bun run --bun test:browser -- --project "$BROWSER" --workers=1 --retries=0'
+      - name: 'Retain this suite diagnostics'
+        if: 'always()'
+        uses: 'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9' # v7.0.2
         with:
-          name: "product-diagnostics-${{ matrix.suite }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}"
+          name: 'product-diagnostics-${{ matrix.suite }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}'
           path: |-
             playwright-report/
             test-results/
           retention-days: 7
-          if-no-files-found: "warn"
+          if-no-files-found: 'warn'
   product-tests:
-    if: "always()"
+    if: 'always()'
     needs:
-      - "product-build"
-      - "product-regression"
-    runs-on: "ubuntu-latest"
+      - 'product-build'
+      - 'product-regression'
+    runs-on: 'ubuntu-latest'
     timeout-minutes: 5
     steps:
-      -
-        name: "Require every product build, native baseline and matrix suite"
+      - name: 'Require every product build, native baseline and matrix suite'
         env:
-          BUILD_RESULT: "${{ needs.product-build.result }}"
-          REGRESSION_RESULT: "${{ needs.product-regression.result }}"
-        run: "test \"$BUILD_RESULT\" = success && test \"$REGRESSION_RESULT\" = success"
-      -
-        name: "Download products built by this source and run attempt"
-        uses: "actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333" # v8.0.2
+          BUILD_RESULT: '${{ needs.product-build.result }}'
+          REGRESSION_RESULT: '${{ needs.product-regression.result }}'
+        run: 'test "$BUILD_RESULT" = success && test "$REGRESSION_RESULT" = success'
+      - name: 'Download products built by this source and run attempt'
+        uses: 'actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333' # v8.0.2
         with:
-          pattern: "product-build-*-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}"
-          path: "dist"
+          pattern: 'product-build-*-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}'
+          path: 'dist'
           merge-multiple: true
-      -
-        name: "Restore guest executable permissions"
-        run: "chmod +x dist/guests/probe dist/guests/hello dist/guests/exit3 dist/guests/aube dist/guests/pitchfork"
-      -
-        name: "Retain complete compiled products for source-bound candidate inputs"
-        uses: "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9" # v7.0.2
+      - name: 'Restore guest executable permissions'
+        run: 'chmod +x dist/guests/probe dist/guests/hello dist/guests/exit3 dist/guests/aube dist/guests/pitchfork'
+      - name: 'Retain complete compiled products for source-bound candidate inputs'
+        uses: 'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9' # v7.0.2
         with:
-          name: "compiled-products-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}"
-          path: "dist/"
+          name: 'compiled-products-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}'
+          path: 'dist/'
           retention-days: 7
-          if-no-files-found: "error"
+          if-no-files-found: 'error'
   candidate-scope:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -417,82 +363,72 @@ jobs:
       source-sha: ${{ github.event.pull_request.head.sha || github.sha }}
       candidate-version: ${{ github.event_name == 'workflow_dispatch' && inputs.candidate-version || '' }}
   commit-format:
-    runs-on: "ubuntu-latest"
+    runs-on: 'ubuntu-latest'
     timeout-minutes: 10
     steps:
-      -
-        uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" # v7.0.1
+      - uses: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' # v7.0.1
         with:
-          ref: "${{ github.event.pull_request.head.sha || github.sha }}"
+          ref: '${{ github.event.pull_request.head.sha || github.sha }}'
           fetch-depth: 0
           persist-credentials: false
-      -
-        uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" # v7.0.1
+      - uses: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' # v7.0.1
         with:
           ref: "${{ github.event.pull_request.base.sha || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before) || github.sha }}"
-          path: ".trusted-base"
+          path: '.trusted-base'
           persist-credentials: false
-      -
-        uses: "oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6" # v2.2.0
+      - uses: 'oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6' # v2.2.0
         with:
-          bun-version: "latest"
-      -
-        name: "Load reviewed validator for the initial migration only"
+          bun-version: 'latest'
+      - name: 'Load reviewed validator for the initial migration only'
         if: "${{ (github.event.pull_request.base.sha || github.event.before) == '12a92eabf70f6772f11e33f698e3db5088992270' }}"
-        uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" # v7.0.1
+        uses: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' # v7.0.1
         with:
-          ref: "7fc23afedef9a2296cb24026c0f19998a6933da7"
-          path: ".trusted-bootstrap"
+          ref: '7fc23afedef9a2296cb24026c0f19998a6933da7'
+          path: '.trusted-bootstrap'
           persist-credentials: false
-      -
-        name: "Validate with trusted base rules"
+      - name: 'Validate with trusted base rules'
         env:
           BASE_SHA: "${{ github.event.pull_request.base.sha || github.event.before || '0000000000000000000000000000000000000000' }}"
-          HEAD_SHA: "${{ github.event.pull_request.head.sha || github.sha }}"
+          HEAD_SHA: '${{ github.event.pull_request.head.sha || github.sha }}'
           TRUSTED_VALIDATOR: "${{ (github.event.pull_request.base.sha || github.event.before) == '12a92eabf70f6772f11e33f698e3db5088992270' && '.trusted-bootstrap/scripts/ci/commit-format.ts' || '.trusted-base/scripts/ci/commit-format.ts' }}"
-        run: "bun \"$TRUSTED_VALIDATOR\" \"$BASE_SHA\" \"$HEAD_SHA\""
+        run: 'bun "$TRUSTED_VALIDATOR" "$BASE_SHA" "$HEAD_SHA"'
   ci-required:
-    if: "always()"
+    if: 'always()'
     needs:
-      - "quality"
-      - "product-tests"
-      - "commit-format"
-      - "candidate-scope"
-      - "release-candidate"
-    runs-on: "ubuntu-latest"
+      - 'quality'
+      - 'product-tests'
+      - 'commit-format'
+      - 'candidate-scope'
+      - 'release-candidate'
+    runs-on: 'ubuntu-latest'
     timeout-minutes: 5
     steps:
-      -
-        uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" # v7.0.1
+      - uses: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' # v7.0.1
         with:
-          ref: "${{ github.event.pull_request.head.sha || github.sha }}"
+          ref: '${{ github.event.pull_request.head.sha || github.sha }}'
           persist-credentials: false
-      -
-        uses: "oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6" # v2.2.0
+      - uses: 'oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6' # v2.2.0
         with:
-          bun-version: "latest"
-      -
-        name: "Record observed job outcomes"
+          bun-version: 'latest'
+      - name: 'Record observed job outcomes'
         env:
-          SOURCE_SHA: "${{ github.event.pull_request.head.sha || github.sha }}"
-          OBSERVED_JOBS: "${{ toJSON(needs) }}"
-        run: "bun scripts/ci/ordinary-receipt.ts"
-      -
-        uses: "actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9" # v7.0.2
+          SOURCE_SHA: '${{ github.event.pull_request.head.sha || github.sha }}'
+          OBSERVED_JOBS: '${{ toJSON(needs) }}'
+        run: 'bun scripts/ci/ordinary-receipt.ts'
+      - uses: 'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9' # v7.0.2
         with:
-          name: "ordinary-ci-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}"
-          path: ".artifacts/ordinary-ci/receipt.json"
+          name: 'ordinary-ci-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}'
+          path: '.artifacts/ordinary-ci/receipt.json'
           include-hidden-files: true
-          if-no-files-found: "error"
-      -
-        name: "Require successful quality, product and commit checks"
+          if-no-files-found: 'error'
+      - name: 'Require successful quality, product and commit checks'
         env:
-          QUALITY_RESULT: "${{ needs.quality.result }}"
-          PRODUCT_RESULT: "${{ needs.product-tests.result }}"
-          COMMIT_RESULT: "${{ needs.commit-format.result }}"
-          SCOPE_RESULT: "${{ needs.candidate-scope.result }}"
-          CANDIDATE_REQUIRED: "${{ needs.candidate-scope.outputs.required }}"
-          CANDIDATE_RESULT: "${{ needs.release-candidate.result }}"
+          QUALITY_RESULT: '${{ needs.quality.result }}'
+          PRODUCT_RESULT: '${{ needs.product-tests.result }}'
+          COMMIT_RESULT: '${{ needs.commit-format.result }}'
+          SCOPE_RESULT: '${{ needs.candidate-scope.result }}'
+          CANDIDATE_REQUIRED: '${{ needs.candidate-scope.outputs.required }}'
+          CANDIDATE_RESULT: '${{ needs.release-candidate.result }}'
         run: |
           test "$QUALITY_RESULT" = success && test "$COMMIT_RESULT" = success && test "$PRODUCT_RESULT" = success
           test "$SCOPE_RESULT" = success

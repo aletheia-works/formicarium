@@ -32,7 +32,14 @@ const field = (job: string, key: string) =>
     .exec(table.get(job) ?? '')?.[1]
     ?.trim() ?? null;
 const needsOf = (job: string) => {
-  const value = field(job, 'needs');
+  // Biome writes a long flow sequence over several lines under `needs:`.
+  const value =
+    field(job, 'needs') ??
+    /^ {4}needs:\n((?: {6}.+\n)+)/m
+      .exec(`${table.get(job) ?? ''}\n`)?.[1]
+      ?.replace(/\s+/g, '')
+      .replace(/,\]$/, ']') ??
+    null;
   if (!value) return [];
   return value.startsWith('[')
     ? value

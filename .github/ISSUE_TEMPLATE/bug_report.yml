@@ -1,10 +1,10 @@
 name: Bug report
 description: Report an observed problem with reproducible evidence
-title: "fix: "
+title: 'fix: '
 body:
   - type: markdown
     attributes:
-      value: "For security vulnerabilities, follow SECURITY.md instead of opening a public issue."
+      value: 'For security vulnerabilities, follow SECURITY.md instead of opening a public issue.'
   - type: textarea
     id: observed
     attributes:

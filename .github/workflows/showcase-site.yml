@@ -531,7 +531,16 @@ jobs:
           if-no-files-found: error
           path: showcase/site/.work/evidence/pre/
   deploy:
-    needs: [candidate, build, accept-chromium, accept-firefox, accept-webkit, coverage, evidence]
+    needs:
+      [
+        candidate,
+        build,
+        accept-chromium,
+        accept-firefox,
+        accept-webkit,
+        coverage,
+        evidence,
+      ]
     if: ${{ !cancelled() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && needs.candidate.result == 'success' && needs.build.result == 'success' && needs.accept-chromium.result == 'success' && needs.accept-firefox.result == 'success' && needs.accept-webkit.result == 'success' && needs.coverage.result == 'success' && needs.evidence.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -613,7 +622,21 @@ jobs:
           SHOWCASE_PAGE_URL: ${{ needs.deploy.outputs.page_url }}
         run: node showcase/site/scripts/post-deploy-check.ts
   summary:
-    needs: [changes, candidate, fetch-candidate, verify-pack, build, accept-chromium, accept-firefox, accept-webkit, coverage, evidence, deploy, verify-deployment]
+    needs:
+      [
+        changes,
+        candidate,
+        fetch-candidate,
+        verify-pack,
+        build,
+        accept-chromium,
+        accept-firefox,
+        accept-webkit,
+        coverage,
+        evidence,
+        deploy,
+        verify-deployment,
+      ]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -637,7 +660,21 @@ jobs:
         run: node showcase/site/scripts/summary.ts
   required:
     name: showcase-site-required
-    needs: [changes, candidate, fetch-candidate, verify-pack, build, accept-chromium, accept-firefox, accept-webkit, coverage, evidence, deploy, verify-deployment]
+    needs:
+      [
+        changes,
+        candidate,
+        fetch-candidate,
+        verify-pack,
+        build,
+        accept-chromium,
+        accept-firefox,
+        accept-webkit,
+        coverage,
+        evidence,
+        deploy,
+        verify-deployment,
+      ]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5

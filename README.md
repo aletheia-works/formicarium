@@ -26,7 +26,9 @@ const session = await createSession({ cwd: '/work', home: '/home/guest' });
 try {
   const result = await session.run({ guest: guestBytes, args: ['--version'] });
   console.log(result.exitCode, decodeUtf8(result.stdout));
-} finally { await session.dispose(); }
+} finally {
+  await session.dispose();
+}
 ```
 
 `guestBytes` is a caller-provided static ELF64 little-endian x86-64 Linux executable. Guests are distributed separately. Node requires version 24 or later. The browser entry is `@aletheia-works/formicarium/browser`; serve its Worker and assets on the same origin with `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`. Browsers require Worker, SharedArrayBuffer and cross-origin isolation. No service worker setup is included.
@@ -48,23 +50,35 @@ root export に次の API を加えている。0.3.0 の候補で、公開はrel
 ```js
 import { createSession } from '@aletheia-works/formicarium/node';
 import {
-  validateGuest, fixtureToFsEntries, runValidatedGuest,
-  registerValidatedGuest, decodeUtf8,
+  validateGuest,
+  fixtureToFsEntries,
+  runValidatedGuest,
+  registerValidatedGuest,
+  decodeUtf8,
 } from '@aletheia-works/formicarium';
 
 // expected は呼出し元の固定カタログから渡す。
 // { elfSha256, buildInfoSha256, identity: GuestBuildInfo }
 const guest = validateGuest(guestBytes, expected);
 const entries = fixtureToFsEntries([
-  { path: '/work/input', type: 'file', mode: 0o644,
-    inodeId: 'input', data: new TextEncoder().encode('example') },
+  {
+    path: '/work/input',
+    type: 'file',
+    mode: 0o644,
+    inodeId: 'input',
+    data: new TextEncoder().encode('example'),
+  },
 ]);
 const session = await createSession({ entries });
 try {
   await registerValidatedGuest(session, 'tool', guest);
-  const result = await runValidatedGuest(session, guest, { args: ['--version'] });
+  const result = await runValidatedGuest(session, guest, {
+    args: ['--version'],
+  });
   console.log(result.exitCode, decodeUtf8(result.stdout));
-} finally { await session.dispose(); }
+} finally {
+  await session.dispose();
+}
 ```
 
 `validateGuest` と `fixtureToFsEntries` は同期である。guest は static ELF64 little-endian x86-64 Linux で最大 128 MiB、canonical build metadata は最大 1 MiB。fixture は最大 4096 entries・合計 256 MiB・UTF-8 path 4096 bytes で、root からの逸脱、symlink loop、矛盾する hardlink を拒否する。guest・metadata・fixture の bytes は内部へ copy し、以後の入力の変更は実行に反映しない。handle の複製や、別の package instance で作った handle は `INVALID_INPUT` になる。
@@ -89,7 +103,6 @@ run・登録・FS 操作は session ごとに同じ排他を使い、競合は `
 [aletheia-works/blink](https://github.com/aletheia-works/blink)（`formicarium-wasm` ブランチ）を
 Emscripten で wasm にビルドし（インタプリタのみ、JIT なし）、static-musl の x86-64 バイナリを
 Node.js の Worker と、COOP/COEP 付きのブラウザページ（Chromium・Firefox・WebKit）で実行する。
-
 - 合否の判定：Rust の probe（`guest/probe/`）と、aube #1645 の再現（`fixtures/sessions/aube-1645.txt`）
 - 計測：aube の 4 コマンド（`--version`、初回 install、frozen install、list）の時間を CheerpX 1.3.9 と比べる
 - 結果：[`docs/results/`](docs/results/)（計測値は `README.md`、通らなかった項目と直したものは `failures.md`、
@@ -110,27 +123,27 @@ Node.js の Worker と、COOP/COEP 付きのブラウザページ（Chromium・F
 コアを「wasm モジュール 1 つ＋起動用の JS（Emscripten の MODULARIZE 形式）」として扱い、ブラウザ側と統合部分を
 コアから分けている。
 
-| 層 | 場所 | コアへの依存 |
-|---|---|---|
-| コアの記述子 | `runtime/core.js` | ここだけがコアを知る（ビルド物の場所、コマンドラインの組み立て方） |
-| 入出力の共通部 | `runtime/guest-io.js`、`runtime/session.js` | なし（Emscripten の FS API だけを使う） |
-| Node.js の実行環境 | `runtime/node/` | なし |
-| 配布用ブラウザAPI | `runtime/web/` | なし |
-| 検証用Web UI | `web/`、`scripts/serve.js` | なし |
-| コア（blink の fork） | `blink.lock` → `.vendor/blink` → `dist/blink/` | — |
+| 層                    | 場所                                           | コアへの依存                                                       |
+| --------------------- | ---------------------------------------------- | ------------------------------------------------------------------ |
+| コアの記述子          | `runtime/core.js`                              | ここだけがコアを知る（ビルド物の場所、コマンドラインの組み立て方） |
+| 入出力の共通部        | `runtime/guest-io.js`、`runtime/session.js`    | なし（Emscripten の FS API だけを使う）                            |
+| Node.js の実行環境    | `runtime/node/`                                | なし                                                               |
+| 配布用ブラウザAPI     | `runtime/web/`                                 | なし                                                               |
+| 検証用Web UI          | `web/`、`scripts/serve.js`                     | なし                                                               |
+| コア（blink の fork） | `blink.lock` → `.vendor/blink` → `dist/blink/` | —                                                                  |
 
 置き換えるときは、`runtime/core.ts` に paludarium の記述子を足し、`dist/` にそのビルド物を置く。
 
 ## 前提ツール
 
-| ツール | 用途 | 入手 |
-|---|---|---|
-| Bun latest | 開発依存の固定導入、開発task | `mise.toml`（`mise install`） |
-| Node.js latest | ランナー、consumer、Worker、テスト、計測 | `mise.toml`（`mise install`）。公開packageの対応範囲はNode >=24 |
-| Docker Desktop または wslc | blink の wasm ビルド、ゲストのビルド、native の基準値 | wslc（`C:\Program Files\WSL\wslc.exe`）を優先し、動かなければ docker を使う。`FORMICARIUM_CONTAINER` で指定もできる |
-| emsdk | ローカルでの Emscripten（`FORMICARIUM_BUILD=host` のとき） | `~/AppData/Local/emsdk`（Windows）または `~/emsdk`。`git clone https://github.com/emscripten-core/emsdk && ./emsdk install latest && ./emsdk activate latest` |
-| Git、Git Bash | スクリプトの実行（Windows） | — |
-| Playwright のブラウザ | ブラウザのテストと計測 | `mise run install-frozen` → `bun node_modules/@playwright/test/cli.js install chromium firefox webkit` |
+| ツール                     | 用途                                                       | 入手                                                                                                                                                          |
+| -------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bun latest                 | 開発依存の固定導入、開発task                               | `mise.toml`（`mise install`）                                                                                                                                 |
+| Node.js latest             | ランナー、consumer、Worker、テスト、計測                   | `mise.toml`（`mise install`）。公開packageの対応範囲はNode >=24                                                                                               |
+| Docker Desktop または wslc | blink の wasm ビルド、ゲストのビルド、native の基準値      | wslc（`C:\Program Files\WSL\wslc.exe`）を優先し、動かなければ docker を使う。`FORMICARIUM_CONTAINER` で指定もできる                                           |
+| emsdk                      | ローカルでの Emscripten（`FORMICARIUM_BUILD=host` のとき） | `~/AppData/Local/emsdk`（Windows）または `~/emsdk`。`git clone https://github.com/emscripten-core/emsdk && ./emsdk install latest && ./emsdk activate latest` |
+| Git、Git Bash              | スクリプトの実行（Windows）                                | —                                                                                                                                                             |
+| Playwright のブラウザ      | ブラウザのテストと計測                                     | `mise run install-frozen` → `bun node_modules/@playwright/test/cli.js install chromium firefox webkit`                                                        |
 
 Windows では、mise のツールは非対話シェルの PATH に載らない。`~/AppData/Local/mise/installs/<tool>/<version>/` の実体を直接呼ぶ。
 
@@ -155,15 +168,15 @@ commit形式は信頼済みbaseの`scripts/ci/commit-format.ts`で検査する�
 
 失敗時はlog、実行SHA、lock/toolchain、入力archive digestを確認し、新commit・新入力で再検証する。skip/cancel/pendingは成功へ置き換えない。入力がない状態で候補checkを成功扱いしない。公開や外向きpushは別承認を要する。実機Safariは未検証で、WebKit結果とは区別する。
 
-| 論理task | mise入口 | Bun scripts | 実行境界 |
-|---|---|---|---|
-| install-frozen | `mise run install-frozen` | `bun run install:frozen` | Bun latest、frozen、script無効 |
-| lint | `mise run check` | `bun run check` | Biome |
-| typecheck | `mise run typecheck` | `bun run typecheck` | TypeScript |
-| build | `mise run build` | `bun run build` | tscとBun emitter |
-| test-light | `mise run test-light` | `bun run test:light` | Bun unit/tooling＋Node consumer/publication |
-| test-consumer | `mise run test-consumer` | `bun run test:consumer` | Node consumer、別途資産準備 |
-| verify-candidate | `mise run verify-candidate` | `bun run verify:candidate` | Node/browser/nativeと固定80%coverage |
+| 論理task         | mise入口                    | Bun scripts                | 実行境界                                    |
+| ---------------- | --------------------------- | -------------------------- | ------------------------------------------- |
+| install-frozen   | `mise run install-frozen`   | `bun run install:frozen`   | Bun latest、frozen、script無効              |
+| lint             | `mise run check`            | `bun run check`            | Biome                                       |
+| typecheck        | `mise run typecheck`        | `bun run typecheck`        | TypeScript                                  |
+| build            | `mise run build`            | `bun run build`            | tscとBun emitter                            |
+| test-light       | `mise run test-light`       | `bun run test:light`       | Bun unit/tooling＋Node consumer/publication |
+| test-consumer    | `mise run test-consumer`    | `bun run test:consumer`    | Node consumer、別途資産準備                 |
+| verify-candidate | `mise run verify-candidate` | `bun run verify:candidate` | Node/browser/nativeと固定80%coverage        |
 
 すべてプロジェクトのルートで実行する。
 
@@ -194,7 +207,6 @@ bun node_modules/@playwright/test/cli.js install chromium firefox webkit
 
 `mise run fetch-blink` は `blink.lock` のコミットだけを `.vendor/blink` に取得する。fork と upstream の差分は
 `git -C .vendor/blink diff <upstream_commit> <commit>`（値は `blink.lock`）で一覧できる。
-
 - probe だけを作り直すときは `mise run build-guests probe`（1 分ほど）。aube は入力が変わらない限り作り直さなくてよい。
 - pitchfork だけを作るときは `mise run build-guests pitchfork`（初回は 35 分ほど）。公式リポジトリ（jdx/pitchfork）の
   タグ `v2.30.1` を取得し、コミットを `dist/guests/pitchfork.commit` に記録する（`PITCHFORK_REF` で変えられる）。
@@ -202,7 +214,7 @@ bun node_modules/@playwright/test/cli.js install chromium firefox webkit
     する。上流UIのNode実行には公式 `node:current-alpine` の最新系列を使う（`PITCHFORK_UI_NODE_IMAGE`で変更可能）
   - 上流ソースを修正せずにビルドする。ソース変更が残るキャッシュは拒否する
   - UI に使った node の版と UI 成果物の sha256 を `dist/guests/pitchfork.build-info` に記録する
-  ビルド後、`dist/guests/` のすべてのゲストが static な x86-64 の ELF であること（`PT_INTERP` がないこと）を確かめる。
+    ビルド後、`dist/guests/` のすべてのゲストが static な x86-64 の ELF であること（`PT_INTERP` がないこと）を確かめる。
 - ゲスト・環境変数・手順の一覧は `runtime/registry.ts` の 1 か所にある。ゲストを足すときは、そこに 1 行足し、
   `build-guests.sh` の対象・fixture・基準値・テストを足す。
 - `mise run native-baseline [<手順>] [--check-reproducible]` は、表の手順（既定は `aube-1645`）の基準値を作る。
@@ -225,7 +237,6 @@ bun node_modules/@playwright/test/cli.js install chromium firefox webkit
 ## 保守 workflow
 
 共通の保守は vivarium と同じ GitHub Actions の構成を使います。
-
 - `dependabot-auto-merge.yml`: `dependabot/fetch-metadata` で更新内容を読み、major 以外の更新は `gh pr merge --auto --squash` で予約します。main の required checks が成功し、branch protection の条件を満たしてから GitHub が統合します。major 更新は自動統合しません。
 - `lint-autofix.yml` / `lint-autofix-apply.yml`: 権限なしで Biome の修正 patch を作り、別 job が許可された既存ファイルの差分だけを確認して適用します。head が変わっていれば適用しません。適用先は同じ repository の PR に限ります。
 - `labeler.yml` / `.github/labeler.yml`: `actions/labeler` によるファイル分類と、既存 repository と同じ Conventional Commits の type label を使います。
@@ -308,10 +319,10 @@ Safari の代わりに Playwright の WebKit で確かめている。実機の S
 
 probe には、合格判定の 8 項目のほかに、引数で個別に指定したときだけ動く回帰用の項目がある。
 
-| 項目 | 確かめること |
-|---|---|
-| `futex-deadline` | `FUTEX_WAIT_BITSET` の絶対期限が、別の待ち手への wake で短くならない |
-| `page-fault-race` | 複数スレッドが同じ新しいページに同時に触れても、ページが混線しない |
+| 項目               | 確かめること                                                          |
+| ------------------ | --------------------------------------------------------------------- |
+| `futex-deadline`   | `FUTEX_WAIT_BITSET` の絶対期限が、別の待ち手への wake で短くならない  |
+| `page-fault-race`  | 複数スレッドが同じ新しいページに同時に触れても、ページが混線しない    |
 | `madvise-dontneed` | `madvise(MADV_DONTNEED)` の後、プライベートな匿名メモリがゼロで読める |
 
 2026-10-05 のクリーンビルドでの結果は、Node.js 41/41、ブラウザ 33/33、ブラウザの 3 回繰り返し 99/99。
@@ -351,7 +362,6 @@ aidlc/                AI-DLC の作業記録（要件、計画、レビュー、
 ## 既知の制約
 
 詳しくは [`docs/results/failures.md`](docs/results/failures.md) と [`OUTCOMES.md`](OUTCOMES.md) の 8 節。
-
 - 実機の Safari（macOS）では確かめていない。
 - 計測の条件が CheerpX とそろっていない（背面での計測をしていない。計測はこのノート PC 1 台だけ）。
 - WebKit は、まれに同じ処理が全体に遅くなる（不具合による停止ではなく、マシンの状態の影響と見ている）。
@@ -403,7 +413,6 @@ Artifacts include source SHA, run ID and attempt to keep reruns isolated.
 `mise tasks ls`で一覧を確認し、`mise run build-guests probe`のように引数を渡せる。
 固定依存の導入は `mise run install-frozen`（キャッシュなしは `--cacheless`）。
 通常の確認は `mise run check`、`mise run typecheck`、`mise run build`、`mise run test-light`。
-
 - `mise-tasks/`: 開発タスク、wasm・ゲストのビルド、ソース取得、native基準値作成、書き込み先調査。
 - `scripts/lib/`と`scripts/emscripten-env.sh`: 複数タスクから読み込むコンテナ・環境設定。単独実行するタスクにはしない。
 - `scripts/ci/`: 候補入力の検証・証拠収集。`tasks.ts`はキャッシュなし導入の引数検証と既存CIの入口に限定し、通常のmiseタスクはBunへ直接渡す。

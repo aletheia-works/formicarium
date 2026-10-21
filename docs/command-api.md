@@ -8,7 +8,10 @@
 
 ```js
 import { createSession } from '@aletheia-works/formicarium/node';
-import { createCommandSession, ExecutionError } from '@aletheia-works/formicarium';
+import {
+  createCommandSession,
+  ExecutionError,
+} from '@aletheia-works/formicarium';
 
 // catalogは呼出し元が用意した、固定URL・全digest・build情報を持つGuestCatalog。
 const session = await createSession();
@@ -50,14 +53,14 @@ browserではsessionのimportを `@aletheia-works/formicarium/browser` へ変更
 
 argv[0]の完全一致で振り分けます。
 
-| argv[0] | 受け付ける形 | 動作 |
-|---|---|---|
-| `ls` | `ls`、`ls path` | sessionの `listEntries` を1回。`-` で始まる引数と2個以上の引数は拒否 |
-| `cat` | `cat path` | fs予約を1回取り、原本bytesをstdoutへ |
-| `cd` | `cd path` | fs予約を1回取り、cwdを変更 |
-| `rm` | `rm -rf path` | fs予約を1回取り、削除。`rm -r -f`・`rm -fr`・`rm path` などは拒否 |
-| `install` | `install selection` | catalogのinstallを1回。URLは受け付けない（選択の規則はinstall API） |
-| それ以外 | `tool [args...]` | 登録済みのtoolを実行。未登録なら `NOT_FOUND` |
+| argv[0]   | 受け付ける形        | 動作                                                                 |
+| --------- | ------------------- | -------------------------------------------------------------------- |
+| `ls`      | `ls`、`ls path`     | sessionの `listEntries` を1回。`-` で始まる引数と2個以上の引数は拒否 |
+| `cat`     | `cat path`          | fs予約を1回取り、原本bytesをstdoutへ                                 |
+| `cd`      | `cd path`           | fs予約を1回取り、cwdを変更                                           |
+| `rm`      | `rm -rf path`       | fs予約を1回取り、削除。`rm -r -f`・`rm -fr`・`rm path` などは拒否    |
+| `install` | `install selection` | catalogのinstallを1回。URLは受け付けない（選択の規則はinstall API）  |
+| それ以外  | `tool [args...]`    | 登録済みのtoolを実行。未登録なら `NOT_FOUND`                         |
 
 `ls` `cat` `rm` `cd` `install` は予約名です。同じ名前のguestを登録できます（例えば `install ls@x` は `ls` というtoolを登録します）が、commandからは呼べず、`ls` は引き続きbuiltinとして動きます。`pwd` はbuiltinではなく、登録済みguestがなければ `NOT_FOUND` です。
 
@@ -89,7 +92,6 @@ installの成功時のstdoutは `installed <tool>@<versionOrName> (sha256 <diges
 `stdout` と `stderr` は、呼出しごとに新しい `Uint8Array` です。内部bufferやsessionのfileと共有しません。command APIは結果を切り詰めず、文字列へ変換せず、HTMLやcodeとして評価しません。
 
 次の条件は、command APIではなく埋め込むUI（U6・U8）の責任です。UI側の試験で確認します。
-
 - loading・empty・errorの表示の区別
 - keyboardでの操作
 - 進捗の「不明」（`totalBytes: null`）と「0」の区別
@@ -101,7 +103,6 @@ command APIは `Progress` をinstallから変えずに中継し、`OutputChunk` 
 ## 正式受入（U4とB1）の手順
 
 U4の正式受入とB1の正式な行（`b1.formal: true`）は、mainのcommitに対する手動のCI 1回と、その観測から作ります。基準（install 180秒、非downloadの中央値3000ms、probe 600秒、aube 840秒、1 worker、retry 0、配布JS 23件の行coverage 80%、wasm 1GB）は、既存のcodeと設定のまま使い、workflowでは変えません。
-
 1. 入力：`ci/migration-command/inputs.json` が、3つの入力の取得元・size・SHA256・置き場所を固定します。`aube.tar.gz` と `biome.elf` は、`docs/results/terrarium-migration-preflight-evidence/mirror-input.json` の公式のrelease URLです。`actual-site-v2.tar.gz` は、prereleaseのRelease（tag `migration-inputs-actual-site-v2`）の資産です。`node scripts/migration-command/acceptance-inputs.js restore ci/migration-command/inputs.json` が、すべてを照合してから置き、actual-siteを `.artifacts/migration-install/actual-site` に戻します。既存のfileは上書きしません（同じbytesなら使い、違えば止まります）。
 2. CI：`.github/workflows/migration-acceptance.yml` を、mainで手動実行（`workflow_dispatch`）します。権限は `contents: read` だけで、secretsは使いません。jobは、このcommitから候補を作り、job専用のlocalhost CAで信頼を用意し、`FORMICARIUM_COMMAND_LOCAL_ONLY=1` でU4の完了確認を1回流します。結果は2つのartifact（候補・報告と、生log・計測）に、保持期間7日で残ります。
 3. 観測：run完了の直後に、`mise run migration-command-observe <run-id> <40桁のcommit>` を実行します（tokenは環境変数 `GITHUB_TOKEN` か `GH_TOKEN` から読み、fileとlogには書きません）。runの結果・workflowのpath・event・branch・head・repository、commitの署名、jobの結果、artifactのdigestを確かめ、`.artifacts/migration-command/ci-<run-id>/` にRESTの応答・ZIP・`observed-ci-summary.json` を残します。

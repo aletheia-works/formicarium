@@ -35,17 +35,17 @@ fixture の共有は `scripts/boundary.ts` と Biome の `noRestrictedImports` �
 
 ## 流れ
 
-| 工程 | script | 内容 |
-|---|---|---|
-| mode | `scripts/mode.ts` | `verify`（既定）か `distribute`。`distribute` は main の U8 workflow（main への `push`・`workflow_dispatch`）からの呼出しだけ |
-| 解決 | `scripts/resolve.ts` | `releases/latest`（draft・prerelease を除く）、annotated tag を辿った 40 桁の commit、資産の digest・size・URL、license。`resolutions.json` に 1 回だけ書く |
-| pack | `scripts/pack.ts` | `verify`：同じ commit を本体の stager と `npm pack` で包む。`distribute`：`b1-pack.json` の Release の pack と C06 の証拠を取得し `packSha256` を照合 |
-| 取得 | `scripts/acquire.ts` | C11 の規則（HTTPS、credential なし、redirect 5 hop、120 s、128 MiB）で取得し、SHA256・size を照合、tar.gz を検査、公開 `validateGuest` で検証 |
-| source build | `scripts/build.ts`、`builders/cargo.sh` | `prepare`：tag と commit の一致、codeload の source、toolchain の選択、buildKey。`compile`：token なしの独立した process group で build |
-| 再利用 | `scripts/reuse.ts` | main の信頼した workflow の成功 run の `showcase-candidate` から、buildKey・ELF・build-info を照合して再利用 |
-| catalog | `scripts/catalog.ts` | C04 `GuestCatalog`（same-origin の相対 URL）。公開 `createInstaller` で受理を確かめる |
-| 受入 | `scripts/accept-node.ts`、`tests/accept.spec.ts` | `install <tool>` と `<tool> --version`。3 ツール × Node・Chromium・Firefox・WebKit の 12 行 |
-| 候補 | `scripts/candidate.ts` | 12 行がすべて合格したときだけ manifest を作る。`verify` は常に `distributable: false` |
+| 工程         | script                                           | 内容                                                                                                                                                        |
+| ------------ | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| mode         | `scripts/mode.ts`                                | `verify`（既定）か `distribute`。`distribute` は main の U8 workflow（main への `push`・`workflow_dispatch`）からの呼出しだけ                               |
+| 解決         | `scripts/resolve.ts`                             | `releases/latest`（draft・prerelease を除く）、annotated tag を辿った 40 桁の commit、資産の digest・size・URL、license。`resolutions.json` に 1 回だけ書く |
+| pack         | `scripts/pack.ts`                                | `verify`：同じ commit を本体の stager と `npm pack` で包む。`distribute`：`b1-pack.json` の Release の pack と C06 の証拠を取得し `packSha256` を照合       |
+| 取得         | `scripts/acquire.ts`                             | C11 の規則（HTTPS、credential なし、redirect 5 hop、120 s、128 MiB）で取得し、SHA256・size を照合、tar.gz を検査、公開 `validateGuest` で検証               |
+| source build | `scripts/build.ts`、`builders/cargo.sh`          | `prepare`：tag と commit の一致、codeload の source、toolchain の選択、buildKey。`compile`：token なしの独立した process group で build                     |
+| 再利用       | `scripts/reuse.ts`                               | main の信頼した workflow の成功 run の `showcase-candidate` から、buildKey・ELF・build-info を照合して再利用                                                |
+| catalog      | `scripts/catalog.ts`                             | C04 `GuestCatalog`（same-origin の相対 URL）。公開 `createInstaller` で受理を確かめる                                                                       |
+| 受入         | `scripts/accept-node.ts`、`tests/accept.spec.ts` | `install <tool>` と `<tool> --version`。3 ツール × Node・Chromium・Firefox・WebKit の 12 行                                                                 |
+| 候補         | `scripts/candidate.ts`                           | 12 行がすべて合格したときだけ manifest を作る。`verify` は常に `distributable: false`                                                                       |
 
 toolchain は upstream の宣言（`rust-toolchain.toml`・`rust-toolchain`、UI の
 Node は `.node-version`・`mise.toml`・`.tool-versions` の正確な版）に従い、
@@ -109,7 +109,6 @@ prerelease の [`b1-a3370ca4df1f`](https://github.com/aletheia-works/formicarium
 中の版の番号は `0.3.0` だが、npm の 0.3.0 とは中身が違う）。`b1-pack.json` が
 `null` のときは、`distribute` は `b1-pack-unavailable` で失敗する。Release は、
 人間が対象（pack・C06 の証拠・その SHA256）を承認した後にだけ作る。
-
 1. B1 受入で固定した pack と C06 `ApiAcceptance` の JSON を用意し、SHA256 を確かめる。
 2. prerelease の `b1-<packSha256 の先頭 12 桁>` を作り、2 つの資産と SHA256 の一覧を上げる。
    上書きと削除はしない。

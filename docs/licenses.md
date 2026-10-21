@@ -5,13 +5,13 @@
 
 ## 対象
 
-| 項目 | 内容 |
-|---|---|
-| fork 元 | [jart/blink](https://github.com/jart/blink)（これ以外の fork は使わない。webix・portabox・lanmower/blink は使わない） |
-| fork | [aletheia-works/blink](https://github.com/aletheia-works/blink) の `formicarium-wasm` ブランチ |
-| 固定するコミット | `blink.lock` の `commit`（upstream の基点は `upstream_commit`） |
-| blink のライセンス | ISC License（`LICENSE`、Copyright 2022 Justine Alexandra Roberts Tunney） |
-| formicarium のライセンス | Apache License 2.0（`LICENSE`） |
+| 項目                     | 内容                                                                                                                  |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| fork 元                  | [jart/blink](https://github.com/jart/blink)（これ以外の fork は使わない。webix・portabox・lanmower/blink は使わない） |
+| fork                     | [aletheia-works/blink](https://github.com/aletheia-works/blink) の `formicarium-wasm` ブランチ                        |
+| 固定するコミット         | `blink.lock` の `commit`（upstream の基点は `upstream_commit`）                                                       |
+| blink のライセンス       | ISC License（`LICENSE`、Copyright 2022 Justine Alexandra Roberts Tunney）                                             |
+| formicarium のライセンス | Apache License 2.0（`LICENSE`）                                                                                       |
 
 ## 確認したこと
 

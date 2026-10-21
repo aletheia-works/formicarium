@@ -18,14 +18,19 @@ URL は同一 origin と base path の配下に限定し、dot traversal/encoded
 
 ```json
 {
-  "tools": { "aube": { "default": "main", "fixture": "seed", "cwd": "/work/app" } },
+  "tools": {
+    "aube": { "default": "main", "fixture": "seed", "cwd": "/work/app" }
+  },
   "manifest": { "builds": {} },
-  "builds": [{
-    "tool": "aube", "ref": "registered-ref",
-    "guestPath": "verified-guest",
-    "buildInfoPath": "verified-provenance.json",
-    "fixturePaths": { "seed": "fixture.json" }
-  }]
+  "builds": [
+    {
+      "tool": "aube",
+      "ref": "registered-ref",
+      "guestPath": "verified-guest",
+      "buildInfoPath": "verified-provenance.json",
+      "fixturePaths": { "seed": "fixture.json" }
+    }
+  ]
 }
 ```
 

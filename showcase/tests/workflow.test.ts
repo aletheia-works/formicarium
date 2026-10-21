@@ -108,9 +108,9 @@ test('actions are pinned by commit SHA and match the versions ci.yml uses', () =
       uses.filter((use) => use[1] === action).map((use) => use[2]),
     );
     const theirs = new Set(
-      [...ci.matchAll(new RegExp(`uses: "?${action}@([a-f0-9]{40})`, 'g'))].map(
-        (match) => match[1],
-      ),
+      [
+        ...ci.matchAll(new RegExp(`uses: ["']?${action}@([a-f0-9]{40})`, 'g')),
+      ].map((match) => match[1]),
     );
     assert.equal(ours.size, 1, action);
     assert.deepEqual(ours, theirs, action);

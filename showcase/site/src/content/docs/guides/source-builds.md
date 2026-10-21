@@ -1,4 +1,5 @@
 ---
+
 title: Source builds
 description: How the showcase chooses, acquires and builds its guests.
 ---
@@ -8,7 +9,6 @@ The showcase tools are defined in
 Each run of `showcase.yml` resolves the latest stable release of every tool
 once, from the tag pattern of its repository, and keeps that tag and its full
 commit for the rest of the run.
-
 - **Release assets.** aube and Biome publish static x86-64 musl binaries. The
   showcase downloads the release asset, checks the published SHA256 and size,
   and validates the ELF with the public `validateGuest`.

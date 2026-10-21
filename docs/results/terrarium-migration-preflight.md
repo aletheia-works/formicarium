@@ -8,14 +8,14 @@
 
 保存済みの原36行と official/mirror 入力38ファイルは [証拠 inventory](terrarium-migration-preflight-evidence/inventory.json) に SHA とともに列挙した。main がコピー後の byte 一致を検証済み。初回・中央値・最大・fetch の集計もこの incomplete report に保持する。
 
-| ツール | ブラウザ | 非ダウンロード工程の warm 中央値 ms |
-|---|---|---:|
-| aube 2.7.0 | Chromium | 493.185 |
-| aube 2.7.0 | Firefox | 525.5 |
-| aube 2.7.0 | WebKit | 482.66 |
-| Biome 2.5.15 | Chromium | 586.625 |
-| Biome 2.5.15 | Firefox | 710.3 |
-| Biome 2.5.15 | WebKit | 479.74 |
+| ツール       | ブラウザ | 非ダウンロード工程の warm 中央値 ms |
+| ------------ | -------- | ----------------------------------: |
+| aube 2.7.0   | Chromium |                             493.185 |
+| aube 2.7.0   | Firefox  |                               525.5 |
+| aube 2.7.0   | WebKit   |                              482.66 |
+| Biome 2.5.15 | Chromium |                             586.625 |
+| Biome 2.5.15 | Firefox  |                               710.3 |
+| Biome 2.5.15 | WebKit   |                              479.74 |
 
 中央値は trial 1–5 の extract/digest/validate/register/run の合計から算出し、すべて3000ms以下。trial 0、最大値、fetch の個別時間、出力 digest、ブラウザ版、TLS 情報は各原 JSON に保持する。測定は非 instrumented の経路で、新 context と新 session を毎試行作成し、fetch と server は no-store とした。
 
@@ -25,14 +25,14 @@
 
 公式 release の公開 URL と raw digest は元入力・ミラー inventory に保持している。ミラーの fetch 時間は localhost での取得時間であり、上流からのダウンロード時間ではない。
 
-| 入力 | 固定 identity |
-|---|---|
-| aube | 2.7.0 / `d36fec01764689ef6d99a5e43de98925b571d67f` |
-| aube archive SHA256 | `fc2384d58c560415f6afdfdc7c0f2d10b10f464da608bf1d8be5c8936db68666` |
-| aube ELF SHA256 | `c7d7d13692d01c5f6adc5511c40adc6b3769080b7c433b44c411a3e52ebcd99e` |
-| Biome release | 2.5.15 / `0b4c11f553a7e702f9851af139662e1de45dc131` |
-| Biome raw/ELF SHA256 | `42b6fd3662fc1fc3075a370414478aa3ed82fd43d28430bbfb81ebd02cbde656` |
-| 別の CI baseline 対象 | biomejs/biome `2405c7620169bd0719166af09a8d89cc76fb37fb` |
+| 入力                  | 固定 identity                                                      |
+| --------------------- | ------------------------------------------------------------------ |
+| aube                  | 2.7.0 / `d36fec01764689ef6d99a5e43de98925b571d67f`                 |
+| aube archive SHA256   | `fc2384d58c560415f6afdfdc7c0f2d10b10f464da608bf1d8be5c8936db68666` |
+| aube ELF SHA256       | `c7d7d13692d01c5f6adc5511c40adc6b3769080b7c433b44c411a3e52ebcd99e` |
+| Biome release         | 2.5.15 / `0b4c11f553a7e702f9851af139662e1de45dc131`                |
+| Biome raw/ELF SHA256  | `42b6fd3662fc1fc3075a370414478aa3ed82fd43d28430bbfb81ebd02cbde656` |
+| 別の CI baseline 対象 | biomejs/biome `2405c7620169bd0719166af09a8d89cc76fb37fb`           |
 
 release-derived metadata の rustc は null で、上流ビルド入力は未検証と明記した。aube は既存ローカル archive の SHA 一致から再利用、Biome は検査した HTTPS hop による取得。署名 query は保存していない。
 

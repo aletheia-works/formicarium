@@ -1,4 +1,5 @@
 # Outcomes Pack
+
 **Scope**: poc
 **Stages delivered**: 7 approved / 7 total
 **Duration**: 2096 min
@@ -19,24 +20,24 @@ formicarium の PoC（ワークフロー `261003-blink-wasm-poc`）の引き継�
 
 ### 作ったもの
 
-| 部分 | 内容 |
-|---|---|
-| blink の fork | `aletheia-works/blink` の `formicarium-wasm` ブランチ。upstream（`f006a4f`）に 5 コミットを追加した（下の表） |
-| 実行環境 | `runtime/`：コアに依存しない入出力の共通部、Node.js の Worker 版ランナー、ブラウザのページと Worker、COOP/COEP 用の service worker |
-| ゲスト | `guest/probe/`：合格判定用の Rust probe（8 項目と、回帰用の 3 項目）。hello・exit3（ランナーの試験用）。aube v2.6.1（static-musl） |
-| ビルドと計測のスクリプト | `scripts/`：blink の取得とビルド、ゲストのビルド、native の基準値、計測 |
-| テスト | `tests/node/`（`node --test`）、`tests/browser/`（Playwright） |
-| 結果の記録 | `docs/results/`：計測値、CheerpX との比較、通らなかった項目と直したもの、JIT の判断材料 |
+| 部分                     | 内容                                                                                                                               |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| blink の fork            | `aletheia-works/blink` の `formicarium-wasm` ブランチ。upstream（`f006a4f`）に 5 コミットを追加した（下の表）                      |
+| 実行環境                 | `runtime/`：コアに依存しない入出力の共通部、Node.js の Worker 版ランナー、ブラウザのページと Worker、COOP/COEP 用の service worker |
+| ゲスト                   | `guest/probe/`：合格判定用の Rust probe（8 項目と、回帰用の 3 項目）。hello・exit3（ランナーの試験用）。aube v2.6.1（static-musl） |
+| ビルドと計測のスクリプト | `scripts/`：blink の取得とビルド、ゲストのビルド、native の基準値、計測                                                            |
+| テスト                   | `tests/node/`（`node --test`）、`tests/browser/`（Playwright）                                                                     |
+| 結果の記録               | `docs/results/`：計測値、CheerpX との比較、通らなかった項目と直したもの、JIT の判断材料                                            |
 
 **fork に追加したコミット**（`blink.lock` は `4b5c67d5` を指す）
 
-| コミット | 内容 |
-|---|---|
+| コミット  | 内容                                                                                                                                                                                      |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `817687f` | Emscripten の pthread で動かす。eventfd2・epoll・socketpair・pipe のエミュレート（`blink/emufd.c`）、futex の bitset、MEMFS への hard link と flock の追加（`blink/emscriptenfs.{c,js}`） |
-| `50bc466` | aube を動かす中で見つけた不具合の修正（PEXTRW、float→int 変換、wasm32 での LOCK BTS のデッドロック、ファイルの mmap の高速化）。ブラウザ版ではネットワークを使わない |
-| `247610f` | 終了処理の修正（終了するスレッドを待つ、実行時と Worker を止める） |
-| `7e1d743` | Loop-back 1：futex の期限の修正、非線形メモリでのページ管理表の競合の修正 |
-| `4b5c67d` | `madvise(MADV_DONTNEED)` で、プライベートな匿名メモリをゼロにする |
+| `50bc466` | aube を動かす中で見つけた不具合の修正（PEXTRW、float→int 変換、wasm32 での LOCK BTS のデッドロック、ファイルの mmap の高速化）。ブラウザ版ではネットワークを使わない                      |
+| `247610f` | 終了処理の修正（終了するスレッドを待つ、実行時と Worker を止める）                                                                                                                        |
+| `7e1d743` | Loop-back 1：futex の期限の修正、非線形メモリでのページ管理表の競合の修正                                                                                                                 |
+| `4b5c67d` | `madvise(MADV_DONTNEED)` で、プライベートな匿名メモリをゼロにする                                                                                                                         |
 
 ### 主な技術判断
 
@@ -49,15 +50,15 @@ formicarium の PoC（ワークフロー `261003-blink-wasm-poc`）の引き継�
 
 ### 技術スタックと版
 
-| 項目 | 版 |
-|---|---|
-| Node.js | 24（`mise.toml`。検証は 24.21.0） |
-| Emscripten | 6.0.10（コンテナ `emscripten/emsdk:6.0.10`） |
-| Rust | stable、ターゲット `x86_64-unknown-linux-musl`（コンテナ `rust:alpine`） |
+| 項目       | 版                                                                                  |
+| ---------- | ----------------------------------------------------------------------------------- |
+| Node.js    | 24（`mise.toml`。検証は 24.21.0）                                                   |
+| Emscripten | 6.0.10（コンテナ `emscripten/emsdk:6.0.10`）                                        |
+| Rust       | stable、ターゲット `x86_64-unknown-linux-musl`（コンテナ `rust:alpine`）            |
 | Playwright | `@playwright/test` ^1.55.0（検証は 1.63.0。Chromium 153、Firefox 155、WebKit 26.6） |
-| aube | v2.6.1（`bd94e42f`） |
-| blink | `aletheia-works/blink@4b5c67d5`（upstream `jart/blink@f006a4f`） |
-| コンテナ | Docker Desktop（wslc が使えない場合） |
+| aube       | v2.6.1（`bd94e42f`）                                                                |
+| blink      | `aletheia-works/blink@4b5c67d5`（upstream `jart/blink@f006a4f`）                    |
+| コンテナ   | Docker Desktop（wslc が使えない場合）                                               |
 
 ## 2. Repository Structure
 
@@ -97,7 +98,6 @@ formicarium/
 ## 3. Setup Guide
 
 詳しい手順は `README.md` にある。要点は次のとおり。
-
 - **前提**：Node.js 24、Docker Desktop（または wslc）、Git と Git Bash（Windows）、Playwright のブラウザ。Windows の非対話シェルでは mise のツールが PATH に載らないので、`~/AppData/Local/mise/installs/<tool>/<version>/` の実体を直接呼ぶ。
 - **手順**（プロジェクトのルートで）
 
@@ -123,13 +123,12 @@ npx playwright test tests/browser/probe.spec.mjs tests/browser/aube-1645.spec.mj
 - **ビルド**：上の Setup Guide のとおり。`dist/blink/build-info.json` の `blinkCommit` が `blink.lock` と一致し、`blinkSourceDirty` が `false` であることを `build.test.mjs` が確かめる。
 - **最終の検証結果**（2026-10-05、クリーンビルド。証拠は `aidlc/.../construction/build-and-test/madvise/clean-*.txt`）
 
-| 実行 | 結果 |
-|---|---|
-| Node.js の 5 ファイル | 41/41 合格 |
-| ブラウザ（3 種） | 33/33 合格 |
-| ブラウザの 3 回繰り返し | 99/99 合格 |
+| 実行                                     | 結果           |
+| ---------------------------------------- | -------------- |
+| Node.js の 5 ファイル                    | 41/41 合格     |
+| ブラウザ（3 種）                         | 33/33 合格     |
+| ブラウザの 3 回繰り返し                  | 99/99 合格     |
 | Node.js の probe と aube の 3 回繰り返し | 18/18 × 3 合格 |
-
 - **計測**：`node scripts/measure-aube.mjs --trials 10`。ほかの重い処理を止めて実行する。
 - **デプロイ**：この範囲（`poc`）には含まれない。IaC もない。ブラウザ版は静的ファイルと service worker だけで動く設計なので、GitHub Pages のような静的ホスティングに置ける想定（未検証）。
 - **fork を直すとき**：`.vendor/blink-src` で jj を使って修正し、`BLINK_SRC=.vendor/blink-src` でビルドして試す。公開するときは新しいコミットとして push し、`blink.lock` を更新してクリーンビルドする。公開済みのコミットに変更が混ざらないよう注意する（`aidlc/.../construction/build-and-test/build-instructions.md`）。
@@ -138,18 +137,18 @@ npx playwright test tests/browser/probe.spec.mjs tests/browser/aube-1645.spec.mj
 
 各決定の背景・結果・退けた案は、1 件 1 ファイルの ADR として [`docs/decisions/`](docs/decisions/) にある。下の表はその要約。
 
-| 決定 | 検討した代わりの案 | 選んだ理由 |
-|---|---|---|
-| jart/blink の fork を使う（Rust 版は別リポジトリで並行開発） | 最初から Rust 版を作る | まず既存の blink で実現性を確かめるため（`aidlc/spaces/default/memory/project.md`） |
-| fork 元は jart/blink に限る | webix、portabox、lanmower/blink | 後者にはマルウェア混入の履歴がある |
-| インタプリタのみ（JIT なし） | JIT も作る | PoC の範囲を絞るため。JIT は計測の後に判断（→ 後回しに決定） |
-| blink のビルドはコンテナで行う | Windows のローカルの emsdk | `emconfigure ./configure` が WinError 193 で止まり、GNU make もないため |
-| MEMFS を拡張する | blink の VFS（`--enable-vfs`） | hostfs が Emscripten 上で `linkat` と `flock` を扱えないため |
-| ブラウザ版はネットワークなし | Emscripten の WebSocket 中継 | 依存（`ws`）が増え、native の基準値と条件がそろわないため |
-| 手順ごとに blink を起動し直す | 1 つのインスタンスを使い回す | 実装を単純に保つため。起動の固定費 0.3〜0.5 秒が残る |
-| `Atomics.waitAsync` を無効にする（全ブラウザ） | WebKit だけで無効にする | WebKit で通知が取りこぼされた。Chromium と Firefox では速さの差がない（各 12 回・14 回、p ≥ 0.18）ので、分岐させない |
-| wasm メモリの上限 1 GB | 4 GB | WebKit がインスタンスごとに上限までコミットするため。aube と probe は 1 GB で動く |
-| 計測にホストの速さを添える | 回数を増やすだけ | このマシンでは同じ計算の時間が最大 2.4 倍変わるため |
+| 決定                                                         | 検討した代わりの案              | 選んだ理由                                                                                                           |
+| ------------------------------------------------------------ | ------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| jart/blink の fork を使う（Rust 版は別リポジトリで並行開発） | 最初から Rust 版を作る          | まず既存の blink で実現性を確かめるため（`aidlc/spaces/default/memory/project.md`）                                  |
+| fork 元は jart/blink に限る                                  | webix、portabox、lanmower/blink | 後者にはマルウェア混入の履歴がある                                                                                   |
+| インタプリタのみ（JIT なし）                                 | JIT も作る                      | PoC の範囲を絞るため。JIT は計測の後に判断（→ 後回しに決定）                                                         |
+| blink のビルドはコンテナで行う                               | Windows のローカルの emsdk      | `emconfigure ./configure` が WinError 193 で止まり、GNU make もないため                                              |
+| MEMFS を拡張する                                             | blink の VFS（`--enable-vfs`）  | hostfs が Emscripten 上で `linkat` と `flock` を扱えないため                                                         |
+| ブラウザ版はネットワークなし                                 | Emscripten の WebSocket 中継    | 依存（`ws`）が増え、native の基準値と条件がそろわないため                                                            |
+| 手順ごとに blink を起動し直す                                | 1 つのインスタンスを使い回す    | 実装を単純に保つため。起動の固定費 0.3〜0.5 秒が残る                                                                 |
+| `Atomics.waitAsync` を無効にする（全ブラウザ）               | WebKit だけで無効にする         | WebKit で通知が取りこぼされた。Chromium と Firefox では速さの差がない（各 12 回・14 回、p ≥ 0.18）ので、分岐させない |
+| wasm メモリの上限 1 GB                                       | 4 GB                            | WebKit がインスタンスごとに上限までコミットするため。aube と probe は 1 GB で動く                                    |
+| 計測にホストの速さを添える                                   | 回数を増やすだけ                | このマシンでは同じ計算の時間が最大 2.4 倍変わるため                                                                  |
 
 制約：テストの方針は test-after（`poc` の既定）。品質の目標（タイムアウトの上限、worker 1、retries 0、全 8 項目の合格、aube の native 一致、既存テストの失敗 0）は、一度も緩めていない。
 
@@ -157,17 +156,17 @@ npx playwright test tests/browser/probe.spec.mjs tests/browser/aube-1645.spec.mj
 
 このプロジェクトでは、AGENTS.md の方針で `aidlc/` の記録（状態、監査ログ、証拠を含む）もリポジトリにコミットしている。下の表は、そのうえでの扱いの提案。
 
-| Artifact | Action | Destination |
-|----------|--------|-------------|
-| `docs/results/`（計測、failures、jit-decision） | Already committed | — |
-| 設計上の決定（ADR、12 件） | 作成済み（2026-10-05） | `docs/decisions/` |
-| アーキテクチャの要約（1 ページ） | 作成済み（2026-10-05） | `docs/architecture.md` |
-| 品質目標の判定表 | 作成済み（2026-10-05） | `docs/nfr-summary.md` |
-| `<record>/audit/*.md` | 現状はコミット済み（AGENTS.md の方針）。アプリのリポジトリから外すなら、記録の保管先へ移す | 記録の保管先 |
-| `<record>/construction/**/` の診断ログ（`loopback1-*`、`ab-l3/` など） | 証拠としてコミット済み。容量が気になれば保管先へ移す | 記録の保管先 |
-| 各ステージの質問ファイル | 判断の根拠として残してよい | — |
-| `<record>/aidlc-state.md` | ワークフローは完了済み。残してよい | — |
-| アプリケーションのコード | `blink-wasm-poc` ブックマークにコミット済み（push は未実施） | — |
+| Artifact                                                               | Action                                                                                     | Destination            |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ---------------------- |
+| `docs/results/`（計測、failures、jit-decision）                        | Already committed                                                                          | —                      |
+| 設計上の決定（ADR、12 件）                                             | 作成済み（2026-10-05）                                                                     | `docs/decisions/`      |
+| アーキテクチャの要約（1 ページ）                                       | 作成済み（2026-10-05）                                                                     | `docs/architecture.md` |
+| 品質目標の判定表                                                       | 作成済み（2026-10-05）                                                                     | `docs/nfr-summary.md`  |
+| `<record>/audit/*.md`                                                  | 現状はコミット済み（AGENTS.md の方針）。アプリのリポジトリから外すなら、記録の保管先へ移す | 記録の保管先           |
+| `<record>/construction/**/` の診断ログ（`loopback1-*`、`ab-l3/` など） | 証拠としてコミット済み。容量が気になれば保管先へ移す                                       | 記録の保管先           |
+| 各ステージの質問ファイル                                               | 判断の根拠として残してよい                                                                 | —                      |
+| `<record>/aidlc-state.md`                                              | ワークフローは完了済み。残してよい                                                         | —                      |
+| アプリケーションのコード                                               | `blink-wasm-poc` ブックマークにコミット済み（push は未実施）                               | —                      |
 
 ## 7. Workflow Footprint
 

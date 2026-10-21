@@ -63,14 +63,14 @@ coverageの独立`binding`はgeneration/sourceIdentity/candidateSha256（site）
 
 `decideRelease({root,index,candidate,evidenceIds,approvals,target,channel})`はdigestを確認して判定するAPIであり、公開コマンドを実行しない。`missing`が空なら`allowed: true, outcome: not-run`、不足・破損なら`blocked`を返す。
 
-| 条件 | RC | stable |
-| --- | --- | --- |
-| version/tag/dist-tag | 0.1.0-rc.1 / v0.1.0-rc.1 / next | 0.1.0 / v0.1.0 / latest |
-| 直接証拠 | 同RC候補のenvelope | 同stable候補のenvelope |
-| 基本check | pack、assets、types、consumer-node/3browser、public-source、supply-chain、trusted-publisher | 同じ基本check |
-| 追加check | 公開済みRC受入れを公開前に要求しない | native-baseline、probe/aube/pitchfork各Node/3browser、integration-ci、stable-pack/types/consumer-node/3browser/diff |
-| coverage | Unitの品質条件は維持 | 固定24、80%以上、収集状態とNode/3browser realmが必要 |
-| 採用履歴 | 不要 | explicit rcAdoptionが必要 |
+| 条件                 | RC                                                                                          | stable                                                                                                              |
+| -------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| version/tag/dist-tag | 0.1.0-rc.1 / v0.1.0-rc.1 / next                                                             | 0.1.0 / v0.1.0 / latest                                                                                             |
+| 直接証拠             | 同RC候補のenvelope                                                                          | 同stable候補のenvelope                                                                                              |
+| 基本check            | pack、assets、types、consumer-node/3browser、public-source、supply-chain、trusted-publisher | 同じ基本check                                                                                                       |
+| 追加check            | 公開済みRC受入れを公開前に要求しない                                                        | native-baseline、probe/aube/pitchfork各Node/3browser、integration-ci、stable-pack/types/consumer-node/3browser/diff |
+| coverage             | Unitの品質条件は維持                                                                        | 固定24、80%以上、収集状態とNode/3browser realmが必要                                                                |
+| 採用履歴             | 不要                                                                                        | explicit rcAdoptionが必要                                                                                           |
 
 stableの`rcAdoption`はRC envelope ID/SHA、別RCのcandidate/version/tgz、公開packageのversion/tgz/registryIntegrity、stable identity、差分artifact/SHAと事前固定された検査IDを結ぶ。RCをstableの直接証拠へ混入できない。RC側に採用の循環を持たせず、差分の候補結合を照合する。不成立を旧RC結果の再ラベルで補わない。
 

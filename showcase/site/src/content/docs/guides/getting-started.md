@@ -1,4 +1,5 @@
 ---
+
 title: Getting started
 description: Use the formicarium showcase terminals and understand their limits.
 ---

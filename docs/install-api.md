@@ -20,7 +20,12 @@ try {
       console.log(progress.phase, progress.processedBytes, progress.totalBytes);
     },
   });
-  console.log(result.tool, result.versionOrName, result.digest, result.buildKey);
+  console.log(
+    result.tool,
+    result.versionOrName,
+    result.digest,
+    result.buildKey,
+  );
 } catch (error) {
   if (error instanceof ExecutionError) console.error(error.code);
   throw error;
@@ -39,23 +44,23 @@ try {
 
 公開型はpackageの `GuestCatalog`、`CatalogEntry`、`GuestBuildInfo` を参照して下さい。
 
-| GuestCatalogのfield | 内容 |
-|---|---|
-| schemaVersion | 数値の1 |
-| catalogId | 空でない識別文字列、UTF-8最大128bytes |
-| defaults | tool名から固定versionOrNameへの参照。各参照先entryが必要 |
-| entries | CatalogEntryの配列。tool/versionOrNameの重複は不可。空配列は有効だがinstallは解決不可 |
+| GuestCatalogのfield | 内容                                                                                  |
+| ------------------- | ------------------------------------------------------------------------------------- |
+| schemaVersion       | 数値の1                                                                               |
+| catalogId           | 空でない識別文字列、UTF-8最大128bytes                                                 |
+| defaults            | tool名から固定versionOrNameへの参照。各参照先entryが必要                              |
+| entries             | CatalogEntryの配列。tool/versionOrNameの重複は不可。空配列は有効だがinstallは解決不可 |
 
-| CatalogEntryのfield | 内容 |
-|---|---|
-| tool / versionOrName | metadataと一致する固定識別子 |
-| url | credential・fragmentのないHTTPS URL |
-| format | `elf` 又は `tar.gz` |
-| archiveEntry | tar.gzの選択先。相対POSIX path。elfでは指定しない |
-| downloadSha256 / downloadBytes | 配信byte全体のSHA256と実byte数 |
-| elfBytes | 取得又は抽出したELFの実byte数 |
-| buildInfo | GuestBuildInfo全体 |
-| buildInfoSha256 | buildInfoのcanonical JSON UTF-8 byteのSHA256 |
+| CatalogEntryのfield            | 内容                                              |
+| ------------------------------ | ------------------------------------------------- |
+| tool / versionOrName           | metadataと一致する固定識別子                      |
+| url                            | credential・fragmentのないHTTPS URL               |
+| format                         | `elf` 又は `tar.gz`                               |
+| archiveEntry                   | tar.gzの選択先。相対POSIX path。elfでは指定しない |
+| downloadSha256 / downloadBytes | 配信byte全体のSHA256と実byte数                    |
+| elfBytes                       | 取得又は抽出したELFの実byte数                     |
+| buildInfo                      | GuestBuildInfo全体                                |
+| buildInfoSha256                | buildInfoのcanonical JSON UTF-8 byteのSHA256      |
 
 SHA256は小文字16進64桁です。raw ELFはdownloadBytesとelfBytes、downloadSha256とbuildInfo.elfSha256がそれぞれ一致する必要があります。tar.gzは圧縮byteと選択ELFのidentityを別々に指定します。
 
@@ -69,13 +74,13 @@ Nodeは24以上で、絶対HTTPS URLを渡します。browserの相対URLはdocu
 
 credentialsはomit。Nodeは各redirect先を検査し最大5hop、browserはredirect:errorで追従しません。browser向けのassetにはredirectしないURLを指定します。HTTP、CORS不可、opaque、不正status、中断したbodyを成功へ置換しません。
 
-| 境界 | 上限 |
-|---|---|
-| catalog / canonical build metadata | 4MiB / 1MiB |
-| download / ELF | 各128MiB |
-| archive展開全体 / entry数 | 256MiB / 4096 |
-| archive path | UTF-8で4096bytes |
-| fetch / install全体 | 120秒 / 180秒 |
+| 境界                               | 上限             |
+| ---------------------------------- | ---------------- |
+| catalog / canonical build metadata | 4MiB / 1MiB      |
+| download / ELF                     | 各128MiB         |
+| archive展開全体 / entry数          | 256MiB / 4096    |
+| archive path                       | UTF-8で4096bytes |
+| fetch / install全体                | 120秒 / 180秒    |
 
 取得物全体とELFのdigest・宣言byte数・metadataを照合します。tar.gzはDecompressionStreamを利用し、全entryの境界・path・重複・リンクと終端を検査してから選択ELFを採用します。ホストFSへ展開しません。真正なC03 handle付きcopyだけをsessionへ登録し、取得byteの参照は返しません。
 
@@ -89,13 +94,13 @@ InstallResultは `operationId`、`tool`、`versionOrName`、ELFの `digest`、`b
 
 ProgressはoperationId、増加するsequence、phase（fetch→extract〔tar.gzのみ〕→digest→validate→register）、processedBytes、totalBytesを持ちます。未知のtotalBytesはnullで、0と区別します。通知callbackの例外はinstallのcommit結果を変えず、終了後には通知しません。callbackから同sessionの操作へ再入するとBUSYになり得ます。
 
-| エラーcode | 主な条件 |
-|---|---|
-| INVALID_INPUT | catalog/selection/size/archive/ELF/digest/metadata不正、偽造session |
-| ASSET_LOAD | HTTP/CORS/redirect/body/通信の失敗 |
-| UNSUPPORTED_ENV | 必要な環境機能の欠落 |
-| BUSY | 同sessionで他の操作が予約中 |
-| ABORTED / DISPOSED / TIMEOUT | caller/resetによる取消、dispose、deadline |
+| エラーcode                   | 主な条件                                                            |
+| ---------------------------- | ------------------------------------------------------------------- |
+| INVALID_INPUT                | catalog/selection/size/archive/ELF/digest/metadata不正、偽造session |
+| ASSET_LOAD                   | HTTP/CORS/redirect/body/通信の失敗                                  |
+| UNSUPPORTED_ENV              | 必要な環境機能の欠落                                                |
+| BUSY                         | 同sessionで他の操作が予約中                                         |
+| ABORTED / DISPOSED / TIMEOUT | caller/resetによる取消、dispose、deadline                           |
 
 ## 検証の範囲
 

@@ -40,28 +40,28 @@ pthread からのファイル操作はそこへの代行依頼になる。Node.j
 
 ## 層と依存の向き
 
-| 層 | 場所 | 役割 | コアへの依存 |
-|---|---|---|---|
-| コアの記述子 | `runtime/core.ts` | ビルド物の場所と、コアに渡すコマンドラインの組み立て | ここだけがコアを知る |
-| 入出力の共通部 | `runtime/guest-io.ts`、`runtime/session.ts` | ゲストと入力の配置、stdout・stderr・終了コードの取得、手順の実行と書き起こし | なし（Emscripten の FS API だけ） |
-| Node.js の実行環境 | `runtime/node/` | CLI、`worker_threads` の Worker | なし |
-| 配布用ブラウザAPI | `runtime/web/` | 公開API、package用 Worker | なし |
-| 検証用Web UI | `web/`、`scripts/serve.ts` | ページ、検証用 Worker、許可リスト、COOP/COEP（サーバーか service worker） | なし |
-| コア | `blink.lock` → `.vendor/blink` → `dist/blink/` | x86-64 の解釈実行と Linux のシステムコールのエミュレート | — |
+| 層                 | 場所                                           | 役割                                                                         | コアへの依存                      |
+| ------------------ | ---------------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------- |
+| コアの記述子       | `runtime/core.ts`                              | ビルド物の場所と、コアに渡すコマンドラインの組み立て                         | ここだけがコアを知る              |
+| 入出力の共通部     | `runtime/guest-io.ts`、`runtime/session.ts`    | ゲストと入力の配置、stdout・stderr・終了コードの取得、手順の実行と書き起こし | なし（Emscripten の FS API だけ） |
+| Node.js の実行環境 | `runtime/node/`                                | CLI、`worker_threads` の Worker                                              | なし                              |
+| 配布用ブラウザAPI  | `runtime/web/`                                 | 公開API、package用 Worker                                                    | なし                              |
+| 検証用Web UI       | `web/`、`scripts/serve.ts`                     | ページ、検証用 Worker、許可リスト、COOP/COEP（サーバーか service worker）    | なし                              |
+| コア               | `blink.lock` → `.vendor/blink` → `dist/blink/` | x86-64 の解釈実行と Linux のシステムコールのエミュレート                     | —                                 |
 
 コアは「wasm モジュール 1 つ＋起動用の JS（Emscripten の MODULARIZE 形式）」という境界でだけ扱う。将来、コアを
 paludarium（Rust 版 blink）に置き換えるときは、`runtime/core.ts` に記述子を足し、`dist/` にビルド物を置けばよい。
 
 ## コア（blink の fork）で足したもの
 
-| 分野 | 実装 | 場所（fork） |
-|---|---|---|
-| スレッド | ゲストのスレッドを Emscripten の pthread（Web Worker）に対応づける | `817687f` |
-| 待ちと通知 | `futex` の `FUTEX_WAIT_BITSET`／`WAKE_BITSET`、実時刻での期限判定 | `817687f`、`7e1d743` |
-| ファイル記述子 | eventfd2、epoll（level／edge-triggered、`EPOLLONESHOT`）、socketpair、pipe をコアの中でエミュレート | `blink/emufd.c` |
-| ファイルシステム | MEMFS に hard link と BSD 方式の flock を追加 | `blink/emscriptenfs.{c,js}` |
-| メモリ | 非線形メモリでのページ管理表の排他、`madvise(MADV_DONTNEED)` でのゼロ化 | `7e1d743`、`4b5c67d` |
-| ネットワーク | 使わない。`socket()` は `EAFNOSUPPORT` | `50bc466` |
+| 分野             | 実装                                                                                                | 場所（fork）                |
+| ---------------- | --------------------------------------------------------------------------------------------------- | --------------------------- |
+| スレッド         | ゲストのスレッドを Emscripten の pthread（Web Worker）に対応づける                                  | `817687f`                   |
+| 待ちと通知       | `futex` の `FUTEX_WAIT_BITSET`／`WAKE_BITSET`、実時刻での期限判定                                   | `817687f`、`7e1d743`        |
+| ファイル記述子   | eventfd2、epoll（level／edge-triggered、`EPOLLONESHOT`）、socketpair、pipe をコアの中でエミュレート | `blink/emufd.c`             |
+| ファイルシステム | MEMFS に hard link と BSD 方式の flock を追加                                                       | `blink/emscriptenfs.{c,js}` |
+| メモリ           | 非線形メモリでのページ管理表の排他、`madvise(MADV_DONTNEED)` でのゼロ化                             | `7e1d743`、`4b5c67d`        |
+| ネットワーク     | 使わない。`socket()` は `EAFNOSUPPORT`                                                              | `50bc466`                   |
 
 ## 実行の流れ（aube #1645 の場合）
 

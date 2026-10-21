@@ -16,12 +16,12 @@ history. The classic protection is removed.
 
 ## Required checks
 
-| Exact check name | Coverage |
-| --- | --- |
-| `quality` | Lint, types, package build and light/release tests |
-| `commit-format` | Trusted base commit format validator |
-| `ci-required` | Quality, commit-format and every product build/regression matrix job |
-| `check / Commitlint` | Organization reusable commitlint workflow |
+| Exact check name         | Coverage                                                                                          |
+| ------------------------ | ------------------------------------------------------------------------------------------------- |
+| `quality`                | Lint, types, package build and light/release tests                                                |
+| `commit-format`          | Trusted base commit format validator                                                              |
+| `ci-required`            | Quality, commit-format and every product build/regression matrix job                              |
+| `check / Commitlint`     | Organization reusable commitlint workflow                                                         |
 | `showcase-site-required` | U8 showcase site: Chromium/Firefox/WebKit acceptance, coverage and evidence (`showcase-site.yml`) |
 
 All are bound to GitHub Actions app ID `15368` in the `main` ruleset. Product
@@ -37,7 +37,6 @@ changes and fails any other run with a failed or skipped site job.
 
 `TF_TOKEN_GITHUB` は既に登録されています（値は参照していません）。そのtokenの
 権限が以下を満たせば再作成は不要です。不足している場合は本人の操作で更新します。
-
 1. `aletheia-works` を管理できるアカウントで
    [Fine-grained token作成](https://github.com/settings/personal-access-tokens/new)
    を開きます。Token nameは `formicarium-opentofu`、Descriptionは

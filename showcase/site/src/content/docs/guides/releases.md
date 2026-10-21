@@ -1,4 +1,5 @@
 ---
+
 title: Releases
 description: formicarium package releases and the showcase deployment.
 ---
@@ -16,7 +17,6 @@ provenance. An existing version is never replaced.
 (`showcase/site/**`, `showcase/scripts/**` or the workflow itself) and can be
 started by hand on `main`. There is no daily run, so a new guest candidate is
 deployed by a manual run. Only these two runs distribute:
-
 1. `showcase.yml` builds and accepts a candidate in `distribute` mode, with the
    package that B1 accepted (`showcase/b1-pack.json`). Until that Release
    exists, distribution fails and nothing is deployed.

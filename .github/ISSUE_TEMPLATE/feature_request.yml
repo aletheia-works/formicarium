@@ -1,6 +1,6 @@
 name: Feature request
 description: Propose an enhancement or repository improvement
-title: "feat: "
+title: 'feat: '
 body:
   - type: textarea
     id: problem
