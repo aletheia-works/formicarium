@@ -67,6 +67,9 @@ function readJson(bytes: Uint8Array, limit: number, label: string): unknown {
   }
 }
 
+const isObject = (value: unknown): value is object =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
 // Every check the builder makes, made again independently here.
 export function checkSet(
   files: SetFiles,
@@ -86,14 +89,16 @@ export function checkSet(
     'build-info',
   ) as GuestBuildInfo;
   // Shape first, so a malformed build-info is refused as input, not a TypeError.
-  if (typeof info !== 'object' || info === null || Array.isArray(info))
-    refuse('build-info must be an object');
+  if (!isObject(info)) refuse('build-info must be an object');
   if (!Array.isArray(info.dependencies))
     refuse('build-info dependencies must be a list');
+  if (!info.dependencies.every(isObject))
+    refuse('build-info dependencies must be objects');
   const catalog = readJson(files.catalog, LIMITS.catalog, 'catalog') as {
     schemaVersion?: unknown;
     entries?: Record<string, unknown>[];
   };
+  if (!isObject(catalog)) refuse('catalog must be an object');
   const elfSha256 = sha256(files.elf);
   const buildInfoSha256 = sha256(files.buildInfo);
   // C03 takes buildInfoSha256 over the canonical JSON of the build-info.
@@ -116,6 +121,7 @@ export function checkSet(
   )
     refuse('catalog must hold exactly one entry');
   const entry = catalog.entries[0] as Record<string, unknown>;
+  if (!isObject(entry)) refuse('catalog entry must be an object');
   if (
     entry.format !== 'elf' ||
     entry.downloadSha256 !== elfSha256 ||

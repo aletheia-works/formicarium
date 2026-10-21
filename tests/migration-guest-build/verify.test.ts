@@ -217,6 +217,48 @@ test('a build-info that is not an object or has no dependency list is refused as
       ),
     invalidInput(/dependencies must be a list/),
   );
+  assert.throws(
+    () =>
+      checkSet(
+        {
+          ...files,
+          buildInfo: encoder.encode(
+            guestCanonical({
+              ...info,
+              dependencies: [null, ...info.dependencies],
+            }),
+          ),
+        },
+        expected,
+      ),
+    invalidInput(/dependencies must be objects/),
+  );
+});
+
+test('a catalog or catalog entry that is not an object is refused as input', async () => {
+  const { files, expected } = setFor(await guest('hello'));
+  const invalidInput = (pattern: RegExp) => (error: Error) => {
+    assert.equal((error as Error & { code?: string }).code, 'INVALID_INPUT');
+    return refused(pattern)(error);
+  };
+  assert.throws(
+    () => checkSet({ ...files, catalog: encoder.encode('null') }, expected),
+    invalidInput(/catalog must be an object/),
+  );
+  const catalog = JSON.parse(new TextDecoder().decode(files.catalog));
+  assert.throws(
+    () =>
+      checkSet(
+        {
+          ...files,
+          catalog: encoder.encode(
+            JSON.stringify({ ...catalog, entries: [null] }),
+          ),
+        },
+        expected,
+      ),
+    invalidInput(/catalog entry must be an object/),
+  );
 });
 
 test('the command line verifies a saved set and leaves no temporary directory', async (t) => {
@@ -235,7 +277,7 @@ test('the command line verifies a saved set and leaves no temporary directory', 
   );
   const run = (args: string[]) =>
     promisify(execFile)(process.execPath, [script, ...args], {
-      env: { ...process.env, TMPDIR: temp },
+      env: { ...process.env, TMPDIR: temp, TEMP: temp, TMP: temp },
     });
   const out = join(work, 'evidence.json');
   const args = [
@@ -259,14 +301,22 @@ test('the command line verifies a saved set and leaves no temporary directory', 
   assert.equal(evidence.version.exitCode, 0);
   assert.equal(evidence.elfSha256, sha256(files.elf));
   assert.deepEqual(await readdir(temp), []);
-  await assert.rejects(
-    run(args.slice(0, -2)),
-    (error: Error & { stderr?: string }) => {
-      assert.match(error.stderr ?? '', /--out is required/);
+  // A refusal after the assets are written still removes their directory.
+  const rejected =
+    (pattern: RegExp) => (error: Error & { stderr?: string }) => {
+      assert.match(error.stderr ?? '', pattern);
       return true;
-    },
+    };
+  const otherKey = args.map((arg) =>
+    arg === expected.key ? 'e'.repeat(64) : arg,
+  );
+  await assert.rejects(
+    run([...otherKey.slice(0, -1), join(work, 'other.json')]),
+    rejected(/another key/),
   );
   assert.deepEqual(await readdir(temp), []);
+  // A missing argument is refused before any asset is written.
+  await assert.rejects(run(args.slice(0, -2)), rejected(/--out is required/));
 });
 
 test('reuse needs a compiling first run and a non-compiling second run with the same digests', async () => {
