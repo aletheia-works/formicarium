@@ -1,7 +1,7 @@
 // Checks a fixed guest set from the vivarium builder on the formicarium side
 // and runs `--version` through formicarium's own runtime (FR9, NFR8.2).
 import { createHash } from 'node:crypto';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import {
@@ -85,6 +85,11 @@ export function checkSet(
     LIMITS.buildInfo,
     'build-info',
   ) as GuestBuildInfo;
+  // Shape first, so a malformed build-info is refused as input, not a TypeError.
+  if (typeof info !== 'object' || info === null || Array.isArray(info))
+    refuse('build-info must be an object');
+  if (!Array.isArray(info.dependencies))
+    refuse('build-info dependencies must be a list');
   const catalog = readJson(files.catalog, LIMITS.catalog, 'catalog') as {
     schemaVersion?: unknown;
     entries?: Record<string, unknown>[];
@@ -237,7 +242,18 @@ async function main(): Promise<void> {
     if (values[name] === undefined) refuse(`--${name} is required`);
   const { createSession } = await import('../../runtime/node/api.js');
   const { nodeAssets } = await import('./assets.js');
-  const session = await createSession({ assets: await nodeAssets() });
+  const { directory, assets } = await nodeAssets();
+  try {
+    await verifyWith(await createSession({ assets }), values);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+}
+
+async function verifyWith(
+  session: Session,
+  values: Record<string, string | undefined>,
+): Promise<void> {
   try {
     const evidence = await verifySet(
       await readSet(values.set as string, values.binary as string),

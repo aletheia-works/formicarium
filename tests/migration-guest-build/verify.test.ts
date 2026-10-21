@@ -1,6 +1,18 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import {
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
 import {
   guestBuildKey,
   guestCanonical,
@@ -168,6 +180,93 @@ test('a build-info with a repeated key or above 1 MiB is refused', async () => {
     () => checkSet({ ...files, buildInfo: large }, expected),
     refused(/larger than/),
   );
+});
+
+test('a build-info that is not an object or has no dependency list is refused as input', async () => {
+  const { files, expected, info } = setFor(await guest('hello'));
+  const invalidInput = (pattern: RegExp) => (error: Error) => {
+    assert.equal((error as Error & { code?: string }).code, 'INVALID_INPUT');
+    return refused(pattern)(error);
+  };
+  assert.throws(
+    () => checkSet({ ...files, buildInfo: encoder.encode('null') }, expected),
+    invalidInput(/build-info must be an object/),
+  );
+  const { dependencies: _, ...withoutDependencies } = info;
+  assert.throws(
+    () =>
+      checkSet(
+        {
+          ...files,
+          buildInfo: encoder.encode(guestCanonical(withoutDependencies)),
+        },
+        expected,
+      ),
+    invalidInput(/dependencies must be a list/),
+  );
+  assert.throws(
+    () =>
+      checkSet(
+        {
+          ...files,
+          buildInfo: encoder.encode(
+            guestCanonical({ ...info, dependencies: 'cargo-lock' }),
+          ),
+        },
+        expected,
+      ),
+    invalidInput(/dependencies must be a list/),
+  );
+});
+
+test('the command line verifies a saved set and leaves no temporary directory', async (t) => {
+  const work = await mkdtemp(join(tmpdir(), 'formicarium-u5-cli-'));
+  t.after(() => rm(work, { recursive: true, force: true }));
+  const temp = join(work, 'tmp');
+  const set = join(work, 'set');
+  await mkdir(temp);
+  await mkdir(set);
+  const { files, expected } = setFor(await guest('aube'), 'aube');
+  await writeFile(join(set, 'aube'), files.elf);
+  await writeFile(join(set, 'build-info.json'), files.buildInfo);
+  await writeFile(join(set, 'catalog.json'), files.catalog);
+  const script = fileURLToPath(
+    new URL('../../scripts/migration-guest-build/verify.js', import.meta.url),
+  );
+  const run = (args: string[]) =>
+    promisify(execFile)(process.execPath, [script, ...args], {
+      env: { ...process.env, TMPDIR: temp },
+    });
+  const out = join(work, 'evidence.json');
+  const args = [
+    '--set',
+    set,
+    '--binary',
+    'aube',
+    '--tool',
+    expected.tool,
+    '--key',
+    expected.key,
+    '--repository',
+    expected.repository,
+    '--commit',
+    expected.commit,
+    '--out',
+    out,
+  ];
+  await run(args);
+  const evidence = JSON.parse(await readFile(out, 'utf8'));
+  assert.equal(evidence.version.exitCode, 0);
+  assert.equal(evidence.elfSha256, sha256(files.elf));
+  assert.deepEqual(await readdir(temp), []);
+  await assert.rejects(
+    run(args.slice(0, -2)),
+    (error: Error & { stderr?: string }) => {
+      assert.match(error.stderr ?? '', /--out is required/);
+      return true;
+    },
+  );
+  assert.deepEqual(await readdir(temp), []);
 });
 
 test('reuse needs a compiling first run and a non-compiling second run with the same digests', async () => {
