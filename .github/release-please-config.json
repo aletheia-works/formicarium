@@ -8,7 +8,8 @@
     ".": {
       "release-type": "node",
       "component": "formicarium",
-      "include-component-in-tag": false
+      "include-component-in-tag": false,
+      "skip-changelog": true
     }
   }
 }

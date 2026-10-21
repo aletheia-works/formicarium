@@ -54,3 +54,11 @@ test('release baseline follows the published stable version and updates root ver
   assert.equal(config.packages['.']['include-component-in-tag'], false);
   assert.equal(config.packages['.']['extra-files'], undefined);
 });
+
+test('release notes live in the GitHub release, not in a CHANGELOG.md', () => {
+  const config = JSON.parse(
+    readFileSync('.github/release-please-config.json', 'utf8'),
+  );
+  assert.equal(config.packages['.']['skip-changelog'], true);
+  assert.equal(existsSync('CHANGELOG.md'), false);
+});
