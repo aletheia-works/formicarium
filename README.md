@@ -9,8 +9,7 @@ kernel, so that CLI bug reproductions can run as-is in a web page.
 
 Status: proof of concept complete (blink on wasm, 2026-10-05). The handover
 document is [`OUTCOMES.md`](OUTCOMES.md). Background research is in
-[`aidlc/spaces/default/knowledge/documents/research/cheerpx-oss.md`](aidlc/spaces/default/knowledge/documents/research/cheerpx-oss.md)
-(copied from aletheia-works/terrarium).
+[`aidlc/spaces/default/knowledge/documents/research/cheerpx-oss.md`](aidlc/spaces/default/knowledge/documents/research/cheerpx-oss.md).
 
 ## Local runtime package candidate
 
@@ -40,9 +39,9 @@ Filesystem entries are copied at input and output. Persisted roots are cwd/home;
 
 Default assets resolve relative to the installed package. Explicit `assets` requires absolute loaderURL, wasmURL, buildInfoURL and workerURL. Loader/wasm SHA-256 digests and clean pinned core metadata are checked before initialization. The checked loader bytes are evaluated without rereading the original URL. Node uses a run-specific directory with mode 0700 and an exclusive loader copy with mode 0400; pthreads use that same copy. The host owns these files and browser Blob URLs, stops owned Workers before releasing them, and releases resources after normal completion, abort, timeout or disposal even when the root Worker is forcibly terminated. Missing or mixed assets reject with `ASSET_LOAD`; initialization failure is `CORE_INIT`. See `THIRD_PARTY_NOTICES.md` and `assets/build-info.json` for provenance. Local test observations are recorded in the active AI-DLC U1 record; real Safari and full product regression/CI remain separate verification obligations.
 
-## terrarium 移管の guest・install・command API（0.3.0 候補）
+## guest・install・command API（0.3.0 候補）
 
-terrarium の機能を formicarium へ移すため、root export に次の API を加えている。0.3.0 の候補で、公開はrelease-pleaseと個別の承認を経て行う。B1 の正式な受入（全 realm の coverage、正式 36 試行、署名付き CI）と実機 Safari は、この README の時点で未検証である。
+root export に次の API を加えている。0.3.0 の候補で、公開はrelease-pleaseと個別の承認を経て行う。B1 の正式な受入（全 realm の coverage、正式 36 試行、署名付き CI）と実機 Safari は、この README の時点で未検証である。
 
 ### guest の検証と登録（U2）
 
@@ -205,7 +204,7 @@ bun node_modules/@playwright/test/cli.js install chromium firefox webkit
   - UI に使った node の版と UI 成果物の sha256 を `dist/guests/pitchfork.build-info` に記録する
   ビルド後、`dist/guests/` のすべてのゲストが static な x86-64 の ELF であること（`PT_INTERP` がないこと）を確かめる。
 - ゲスト・環境変数・手順の一覧は `runtime/registry.ts` の 1 か所にある。ゲストを足すときは、そこに 1 行足し、
-  `build-guests.sh` の対象・fixture・基準値・テストを足す（[`docs/terrarium-integration.md`](docs/terrarium-integration.md) の 3 節）。
+  `build-guests.sh` の対象・fixture・基準値・テストを足す。
 - `mise run native-baseline [<手順>] [--check-reproducible]` は、表の手順（既定は `aube-1645`）の基準値を作る。
   手順の設定は `bun scripts/session-info.js <手順>` で表から読む（シェル補助はBunを優先し、必要時はNodeを使う）。
 - wasm メモリの上限は 1 GB（`-sMAXIMUM_MEMORY=1GB`）。WebKit がインスタンスごとに上限までメモリを確保するため、
@@ -225,7 +224,7 @@ bun node_modules/@playwright/test/cli.js install chromium firefox webkit
 
 ## 保守 workflow
 
-共通の保守は terrarium / vivarium と同じ GitHub Actions の構成を使います。
+共通の保守は vivarium と同じ GitHub Actions の構成を使います。
 
 - `dependabot-auto-merge.yml`: `dependabot/fetch-metadata` で更新内容を読み、major 以外の更新は `gh pr merge --auto --squash` で予約します。main の required checks が成功し、branch protection の条件を満たしてから GitHub が統合します。major 更新は自動統合しません。
 - `lint-autofix.yml` / `lint-autofix-apply.yml`: 権限なしで Biome の修正 patch を作り、別 job が許可された既存ファイルの差分だけを確認して適用します。head が変わっていれば適用しません。適用先は同じ repository の PR に限ります。
@@ -239,9 +238,9 @@ Bun 1.4.2 / bun.lock による依存管理、固定 Node、`ci.yml` の lint・�
 
 ## 将来の RC / stable 公開
 
-`publish.yml` は `v*` tag を入口とし、実行時に `X.Y.Z-rc.N`（N は正整数）または `X.Y.Z` の厳密な版、tag、source SHA、公開先、版ごとの人の承認を照合します。RC は `next`、stable は `latest` を使います。stable は同じ基底版の公開 RC の受け入れ証拠と差分検査も必要です。既存 `v0.1.0-rc.1` と `codex/release/rc1-inputs` は履歴の固定入力として保持します。上の U1 導入時の workflow 保持記述に対し、この U4 で `publish.yml` の将来版対応を追加しています。
+`publish.yml` は `v*` tag を入口とし、実行時に `X.Y.Z-rc.N`（N は正整数）または `X.Y.Z` の厳密な版、tag、source SHA、公開先、版ごとの人の承認を照合します。RC は `next`、stable は `latest` を使います。stable は同じ基底版の公開 RC の採用記録と差分検査も必要です。既存 `v0.1.0-rc.1` と `codex/release/rc1-inputs` は履歴の固定入力として保持します。上の U1 導入時の workflow 保持記述に対し、この U4 で `publish.yml` の将来版対応を追加しています。
 
-readonly verify job は Bun latest と `bun.lock` で依存を導入し、TypeScript の公開前検査を直接実行します。公開候補は通常 CI と別に `candidate-verify.yml` の `candidate-required`、9 個の必須検査、固定 inventory の全 realm receipt と 80% coverage を要求します。GitHub API の run/attempt/source/workflow/producer、artifact digest、report bytes を独立照合し、skip・missing・非成功を拒否します。stable の公開 RC 受入れと差分検査も維持します。
+readonly verify job は Bun latest と `bun.lock` で依存を導入し、TypeScript の公開前検査を直接実行します。公開候補は通常 CI と別に `candidate-verify.yml` の `candidate-required`、9 個の必須検査、固定 inventory の全 realm receipt と 80% coverage を要求します。GitHub API の run/attempt/source/workflow/producer、artifact digest、report bytes を独立照合し、skip・missing・非成功を拒否します。stable の公開 RC 採用記録と差分検査も維持します。
 
 検査成功後、`candidate.tgz` だけを標準の upload/download-artifact で同じ workflow run の後続 job へ渡します。各 writer は verify job の SHA256 出力とダウンロード後の bytes を照合します。生成 runner・bootstrap・独自の転送 manifest は使いません。npm 公開は YAML に記載した `bunx npm@latest publish`（OIDC・provenance・RC は next、stable は latest）、GitHub Release は `gh release create` で実行します。npm CLI の実行にだけ Node latest を用意します。publish job だけに id-token:write、release job だけに contents:write を与え、両方で environment `release` を使います。Release は独立した操作承認があるときだけ作ります。
 
@@ -250,7 +249,7 @@ readonly verify job は Bun latest と `bun.lock` で依存を導入し、TypeSc
 外部 write の結果が不明な場合は自動再送しません。npm registry の同じ版・integrity・dist-tag、GitHub Release の tag / asset digest、run log を読み返し、人が状態を確定してから復旧を判断します。publish が失敗すれば release を起動せず、npm 成功後の Release 失敗も部分成功として扱います。共有 tag concurrency は実行中の処理を cancel しません。
 
 Dependabot は毎週月曜 05:00（Asia/Tokyo）に Bun の依存と Actions を更新します。
-自動統合の設定は terrarium / vivarium と同じ YAML にあり、main の品質 checks と branch protection が最終判断を行います。
+自動統合の設定は vivarium と同じ YAML にあり、main の品質 checks と branch protection が最終判断を行います。
 停止するときは GitHub Actions の対象 workflow を Disable workflow にします。
 
 ## 実行
@@ -340,7 +339,7 @@ node scripts/measure-aube.js --trials 10   # docs/results/aube-timings.json と 
 OUTCOMES.md           PoC の引き継ぎ文書
 blink.lock            fork の URL とコミット
 guest/probe/          static-musl x86-64 のゲスト（probe・hello・exit3）
-fixtures/             aube #1645 と pitchfork の入力（terrarium から取り込み）、手順、native の基準値
+fixtures/             aube #1645 と pitchfork の入力、手順、native の基準値
 runtime/              コアに依存しない実行環境（Node.js・ブラウザ）。ゲストと手順の表は runtime/registry.js
 scripts/              ビルド・取得・基準値・計測・開発用サーバー
 tests/                node --test と Playwright のテスト
@@ -415,6 +414,6 @@ Artifacts include source SHA, run ID and attempt to keep reruns isolated.
 製品ビルドをCI専用YAMLへ移すとローカル再現性を失うため、共有する実行ファイルを1つに保つ。
 候補検証のソース一覧には `mise-tasks/` も含め、タスク変更を検証対象から漏らさない。
 
-配置の共通方針はvivarium・terrariumに合わせる。実行用シェルはルートの `mise-tasks/` に用途別（`build/`、`test/`、`ci/`、`diagnostics/`、`install/`）の `.sh` ファイルとして置き、説明は `#MISE description` で記載する。
+配置の共通方針はvivariumに合わせる。実行用シェルはルートの `mise-tasks/` に用途別（`build/`、`test/`、`ci/`、`diagnostics/`、`install/`）の `.sh` ファイルとして置き、説明は `#MISE description` で記載する。
 共有・検証ロジックは `scripts/`、回帰試験は `tests/`、手順・判断は `docs/`、CI制御は `.github/workflows/` に置く。製品固有の `runtime/`・`guest/` は役割を保つ。
 既存の `mise run build-guests` などはaliasで維持し、`mise run build:guests` のような用途別タスク名も使える。

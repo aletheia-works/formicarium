@@ -2,7 +2,7 @@
 # emsdk を使うための環境設定。ビルドスクリプトから `. scripts/emscripten-env.sh` で読み込む。
 #
 # emsdk の場所は $EMSDK。未設定なら Windows では ~/AppData/Local/emsdk、
-# それ以外では ~/emsdk を使う（terrarium と同じ）。cmake と ninja は mise の
+# それ以外では ~/emsdk を使う。cmake と ninja は mise の
 # インストール先から探し、見つからなければ PATH 上のものを使う。
 #
 # emsdk が見つからないときは、導入手順を示して終了コード 2 で止まる

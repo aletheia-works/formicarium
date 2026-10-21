@@ -213,7 +213,7 @@ const handler = async (request: IncomingMessage, response: ServerResponse) => {
         pathname,
       );
     const dependency =
-      /^\/integration\/terrarium\/guest-distribution\/(?:resolver|manifest|fixtures)\.js$/.test(
+      /^\/integration\/guest-distribution\/(?:resolver|manifest|fixtures)\.js$/.test(
         pathname,
       );
     const core =

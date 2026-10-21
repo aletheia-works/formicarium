@@ -101,4 +101,4 @@ ProgressはoperationId、増加するsequence、phase（fetch→extract〔tar.gz
 
 検証済み：ローカルU3候補のNode単体74件、Chromium/Firefox/WebKitのconsumer・独立SHA照合45件。README更新前の候補ではaube/Biome×3browserの36試行も成功しました。この文書とREADMEの追加後はpack/source identityが変わるため、新候補を準備して性能・coverage・CIを対応付け直します。
 
-正式U3受入れ、同候補の全配布JS coverage80%以上、既存回帰、署名付き専用CI、最終レビュー・完了確認は未完了です。実機Safariは未検証。暫定候補の成功をnpm公開、terrarium退役又は後続U4の完成とは扱いません。
+正式U3受入れ、同候補の全配布JS coverage80%以上、既存回帰、署名付き専用CI、最終レビュー・完了確認は未完了です。実機Safariは未検証。暫定候補の成功をnpm公開又は後続U4の完成とは扱いません。

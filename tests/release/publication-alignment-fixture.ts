@@ -4,7 +4,6 @@ import { dirname, join } from 'node:path';
 import type { TestContext } from 'node:test';
 import { PACKAGE_FILES, sha256 } from '../../scripts/package/stage-package.js';
 import {
-  ADOPTION_CHECKS,
   DIFF_CHECKS,
   RC_CHECKS,
   REGRESSION_CHECKS,
@@ -204,7 +203,7 @@ export async function stableBundle(t: TestContext) {
     schemaVersion: 1 as const,
     evidenceId: 'fixture-published-rc',
     candidate: rc,
-    checks: ADOPTION_CHECKS.map((id) => check(id, rc)),
+    checks: RC_CHECKS.map((id) => check(id, rc)),
     coverage: null,
   };
   const rcEntry = await saveEvidence(f.root, rcEvidence);
@@ -274,7 +273,6 @@ export async function stableBundle(t: TestContext) {
         tarballSha256: rc.tarballSha256,
         registryIntegrity: 'sha512-Zml4dHVyZQ==',
       },
-      requiredAcceptanceCheckIds: [...ADOPTION_CHECKS],
     },
     stable: {
       candidateId: c.candidateId,

@@ -4,19 +4,14 @@ import { join } from 'node:path';
 import type { TestContext } from 'node:test';
 import test from 'node:test';
 import {
-  ADOPTION_CHECKS,
   DIFF_CHECKS,
   decideRelease,
   RC_CHECKS,
   REGRESSION_CHECKS,
 } from '../../scripts/release/decision.js';
-import {
-  resolveEvidence,
-  saveEvidence,
-} from '../../scripts/release/evidence.js';
+import { saveEvidence } from '../../scripts/release/evidence.js';
+import { FILES, sha256 } from '../../scripts/release/inventory.js';
 import type { ReleaseEvidence } from '../../scripts/release/types.js';
-import { FILES } from '../../scripts/terrarium/coverage.js';
-import { sha256 } from '../../scripts/terrarium/evidence.js';
 import {
   approval,
   candidate,
@@ -39,7 +34,7 @@ async function rc(t: TestContext) {
   };
 }
 async function stable(t: TestContext) {
-  const f = await fixture(t, [...ADOPTION_CHECKS]),
+  const f = await fixture(t, [...RC_CHECKS]),
     rcEntry = await saveEvidence(f.root, f.e),
     c = candidate('0.1.0');
   const diff = {
@@ -80,7 +75,6 @@ async function stable(t: TestContext) {
           tarballSha256: f.c.tarballSha256,
           registryIntegrity: 'sha512-Zml4dHVyZQ==',
         },
-        requiredAcceptanceCheckIds: [...ADOPTION_CHECKS],
       },
       stable: {
         candidateId: c.candidateId,
@@ -175,59 +169,6 @@ test('stable requires own fixed coverage and digest-bound explicit RC history', 
     result = await decideRelease(f);
   assert.equal(result.allowed, true);
   assert.equal(result.distTag, 'latest');
-});
-test('saved RC acceptance without mandatory integration metadata blocks stable on resolution', async (t) => {
-  for (const field of [
-    'diffSha256',
-    'diffArtifact',
-    'baselineCommit',
-    'integrationCommit',
-    'installedVersion',
-  ]) {
-    const f = await stable(t);
-    assert.equal(
-      (await decideRelease(f)).allowed,
-      true,
-      'healthy mock adoption baseline',
-    );
-    const original = f.index.entries[0];
-    const rcEvidence = await resolveEvidence(
-      f.root,
-      f.index,
-      original.evidenceId,
-    );
-    const row = rcEvidence.checks.find(
-      (check) => check.checkId === 'terrarium-node',
-    )!;
-    Object.assign(row.terrarium!, { [field]: '' });
-    const bytes = JSON.stringify(rcEvidence);
-    await writeFile(join(f.root, original.artifact), bytes);
-    original.sha256 = sha256(bytes);
-    const e = structuredClone(f.e);
-    e.evidenceId = `integration-negative-${field}`;
-    e.rcAdoption!.rc.evidenceSha256 = original.sha256;
-    const entry = await saveEvidence(f.root, e);
-    const result = await decideRelease({
-      ...f,
-      index: { version: 1, entries: [original, entry] },
-      evidenceIds: [e.evidenceId],
-    });
-    assert.equal(result.allowed, false, field);
-    assert.equal(result.outcome, 'blocked');
-    assert.match(result.missing.join('\n'), /terrarium|acceptance/i);
-  }
-});
-test('stable refuses same-size terrarium integration artifact drift after save', async (t) => {
-  const f = await stable(t);
-  assert.equal((await decideRelease(f)).allowed, true);
-  await writeFile(
-    join(f.root, 'terrarium-integration.diff'),
-    'Fixture terrarium integration diff',
-  );
-  const result = await decideRelease(f);
-  assert.equal(result.allowed, false);
-  assert.equal(result.outcome, 'blocked');
-  assert.match(result.missing.join('\n'), /digest/i);
 });
 test('RC envelope direct stable adoption or relabel cannot substitute stable evidence', async (t) => {
   const f = await stable(t);

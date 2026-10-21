@@ -1,8 +1,7 @@
 # GitHub settings as code
 
 The layout and reusable Plan, Apply, fmt and state-backup workflows follow
-[vivarium](https://github.com/aletheia-works/vivarium/tree/main/infra/github) and
-[terrarium](https://github.com/aletheia-works/terrarium/tree/main/infra/github).
+[vivarium](https://github.com/aletheia-works/vivarium/tree/main/infra/github).
 OpenTofu manages the existing repository, existing labels and the main ruleset.
 Import blocks adopt these resources from an empty state.
 

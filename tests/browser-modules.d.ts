@@ -5,8 +5,8 @@ declare module '*/web/api.js' {
 }
 declare module '*/resolver.js' {
   export function resolveGuest(
-    input: import('../integration/terrarium/guest-distribution/index.js').GuestSelection,
+    input: import('../integration/guest-distribution/index.js').GuestSelection,
   ): Promise<
-    import('../integration/terrarium/guest-distribution/index.js').SelectedGuest
+    import('../integration/guest-distribution/index.js').SelectedGuest
   >;
 }

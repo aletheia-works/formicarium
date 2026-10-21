@@ -1,9 +1,9 @@
 # Automated releases
 
-Normal releases follow vivarium and terrarium: release-please prepares a release
+Normal releases follow vivarium: release-please prepares a release
 PR; successful CI and a merge create a matching GitHub tag/Release; publish.yml
-publishes the verified package to npm with OIDC. RC publication and terrarium
-acceptance are not prerequisites for normal stable releases.
+publishes the verified package to npm with OIDC. RC publication is not a
+prerequisite for normal stable releases.
 
 ## Version and triggers
 
@@ -45,10 +45,9 @@ attached to the release-please Release without replacing existing assets or note
 No retries blindly resend an unknown publication result.
 
 The reviewed external guest/consumer fixtures retain their historical provenance;
-fresh frozen-fixture tests do not claim latest terrarium acceptance. After npm
-publication, terrarium can install the registry version and run its current
-consumer/latest-guest tests, including Biome. Problems are corrected in the next
-patch release, rather than making a public RC mandatory each time.
+fresh frozen-fixture tests do not claim latest consumer acceptance. Problems are
+corrected in the next patch release, rather than making a public RC mandatory
+each time.
 
 ## Local verification and deployment boundary
 

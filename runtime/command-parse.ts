@@ -95,7 +95,7 @@ export function tokenizeCommand(input: string): string[] {
 
 /**
  * ListingFormatter (W6, D4): the whole display string is sorted by UTF-16
- * code units, so `a.b` precedes `a/` exactly like terrarium's `.sort()`.
+ * code units, so `a.b` precedes `a/` exactly like `Array.prototype.sort()`.
  */
 export function formatListing(entries: readonly FsEntry[]): Uint8Array {
   const lines = entries

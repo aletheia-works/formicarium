@@ -167,7 +167,7 @@ export function validateBuild(
   return build as unknown as GuestBuild;
 }
 
-/** Preserve terrarium's default-first catalogue ordering and explicit failures. */
+/** Keep the default-first catalogue ordering and explicit failures. */
 export function selectBuild(catalog: unknown, input: unknown) {
   requireObject(catalog, 'catalogue');
   requireObject(input, 'selection');

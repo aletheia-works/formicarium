@@ -8,7 +8,7 @@ import type { BuildInput } from '../../scripts/guest-distribution/stage.js';
 import { stageDistribution } from '../../scripts/guest-distribution/stage.js';
 
 const moduleRoot = fileURLToPath(
-  new URL('../../integration/terrarium/guest-distribution/', import.meta.url),
+  new URL('../../integration/guest-distribution/', import.meta.url),
 );
 
 /** Clearly synthetic ELF/schema data; no actual tool provenance or execution. */

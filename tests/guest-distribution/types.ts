@@ -2,8 +2,8 @@ import type {
   GuestBuild,
   GuestSelection,
   SelectedGuest,
-} from '../../integration/terrarium/guest-distribution/index.js';
-import { resolveGuest as resolve } from '../../integration/terrarium/guest-distribution/resolver.js';
+} from '../../integration/guest-distribution/index.js';
+import { resolveGuest as resolve } from '../../integration/guest-distribution/resolver.js';
 
 const selection: GuestSelection = {
   tool: 'aube',

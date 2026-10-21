@@ -7,7 +7,7 @@ export interface Command extends SessionStep {
 // Node.js・ブラウザ・native の基準値（scripts/native-baseline.sh）で同じ形式を使い、
 // 出力をそのまま比べられるようにする（FR7.1、FR3）。
 //
-// 手順ファイルの形式（terrarium の fixtures/sessions と同じ）：
+// 手順ファイルの形式：
 //   # で始まる行はコメント
 //   "$ <command>" の行が 1 つのコマンド。<command> は次のどれか
 //     <tool> ...          ゲストの実行（tool は手順ごとのゲスト名。既定は aube）

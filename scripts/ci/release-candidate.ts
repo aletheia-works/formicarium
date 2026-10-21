@@ -262,7 +262,7 @@ export async function prepareInputs(
     if (row.path.startsWith(resolver))
       source = resolve(
         root,
-        'integration/terrarium/guest-distribution',
+        'integration/guest-distribution',
         row.path.slice(resolver.length),
       );
     return { path: row.path, source };
@@ -293,7 +293,7 @@ export async function prepareInputs(
         fixtureSourceCommit: old.sourceCommit,
         fixtureOwner: old.owner,
         limits:
-          'Fresh candidate and measurement; frozen external guest/consumer fixtures, no formal terrarium acceptance or publication approval.',
+          'Fresh candidate and measurement; frozen external guest/consumer fixtures, no formal consumer acceptance or publication approval.',
       },
       null,
       2,

@@ -32,13 +32,6 @@ export interface CheckEvidence {
     sha256: string;
   }[];
   browser: string | null;
-  terrarium: {
-    baselineCommit: string;
-    integrationCommit: string;
-    diffArtifact: string;
-    diffSha256: string;
-    installedVersion: string;
-  } | null;
   unverified: readonly string[];
 }
 export interface CoverageEvidence {
@@ -74,7 +67,6 @@ export interface StableRcAdoption {
       tarballSha256: string;
       registryIntegrity: string;
     };
-    requiredAcceptanceCheckIds: readonly string[];
   };
   stable: { candidateId: string; version: string; tarballSha256: string };
   diff: {

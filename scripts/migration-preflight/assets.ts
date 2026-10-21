@@ -1,4 +1,4 @@
-import { validateGuestElf } from '../../integration/terrarium/guest-distribution/resolver.js';
+import { validateGuestElf } from '../../integration/guest-distribution/resolver.js';
 
 export interface AssetLimits {
   download: number;

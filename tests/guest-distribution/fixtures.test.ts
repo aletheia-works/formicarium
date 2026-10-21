@@ -3,7 +3,7 @@ import test from 'node:test';
 import {
   convertFixture,
   selectFixture,
-} from '../../integration/terrarium/guest-distribution/fixtures.js';
+} from '../../integration/guest-distribution/fixtures.js';
 import { entryAt } from '../shared/assertions.js';
 
 const file = (path = '/work/app/file', extra = {}) => ({
@@ -33,7 +33,7 @@ test('UTF-8 legacy map becomes owned /work files and implicit directories', () =
   );
 });
 
-test('fixture default, empty seed selection and cwd match terrarium semantics', () => {
+test('fixture default, empty seed selection and cwd semantics', () => {
   const tool = { fixture: 'default', cwd: '/work/app' };
   const fixtures = { default: {}, other: {} };
   assert.deepEqual(selectFixture(tool, undefined, fixtures), {

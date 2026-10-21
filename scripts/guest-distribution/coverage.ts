@@ -31,7 +31,7 @@ const root = fileURLToPath(new URL('../../', import.meta.url));
 const hash = (value: string | Uint8Array) =>
   createHash('sha256').update(value).digest('hex');
 export const FILES = ['manifest', 'fixtures', 'resolver'].map(
-  (name) => `integration/terrarium/guest-distribution/${name}.js`,
+  (name) => `integration/guest-distribution/${name}.js`,
 );
 const PROJECTS = ['chromium', 'firefox', 'webkit'];
 const NODE_TESTS = [
@@ -122,12 +122,12 @@ export async function prepareCoverage(output: string) {
     await writeFile(join(workspace, path), text);
   }
   await cp(
-    join(root, 'integration/terrarium/guest-distribution/index.d.ts'),
-    join(workspace, 'integration/terrarium/guest-distribution/index.d.ts'),
+    join(root, 'integration/guest-distribution/index.d.ts'),
+    join(workspace, 'integration/guest-distribution/index.d.ts'),
   );
   await cp(
-    join(root, 'integration/terrarium/guest-distribution/resolver.d.ts'),
-    join(workspace, 'integration/terrarium/guest-distribution/resolver.d.ts'),
+    join(root, 'integration/guest-distribution/resolver.d.ts'),
+    join(workspace, 'integration/guest-distribution/resolver.d.ts'),
   );
   await cp(join(root, 'package.json'), join(workspace, 'package.json'));
   const identity = hash(JSON.stringify(digests));

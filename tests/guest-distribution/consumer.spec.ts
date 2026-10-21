@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { expect, test } from '@playwright/test';
-import type { GuestSelection } from '../../integration/terrarium/guest-distribution/index.js';
+import type { GuestSelection } from '../../integration/guest-distribution/index.js';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');

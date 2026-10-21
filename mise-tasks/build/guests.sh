@@ -59,7 +59,7 @@ build_aube() {
   echo "== aube $aube_ref をビルド（${image}）"
   # aube の build script は、PATH に node があると npm の packument を取得して埋め込む。
   # コンテナには node がないので埋め込まれないが、念のため空の primer を明示して
-  # どのマシンでも同じ内容になるようにする（terrarium の build-aube.sh と同じ扱い）。
+  # どのマシンでも同じ内容になるようにする。
   container_run "$image" dist/guests "
     apk add --no-cache musl-dev git perl make cmake >/dev/null
     src=/cache/aube-src/$aube_ref

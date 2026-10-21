@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { access, rm, symlink, writeFile } from 'node:fs/promises';
+import { access, symlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { TestContext } from 'node:test';
 import test from 'node:test';
@@ -8,116 +8,8 @@ import {
   saveEvidence,
   validateEvidence,
 } from '../../scripts/release/evidence.js';
-import { REQUIRED_U1_REALMS } from '../../scripts/terrarium/coverage.js';
-import { sha256 } from '../../scripts/terrarium/evidence.js';
+import { REQUIRED_U1_REALMS, sha256 } from '../../scripts/release/inventory.js';
 import { coverageFixture, fixture } from './fixtures.js';
-
-test('terrarium acceptance refuses missing metadata and unbound integration diff', async (t) => {
-  for (const field of [
-    'baselineCommit',
-    'integrationCommit',
-    'installedVersion',
-    'diffSha256',
-    'diffArtifact',
-  ]) {
-    for (const value of [undefined, '', '   ']) {
-      const f = await fixture(t, ['terrarium-node']);
-      Object.assign(f.e.checks[0].terrarium!, { [field]: value });
-      await assert.rejects(validateEvidence(f.root, f.e), /terrarium/i);
-    }
-  }
-  const f = await fixture(t, ['terrarium-node']);
-  f.e.checks[0].terrarium = null;
-  await assert.rejects(validateEvidence(f.root, f.e), /terrarium/i);
-});
-test('terrarium integration digest must bind raw bytes and the check artifact index', async (t) => {
-  for (const kind of [
-    'invalid',
-    'different',
-    'index-missing',
-    'index-different',
-  ]) {
-    const f = await fixture(t, ['terrarium-node']);
-    if (kind === 'invalid') f.e.checks[0].terrarium!.diffSha256 = 'not-sha256';
-    if (kind === 'different')
-      f.e.checks[0].terrarium!.diffSha256 = 'b'.repeat(64);
-    if (kind === 'index-missing')
-      delete (f.e.checks[0].artifactDigests as Record<string, string>)[
-        'terrarium-integration.diff'
-      ];
-    if (kind === 'index-different')
-      f.e.checks[0].artifactDigests = {
-        ...f.e.checks[0].artifactDigests,
-        'terrarium-integration.diff': 'b'.repeat(64),
-      };
-    await assert.rejects(validateEvidence(f.root, f.e), /terrarium|digest/i);
-  }
-});
-test('terrarium integration diff refuses missing same-size changed escaping or linked artifacts', async (t) => {
-  for (const kind of ['missing', 'changed', 'escape', 'symlink']) {
-    const f = await fixture(t, ['terrarium-node']);
-    if (kind === 'missing')
-      await rm(join(f.root, 'terrarium-integration.diff'));
-    if (kind === 'changed') {
-      assert.equal(
-        Buffer.byteLength('Fixture terrarium integration diff'),
-        Buffer.byteLength('fixture terrarium integration diff'),
-      );
-      await writeFile(
-        join(f.root, 'terrarium-integration.diff'),
-        'Fixture terrarium integration diff',
-      );
-    }
-    if (kind === 'escape') {
-      Object.assign(f.e.checks[0].terrarium!, {
-        diffArtifact: '../outside.diff',
-      });
-      f.e.checks[0].artifactDigests = {
-        ...f.e.checks[0].artifactDigests,
-        '../outside.diff': f.e.checks[0].terrarium!.diffSha256,
-      };
-    }
-    if (kind === 'symlink') {
-      await symlink(
-        join(f.root, 'terrarium-integration.diff'),
-        join(f.root, 'linked.diff'),
-      );
-      Object.assign(f.e.checks[0].terrarium!, { diffArtifact: 'linked.diff' });
-      f.e.checks[0].artifactDigests = {
-        ...f.e.checks[0].artifactDigests,
-        'linked.diff': f.e.checks[0].terrarium!.diffSha256,
-      };
-    }
-    await assert.rejects(
-      validateEvidence(f.root, f.e),
-      kind === 'escape'
-        ? /unsafe/
-        : kind === 'symlink'
-          ? /symlink/
-          : kind === 'changed'
-            ? /digest/
-            : /ENOENT/,
-    );
-  }
-});
-test('terrarium acceptance version must match the envelope candidate', async (t) => {
-  const f = await fixture(t, ['terrarium-node']);
-  f.e.checks[0].terrarium!.installedVersion = 'other-version';
-  await assert.rejects(validateEvidence(f.root, f.e), /terrarium/i);
-});
-test('saving invalid terrarium acceptance leaves no immutable envelope or index', async (t) => {
-  const f = await fixture(t, ['terrarium-node']);
-  f.e.checks[0].terrarium!.diffSha256 = '';
-  await assert.rejects(saveEvidence(f.root, f.e), /terrarium/i);
-  await assert.rejects(
-    access(join(f.root, 'envelopes', `${f.e.evidenceId}.json`)),
-    { code: 'ENOENT' },
-  );
-  await assert.rejects(
-    access(join(f.root, 'indexes', `${f.e.evidenceId}.json`)),
-    { code: 'ENOENT' },
-  );
-});
 
 async function boundCoverage(t: TestContext) {
   const f = await fixture(t);
@@ -141,6 +33,19 @@ async function boundCoverage(t: TestContext) {
   return { ...f, binding, report, saveReport };
 }
 
+test('saving evidence whose artifact digest differs leaves no immutable envelope or index', async (t) => {
+  const f = await fixture(t);
+  await writeFile(join(f.root, 'stdout.txt'), 'changed');
+  await assert.rejects(saveEvidence(f.root, f.e), /digest/);
+  await assert.rejects(
+    access(join(f.root, 'envelopes', `${f.e.evidenceId}.json`)),
+    { code: 'ENOENT' },
+  );
+  await assert.rejects(
+    access(join(f.root, 'indexes', `${f.e.evidenceId}.json`)),
+    { code: 'ENOENT' },
+  );
+});
 test('immutable envelope resolves by evidenceId and duplicate save refuses overwrite', async (t) => {
   const f = await fixture(t),
     entry = await saveEvidence(f.root, f.e);

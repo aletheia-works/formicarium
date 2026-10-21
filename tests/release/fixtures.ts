@@ -2,6 +2,12 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { TestContext } from 'node:test';
+import {
+  BROWSER_TITLES,
+  FILES,
+  REQUIRED_U1_REALMS,
+  sha256,
+} from '../../scripts/release/inventory.js';
 import type {
   CandidateIdentity,
   CheckEvidence,
@@ -9,12 +15,6 @@ import type {
   ReleaseApproval,
   ReleaseEvidence,
 } from '../../scripts/release/types.js';
-import {
-  BROWSER_TITLES,
-  FILES,
-  REQUIRED_U1_REALMS,
-} from '../../scripts/terrarium/coverage.js';
-import { sha256 } from '../../scripts/terrarium/evidence.js';
 export const digest = 'a'.repeat(64);
 export function coverageFixture(c: CandidateIdentity) {
   const digests = c.firstPartyJs.map((row) => ({
@@ -105,9 +105,6 @@ export function check(id: string, c = candidate()): CheckEvidence {
     artifactDigests: {
       'stdout.txt': sha256('stdout'),
       'stderr.txt': sha256('stderr'),
-      'terrarium-integration.diff': sha256(
-        'fixture terrarium integration diff',
-      ),
     },
     guestBuilds: [
       {
@@ -118,13 +115,6 @@ export function check(id: string, c = candidate()): CheckEvidence {
       },
     ],
     browser: id.includes('node') ? null : 'fixture-browser',
-    terrarium: {
-      baselineCommit: 'fixture-baseline',
-      integrationCommit: 'fixture-integration',
-      diffArtifact: 'terrarium-integration.diff',
-      diffSha256: sha256('fixture terrarium integration diff'),
-      installedVersion: c.version,
-    },
     unverified: [],
   };
 }
@@ -149,10 +139,6 @@ export async function fixture(
   t.after(() => rm(root, { recursive: true, force: true }));
   await writeFile(join(root, 'stdout.txt'), 'stdout');
   await writeFile(join(root, 'stderr.txt'), 'stderr');
-  await writeFile(
-    join(root, 'terrarium-integration.diff'),
-    'fixture terrarium integration diff',
-  );
   const c = candidate(version),
     e: ReleaseEvidence = {
       schemaVersion: 1,

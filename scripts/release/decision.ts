@@ -2,7 +2,6 @@ import { randomUUID } from 'node:crypto';
 import type { EvidenceIndex } from './evidence.ts';
 import {
   artifactBytes,
-  hex,
   requireCondition,
   resolveEvidence,
   unique,
@@ -44,15 +43,6 @@ export const REGRESSION_CHECKS = Object.freeze([
   'pitchfork-firefox',
   'pitchfork-webkit',
   'integration-ci',
-]);
-export const ADOPTION_CHECKS = Object.freeze([
-  'terrarium-node',
-  'terrarium-chromium',
-  'terrarium-firefox',
-  'terrarium-webkit',
-  'iframe-chromium',
-  'iframe-firefox',
-  'iframe-webkit',
 ]);
 export const DIFF_CHECKS = Object.freeze([
   'stable-pack',
@@ -156,25 +146,9 @@ async function adoption(
     'published RC differs',
   );
   requireCondition(
-    exact(a.rc.requiredAcceptanceCheckIds, ADOPTION_CHECKS) &&
-      exact(a.diff.validationCheckIds, DIFF_CHECKS),
+    exact(a.diff.validationCheckIds, DIFF_CHECKS),
     'adoption required set differs',
   );
-  for (const id of ADOPTION_CHECKS) {
-    const c = rc.checks.find((row) => row.checkId === id);
-    requireCondition(
-      checkPassed(rc, id) &&
-        c?.terrarium?.installedVersion === rc.candidate.version &&
-        c.terrarium.baselineCommit &&
-        c.terrarium.integrationCommit &&
-        hex(c.terrarium.diffSha256) &&
-        c.artifactDigests[c.terrarium.diffArtifact] ===
-          c.terrarium.diffSha256 &&
-        c.guestBuilds.length > 0 &&
-        (id === 'terrarium-node' || c.browser),
-      'RC acceptance incomplete',
-    );
-  }
   for (const id of DIFF_CHECKS)
     requireCondition(checkPassed(e, id), 'stable diff check incomplete');
   const bytes = await artifactBytes(

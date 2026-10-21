@@ -116,7 +116,7 @@ test('normal candidate hashes guest, fixture and exact provenance bytes independ
   );
   for (const build of Object.values(
     manifest.builds?.aube,
-  ) as import('../../integration/terrarium/guest-distribution/index.js').GuestBuild[]) {
+  ) as import('../../integration/guest-distribution/index.js').GuestBuild[]) {
     for (const asset of [
       build.guest,
       build.buildInfo,

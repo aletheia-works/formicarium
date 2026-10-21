@@ -1,4 +1,4 @@
-import type { GuestBuild } from '../../integration/terrarium/guest-distribution/index.js';
+import type { GuestBuild } from '../../integration/guest-distribution/index.js';
 export interface BuildInput {
   tool: string;
   ref: string;
@@ -36,12 +36,12 @@ import {
 } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { convertFixture } from '../../integration/terrarium/guest-distribution/fixtures.js';
-import { validateBuild } from '../../integration/terrarium/guest-distribution/manifest.js';
+import { convertFixture } from '../../integration/guest-distribution/fixtures.js';
+import { validateBuild } from '../../integration/guest-distribution/manifest.js';
 import {
   validateGuestElf,
   validateProvenance,
-} from '../../integration/terrarium/guest-distribution/resolver.js';
+} from '../../integration/guest-distribution/resolver.js';
 
 const hash = (bytes: Uint8Array) =>
   createHash('sha256').update(bytes).digest('hex');

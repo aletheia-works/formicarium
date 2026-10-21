@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 
 // Historical 0.1.0 evidence inventory: recorded RC/stable evidence binds these
-// fourteen modules, so it stays fixed (see HISTORICAL_U1_JS in terrarium coverage).
+// fourteen modules, so it stays fixed (see HISTORICAL_U1_JS in the fixed-24 coverage).
 export const HISTORICAL_FIRST_PARTY_JS = Object.freeze([
   'runtime/contracts.js',
   'runtime/public.js',
@@ -63,7 +63,7 @@ export const sha256 = (bytes: string | Uint8Array) =>
   createHash('sha256').update(bytes).digest('hex');
 
 export const U2_FILES = ['manifest', 'fixtures', 'resolver'].map(
-  (name) => `integration/terrarium/guest-distribution/${name}.js`,
+  (name) => `integration/guest-distribution/${name}.js`,
 );
 export const U3_FILES = [
   'formicarium-session',

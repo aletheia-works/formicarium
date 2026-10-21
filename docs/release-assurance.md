@@ -29,7 +29,7 @@ publisher観測artifactはkind=npm-settings-observation、package、repository/w
 
 ドキュメント根拠：[npm trust](https://docs.npmjs.com/cli/v11/commands/npm-trust/)は存在するpackageと2FAを要件とする。[staged publishing](https://docs.npmjs.com/staged-publishing/)は新packageにも使えるが、公に見える0.0.0-stage placeholderを作る。stagingも外部公開操作であり、read-only確認や無承認のbootstrapとして実行しない。npm CLI>=11.15.0/Node>=22.14.0が必要。mainで観測したnpm11.19.0は版条件を満たすが、CLI認証は別途必要である。
 
-具体的手順は、公開専用候補のローカル検証と差分準備→人間が送信する版/候補SHA/公開placeholder/送信先を承認→ユーザーが対話CLIで初回認証→承認した候補をstaged送信→対象packageの実Trusted Publisherをpublish.yml/releaseへ登録→実設定読戻し→承認済みタグからOIDCでRC公開→registry tgz/integrity/nextとRelease asset読み戻し→実RCをterrariumの隔離導入先で受入れ→stable候補の差分と全NFR/採用証拠を検証→具体的stable公開承認である。staged承認でRCを公開する経路を選ぶ場合は、OIDC経路の認証成功と区別して記録し、FR10の実認証を模擬成功で満たさない。未選択のbootstrap経路や不足設定はgateをblockedに保つ。
+具体的手順は、公開専用候補のローカル検証と差分準備→人間が送信する版/候補SHA/公開placeholder/送信先を承認→ユーザーが対話CLIで初回認証→承認した候補をstaged送信→対象packageの実Trusted Publisherをpublish.yml/releaseへ登録→実設定読戻し→承認済みタグからOIDCでRC公開→registry tgz/integrity/nextとRelease asset読み戻し→stable候補の差分と全NFR/採用証拠を検証→具体的stable公開承認である。staged承認でRCを公開する経路を選ぶ場合は、OIDC経路の認証成功と区別して記録し、FR10の実認証を模擬成功で満たさない。未選択のbootstrap経路や不足設定はgateをblockedに保つ。
 
 認証情報/tokenをチャット・artifactへ取り込まない。repo/push/入力供給/設定変更/bootstrap/RC・stable公開/Releaseは、それぞれ具体的対象が準備できてから必要な最終承認を得る。新Trusted Publisherは初回成功まで2日で期限が来るため、実行準備が整ってから登録し読み戻す。[npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/)。RCの公開前条件へ「既に公開されたRCの導入成功」を置かず、実RC受入れはstableの前提として確認する。
 
@@ -39,23 +39,19 @@ publisher観測artifactはkind=npm-settings-observation、package、repository/w
 
 U3の現在のローカルv9接続はpitchfork v2.30.1でbridge6・owner-copy45が成功している。正式ownerの旧承認はv2.30.0のまま。U3 v3 coverageは固定24、1450/1801行=80.51%、skip0。U4でseal1705files、source/site/tgz、46receipts、U1同packの1253realm import、元レポートbytesと再集計を読み取り再照合した履歴importであり、新しいU4測定ではない。U1の実機Safari5ケースは成功済みだが、U3候補の実機Safariは未検証。Trusted Publisher実設定、公開済みRCの実受入れ、npm公開は未実施で公開判定はblockedを維持する。
 
-検証済み（保存済みmain観測）：[遠隔CI run38011644576](https://github.com/Marukome0743/formicarium/actions/runs/38011644576)はsource `c75bc285f0320e2f3cb234569fa9cc4bc4588a9d`で全必須9check、436試験とnative2件が成功し、fail0/skip0、acceptance=true。fresh固定24 coverageは1450/1801行=80.51%、46receipt。同packとexecutionIdentityへの結合、原ログ・ZIP・抽出物のSHA照合は`aidlc/spaces/default/intents/261006-npm-terrarium-release/construction/u4-release-assurance/code-generation/verification/ci-traceability-repair-v1/remote-run-38011644576.json`に保存している。これはそのsourceの成功記録であり、今回のcollector修正を遠隔で再実行した結果ではない。工程承認、Trusted Publisher、公開済みRC導入、実公開は別の未完条件である。
+検証済み（保存済みmain観測）：[遠隔CI run38011644576](https://github.com/Marukome0743/formicarium/actions/runs/38011644576)はsource `c75bc285f0320e2f3cb234569fa9cc4bc4588a9d`で全必須9check、436試験とnative2件が成功し、fail0/skip0、acceptance=true。fresh固定24 coverageは1450/1801行=80.51%、46receipt。同packとexecutionIdentityへの結合、原ログ・ZIP・抽出物のSHA照合はAI-DLCの記録（`aidlc/`）に保存している。これはそのsourceの成功記録であり、今回のcollector修正を遠隔で再実行した結果ではない。工程承認、Trusted Publisher、公開済みRC導入、実公開は別の未完条件である。
 
 検証済み：C6の4新規否定回帰はRed後に修正し、整形後正式build/emitとrelease26件が成功。現在U3v3の原report/inventoryをread-onlyでvalidateEvidenceへ渡す正常受入れも確認した。固定24のうち23measured、npm.ts未実行0を分母に保持する。実envelope保存と公開判定は行っていない（evidenceSaved=false）。sourceCommitは観測jj baseで、working-treeの第一者SHAを別に結合し、公開可能commitとは主張しない。
 
 ## 2026-10-08時点の履歴
 
-2026-10-08のU4では公開候補の証拠保存とRC/stable判定を実装している。package.jsonは`private: true`、npm公開は未実施。実機Safari、遠隔CI、registry権限・Trusted Publisher実設定、公開済みRCの実terrarium受入れは未検証である。ローカル実装の完了は公開可能性を保証しない。
+2026-10-08のU4では公開候補の証拠保存とRC/stable判定を実装している。package.jsonは`private: true`、npm公開は未実施。実機Safari、遠隔CI、registry権限・Trusted Publisher実設定は未検証である。ローカル実装の完了は公開可能性を保証しない。
 
-検証済み（main観測）：pitchfork v2.30.1、公式commit `1054549e85470b08d9507e2c82c850959a4b3914` はbuild検査9件、同一ELFのnative2回一致、Node11件、3browserの3件が成功しnative出力と一致した。これはformicariumの既存PoC入口での検証である。正式owner U3のconsumer/coverageはpitchfork v2.30.0の履歴であり、v2.30.1の実terrarium入口受入れは未検証。既存muslパッチの歴史的filenameと内容を保持する。版・guest ELF・core・fixture・候補・commandが異なる証拠を付け替えない。
+検証済み（main観測）：pitchfork v2.30.1、公式commit `1054549e85470b08d9507e2c82c850959a4b3914` はbuild検査9件、同一ELFのnative2回一致、Node11件、3browserの3件が成功しnative出力と一致した。これはformicariumの既存PoC入口での検証である。正式owner U3のconsumer/coverageはpitchfork v2.30.0の履歴である。既存muslパッチの歴史的filenameと内容を保持する。版・guest ELF・core・fixture・候補・commandが異なる証拠を付け替えない。
 
 ## 証拠APIと不変保存
 
-terrarium受入れcheckは`terrarium.diffArtifact`に実導入差分のroot相対artifactを指定し、`diffSha256`を原bytes SHAとそのcheckの`artifactDigests[diffArtifact]`へ結合する。baselineCommit/integrationCommitは空白だけの値を認めず、installedVersionはenvelope候補版と一致させる。passedのterrarium/iframe受入れはmetadata欠落も拒否する。保存時と解決時に同じ検査を行い、旧証拠でこの参照が不足していれば不正入力として拒否しstable判定をblockedにする。旧証拠を書き換えて補完しない。
-
-この実導入差分は、RCからstableへの配布差分`rcAdoption.diff.artifact`とは別の証拠である。どちらの成功も公開済みRCの真正性や人間の操作承認を生成しない。
-
-`scripts/release/types.ts`が候補、check、coverage、RC採用、操作承認、判定の型を定義する。`CandidateIdentity`はcandidateId、version、sourceCommit、tarball SHA、dirty=falseのcore identity、固定24配布JSのSHAと除外理由を持つ。`CheckEvidence`は同候補/tgzへの結合、command/environment、終了分類、stdout/stderr artifactとSHA、guest/build、browser、terrarium identity、未検証事項を保持する。
+`scripts/release/types.ts`が候補、check、coverage、RC採用、操作承認、判定の型を定義する。`CandidateIdentity`はcandidateId、version、sourceCommit、tarball SHA、dirty=falseのcore identity、固定24配布JSのSHAと除外理由を持つ。`CheckEvidence`は同候補/tgzへの結合、command/environment、終了分類、stdout/stderr artifactとSHA、guest/build、browser、未検証事項を保持する。
 
 `validateEvidence(root, evidence)`は固定集合、重複ID、候補不一致、log/artifact改変、passedと終了結果の矛盾を拒否する。artifactはroot相対の通常ファイルだけを読み、path逸脱とsymlinkを拒否する。coverageは同候補、固定24分母、report artifactのSHA、executionIdentity、reportとの行数一致を検査する。型の情報だけで供給元や公開履歴の真正性が自動確定するわけではないため、mainが元観測とidentityを照合する。
 
@@ -76,13 +72,13 @@ coverageの独立`binding`はgeneration/sourceIdentity/candidateSha256（site）
 | coverage | Unitの品質条件は維持 | 固定24、80%以上、収集状態とNode/3browser realmが必要 |
 | 採用履歴 | 不要 | explicit rcAdoptionが必要 |
 
-stableの`rcAdoption`はRC envelope ID/SHA、別RCのcandidate/version/tgz、公開packageのversion/tgz/registryIntegrity、stable identity、差分artifact/SHAと事前固定された検査IDを結ぶ。RCをstableの直接証拠へ混入できない。RC側に採用の循環を持たせず、terrarium-node/3browserとiframe-3browserの実RC受入れ、installedVersion、guest、terrarium revision、差分の候補結合を照合する。不成立を旧RC結果の再ラベルで補わない。
+stableの`rcAdoption`はRC envelope ID/SHA、別RCのcandidate/version/tgz、公開packageのversion/tgz/registryIntegrity、stable identity、差分artifact/SHAと事前固定された検査IDを結ぶ。RCをstableの直接証拠へ混入できない。RC側に採用の循環を持たせず、差分の候補結合を照合する。不成立を旧RC結果の再ラベルで補わない。
 
 公開操作の承認は`publish-rc`または`publish-stable`、target、candidateId、version、sourceCommit、人間入力・日時が一致する必要がある。Plan Approval、模擬fixture承認、判定APIのallowedは実操作の承認に変換しない。公開repo作成・pushも別操作として承認が必要。未実施の必須check、未検証のTrusted Publisher、実RC採用不足、coverage不足、失敗・timeout・abort・別候補はblocked理由として残す。
 
 ## 観測collectorの利用
 
-`collectCommand({checkId,executable,args,cwd,timeoutMs,environment,candidate,out,signal?})`をmainが逐次呼ぶ。executable/cwdは絶対path、argvはshell=falseで起動する。UUIDごとの新規ディレクトリにstdout/stderrとSHA、開始/終了時刻、cwd、結果を保存する。exit0かつ通常exitだけをpassedにし、init-failure、非0、timeout、abortedを区別する。collectorはguestやterrarium identityを推定して埋めないため、呼出し側で実観測を結合する。`environment`は記録用説明であり環境変数を設定する引数ではない。機密のないargv/logだけを収集する。
+`collectCommand({checkId,executable,args,cwd,timeoutMs,environment,candidate,out,signal?})`をmainが逐次呼ぶ。executable/cwdは絶対path、argvはshell=falseで起動する。UUIDごとの新規ディレクトリにstdout/stderrとSHA、開始/終了時刻、cwd、結果を保存する。exit0かつ通常exitだけをpassedにし、init-failure、非0、timeout、abortedを区別する。collectorはguest identityを推定して埋めないため、呼出し側で実観測を結合する。`environment`は記録用説明であり環境変数を設定する引数ではない。機密のないargv/logだけを収集する。
 
 `unexecuted(checkId,candidate,reason)`はnot-run/unverifiedを返す。`observeArtifact(filename,expectedSHA)`は原bytesのSHAとsizeを照合する。既存結果の採用時はcommand/log原SHA、候補と取得時観測を保存し、fresh実行と区別する。source/historyの完全scanやLICENSE/notices/取得元の確認成功は、このAPIの存在だけでは主張しない。
 
@@ -114,7 +110,7 @@ reportはformicarium rootから実行する。固定15 browser cases×3engineと
 
 ```sh
 node --test --test-concurrency=1 tests/release/evidence.test.js tests/release/decision.test.js tests/release/collect.test.js
-node --test --test-concurrency=1 tests/terrarium/adapter.test.js tests/terrarium/assets.test.js tests/terrarium/coverage.test.js tests/terrarium/acceptance.test.js
+node --test --test-concurrency=1 tests/terrarium/coverage.test.js
 node --test --test-concurrency=1 tests/node/build.test.js
 node --test --test-concurrency=1 tests/node/session.test.js tests/node/pitchfork-basic.test.js
 node node_modules/@playwright/test/cli.js test tests/browser/pitchfork-basic.spec.ts --workers=1 --retries=0

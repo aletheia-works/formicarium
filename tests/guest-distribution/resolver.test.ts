@@ -2,12 +2,12 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import type { TestContext } from 'node:test';
 import test from 'node:test';
-import type { GuestBuild } from '../../integration/terrarium/guest-distribution/index.js';
+import type { GuestBuild } from '../../integration/guest-distribution/index.js';
 import {
   resolveGuest,
   validateGuestElf,
   validateProvenance,
-} from '../../integration/terrarium/guest-distribution/resolver.js';
+} from '../../integration/guest-distribution/resolver.js';
 
 // Only synthetic schema/ELF data, never a verified actual tool distribution.
 const base = 'https://example.test/site/';

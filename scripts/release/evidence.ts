@@ -151,30 +151,6 @@ export async function validateEvidence(
         hex(digest) && sha256(await artifactBytes(root, path)) === digest,
         'artifact digest differs',
       );
-    const acceptance =
-      /^(terrarium|iframe)-(node|chromium|firefox|webkit)$/.test(check.checkId);
-    if (check.terrarium || (acceptance && check.status === 'passed')) {
-      const integration = check.terrarium;
-      requireCondition(
-        integration &&
-          typeof integration.baselineCommit === 'string' &&
-          integration.baselineCommit.trim() &&
-          typeof integration.integrationCommit === 'string' &&
-          integration.integrationCommit.trim() &&
-          integration.installedVersion === c.version &&
-          typeof integration.diffArtifact === 'string' &&
-          integration.diffArtifact.trim() &&
-          hex(integration.diffSha256),
-        'terrarium integration metadata invalid',
-      );
-      requireCondition(
-        check.artifactDigests[integration.diffArtifact] ===
-          integration.diffSha256 &&
-          sha256(await artifactBytes(root, integration.diffArtifact)) ===
-            integration.diffSha256,
-        'terrarium integration diff digest differs',
-      );
-    }
   }
   if (evidence.coverage) {
     const v = evidence.coverage;

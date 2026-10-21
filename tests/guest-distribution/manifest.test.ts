@@ -6,7 +6,7 @@ import {
   resolveAssetUrl,
   selectBuild,
   validateBuild,
-} from '../../integration/terrarium/guest-distribution/manifest.js';
+} from '../../integration/guest-distribution/manifest.js';
 
 // Fabricated schema fixtures; these are not actual aube/pitchfork supply assets.
 const base = 'https://example.test/site/';

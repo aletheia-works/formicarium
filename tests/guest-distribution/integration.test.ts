@@ -4,7 +4,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import test, { after, before } from 'node:test';
-import { resolveGuest } from '../../integration/terrarium/guest-distribution/resolver.js';
+import { resolveGuest } from '../../integration/guest-distribution/resolver.js';
 import { stageDistribution } from '../../scripts/guest-distribution/stage.js';
 import { createSyntheticSite, serveDistribution } from './serve.js';
 

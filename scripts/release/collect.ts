@@ -2,8 +2,8 @@ import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { isAbsolute, join } from 'node:path';
-import { sha256 } from '../terrarium/evidence.js';
 import { requireCondition } from './evidence.js';
+import { sha256 } from './inventory.js';
 import type { CandidateIdentity, CheckEvidence } from './types.js';
 export interface CommandInput {
   checkId: string;
@@ -130,7 +130,6 @@ export async function collectCommand(
     },
     guestBuilds: [],
     browser: null,
-    terrarium: null,
     unverified: [],
   };
   await writeFile(
@@ -168,7 +167,6 @@ export function unexecuted(
     artifactDigests: {},
     guestBuilds: [],
     browser: null,
-    terrarium: null,
     unverified: [reason],
   };
 }

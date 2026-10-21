@@ -48,7 +48,7 @@ export const HISTORICAL_U1_JS = Object.freeze([
   'runtime/web/package-worker.js',
 ]);
 export const U2_FILES = ['manifest', 'fixtures', 'resolver'].map(
-  (name) => `integration/terrarium/guest-distribution/${name}.js`,
+  (name) => `integration/guest-distribution/${name}.js`,
 );
 export const U3_FILES = [
   'formicarium-session',
@@ -588,7 +588,7 @@ export async function prepareCoverage({
     assetTest,
     (await readFile(assetTest, 'utf8')).replace(
       "path.resolve(import.meta.dir, '../../../../formicarium/integration/terrarium/guest-distribution')",
-      JSON.stringify(join(root, 'integration/terrarium/guest-distribution')),
+      JSON.stringify(join(root, 'integration/guest-distribution')),
     ),
   );
   for (const name of [

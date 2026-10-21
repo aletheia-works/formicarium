@@ -9,10 +9,9 @@ import { pathToFileURL } from 'node:url';
 const { PACKAGE_FILES, sha256 } = (await import(
   pathToFileURL(resolve(process.cwd(), 'scripts/package/stage-package.js')).href
 )) as typeof import('../../scripts/package/stage-package.js');
-const { ADOPTION_CHECKS, DIFF_CHECKS, RC_CHECKS, REGRESSION_CHECKS } =
-  (await import(
-    pathToFileURL(resolve(process.cwd(), 'scripts/release/decision.js')).href
-  )) as typeof import('../../scripts/release/decision.js');
+const { DIFF_CHECKS, RC_CHECKS, REGRESSION_CHECKS } = (await import(
+  pathToFileURL(resolve(process.cwd(), 'scripts/release/decision.js')).href
+)) as typeof import('../../scripts/release/decision.js');
 const { saveEvidence } = (await import(
   pathToFileURL(resolve(process.cwd(), 'scripts/release/evidence.js')).href
 )) as typeof import('../../scripts/release/evidence.js');

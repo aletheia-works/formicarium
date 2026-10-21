@@ -141,7 +141,7 @@ function completeParents(found: Map<string, FsEntry>, cwd: string) {
   }
 }
 
-/** Preserve terrarium's undefined/default and explicit empty-fixture semantics. */
+/** Keep the undefined/default and explicit empty-fixture semantics. */
 export function selectFixture(
   tool: { fixture?: string; cwd?: string },
   wanted: string | undefined,
