@@ -1,6 +1,6 @@
 import type { LegacyEntry, ModuleFactory } from '../runtime/contracts.js';
 import { errorText } from '../runtime/contracts.js';
-// ブラウザの Worker。コア（blink）を読み込み、ゲストを実行して結果をページに返す（FR2.2）。
+// ブラウザの Worker。コア（blink）を読み込み、ゲストを実行して結果をページに返す。
 // コアの pthread は、この Worker からさらに Worker として起動される。
 // メッセージ：{type:'stdout'|'stderr', text} を逐次、最後に {type:'done', ...} か {type:'error', message}。
 import { defaultCore } from '../runtime/core.js';

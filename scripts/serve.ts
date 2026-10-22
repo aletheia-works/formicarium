@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // usage: node scripts/serve.js [--port 8787] [--host 127.0.0.1]
 // 開発用の静的ファイルサーバー（依存なし）。プロジェクトのルートを配信し、すべての
-// 応答に COOP/COEP（と CORP）を付けて、ページを crossOriginIsolated にする（FR2.2）。
+// 応答に COOP/COEP（と CORP）を付けて、ページを crossOriginIsolated にする。
 // SharedArrayBuffer（Emscripten の pthread に必要）はこの状態でしか使えない。
 import { createReadStream, statSync } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';

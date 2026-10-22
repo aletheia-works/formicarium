@@ -16,10 +16,10 @@ export interface TimingDocument {
   tool?: { version?: string; commit?: string };
   host?: { os?: string; cpu?: string; node?: string };
 }
-// aube の計測結果（docs/results/aube-timings.json）の形式と、表への整形（FR6・NFR3）。
+// aube の計測結果（docs/results/aube-timings.json）の形式と、表への整形。
 // scripts/measure-aube.js が書き、tests/node/measure.test.js が形式を確かめる。
 
-/** 計測する 4 コマンド（FR6.1）。キーは JSON の項目名。 */
+/** 計測する 4 コマンド。キーは JSON の項目名。 */
 export const COMMANDS = {
   version: 'aube --version',
   install: 'aube install（初回）',
@@ -52,7 +52,7 @@ const ENVIRONMENT_FIELDS = ['kind', 'name', 'version', 'os', 'visibility'];
 
 /**
  * 計測結果の JSON を検証する。問題の一覧を返す（空なら妥当）。
- * NFR3：各値にブラウザ名とバージョン、OS、前面か背面か、試行回数が添えられていること。
+ * 各値にブラウザ名とバージョン、OS、前面か背面か、試行回数が添えられていること。
  */
 export function validateTimings(doc: TimingDocument) {
   const problems = [];
@@ -180,7 +180,7 @@ const fmt = (s: number) => (s < 1 ? s.toFixed(2) : s.toFixed(1));
 export function renderResultsMarkdown(doc: TimingDocument) {
   const rows = summarize(doc);
   const lines = [];
-  lines.push('# 計測結果：aube の 4 コマンド（FR6）');
+  lines.push('# 計測結果：aube の 4 コマンド');
   lines.push('');
   lines.push(
     `このファイルは \`scripts/measure-aube.js\` が \`docs/results/aube-timings.json\` から生成する。手で編集しない。`,

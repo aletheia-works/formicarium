@@ -1,6 +1,6 @@
-// FR6.1〜FR6.4（ブラウザ）：pitchfork-basic の 8 コマンドをブラウザ上の blink で順に実行し、
+// ブラウザ：pitchfork-basic の 8 コマンドをブラウザ上の blink で順に実行し、
 // 書き起こしが native（x86-64 Linux）の基準値 fixtures/baseline/pitchfork-basic.native.txt と一致すること
-// （FR6.2）、手順の間で状態が引き継がれること（FR6.3）を、Chromium・Firefox・WebKit で確かめる。
+// と、手順の間で状態が引き継がれることを、Chromium・Firefox・WebKit で確かめる。
 // 前提：bash mise-tasks/build/blink-wasm.sh、bash mise-tasks/build/guests.sh pitchfork、
 //       bash mise-tasks/build/native-baseline.sh pitchfork-basic を実行済み。
 import { readFileSync } from 'node:fs';
@@ -48,18 +48,18 @@ test('pitchfork-basic の書き起こしが native と一致し、状態が引�
   );
   const result = await page.evaluate(() => window.formicariumResult!);
   expect(result.error).toBeUndefined();
-  // 時間の上限を実測から決めるための記録（NFR2。計画の Step 12）
+  // 時間の上限を実測から決めるための記録
   test.info().annotations.push({
     type: 'elapsed',
     description: `elapsedMs=${Math.round(result.elapsedMs!)} stepMs=${result.steps?.map((s) => Math.round(s.elapsedMs)).join(',')}`,
   });
 
-  await test.step('書き起こしが native の基準値と一致する（FR6.2）', async () => {
+  await test.step('書き起こしが native の基準値と一致する', async () => {
     expect(normalizeTranscript(result.transcript!)).toBe(baseline);
   });
 
   const outputs = transcriptOutputs(result.transcript!, commands);
-  await test.step('daemons add と remove の結果が cat pitchfork.toml に表れる（FR6.3）', async () => {
+  await test.step('daemons add と remove の結果が cat pitchfork.toml に表れる', async () => {
     const cat = outputOf(outputs, 'cat pitchfork.toml');
     expect(cat.exitCode).toBe(0);
     expect(daemonSection(cat.stdout, 'api')).not.toBeNull();
@@ -69,7 +69,7 @@ test('pitchfork-basic の書き起こしが native と一致し、状態が引�
     );
   });
 
-  await test.step('settings set の値が次の settings get で返る（FR6.3）', async () => {
+  await test.step('settings set の値が次の settings get で返る', async () => {
     const get = outputOf(outputs, 'pitchfork settings get general.interval');
     expect(get.exitCode).toBe(0);
     expect(get.stdout.trim()).toBe('5s');

@@ -147,7 +147,7 @@ export function harness(
   };
 }
 
-/** A C04 catalog whose single entry serves `bytes` from a mocked fetch. */
+/** A catalog whose single entry serves `bytes` from a mocked fetch. */
 export function catalogFor(
   bytes: Uint8Array<ArrayBuffer>,
   tool = 'fixture',
@@ -175,7 +175,7 @@ export function catalogFor(
   };
 }
 
-/** Merges catalogs for several tools into one valid C04 catalog. */
+/** Merges catalogs for several tools into one valid catalog. */
 export function mergeCatalogs(...catalogs: GuestCatalog[]): GuestCatalog {
   return {
     schemaVersion: 1,

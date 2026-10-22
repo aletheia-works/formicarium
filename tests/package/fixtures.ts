@@ -44,7 +44,7 @@ export function fileEntry(
 }
 
 export async function isolatedDirectory(test: TestContext) {
-  const directory = await mkdtemp(join(tmpdir(), 'formicarium-u1-'));
+  const directory = await mkdtemp(join(tmpdir(), 'formicarium-package-'));
   test.after(() => rm(directory, { recursive: true, force: true }));
   return directory;
 }
@@ -209,7 +209,7 @@ export async function serveDirectory(
       const content =
         (typeof extra === 'function' ? await extra(request) : extra) ??
         (path === '/'
-          ? '<!doctype html><title>U1 consumer</title>'
+          ? '<!doctype html><title>package consumer</title>'
           : await readFile(join(root, path)));
       response.setHeader(
         'Content-Type',

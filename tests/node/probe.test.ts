@@ -1,4 +1,4 @@
-// FR3・FR4・FR5.1・FR5.2（Node.js）：probe の全項目が、Node.js の Worker 上の blink で PASS すること。
+// Node.js：probe の全項目が、Node.js の Worker 上の blink で PASS すること。
 // 項目ごとに 1 回ずつ blink を起動して確かめる（どの項目が通らないかを個別に示すため）。
 // 前提：bash mise-tasks/build/blink-wasm.sh と bash mise-tasks/build/guests.sh probe を実行済み。
 import assert from 'node:assert/strict';
@@ -9,14 +9,14 @@ import { runInWorker } from '../../runtime/node/host.js';
 import { missingArtifacts, root } from './helpers.js';
 
 const CHECKS = [
-  ['tokio-timer', 'FR3.1・FR3.2・FR3.3・FR5.1'],
-  ['unix-stream-pair', 'FR4.2・FR5.1'],
-  ['rayon', 'FR3.2・FR5.1'],
-  ['mutex-condvar', 'FR3.2・FR5.1'],
-  ['fs-basic', 'FR4.1'],
-  ['fs-hardlink', 'FR4.1'],
-  ['fs-symlink', 'FR4.1'],
-  ['fs-flock', 'FR4.1'],
+  'tokio-timer',
+  'unix-stream-pair',
+  'rayon',
+  'mutex-condvar',
+  'fs-basic',
+  'fs-hardlink',
+  'fs-symlink',
+  'fs-flock',
 ];
 const TIMEOUT_MS = 10 * 60 * 1000;
 const probe = path.join(root, 'dist/guests/probe');
@@ -93,8 +93,8 @@ describe('probe（Node.js の Worker）', () => {
     );
   });
 
-  for (const [name, requirement] of CHECKS) {
-    it(`${name} が PASS する（${requirement}）`, {
+  for (const name of CHECKS) {
+    it(`${name} が PASS する`, {
       timeout: TIMEOUT_MS,
     }, async () => {
       const { exitCode, stdout, stderr } = await runProbe([name]);

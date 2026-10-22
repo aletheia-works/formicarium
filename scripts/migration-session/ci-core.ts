@@ -52,7 +52,7 @@ export function validateBlinkLock(raw: string) {
     if (!line.trim() || line.startsWith('#')) continue;
     const match = /^([a-z_]+)=(.*)$/.exec(line);
     if (!match || values.has(match[1]!))
-      throw Error('U2 core lock malformed/duplicate');
+      throw Error('core lock malformed/duplicate');
     values.set(match[1]!, match[2]!);
   }
   if (
@@ -61,17 +61,17 @@ export function validateBlinkLock(raw: string) {
     !/^[a-f0-9]{40}$/.test(values.get('commit') ?? '') ||
     !/^[a-f0-9]{40}$/.test(values.get('upstream_commit') ?? '')
   )
-    throw Error('U2 core lock identity differs');
+    throw Error('core lock identity differs');
   return BLINK_IDENTITY;
 }
 export function inspectRestoredCore(directory: string, execute: CoreGit = git) {
   if (execute(directory, ['rev-parse', 'HEAD']) !== BLINK_IDENTITY.head)
-    throw Error('U2 restored core HEAD differs');
+    throw Error('restored core HEAD differs');
   if (
     execute(directory, ['rev-parse', `${BLINK_IDENTITY.upstream}^{commit}`]) !==
     BLINK_IDENTITY.upstream
   )
-    throw Error('U2 restored upstream object missing/differs');
+    throw Error('restored upstream object missing/differs');
   if (
     !execute(directory, [
       'diff',
@@ -82,19 +82,19 @@ export function inspectRestoredCore(directory: string, execute: CoreGit = git) {
       .split('\n')
       .includes('blink/emufd.c')
   )
-    throw Error('U2 restored core upstream diff missing emufd');
+    throw Error('restored core upstream diff missing emufd');
   if (
     execute(directory, ['status', '--porcelain', '--untracked-files=all']) !==
     ''
   )
-    throw Error('U2 restored core dirty');
+    throw Error('restored core dirty');
 }
 export async function requireRestoredCore(root: string) {
   validateBlinkLock(await readFile(resolve(root, 'blink.lock'), 'utf8'));
   const directory = resolve(root, '.vendor/blink');
   const stat = await lstat(directory);
   if (!stat.isDirectory() || stat.isSymbolicLink())
-    throw Error('U2 restored core directory refused');
+    throw Error('restored core directory refused');
   inspectRestoredCore(directory);
 }
 export async function restoreCoreBundle(root: string, manifestPath: string) {
@@ -104,19 +104,19 @@ export async function restoreCoreBundle(root: string, manifestPath: string) {
   const row = checked.manifest.files.find(
     (file) => file.path === '.artifacts/migration-session/blink-source.bundle',
   );
-  if (!row) throw Error('U2 core bundle input missing');
+  if (!row) throw Error('core bundle input missing');
   const directory = resolve(root, '.vendor/blink'),
     parent = resolve(root, '.vendor');
   try {
     await lstat(directory);
-    throw Error('U2 core restore refuses existing directory');
+    throw Error('core restore refuses existing directory');
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
   }
   try {
     const stat = await lstat(parent);
     if (stat.isSymbolicLink() || !stat.isDirectory())
-      throw Error('U2 core parent directory refused');
+      throw Error('core parent directory refused');
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
   }
@@ -130,11 +130,11 @@ export async function restoreCoreBundle(root: string, manifestPath: string) {
     const bundle = resolve(root, row.path);
     const bytes = await readBoundedFile(bundle, 128 * 1024 * 1024);
     if (sha256(bytes) !== row.sha256 || bytes.length !== row.bytes)
-      throw Error('U2 core bundle digest differs');
+      throw Error('core bundle digest differs');
     // Self-contained v2 only: no prerequisites or imported refs/config/hooks.
     const header = bytes.subarray(0, 1024).toString('utf8').split('\n\n')[0];
     if (header !== `# v2 git bundle\n${BLINK_IDENTITY.head} HEAD`)
-      throw Error('U2 core self-contained bundle header refused');
+      throw Error('core self-contained bundle header refused');
     await mkdir(staging, { recursive: true });
     const template = resolve(staging, 'empty-template');
     await mkdir(template);

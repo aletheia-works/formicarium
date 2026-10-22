@@ -1,6 +1,6 @@
 // usage: node scripts/session-info.js <session>
 // runtime/registry.js の表から手順 1 つの設定を読み、シェルで安全に読める形
-// （1 行に KEY='value'、値の ' は '\'' にエスケープ）で stdout に出す（FR4.1）。
+// （1 行に KEY='value'、値の ' は '\'' にエスケープ）で stdout に出す。
 // mise-tasks/build/native-baseline.sh が eval して使う。
 //
 // 名前は NAME と表で検証する。手順ファイルも runtime/session.js と同じ規則で解釈して、

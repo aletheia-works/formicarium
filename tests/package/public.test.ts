@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as shared from '../../runtime/public.js';
 
-test('shared public surface contains approved C03/C04/C05 functions, decoder and public errors only', () => {
+test('shared public surface contains the approved guest, install and command functions, decoder and public errors only', () => {
   assert.deepEqual(Object.keys(shared).sort(), [
     'ERROR_CODES',
     'ExecutionError',

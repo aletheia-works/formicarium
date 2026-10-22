@@ -1,5 +1,5 @@
 // COOP/COEP を付ける service worker。GitHub Pages のように応答ヘッダーを設定できない
-// 配信先で、ページを crossOriginIsolated にするために使う（FR2.2）。
+// 配信先で、ページを crossOriginIsolated にするために使う。
 // scripts/serve.js で配信するときはヘッダーが付くので、この service worker は不要
 // （web/app.js は crossOriginIsolated でないときだけ登録する）。
 const sw = self as unknown as ServiceWorkerGlobalScope;

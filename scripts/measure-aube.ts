@@ -4,8 +4,8 @@ import type { ChildProcess } from 'node:child_process';
 //                                      [--out docs/results/aube-timings.json]
 //
 // aube の 4 コマンド（--version、初回 install、frozen install、list）を、Node.js の Worker
-// と各ブラウザの blink 上で実行して時間を測り、JSON に記録する（FR6.1、NFR3）。
-// あわせて docs/results/README.md に、CheerpX 1.3.9 の値と並べた表を書く（FR6.2）。
+// と各ブラウザの blink 上で実行して時間を測り、JSON に記録する。
+// あわせて docs/results/README.md に、CheerpX 1.3.9 の値と並べた表を書く。
 //
 // install・frozen install・list は fixtures/sessions/aube-1645.txt の手順で測る
 // （fixtures/aube-local-deps を /work に置き、/work/app で実行する）。
@@ -245,7 +245,7 @@ async function main() {
             `  ${JSON.stringify(run.milliseconds)} exit=${JSON.stringify(run.exitCodes)} hostBenchMs=${JSON.stringify(run.hostBenchMs)}\n`,
           );
         } catch (error) {
-          // 1 回の失敗で全体を止めず、記録して続ける（NFR2）
+          // 1 回の失敗で全体を止めず、記録して続ける
           failures.push({ environment: env, trial, error: errorText(error) });
           process.stderr.write(`  failed: ${errorText(error)}\n`);
         }

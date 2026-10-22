@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 // This receipt describes observed dependency jobs, not publication authority.
-// U3 obtains final ci-required and producer/run metadata independently via API.
+// The publication step obtains final ci-required and producer/run metadata independently via API.
 const sourceSha = process.env.SOURCE_SHA ?? '';
 const runId = process.env.GITHUB_RUN_ID ?? '';
 const runAttempt = Number(process.env.GITHUB_RUN_ATTEMPT);

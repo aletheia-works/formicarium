@@ -1,4 +1,4 @@
-// FR3.1・FR3.2・FR3.3：手順の解釈（runtime/session.js）と、cat のステップ（runtime/guest-io.js）。
+// 手順の解釈（runtime/session.js）と、cat のステップ（runtime/guest-io.js）。
 // コアもゲストも使わないので、ビルド物なしで実行できる。
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -13,7 +13,7 @@ import {
 } from '../../runtime/session.js';
 import { root } from './helpers.js';
 
-describe('引数の分割（splitShellWords、FR3.2）', () => {
+describe('引数の分割（splitShellWords）', () => {
   it('二重引用符で囲んだ値は 1 つの引数になる', () => {
     assert.deepEqual(
       splitShellWords('pitchfork daemons add db --run "postgres -D data"'),
@@ -92,7 +92,7 @@ describe('引数の分割（splitShellWords、FR3.2）', () => {
   });
 });
 
-describe('cat の解釈（FR3.1）', () => {
+describe('cat の解釈', () => {
   it('cat <相対パス> を catFile として解釈し、プロジェクトの外を指すパスを拒否する', () => {
     assert.deepEqual(
       parseSessionScript('$ cat pitchfork.toml\n', { tool: 'pitchfork' }),
@@ -142,7 +142,7 @@ describe('cat の解釈（FR3.1）', () => {
   });
 });
 
-describe('cat のステップの実行（runSession、FR3.1）', () => {
+describe('cat のステップの実行（runSession）', () => {
   const guestPath = '/guest/pitchfork';
   const common = {
     // cat と rm -rf のステップはコアを起動しない。呼ばれたら失敗させる。
@@ -218,7 +218,7 @@ describe('cat のステップの実行（runSession、FR3.1）', () => {
   });
 });
 
-describe('既存の手順の互換（FR3.3）', () => {
+describe('既存の手順の互換', () => {
   it('aube-1645 の解釈結果と steps は変更前と同じ', () => {
     const text = readFileSync(
       path.join(root, 'fixtures/sessions/aube-1645.txt'),

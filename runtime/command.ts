@@ -120,7 +120,7 @@ async function runBuiltin(
   // Path syntax (empty, NUL, `..`) does not depend on the cwd, so it is
   // rejected as INVALID_INPUT before the abort check and the reservation.
   if (target.path !== undefined) port.resolvePath(target.path);
-  // U2 completes builtins synchronously; a signal raised after this check
+  // The Session completes builtins synchronously; a signal raised after this check
   // does not interrupt or change the completed result.
   preabort(options);
   if (target.kind === 'ls') {
@@ -145,7 +145,7 @@ async function runBuiltin(
   }
 }
 
-/** InstallAdapter: C04 owns selection, reservation, cancellation and commit. */
+/** InstallAdapter: the installer owns selection, reservation, cancellation and commit. */
 async function runInstall(
   installer: Installer,
   selection: string,
@@ -188,8 +188,8 @@ async function runGuest(
 }
 
 /**
- * C05 factory. The Session must come from this package (INVALID_INPUT
- * otherwise) and the catalog is validated and copied by C04. The returned
+ * Factory. The Session must come from this package (INVALID_INPUT
+ * otherwise) and the catalog is validated and copied by the installer. The returned
  * object exposes only `execute`; it never hands out the Session, Installer or
  * the internal port, and it keeps no cwd, filesystem or guest copy.
  */

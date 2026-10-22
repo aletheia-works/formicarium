@@ -177,7 +177,7 @@ export async function verifyPublicationEvidence(
   );
   return { envelope, decision };
 }
-/** Convert U1's real acceptance/report artifact format only after independent API provenance checks. */
+/** Convert the 0.1.0 package acceptance/report artifact format only after independent API provenance checks. */
 export async function acquirePublicationEvidence(
   root: string,
   request: PublicationRequest,

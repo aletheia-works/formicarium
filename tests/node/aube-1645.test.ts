@@ -1,4 +1,4 @@
-// FR7.1（Node.js）：aube #1645 の手順を Node.js の Worker 上の blink で実行し、書き起こしが
+// Node.js：aube #1645 の手順を Node.js の Worker 上の blink で実行し、書き起こしが
 // native の基準値 fixtures/baseline/aube-1645.native.txt と一致すること。
 // 前提：bash mise-tasks/build/blink-wasm.sh、bash mise-tasks/build/guests.sh aube、
 //       bash mise-tasks/build/native-baseline.sh を実行済み。

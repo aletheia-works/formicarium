@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // usage: node runtime/node/run.js [options] <guest> [args...]
 //
-// Node.js の Worker 上のコア（blink）で、x86-64 Linux のゲストを実行する（FR2.1）。
+// Node.js の Worker 上のコア（blink）で、x86-64 Linux のゲストを実行する。
 // stdout・stderr はそのまま流し、ゲストの終了コードを自分の終了コードにする。
 // ゲストが見つからないときは、エラーメッセージを出して終了コード 127 で終わる。
 //

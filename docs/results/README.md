@@ -1,4 +1,4 @@
-# 計測結果：aube の 4 コマンド（FR6）
+# 計測結果：aube の 4 コマンド
 
 このファイルは `scripts/measure-aube.mjs` が `docs/results/aube-timings.json` から生成する。手で編集しない。
 - 生成日時：2026-10-05T06:29:02.392Z

@@ -40,7 +40,7 @@ export class InstallLifetime implements InstallControl {
     );
     const ownerAbort = () => {
       if (this.#terminal || this.#completed) return;
-      // U2's signal intentionally carries no reason. Its current-owner guard
+      // The Session's signal intentionally carries no reason. Its current-owner guard
       // distinguishes reset/dispose before touching FS, under this same token.
       // Query only an already cancelled reservation; no reacquire or state write.
       this.#ownerReason = port.builtin(reservation, ['ls']).then(

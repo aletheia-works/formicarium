@@ -1,4 +1,4 @@
-// ゲスト・ゲストごとの環境変数・手順の表（FR4.1）。ここが唯一の定義で、次の場所がここを読む。
+// ゲスト・ゲストごとの環境変数・手順の表。ここが唯一の定義で、次の場所がここを読む。
 //   - ブラウザ：web/sessions.js（URL の許可リスト。パスをそのファイルからの相対に直す）
 //   - Node.js のテスト：tests/node/*.test.ts
 //   - native の基準値：scripts/native-baseline.sh（scripts/session-info.js を通して読む）

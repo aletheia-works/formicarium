@@ -681,7 +681,7 @@ export async function reportCoverage({
       await readFile(resolve(out, 'coverage-session-node.json'), 'utf8'),
     ) as { name: string; counts: number[] }[];
     if (rows.length !== session.nodeWorkers + 1)
-      throw Error('U2 planned Node Worker realms were not all retained');
+      throw Error('session planned Node Worker realms were not all retained');
     for (const row of rows)
       realms.push({
         name: `session:${row.name}`,
@@ -696,7 +696,7 @@ export async function reportCoverage({
     );
     for (const [title, workers] of Object.entries(session.browserCases)) {
       if (Object.hasOwn(inventory.browserCases, title))
-        throw Error('U2 coverage case duplicates package case');
+        throw Error('session coverage case duplicates package case');
       inventory.browserCases[title] = workers;
     }
   }

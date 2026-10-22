@@ -82,7 +82,7 @@ export declare function createInstaller(
  *
  * - `signal`: checked before any reservation; an already aborted signal
  *   rejects with `ABORTED` and changes nothing. The builtins `ls`, `cat`,
- *   `cd` and `rm` complete synchronously inside U2 once started, so a signal
+ *   `cd` and `rm` complete synchronously inside the Session once started, so a signal
  *   raised after they start does not interrupt or change their result.
  *   `install` and guest runs forward the signal to the installer and to the
  *   session run.
@@ -104,7 +104,7 @@ export interface CommandOptions {
  * HTML/code. Decoding for display, the display limits (1048576 bytes /
  * 10000 lines), control-character handling, loading/empty/error states,
  * keyboard operation, progress unknown-vs-zero and timestamp offsets belong to
- * the embedding UI (U6/U8), not to this API.
+ * the embedding UI, not to this API.
  */
 export interface CommandResult {
   kind: 'empty' | 'builtin' | 'install' | 'guest';

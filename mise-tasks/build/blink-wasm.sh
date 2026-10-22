@@ -2,7 +2,7 @@
 #MISE alias="build-blink-wasm"
 #MISE description="build blink wasm"
 # usage: mise run build-blink-wasm
-# blink（fork）を Emscripten でビルドし、dist/blink/blink.mjs と blink.wasm を作る（FR1.2）。
+# blink（fork）を Emscripten でビルドし、dist/blink/blink.mjs と blink.wasm を作る。
 # インタプリタのみ（--disable-jit）、pthread あり（-sPROXY_TO_PTHREAD）。
 #
 # 手順：

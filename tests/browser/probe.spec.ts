@@ -1,6 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import type { Page } from '@playwright/test';
-// FR2.2・FR5.2：COOP/COEP 付きのページで crossOriginIsolated が真になり、
+// COOP/COEP 付きのページで crossOriginIsolated が真になり、
 // blink の wasm 上で probe の全項目が PASS すること（Chromium・Firefox・WebKit）。
 // 前提：bash mise-tasks/build/blink-wasm.sh、bash mise-tasks/build/guests.sh probe、
 //       npx playwright install chromium firefox webkit

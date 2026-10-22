@@ -2,7 +2,7 @@
 #MISE alias="fetch-blink"
 #MISE description="fetch blink"
 # usage: mise run fetch-blink
-# blink.lock に書かれた fork のコミットを .vendor/blink に取得する（FR1.1）。
+# blink.lock に書かれた fork のコミットを .vendor/blink に取得する。
 # 取得後の HEAD がロックのコミットと一致しなければ、終了コード 1 で止める。
 # BLINK_LOCK でロックファイルの場所を変えられる（テスト用）。
 set -euo pipefail

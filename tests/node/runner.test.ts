@@ -1,5 +1,5 @@
-// FR2.1・R-04：Node.js の Worker 上の blink でゲストを実行し、stdout・終了コードを受け取れること。
-// FR4.1・FR4.2・NFR3：ゲストと手順の表（runtime/registry.js）と、その入口の検証。
+// Node.js の Worker 上の blink でゲストを実行し、stdout・終了コードを受け取れること。
+// ゲストと手順の表（runtime/registry.js）と、その入口の検証。
 // 前提：bash mise-tasks/build/blink-wasm.sh と bash mise-tasks/build/guests.sh probe を実行済み
 //       （表と入口の検証のテストは、ビルド物なしで実行できる）。
 import assert from 'node:assert/strict';
@@ -144,7 +144,7 @@ function sessionInfo(args: string[]) {
   return result;
 }
 
-describe('ゲストと手順の表（runtime/registry.js、FR4.1）', () => {
+describe('ゲストと手順の表（runtime/registry.js）', () => {
   it('どの手順も、手順ファイルと project のファイルが fixtures/ に実在し、一覧が中身と一致する', () => {
     assert.ok(Object.keys(SESSION_TABLE).length >= 2);
     for (const [name, session] of Object.entries(SESSION_TABLE)) {
@@ -205,7 +205,7 @@ describe('ゲストと手順の表（runtime/registry.js、FR4.1）', () => {
   });
 });
 
-describe('入口の検証（FR4.2、NFR3）', () => {
+describe('入口の検証', () => {
   it('表にある手順は受け付ける', () => {
     assert.deepEqual(
       parseRunRequest(new URLSearchParams('session=pitchfork-basic')),

@@ -47,7 +47,7 @@ export function installationTiming(
     ? { finalURL: value.finalURL, phasesMs: { ...value.phasesMs } }
     : undefined;
 }
-/** Internal acceptance observer of the successful C03 brand, never raw bytes. */
+/** Internal acceptance observer of the successful guest validation brand, never raw bytes. */
 export function installationGuest(
   result: InstallResult,
 ): GuestHandle | undefined {
@@ -138,7 +138,7 @@ export function createInstaller(
           buildInfoSha256: entry.buildInfoSha256,
           identity: entry.buildInfo,
         });
-        // C03 is synchronous: check after it rather than claiming mid-validation cancellation.
+        // Guest validation is synchronous: check after it rather than claiming mid-validation cancellation.
         await lifetime.yield();
         lifetime.check();
         progress.notify('validate', bytes.length, bytes.length);

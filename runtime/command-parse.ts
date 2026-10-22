@@ -1,7 +1,7 @@
 import type { FsEntry } from '../types/index.js';
 import { failure, invalid } from './errors.js';
 
-/** C11 maxCommandBytes: the exact boundary is accepted and +1 is refused. */
+/** maxCommandBytes: the exact boundary is accepted and +1 is refused. */
 export const MAX_COMMAND_BYTES = 65536;
 const SHELL_SYNTAX = new Set([
   '|',

@@ -34,7 +34,7 @@ function session() {
   });
   return { value, count: () => count, firstByte: () => firstByte };
 }
-test('root adds exactly C03 while internal session port stays unexported', async () => {
+test('root adds exactly the guest validation API while internal session port stays unexported', async () => {
   for (const name of [
     'validateGuest',
     'fixtureToFsEntries',
@@ -144,7 +144,7 @@ test('reset clears registration and disposed session rejects new public operatio
     code: 'DISPOSED',
   });
 });
-test('strict type fixtures accept C03 and reject invalid byte, expectation and result shapes', () => {
+test('strict type fixtures accept the guest validation API and reject invalid byte, expectation and result shapes', () => {
   const result = spawnSync(
     process.execPath,
     [

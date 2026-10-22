@@ -5,8 +5,8 @@
 # static-musl x86-64 のゲストをコンテナ（rust:alpine）でビルドし、dist/guests/ に置く。
 #   probe     : guest/probe の probe・hello・exit3
 #   aube      : aubepkg/aube の AUBE_REF（既定 v2.6.1）
-#   pitchfork : jdx/pitchfork（公式リポジトリ）の PITCHFORK_REF（既定 v2.30.1）。ソースは変えない（FR1.1）
-# 取得したコミットは dist/guests/<name>.commit に記録する（FR1.2）。
+#   pitchfork : jdx/pitchfork（公式リポジトリ）の PITCHFORK_REF（既定 v2.30.1）。ソースは変えない
+# 取得したコミットは dist/guests/<name>.commit に記録する。
 # ビルド後、dist/guests/ にあるすべてのゲストが x86-64 の static な ELF であることを確かめる。
 # runtime/registry.js の GUESTS にあるゲストは、すべて下の guests に含める
 # （tests/node/runner.test.js で確かめる）。
@@ -78,7 +78,7 @@ build_aube() {
 
 build_pitchfork() {
   echo "== pitchfork $pitchfork_ref をビルド（${image}、取得元 ${pitchfork_repo}）"
-  # キャッシュのクローンは取得元の URL も確かめてから使う（別の取得元のものを混ぜないため。NFR3）。
+  # キャッシュのクローンは取得元の URL も確かめてから使う（別の取得元のものを混ぜないため）。
   # release ビルドは web UI（ui/dist）を埋め込むので、先に UI をビルドする（pitchfork の build.rs は
   # ui/dist/index.html がないと release で止まる）。UI のビルド手順は pitchfork の mise.toml の
   # build:ui と同じ `aube install && aube run build`。aube は dist/guests/aube（static-musl）を使い、

@@ -4,9 +4,9 @@
 # usage: mise run native-baseline [<session>] [--check-reproducible]
 # 手順（runtime/registry.js の SESSIONS。既定は aube-1645）を、static-musl のゲスト
 # （dist/guests/<guest>）で x86-64 Linux のコンテナ上で native に実行し、書き起こしを
-# 表の baseline（fixtures/baseline/<session>.native.txt）に保存する（FR5.1、FR7.1 の基準値）。
+# 表の baseline（fixtures/baseline/<session>.native.txt）に保存する（native の基準値）。
 #
-# 手順の設定は scripts/session-info.js から得る（FR4.1。表を読み、名前と手順ファイルを検証する）。
+# 手順の設定は scripts/session-info.js から得る（表を読み、名前と手順ファイルを検証する）。
 # 書き起こしの形式は runtime/session.js と同じ：
 #   $ <command> / <stdout> / [exit <code>]   （stderr は含めない）
 # 作業ディレクトリと HOME は、ブラウザ・Node.js での実行と同じ（表の cwd と /root）にする。
@@ -14,7 +14,7 @@
 # 実行のたびに新しいコンテナで fixture を置き直すので、前回の結果は混ざらない。
 #
 # --check-reproducible：2 回作って一致することを確かめる。一致しなければ基準値を書かずに
-# 終了コード 1 で止める（レビュー R-02）。
+# 終了コード 1 で止める。
 #
 # node は scripts/lib/node.sh の規則で探す（FORMICARIUM_NODE、PATH、mise のインストール先）。
 set -euo pipefail

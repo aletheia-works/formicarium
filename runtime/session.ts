@@ -5,15 +5,15 @@ export interface Command extends SessionStep {
 }
 // 手順ファイル（fixtures/sessions/*.txt）の読み込みと、実行結果の書き起こし（transcript）。
 // Node.js・ブラウザ・native の基準値（scripts/native-baseline.sh）で同じ形式を使い、
-// 出力をそのまま比べられるようにする（FR7.1、FR3）。
+// 出力をそのまま比べられるようにする。
 //
 // 手順ファイルの形式：
 //   # で始まる行はコメント
 //   "$ <command>" の行が 1 つのコマンド。<command> は次のどれか
 //     <tool> ...          ゲストの実行（tool は手順ごとのゲスト名。既定は aube）
 //     rm -rf <相対パス>   JS 側で消す
-//     cat <相対パス>      JS 側でファイルの中身を stdout に出す（FR3.1）
-//   引数は native の基準値（sh -c "<command>"）と同じ規則で分ける（FR3.2、splitShellWords）。
+//     cat <相対パス>      JS 側でファイルの中身を stdout に出す
+//   引数は native の基準値（sh -c "<command>"）と同じ規則で分ける（splitShellWords）。
 //
 // 書き起こしの形式：
 //   $ <command>
@@ -45,7 +45,7 @@ const WORD_START_META = new Set(['#', '~']);
 const DQ_ESCAPABLE = new Set(['$', '`', '"', '\\', '\n']);
 
 /**
- * 1 行のコマンドを、sh -c と同じ規則で語に分ける（FR3.2）。
+ * 1 行のコマンドを、sh -c と同じ規則で語に分ける。
  * 受け付けるのは、単引用符、二重引用符（中の \ は $ ` " \ 改行 の前だけエスケープ）、
  * 引用符の外の \。閉じていない引用符と、sh が展開やリダイレクトとして扱う文字は Error にする。
  * @param {string} text

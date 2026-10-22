@@ -376,7 +376,7 @@ export function runGuest(options: GuestOptions): Promise<GuestResult> {
 }
 
 /**
- * 引き継いでいるエントリから、通常のファイル 1 つの中身を読む（手順の cat。FR3.1）。
+ * 引き継いでいるエントリから、通常のファイル 1 つの中身を読む（手順の cat）。
  * persist の範囲の外、存在しない、ディレクトリ、symlink のときは Error を投げる
  * （黙って空の出力を返すと、native との比較で原因が分からなくなるため）。
  * @param {Array} carried runSession が次のステップへ渡すエントリ
@@ -421,7 +421,7 @@ export function readCarriedFile(
  * インスタンスで動き、persist に挙げたディレクトリ（既定は作業ディレクトリと HOME）の
  * 中身は前のステップから引き継ぐ。
  * ステップは { args: [...] }（ゲストの実行）、{ removeTree: '/path' }（JS 側で rm -rf）、
- * { catFile: '/path' }（JS 側で cat。引き継いでいるファイルの中身を stdout に返す。FR3.1）のどれか。
+ * { catFile: '/path' }（JS 側で cat。引き継いでいるファイルの中身を stdout に返す）のどれか。
  * removeTree と catFile はコアを起動しない。
  * 各結果の elapsedMs は、コアの起動（wasm の読み込み）を含む、そのステップの実時間。
  * @returns {Promise<Array<{step: object, exitCode: number, stdout: Uint8Array, stderr: Uint8Array, elapsedMs: number}>>}

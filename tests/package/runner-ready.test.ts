@@ -4,14 +4,14 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { elfHeader, isolatedDirectory } from './fixtures.js';
 
-test('U1 runner supports ESM, assertions and isolated cleanup on Node >=24', async (t) => {
+test('package runner supports ESM, assertions and isolated cleanup on Node >=24', async (t) => {
   assert.ok(Number(process.versions.node.split('.')[0]) >= 24);
   const directory = await isolatedDirectory(t);
-  assert.ok(directory.includes('formicarium-u1-'));
+  assert.ok(directory.includes('formicarium-package-'));
   assert.deepEqual([...elfHeader().slice(0, 4)], [127, 69, 76, 70]);
 });
 
-test('U1 dependencies match the lockfile with an explicit latest CI tool overlay', async () => {
+test('package dependencies match the lockfile with an explicit latest CI tool overlay', async () => {
   const bun = process.env.FORMICARIUM_CI_BUN ?? 'bun';
   assert.match(
     execFileSync(bun, ['--version'], { encoding: 'utf8', shell: false }).trim(),
@@ -77,7 +77,7 @@ test('U1 dependencies match the lockfile with an explicit latest CI tool overlay
   }
 });
 
-test('U1 browser configuration keeps all three browsers, one worker and no retries', async () => {
+test('package browser configuration keeps all three browsers, one worker and no retries', async () => {
   const { default: config } = await import('./playwright.config.ts');
   assert.deepEqual(
     config.projects?.map(({ name }) => name),

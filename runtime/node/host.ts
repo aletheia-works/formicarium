@@ -1,4 +1,4 @@
-// Node.js でゲストを実行するための API。コアは Worker（worker_threads）の中で動かす（FR2.1）。
+// Node.js でゲストを実行するための API。コアは Worker（worker_threads）の中で動かす。
 //
 //   const { results } = await runInWorker({ guest: 'dist/guests/probe' });
 //

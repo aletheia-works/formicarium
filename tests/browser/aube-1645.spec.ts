@@ -1,4 +1,4 @@
-// FR7.1（ブラウザ）：aube #1645 の手順をブラウザ上の blink で実行し、書き起こしが
+// ブラウザ：aube #1645 の手順をブラウザ上の blink で実行し、書き起こしが
 // native（x86-64 Linux）の基準値 fixtures/baseline/aube-1645.native.txt と一致すること。
 // 前提：bash mise-tasks/build/guests.sh aube と bash mise-tasks/build/native-baseline.sh を実行済み。
 import { readFileSync } from 'node:fs';

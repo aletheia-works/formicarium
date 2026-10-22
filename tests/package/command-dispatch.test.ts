@@ -12,7 +12,7 @@ const code = (expected: string) => (error: { code?: string }) => {
 function command(value: Fixture, catalog = catalogFor(value.bytes)) {
   return createCommandSession(value.session, { catalog });
 }
-/** Observable U2 state: cwd plus a deep copy of the whole /work tree. */
+/** Observable Session state: cwd plus a deep copy of the whole /work tree. */
 async function observe(value: Fixture) {
   const tree: unknown[] = [];
   const walk = async (path: string) => {
@@ -63,7 +63,7 @@ test('whitespace-only and empty input resolve empty without taking the reservati
   await value.finishPending();
   assert.equal((await running).kind, 'guest');
 });
-test('argv[0] routes ls/cat/rm/cd to builtins, install to C04 and anything else to a guest', async (t) => {
+test('argv[0] routes ls/cat/rm/cd to builtins, install to the installer and anything else to a guest', async (t) => {
   const value = harness();
   t.after(() => value.session.dispose());
   mockFetch(t, () => new Response(value.bytes));
@@ -210,7 +210,7 @@ test('ls without and with one path lists the cwd or that directory', async (t) =
   const shell = command(value);
   assert.equal(text((await shell.execute('ls')).stdout), 'a.txt\nsub/\n');
   assert.equal(text((await shell.execute('ls /work/sub')).stdout), 'b.txt\n');
-  // A regular file path is not a directory: U2 returns no entries.
+  // A regular file path is not a directory: the Session returns no entries.
   assert.equal((await shell.execute('ls /work/a.txt')).stdout.length, 0);
 });
 test('ls flags and extra arguments are INVALID_INPUT before the reservation', async (t) => {
@@ -334,7 +334,7 @@ test('unsupported builtin shapes are refused and leave cwd and filesystem unchan
     await assert.rejects(shell.execute(input), code('INVALID_INPUT'), input);
   assert.equal(await observe(value), before);
 });
-test('U2 NOT_FOUND and NOT_FILE propagate unchanged and the fs reservation is released', async (t) => {
+test('Session NOT_FOUND and NOT_FILE propagate unchanged and the fs reservation is released', async (t) => {
   const value = harness();
   t.after(() => value.session.dispose());
   const shell = command(value);
@@ -373,7 +373,7 @@ test('an abort raised after a builtin started does not change its completed resu
 });
 
 // InstallAdapter
-test('install prints the fixed success line and returns the C04 InstallResult', async (t) => {
+test('install prints the fixed success line and returns the InstallResult', async (t) => {
   const value = harness();
   t.after(() => value.session.dispose());
   mockFetch(t, () => new Response(value.bytes));
@@ -415,7 +415,7 @@ test('install relays every Progress unchanged with the result operationId', asyn
     assert.equal(event.sequence, index);
   }
 });
-test('a failed reinstall rejects with the C04 error and keeps the old registration', async (t) => {
+test('a failed reinstall rejects with the installer error and keeps the old registration', async (t) => {
   const value = harness();
   t.after(() => value.session.dispose());
   let bad = false;
@@ -445,7 +445,7 @@ test('install argument count and catalog selection fail before any transfer', as
     await assert.rejects(shell.execute(input), code('INVALID_INPUT'), input);
   assert.equal(calls(), 0);
 });
-test('install propagates C04 transfer failure and an already aborted signal', async (t) => {
+test('install propagates installer transfer failure and an already aborted signal', async (t) => {
   const value = harness();
   t.after(() => value.session.dispose());
   const calls = mockFetch(t, () => new Response('missing', { status: 404 }));

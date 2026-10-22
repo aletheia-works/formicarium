@@ -81,7 +81,7 @@ test('Node consumer and worker execution remain explicit Node scripts', async ()
   assert.match(manifest.scripts.build, /bun \.build\/scripts\/emit\.js$/);
   assert.equal(manifest.engines.node, '>=24');
 });
-test('all C1 logical task names have developer commands and unknown tasks fail', () => {
+test('all logical task names have developer commands and unknown tasks fail', () => {
   assert.deepEqual(Object.keys(TASKS), [
     'install-frozen',
     'lint',

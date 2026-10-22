@@ -1,5 +1,5 @@
-// FR1.1・FR1.2：blink の fork を固定したコミットで取得し、wasm にビルドできること。
-// pitchfork（intent 261005-pitchfork-on-blink の FR1.1・FR1.2）：dist/guests/pitchfork が
+// blink の fork を固定したコミットで取得し、wasm にビルドできること。
+// pitchfork：dist/guests/pitchfork が
 // static な x86-64 の ELF で、取得したコミットと UI の node が記録され、ローカルパッチがないこと。
 // 前提：bash mise-tasks/build/blink-wasm.sh と bash mise-tasks/build/guests.sh pitchfork を実行済み
 //       （README の「テスト」を参照）。
@@ -25,7 +25,7 @@ const lock = readLock(readFileSync(path.join(root, 'blink.lock'), 'utf8'));
 const scratch = mkdtempSync(path.join(tmpdir(), 'formicarium-build-test-'));
 after(() => rmSync(scratch, { recursive: true, force: true }));
 
-describe('blink の wasm ビルド（FR1.2）', () => {
+describe('blink の wasm ビルド', () => {
   it('dist/blink に blink.mjs と wasm が生成されている', () => {
     assert.equal(
       missingArtifacts(['dist/blink/blink.mjs', 'dist/blink/blink.wasm']),
@@ -59,7 +59,7 @@ describe('blink の wasm ビルド（FR1.2）', () => {
   });
 });
 
-describe('fork の取得（FR1.1）', () => {
+describe('fork の取得', () => {
   it('取得物（.vendor/blink）の HEAD は blink.lock のコミットと一致し、upstream との差分を一覧できる', () => {
     const head = execFileSync(
       'git',
@@ -162,7 +162,7 @@ describe('static な ELF の判定（readElfInfo、build-guests.sh と同じ判�
   });
 });
 
-describe('pitchfork ゲストのビルド（FR1.1・FR1.2）', () => {
+describe('pitchfork ゲストのビルド', () => {
   it('dist/guests/pitchfork は static な x86-64 の ELF で、取得したコミットが記録されている', () => {
     assert.equal(
       missingArtifacts([
