@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { cp, lstat, mkdir, readFile, realpath } from 'node:fs/promises';
+import { lstat, mkdir, readFile, realpath } from 'node:fs/promises';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 
 export async function createFreshResultsDirectory(output: string) {
@@ -15,8 +15,6 @@ export const REQUIRED_CHECKS = Object.freeze([
   'native-pitchfork',
   'u1-node',
   'u1-browser',
-  'u3-node',
-  'u3-browser',
 ]);
 export interface FilePin {
   path: string;
@@ -24,43 +22,6 @@ export interface FilePin {
   sha256: string;
 }
 
-export async function provisionPreparedResolver(
-  root: string,
-  pins: FilePin[],
-  preparedOut: string,
-) {
-  const prefix = '.artifacts/ci-candidate/inputs/resolver/';
-  const modules = ['manifest.js', 'fixtures.js', 'resolver.js'];
-  const selected = pins.filter((row) =>
-    modules.some((name) => row.path === prefix + name),
-  );
-  if (
-    selected.length !== modules.length ||
-    new Set(selected.map((row) => row.path)).size !== modules.length
-  )
-    throw Error('prepared resolver module inventory missing or duplicate');
-  await verifyPins(root, selected);
-  const destination = resolve(
-    preparedOut,
-    'terrarium/.vendor/formicarium-inputs/resolver',
-  );
-  await mkdir(dirname(destination), { recursive: true });
-  await mkdir(destination); // Never replace a previous prepared resolver.
-  const rebased = selected.map((row) => ({
-    ...row,
-    path: safePath(row.path.slice(prefix.length)),
-  }));
-  for (let index = 0; index < selected.length; index++) {
-    const target = resolve(destination, rebased[index]!.path);
-    await mkdir(dirname(target), { recursive: true });
-    await cp(resolve(root, selected[index]!.path), target, {
-      force: false,
-      errorOnExist: true,
-    });
-  }
-  await verifyPins(destination, rebased);
-  return destination;
-}
 export interface InputManifest {
   schemaVersion: 1;
   repository: string;
@@ -70,11 +31,8 @@ export interface InputManifest {
   tarball: string;
   packageManifest: string;
   packageRoot: string;
-  site: string;
-  terrarium: string;
   coreCommit: string;
   guests: { aube: string; pitchfork: string };
-  owner: { baselineCommit: string; integrationSourceIdentity: string };
 }
 export interface CheckResult {
   id: string;
@@ -124,28 +82,7 @@ export function validateManifestContents(
     input.guests.pitchfork !== 'v2.30.1'
   )
     throw Error('core or guest version differs');
-  if (
-    !/^[a-f0-9]{40}$/.test(input.owner.baselineCommit) ||
-    !/^[a-f0-9]{64}$/.test(input.owner.integrationSourceIdentity)
-  )
-    throw Error('owner provenance missing');
-  const ownerSource = input.files
-    .filter((row) =>
-      row.path.startsWith(`${input.terrarium}/packages/terrarium/src/`),
-    )
-    .map((row) => ({ path: row.path, sha256: row.sha256 }));
-  if (
-    !ownerSource.length ||
-    hash(JSON.stringify(ownerSource)) !== input.owner.integrationSourceIdentity
-  )
-    throw Error('owner copy source identity differs');
-  for (const key of [
-    'tarball',
-    'packageManifest',
-    'packageRoot',
-    'site',
-    'terrarium',
-  ] as const)
+  for (const key of ['tarball', 'packageManifest', 'packageRoot'] as const)
     safePath(input[key]);
   for (const rows of [input.files, input.sourceFiles]) {
     if (
@@ -164,7 +101,6 @@ export function validateManifestContents(
         throw Error('invalid file pin');
   }
   for (const required of [
-    `${input.terrarium}/web/terminal.mjs`,
     input.tarball,
     input.packageManifest,
     'assets/blink.wasm',
@@ -203,13 +139,16 @@ export async function verifyPins(root: string, pins: FilePin[]) {
       throw Error(`input bytes differ: ${pin.path}`);
   }
 }
-export function validateChecks(results: CheckResult[]) {
+export function validateChecks(
+  results: CheckResult[],
+  required: readonly string[] = REQUIRED_CHECKS,
+) {
   if (
-    results.length !== REQUIRED_CHECKS.length ||
+    results.length !== required.length ||
     new Set(results.map((row) => row.id)).size !== results.length
   )
     throw Error('mandatory check inventory differs');
-  for (const id of REQUIRED_CHECKS) {
+  for (const id of required) {
     const result = results.find((row) => row.id === id);
     if (
       result?.exitCode !== 0 ||
@@ -220,64 +159,27 @@ export function validateChecks(results: CheckResult[]) {
       throw Error(`mandatory check failed or unmeasured: ${id}`);
   }
 }
+/** The package coverage report must cover exactly the distributed JS of this tarball. */
 export function validateCoverage(
   report: {
+    candidateSha256: string;
     passed: boolean;
-    fixedInventory: string[];
     lines: { total: number; covered: number; skipped: number; pct: number };
-    freshReceipts: {
-      realm: string;
-      project?: string;
-      executionIdentity: string;
-      generation: string;
-    }[];
-    executionIdentity: string;
-    generation: string;
-    componentImport: {
-      originalTarballSha256: string;
-      originalRealmNames: string[];
-    };
+    files: { path: string }[];
   },
-  expected: {
-    files: readonly string[];
-    tarballSha256: string;
-    u1Realms: readonly string[];
-  },
+  expected: { files: readonly string[]; tarballSha256: string },
 ) {
   if (
     !report.passed ||
-    JSON.stringify(report.fixedInventory) !== JSON.stringify(expected.files) ||
+    JSON.stringify(report.files.map((row) => row.path).sort()) !==
+      JSON.stringify([...expected.files].sort()) ||
     report.lines.pct < 80 ||
     report.lines.skipped !== 0 ||
     report.lines.total < 1
   )
-    throw Error('fixed24 coverage failed');
-  if (
-    !report.executionIdentity ||
-    !report.generation ||
-    report.freshReceipts.length !== 46 ||
-    report.freshReceipts.some(
-      (row) =>
-        row.executionIdentity !== report.executionIdentity ||
-        row.generation !== report.generation,
-    )
-  )
-    throw Error('fresh receipt identity differs');
-  if (
-    !report.freshReceipts.some((row) => row.realm === 'node-host') ||
-    ['chromium', 'firefox', 'webkit'].some(
-      (project) =>
-        report.freshReceipts.filter((row) => row.project === project).length !==
-        15,
-    )
-  )
-    throw Error('mandatory realm missing');
-  if (
-    report.componentImport.originalTarballSha256 !== expected.tarballSha256 ||
-    JSON.stringify([...report.componentImport.originalRealmNames].sort()) !==
-      JSON.stringify([...expected.u1Realms].sort())
-  )
-    throw Error('U1 same-pack realm binding differs');
+    throw Error('package coverage failed');
+  if (report.candidateSha256 !== expected.tarballSha256)
+    throw Error('package coverage measured another tarball');
 }
 export function validateWorkflow(text: string) {
   if (

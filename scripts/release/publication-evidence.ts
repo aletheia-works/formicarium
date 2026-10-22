@@ -11,6 +11,7 @@ import {
   requireCondition,
   resolveEvidence,
 } from './evidence.ts';
+import { HISTORICAL_REQUIRED_CHECKS } from './inventory.ts';
 import { type PublicationRequest, planPublication } from './publication.ts';
 import {
   ASSET_LIMITS,
@@ -315,7 +316,7 @@ export async function acquirePublicationEvidence(
     inventory,
     request.candidate.tarballSha256,
   );
-  validateChecks(acceptance.checks);
+  validateChecks(acceptance.checks, HISTORICAL_REQUIRED_CHECKS);
   requireCondition(
     acceptance.passed === true &&
       acceptance.context?.repository === policy.repository &&

@@ -186,7 +186,7 @@ test('source CI, measured package and writers form a same-run dependency chain',
     ) < candidate.jobs.verify.steps.indexOf(exportStep),
   );
   assert.match(exportStep.run, /coverage.lines.pct < 80/);
-  assert.match(exportStep.run, /coverage.files.length !== 24/);
+  assert.match(exportStep.run, /coverage.files.length !== 23/);
   assert.equal(exportStep.if, undefined);
   assert.equal(
     workflow.jobs.publish.steps.at(-1).if,
@@ -226,7 +226,7 @@ test('actual candidate export refuses changed bytes, failed checks and insuffici
     passed: true,
     context: { commit: sha },
     checks: [{ exitCode: 0, timedOut: false, skipped: 0 }],
-    coverage: { lines: { pct: 80.16 }, files: Array(24).fill({}) },
+    coverage: { lines: { pct: 80.16 }, files: Array(23).fill({}) },
   };
   const check = async (c: any, a: any) => {
     await writeFile(join(dir, 'candidate.json'), JSON.stringify(c));
@@ -260,7 +260,7 @@ test('actual candidate export refuses changed bytes, failed checks and insuffici
     },
     {
       ...acceptance,
-      coverage: { ...acceptance.coverage, files: Array(23).fill({}) },
+      coverage: { ...acceptance.coverage, files: Array(22).fill({}) },
     },
   ]) {
     const r = await check(candidate, bad);

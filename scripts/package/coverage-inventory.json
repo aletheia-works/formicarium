@@ -34,7 +34,7 @@
       "nodeWorker": 3,
       "realConsumer": 18
     },
-    "migrationWorkers": 1
+    "commandWorkers": 1
   },
   "browserProjects": ["chromium", "firefox", "webkit"],
   "browserCases": {

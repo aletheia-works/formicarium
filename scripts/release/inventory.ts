@@ -59,6 +59,19 @@ export const PACKAGE_FILES = Object.freeze([
   'README.md',
   'package.json',
 ]);
+// Historical 0.1.0 acceptance: its recorded checks still include the retired
+// terrarium coverage (u3), which the current candidate run no longer measures.
+export const HISTORICAL_REQUIRED_CHECKS = Object.freeze([
+  'release',
+  'node-regression',
+  'browser-regression',
+  'native-aube',
+  'native-pitchfork',
+  'u1-node',
+  'u1-browser',
+  'u3-node',
+  'u3-browser',
+]);
 export const sha256 = (bytes: string | Uint8Array) =>
   createHash('sha256').update(bytes).digest('hex');
 

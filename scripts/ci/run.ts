@@ -7,22 +7,15 @@ import {
   prepareCoverage as prepareU1,
   reportCoverage as reportU1,
 } from '../package/coverage.js';
-import {
-  FILES,
-  prepareCoverage as prepareU3,
-  reportCoverage as reportU3,
-  sealCoverage,
-} from '../terrarium/coverage.js';
+import { FIRST_PARTY_JS } from '../release/inventory.js';
 import { validatePayloadInventory } from './bundle.js';
 import { bootstrapCoreSource } from './core-source.js';
-import { provisionLatestPlaywright } from './playwright.js';
 import {
   type CheckResult,
   createFreshResultsDirectory,
   hash,
   type InputManifest,
   parseTestSummary,
-  provisionPreparedResolver,
   REQUIRED_CHECKS,
   safePath,
   validateChecks,
@@ -42,7 +35,7 @@ const COMMAND_COVERAGE_NODE_WORKERS: number = JSON.parse(
     new URL('../package/coverage-inventory.json', import.meta.url),
     'utf8',
   ),
-).node.migrationWorkers;
+).node.commandWorkers;
 async function command(
   id: string,
   args: string[],
@@ -227,7 +220,6 @@ export async function runVerification(
   );
   const bun = process.env.FORMICARIUM_CI_BUN;
   if (!bun) throw Error('absolute Bun executable required');
-  process.env.TERRARIUM_BUN = bun;
   process.env.FORMICARIUM_INPUTS_ROOT = resolve(
     root,
     '.artifacts/ci-candidate/inputs',
@@ -353,74 +345,15 @@ export async function runVerification(
       { cwd: resolve(u1, 'tests/package') },
     ),
   );
-  await reportU1({
+  const coverage = await reportU1({
     out: u1,
     browserResults: resolve(u1, 'browser-results'),
     candidatePath: process.env.FORMICARIUM_CANDIDATE,
     extraNodeWorkers: COMMAND_COVERAGE_NODE_WORKERS,
   });
-  const u3 = resolve(root, '.artifacts/ci-coverage-fixed24');
-  const prepared = await prepareU3({
-    out: u3,
-    site: resolve(root, manifest.site),
-    terrarium: resolve(root, manifest.terrarium),
-    packageRoot: installedPackage,
-    tarball: resolve(root, manifest.tarball),
-    u1Report: resolve(u1, 'coverage-report.json'),
-  });
-  await provisionLatestPlaywright(root, prepared.workspace);
-  await provisionPreparedResolver(root, manifest.files, u3);
-  await command('coverage-bundle', [
-    bun,
-    'build',
-    resolve(prepared.workspace, 'src/index.ts'),
-    '--outfile',
-    resolve(prepared.instrumentedSite, 'web/terrarium.mjs'),
-    '--format',
-    'esm',
-    '--target',
-    'browser',
-    '--define',
-    '__TERRARIUM_VERSION__="u3-coverage"',
-  ]);
-  await sealCoverage(u3);
-  results.push(
-    await command('u3-node', [
-      node,
-      'scripts/terrarium/coverage.js',
-      'node',
-      u3,
-      bun,
-    ]),
-  );
-  process.env.TERRARIUM_SITE_DIR = prepared.instrumentedSite;
-  results.push(
-    await command(
-      'u3-browser',
-      [
-        bun,
-        resolve(prepared.workspace, 'node_modules/@playwright/test/cli.js'),
-        'test',
-        '--config',
-        'playwright.formicarium.config.ts',
-        '--workers=1',
-        '--retries=0',
-      ],
-      { cwd: prepared.workspace },
-    ),
-  );
-  await reportU3(u3);
-  const coverage = JSON.parse(
-    await readFile(resolve(u3, 'report.json'), 'utf8'),
-  );
   validateCoverage(coverage, {
-    files: FILES,
+    files: FIRST_PARTY_JS,
     tarballSha256: hash(await readFile(resolve(root, manifest.tarball))),
-    // Bind to the realms of this run's U1 report; componentImport has already
-    // checked them against the planned inventory.
-    u1Realms: JSON.parse(
-      await readFile(resolve(u1, 'coverage-report.json'), 'utf8'),
-    ).realmNames,
   });
   validateChecks(results);
   await verifyPins(resolve(inputRoot, 'payload'), manifest.files);

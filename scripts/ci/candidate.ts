@@ -70,10 +70,6 @@ export function validateCandidateManifest(
   )
     throw Error('untrusted modernization candidate source');
   validateManifestContents(manifest, context);
-  const resolver = '.artifacts/ci-candidate/inputs/resolver/';
-  for (const name of ['manifest.js', 'fixtures.js', 'resolver.js'])
-    if (!manifest.files.some((row) => row.path === resolver + name))
-      throw Error(`required resolver missing: ${name}`);
 }
 
 export async function validateCandidateInputs(options: {

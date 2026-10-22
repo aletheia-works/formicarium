@@ -25,7 +25,6 @@ import {
   hash,
   type InputManifest,
   parseTestSummary,
-  provisionPreparedResolver,
   REQUIRED_CHECKS,
   safePath,
   validateChecks,
@@ -34,51 +33,6 @@ import {
   validateWorkflow,
   verifyPins,
 } from '../../scripts/ci/verification.js';
-
-test('prepared owner resolver preserves pinned modules and refuses reuse or drift', async () => {
-  const root = await mkdtemp(resolve(tmpdir(), 'ci-prepared-resolver-'));
-  const prefix = '.artifacts/ci-candidate/inputs/resolver/';
-  const out = resolve(root, 'fresh-coverage');
-  const bytes = Buffer.from('export const marker = 42;');
-  const pins = ['manifest.js', 'fixtures.js', 'resolver.js'].map((name) => ({
-    path: prefix + name,
-    bytes: bytes.length,
-    sha256: hash(bytes),
-  }));
-  try {
-    for (const pin of pins) {
-      await mkdir(resolve(root, pin.path, '..'), { recursive: true });
-      await writeFile(resolve(root, pin.path), bytes);
-    }
-    const destination = await provisionPreparedResolver(root, pins, out);
-    assert.deepEqual(
-      await readFile(resolve(destination, 'manifest.js')),
-      bytes,
-    );
-    assert.deepEqual(
-      await readFile(resolve(destination, 'fixtures.js')),
-      bytes,
-    );
-    assert.deepEqual(
-      await readFile(resolve(destination, 'resolver.js')),
-      bytes,
-    );
-    await assert.rejects(
-      provisionPreparedResolver(root, pins.slice(1), resolve(root, 'missing')),
-      /module inventory/,
-    );
-    await assert.rejects(provisionPreparedResolver(root, pins, out), {
-      code: 'EEXIST',
-    });
-    await writeFile(resolve(root, pins[0]!.path), Buffer.alloc(bytes.length));
-    await assert.rejects(
-      provisionPreparedResolver(root, pins, resolve(root, 'other')),
-      /input bytes differ/,
-    );
-  } finally {
-    await rm(root, { recursive: true, force: true });
-  }
-});
 
 test('supplemental core source binds digest, exact HEAD and fixed public prerequisite', async () => {
   const expected = 'c'.repeat(40);
@@ -169,13 +123,7 @@ const context = {
   event: 'push',
   ref: 'refs/heads/codex/verify/u4',
 };
-const ownerPin = {
-  path: 'terrarium/packages/terrarium/src/session.ts',
-  sha256: 'b'.repeat(64),
-};
 const paths = [
-  ownerPin.path,
-  'terrarium/web/terminal.mjs',
   'candidate.tgz',
   'candidate.json',
   'assets/blink.wasm',
@@ -200,27 +148,10 @@ const manifest = (): InputManifest => ({
   tarball: 'candidate.tgz',
   packageManifest: 'candidate.json',
   packageRoot: 'consumer/node_modules/package',
-  site: 'site',
-  terrarium: 'terrarium',
   coreCommit: 'c'.repeat(40),
   guests: { aube: 'v2.7.0', pitchfork: 'v2.30.1' },
-  owner: {
-    baselineCommit: 'd'.repeat(40),
-    integrationSourceIdentity: hash(JSON.stringify([ownerPin])),
-  },
 });
 
-test('missing terrarium terminal module is rejected before coverage preparation', () => {
-  const input = manifest();
-  validateManifest(input, context);
-  input.files = input.files.filter(
-    (row) => row.path !== `${input.terrarium}/web/terminal.mjs`,
-  );
-  assert.throws(
-    () => validateManifest(input, context),
-    /required input missing: terrarium\/web\/terminal\.mjs/,
-  );
-});
 test('reviewed same-source manifest requires complete core guest fixture supply', () => {
   validateManifest(manifest(), context);
   for (const mutate of [
@@ -297,37 +228,21 @@ test('missing duplicate nonzero timeout skip and unmeasured required checks fail
       ),
     );
 });
-test('fixed24 and fresh realm receipts bind to same-pack full U1 realm inventory', () => {
-  const files = Array.from({ length: 24 }, (_, index) => `file${index}`);
+test('package coverage binds the distributed JS of the same tarball at 80%', () => {
+  const files = ['runtime/public.js', 'runtime/core.js'];
   const report = {
+    candidateSha256: 'pack',
     passed: true,
-    fixedInventory: files,
     lines: { total: 1801, covered: 1450, pct: 80.51, skipped: 0 },
-    freshReceipts: [
-      { realm: 'node-host', executionIdentity: 'seal', generation: 'fresh' },
-      ...['chromium', 'firefox', 'webkit'].flatMap((project) =>
-        Array.from({ length: 15 }, () => ({
-          realm: 'browser-host',
-          project,
-          executionIdentity: 'seal',
-          generation: 'fresh',
-        })),
-      ),
-    ],
-    executionIdentity: 'seal',
-    generation: 'fresh',
-    componentImport: {
-      originalTarballSha256: 'pack',
-      originalRealmNames: ['node-host', 'worker'],
-    },
+    files: files.map((path) => ({ path })),
   };
-  const expected = {
-    files,
-    tarballSha256: 'pack',
-    u1Realms: ['node-host', 'worker'],
-  };
+  const expected = { files, tarballSha256: 'pack' };
   validateCoverage(report, expected);
+  validateCoverage({ ...report, files: [...report.files].reverse() }, expected);
   for (const mutate of [
+    (r: typeof report) => {
+      r.passed = false;
+    },
     (r: typeof report) => {
       r.lines.pct = 79.99;
     },
@@ -335,16 +250,16 @@ test('fixed24 and fresh realm receipts bind to same-pack full U1 realm inventory
       r.lines.skipped = 1;
     },
     (r: typeof report) => {
-      r.fixedInventory.pop();
+      r.lines.total = 0;
     },
     (r: typeof report) => {
-      r.freshReceipts[0].executionIdentity = 'old';
+      r.files.pop();
     },
     (r: typeof report) => {
-      r.componentImport.originalRealmNames.pop();
+      r.files.push({ path: 'runtime/extra.js' });
     },
     (r: typeof report) => {
-      r.componentImport.originalTarballSha256 = 'other';
+      r.candidateSha256 = 'other';
     },
   ]) {
     const r = structuredClone(report);
@@ -380,32 +295,22 @@ test('checked workflow remains read-only verification without publication creden
     assert.throws(() => validateWorkflow(`${workflow}\n${unsafe}`));
 });
 
-test('bundle producer binds actual owner bytes before validating the manifest', async () => {
+test('bundle producer binds actual input bytes before validating the manifest', async () => {
   const root = await mkdtemp(resolve(tmpdir(), 'ci-bundle-'));
   try {
     const original = manifest();
     original.tarball = '.artifacts/ci-candidate/candidate.tgz';
     original.packageManifest = '.artifacts/ci-candidate/candidate.json';
-    original.terrarium = '.artifacts/ci-candidate/terrarium';
     const inputPaths = paths.map((path) =>
       path === 'candidate.tgz'
         ? original.tarball
         : path === 'candidate.json'
           ? original.packageManifest
-          : path === ownerPin.path
-            ? `${original.terrarium}/packages/terrarium/src/session.ts`
-            : path === 'terrarium/web/terminal.mjs'
-              ? `${original.terrarium}/web/terminal.mjs`
-              : path,
+          : path,
     );
     const source = resolve(root, 'input');
     await writeFile(source, 'real bytes');
     await writeFile(resolve(root, 'source.ts'), 'source');
-    original.owner.integrationSourceIdentity = hash(
-      JSON.stringify([
-        { path: inputPaths[0], sha256: hash(Buffer.from('real bytes')) },
-      ]),
-    );
     const { files: _files, sourceFiles: _sourceFiles, ...metadata } = original;
     const result = await createBundle(
       {

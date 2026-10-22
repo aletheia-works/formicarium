@@ -7,7 +7,7 @@ import {
 } from '../release/publication.ts';
 import { createBundle, validatePayloadInventory } from './bundle.js';
 import { candidateSourcePaths, validateCandidateInputs } from './candidate.js';
-import { hash, type InputManifest, verifyPins } from './verification.js';
+import { type InputManifest, verifyPins } from './verification.js';
 
 export function releaseCandidateContext(event: {
   number?: number;
@@ -184,9 +184,11 @@ export async function prepareInputs(
 ) {
   const out = resolve(root, '.artifacts/release-candidate');
   const seed = resolve(root, '.ci-fixtures');
+  // The fixture still carries the retired terrarium owner copy, its site and
+  // the guest-distribution resolver; the fresh inputs leave them out.
   const old = JSON.parse(
     await readFile(`${seed}/manifest.json`, 'utf8'),
-  ) as InputManifest;
+  ) as InputManifest & { site: string; terrarium: string; owner: unknown };
   await validatePayloadInventory(
     `${seed}/payload`,
     old.files.map((row) => row.path),
@@ -204,8 +206,14 @@ export async function prepareInputs(
   const original = JSON.parse(
     await readFile(`${out}/private.manifest.json`, 'utf8'),
   );
-  const { files, sourceFiles, ...manifest } = old;
+  const { files, sourceFiles, site, terrarium, owner, ...manifest } = old;
   void sourceFiles;
+  void owner;
+  const retired = [
+    `${site}/`,
+    `${terrarium}/`,
+    '.artifacts/ci-candidate/inputs/resolver/',
+  ];
   manifest.sourceCommit = expected.commit;
   const candidate = {
     ...original,
@@ -222,51 +230,24 @@ export async function prepareInputs(
     `${out}/candidate.json`,
     JSON.stringify(publication, null, 2),
   );
-  const stage = JSON.parse(
-    await readFile(
-      resolve(seed, 'payload', `${manifest.site}/web/formicarium-stage.json`),
-      'utf8',
-    ),
-  );
-  stage.packageManifestSha256 = hash(
-    await readFile(`${out}/public/package.json`),
-  );
-  stage.files = stage.files.map((row: { path: string; sha256: string }) => {
-    if (!row.path.startsWith('formicarium/')) return row;
-    const file = publication.files.find(
-      (f) => f.path === row.path.slice('formicarium/'.length),
-    );
-    if (!file) throw Error(`candidate site file missing: ${row.path}`);
-    return { ...row, sha256: file.sha256 };
-  });
-  stage.status =
-    'Current source candidate; regression and coverage not yet run';
-  await writeFile(`${out}/site-stage.json`, JSON.stringify(stage, null, 2));
-  const inputs = files.map((row) => {
-    let source = resolve(seed, 'payload', row.path);
-    for (const prefix of [
-      `${manifest.packageRoot}/`,
-      `${manifest.site}/web/formicarium/`,
-    ])
-      if (row.path.startsWith(prefix))
-        source = resolve(out, 'public', row.path.slice(prefix.length));
-    if (row.path === manifest.tarball) source = `${out}/candidate.tgz`;
-    if (row.path === manifest.packageManifest)
-      source = `${out}/package-manifest.json`;
-    if (row.path === `${manifest.site}/web/formicarium-stage.json`)
-      source = `${out}/site-stage.json`;
-    if (row.path.startsWith('dist/blink/')) source = resolve(root, row.path);
-    if (row.path.startsWith('assets/'))
-      source = resolve(root, 'dist/blink', row.path.slice(7));
-    const resolver = '.artifacts/ci-candidate/inputs/resolver/';
-    if (row.path.startsWith(resolver))
-      source = resolve(
-        root,
-        'integration/guest-distribution',
-        row.path.slice(resolver.length),
-      );
-    return { path: row.path, source };
-  });
+  const inputs = files
+    .filter((row) => !retired.some((prefix) => row.path.startsWith(prefix)))
+    .map((row) => {
+      let source = resolve(seed, 'payload', row.path);
+      if (row.path.startsWith(`${manifest.packageRoot}/`))
+        source = resolve(
+          out,
+          'public',
+          row.path.slice(manifest.packageRoot.length + 1),
+        );
+      if (row.path === manifest.tarball) source = `${out}/candidate.tgz`;
+      if (row.path === manifest.packageManifest)
+        source = `${out}/package-manifest.json`;
+      if (row.path.startsWith('dist/blink/')) source = resolve(root, row.path);
+      if (row.path.startsWith('assets/'))
+        source = resolve(root, 'dist/blink', row.path.slice(7));
+      return { path: row.path, source };
+    });
   const sourcePaths = await candidateSourcePaths(root);
   await createBundle(
     { manifest, sourcePaths, inputs },
@@ -291,7 +272,6 @@ export async function prepareInputs(
         version,
         tarballSha256: publication.tarball!.sha256,
         fixtureSourceCommit: old.sourceCommit,
-        fixtureOwner: old.owner,
         limits:
           'Fresh candidate and measurement; frozen external guest/consumer fixtures, no formal consumer acceptance or publication approval.',
       },

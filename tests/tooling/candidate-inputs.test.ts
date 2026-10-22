@@ -5,14 +5,11 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 import { createBundle } from '../../scripts/ci/bundle.js';
 import { validateCandidateInputs } from '../../scripts/ci/candidate.js';
-import { hash } from '../../scripts/ci/verification.js';
 
 async function fixture() {
   const root = await mkdtemp(resolve(tmpdir(), 'formicarium-candidate-test-'));
   const inputRoot = resolve(root, '.ci-inputs');
   const prefix = '.artifacts/ci-candidate/';
-  const terrarium = `${prefix}owner`;
-  const ownerPath = `${terrarium}/packages/terrarium/src/index.ts`;
   const bytes = Buffer.from('test fixture only, not an executable release');
   const paths = [
     'assets/blink.wasm',
@@ -27,11 +24,6 @@ async function fixture() {
     'fixtures/baseline/pitchfork-basic.native.txt',
     `${prefix}package.tgz`,
     `${prefix}package.json`,
-    `${terrarium}/web/terminal.mjs`,
-    ownerPath,
-    ...['manifest.js', 'fixtures.js', 'resolver.js'].map(
-      (name) => `${prefix}inputs/resolver/${name}`,
-    ),
   ];
   await writeFile(resolve(root, 'source.ts'), bytes);
   const sourceInput = resolve(root, 'fixture-bytes');
@@ -51,16 +43,8 @@ async function fixture() {
         tarball: `${prefix}package.tgz`,
         packageManifest: `${prefix}package.json`,
         packageRoot: `${prefix}package`,
-        site: `${prefix}site`,
-        terrarium,
         coreCommit: 'b'.repeat(40),
         guests: { aube: 'v2.7.0', pitchfork: 'v2.30.1' },
-        owner: {
-          baselineCommit: 'c'.repeat(40),
-          integrationSourceIdentity: hash(
-            JSON.stringify([{ path: ownerPath, sha256: hash(bytes) }]),
-          ),
-        },
       },
       sourcePaths: ['source.ts'],
       inputs: paths.map((path) => ({ source: sourceInput, path })),

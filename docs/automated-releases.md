@@ -21,8 +21,9 @@ aletheia-works/formicarium, workflow publish.yml, environment release.
 ## Required checks and publication
 
 The release PR runs ordinary CI, native/Node/Chromium/Firefox/WebKit regression
-and exact-tarball fixed-24 coverage >=80%. publish.yml independently reads GitHub
-API results to require exactly one merged same-repository release-please PR from
+and exact-tarball line coverage >=80% of the 23 distributed JS files.
+publish.yml independently reads GitHub API results to require exactly one
+merged same-repository release-please PR from
 aletheia-works-bot, its exact merge SHA/main target, and successful CI for its
 actual head. Manual tags, forks, failed/stale CI and RC tags are refused.
 

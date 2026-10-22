@@ -350,7 +350,7 @@ jobs:
           if [ "$EVENT_NAME" = pull_request ]; then
             git diff --name-only "$BASE_SHA" "$SOURCE_SHA" > "$RUNNER_TEMP/candidate-paths.txt"
             if [[ "$HEAD_REF" == release-please--branches--main--components--formicarium ]] ||
-              grep -Eq '^(\.github/workflows/(ci|release-candidate)\.yml$|scripts/(ci|package)/|scripts/terrarium/coverage\.ts$|tests/(package/|terrarium/|tooling/release-candidate\.test\.ts$))' "$RUNNER_TEMP/candidate-paths.txt"; then
+              grep -Eq '^(\.github/workflows/(ci|release-candidate)\.yml$|scripts/(ci|package)/|tests/(package/|tooling/release-candidate\.test\.ts$))' "$RUNNER_TEMP/candidate-paths.txt"; then
               required=true
             fi
           fi
