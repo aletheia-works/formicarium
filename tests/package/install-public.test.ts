@@ -10,7 +10,7 @@ import { createLifecycle } from '../../runtime/lifecycle.js';
 import { identity } from '../../runtime/protocol.js';
 import { sessionPort } from '../../runtime/session-port.js';
 import { SessionState } from '../../runtime/state.js';
-import { elf, expectation } from '../migration-session/fixtures.js';
+import { elf, expectation } from './session-fixtures.js';
 
 function fixture() {
   let executed: Uint8Array | undefined;

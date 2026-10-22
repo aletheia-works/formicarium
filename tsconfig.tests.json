@@ -4,7 +4,7 @@
   "include": ["tests/**/*.ts", "web/globals.d.ts"],
   "exclude": [
     "tests/package/types-invalid.ts",
-    "tests/migration-install/types-invalid.ts",
-    "tests/migration-command/types-invalid.ts"
+    "tests/package/install-types-invalid.ts",
+    "tests/package/command-types-invalid.ts"
   ]
 }

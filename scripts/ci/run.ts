@@ -36,27 +36,8 @@ const output = resolve(root, '.artifacts/ci-results');
 const node = process.execPath;
 const playwright = resolve(root, 'node_modules/@playwright/test/cli.js');
 const results: CheckResult[] = [];
-/** Self-contained guest validation, install and command unit suites. */
-const MIGRATION_COVERAGE_SUITES = Object.freeze([
-  'migration-session',
-  'migration-install',
-  'migration-command',
-]);
-const MIGRATION_COVERAGE_TESTS = Object.freeze([
-  'migration-session/fixture',
-  'migration-session/guest-validation',
-  'migration-session/reservation',
-  'migration-install/catalog',
-  'migration-install/hash-regression',
-  'migration-install/lifecycle',
-  'migration-install/public',
-  'migration-install/transfer',
-  'migration-command/dispatch',
-  'migration-command/parse',
-  'migration-command/public',
-]);
-/** Real guest runs in migration-command/public start one more Node Worker. */
-const MIGRATION_COVERAGE_NODE_WORKERS: number = JSON.parse(
+/** Real guest runs in command-public start one more Node Worker. */
+const COMMAND_COVERAGE_NODE_WORKERS: number = JSON.parse(
   await readFile(
     new URL('../package/coverage-inventory.json', import.meta.url),
     'utf8',
@@ -318,13 +299,6 @@ export async function runVerification(
   }
   const u1 = resolve(root, '.artifacts/u1-coverage-v1000001');
   await prepareU1({ source: installedPackage, out: u1 });
-  // The guest validation, install and command modules are first-party package
-  // JS too; their self-contained unit suites run against the same instrumented
-  // copy so the fixed inventory keeps every distributed file in its denominator.
-  for (const suite of MIGRATION_COVERAGE_SUITES)
-    await cp(resolve(root, 'tests', suite), resolve(u1, 'tests', suite), {
-      recursive: true,
-    });
   results.push(
     await command('u1-node', [
       node,
@@ -346,10 +320,18 @@ export async function runVerification(
         'node-api',
         'node-worker',
         'consumer',
+        'session-fixture',
+        'guest-validation',
+        'session-reservation',
+        'install-catalog',
+        'install-hash-regression',
+        'install-lifecycle',
+        'install-public',
+        'install-transfer',
+        'command-dispatch',
+        'command-parse',
+        'command-public',
       ].map((name) => resolve(u1, `tests/package/${name}.test.js`)),
-      ...MIGRATION_COVERAGE_TESTS.map((path) =>
-        resolve(u1, `tests/${path}.test.js`),
-      ),
     ]),
   );
   results.push(
@@ -375,7 +357,7 @@ export async function runVerification(
     out: u1,
     browserResults: resolve(u1, 'browser-results'),
     candidatePath: process.env.FORMICARIUM_CANDIDATE,
-    extraNodeWorkers: MIGRATION_COVERAGE_NODE_WORKERS,
+    extraNodeWorkers: COMMAND_COVERAGE_NODE_WORKERS,
   });
   const u3 = resolve(root, '.artifacts/ci-coverage-fixed24');
   const prepared = await prepareU3({

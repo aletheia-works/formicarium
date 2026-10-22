@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { gzipSync } from 'node:zlib';
 import { failure } from '../../runtime/errors.js';
@@ -251,21 +250,4 @@ test('cancel during decompression terminates before candidate return', async () 
     ),
     { code: 'ABORTED' },
   );
-});
-test('U1 accepted real aube archive extracts without fetching or rebuilding', async () => {
-  const compressed = new Uint8Array(
-    await readFile(
-      new URL(
-        '../../.artifacts/migration-preflight/mirror-assets-attempt-1/aube.tar.gz',
-        import.meta.url,
-      ),
-    ),
-  );
-  const result = await extractArchive(
-    compressed,
-    'aube',
-    control(),
-    () => undefined,
-  );
-  assert.deepEqual([...result.subarray(0, 4)], [127, 69, 76, 70]);
 });

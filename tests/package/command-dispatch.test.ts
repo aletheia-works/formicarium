@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createCommandSession } from '../../runtime/command.js';
 import type { OutputChunk, Progress } from '../../types/index.js';
-import { catalogFor, harness, mergeCatalogs, text } from './harness.js';
+import { catalogFor, harness, mergeCatalogs, text } from './command-harness.js';
 
 type Fixture = ReturnType<typeof harness>;
 const code = (expected: string) => (error: { code?: string }) => {

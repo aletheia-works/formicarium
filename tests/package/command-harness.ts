@@ -6,7 +6,7 @@ import { identity } from '../../runtime/protocol.js';
 import { registerValidatedGuest } from '../../runtime/public.js';
 import { SessionState } from '../../runtime/state.js';
 import type { FsEntry } from '../../types/index.js';
-import { elf, expectation } from '../migration-session/fixtures.js';
+import { elf, expectation } from './session-fixtures.js';
 
 /** How the fake Worker answers the next spawned run. */
 export interface GuestPlan {

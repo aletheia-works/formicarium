@@ -8,7 +8,7 @@ import { identity } from '../../runtime/protocol.js';
 import * as api from '../../runtime/public.js';
 import { sessionPort } from '../../runtime/session-port.js';
 import { SessionState } from '../../runtime/state.js';
-import { elf, expectation } from './fixtures.js';
+import { elf, expectation } from './session-fixtures.js';
 
 function session() {
   let count = 0;
@@ -152,7 +152,7 @@ test('strict type fixtures accept C03 and reject invalid byte, expectation and r
         new URL('../../node_modules/typescript/bin/tsc', import.meta.url),
       ),
       '--project',
-      'tests/migration-session/tsconfig.json',
+      'tests/package/tsconfig.json',
     ],
     { stdio: 'inherit' },
   );

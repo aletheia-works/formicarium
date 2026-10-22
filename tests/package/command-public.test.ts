@@ -5,9 +5,9 @@ import { blinkCore } from '../../runtime/core.js';
 import { createSession } from '../../runtime/node/api.js';
 import * as api from '../../runtime/public.js';
 import type { OutputChunk, Progress, Session } from '../../types/index.js';
-import { expectation } from '../migration-session/fixtures.js';
-import { developmentAssets } from '../package/fixtures.js';
-import { catalogFor, harness, text } from './harness.js';
+import { catalogFor, harness, text } from './command-harness.js';
+import { developmentAssets } from './fixtures.js';
+import { expectation } from './session-fixtures.js';
 
 const code = (expected: string) => (error: { code?: string }) => {
   assert.equal(error.code, expected);

@@ -9,5 +9,13 @@
     "types": [],
     "skipLibCheck": false
   },
-  "files": ["types-valid.ts"]
+  "files": [
+    "types-valid.ts",
+    "session-types-valid.ts",
+    "session-types-invalid.ts",
+    "install-types-valid.ts",
+    "install-types-invalid.ts",
+    "command-types-valid.ts",
+    "command-types-invalid.ts"
+  ]
 }

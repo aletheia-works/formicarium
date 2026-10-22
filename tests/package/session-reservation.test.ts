@@ -9,7 +9,7 @@ import { createLifecycle } from '../../runtime/lifecycle.js';
 import { identity } from '../../runtime/protocol.js';
 import { type Reservation, sessionPort } from '../../runtime/session-port.js';
 import { SessionState } from '../../runtime/state.js';
-import { elf, expectation } from './fixtures.js';
+import { elf, expectation } from './session-fixtures.js';
 
 function deferred() {
   let resolve!: () => void;

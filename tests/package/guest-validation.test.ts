@@ -8,7 +8,7 @@ import {
   guestSnapshot,
   validateGuest,
 } from '../../runtime/guest-validation.js';
-import { digest, elf, expectation } from './fixtures.js';
+import { digest, elf, expectation } from './session-fixtures.js';
 
 const invalid = (error: unknown) =>
   typeof error === 'object' &&
