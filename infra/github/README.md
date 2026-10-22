@@ -10,9 +10,10 @@ a `main` ruleset like those repositories, because integrations/github 6.13.0
 sent every existing check twice when it updated `github_branch_protection_v3`
 ([provider #3420](https://github.com/integrations/terraform-provider-github/issues/3420)).
 The ruleset keeps the same settings (signed commits, no bypass for
-administrators, up-to-date branches, resolved conversations and the required
-checks below), and also blocks force pushes and deletion and requires linear
-history. The classic protection is removed.
+administrators, resolved conversations and the required checks below), and
+also blocks force pushes and deletion and requires linear history. The classic
+protection is removed. Like paludarium and vivarium, it does not require a
+branch to be up to date with main before merging.
 
 ## Required checks
 

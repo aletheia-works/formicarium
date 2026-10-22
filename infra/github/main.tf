@@ -59,10 +59,12 @@ locals {
   # changes, so requiring it never leaves an unrelated PR waiting.
   required_checks = ["quality", "commit-format", "ci-required", "check / Commitlint", "showcase-site-required"]
 }
-# The same rules as the former classic protection: administrators have no bypass
-# (enforce_admins), and branches must be up to date (strict). Force pushes
-# and deletion stay blocked; only squash merges are allowed, so linear history
-# changes nothing.
+# Administrators have no bypass (enforce_admins). Branches need not be up to
+# date with main before merging, as in paludarium and vivarium: the long
+# candidate CI would otherwise rerun on every open PR after each merge, and
+# CI on pushes to main still catches two PRs that only break together. Force
+# pushes and deletion stay blocked; only squash merges are allowed, so linear
+# history changes nothing.
 resource "github_repository_ruleset" "main" {
   name        = "main"
   repository  = github_repository.this.name
@@ -91,7 +93,7 @@ resource "github_repository_ruleset" "main" {
     }
 
     required_status_checks {
-      strict_required_status_checks_policy = true
+      strict_required_status_checks_policy = false
 
       dynamic "required_check" {
         for_each = local.required_checks
