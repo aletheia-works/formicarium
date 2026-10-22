@@ -51,7 +51,6 @@ export async function candidateSourcePaths(root: string) {
     'web',
     'scripts',
     'tests',
-    'integration',
     'patches',
     'guest',
   ])

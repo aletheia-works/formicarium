@@ -415,7 +415,7 @@ Artifacts include source SHA, run ID and attempt to keep reruns isolated.
 - `mise-tasks/`: 開発タスク、wasm・ゲストのビルド、ソース取得、native基準値作成、書き込み先調査。
 - `scripts/lib/`と`scripts/emscripten-env.sh`: 複数タスクから読み込むコンテナ・環境設定。単独実行するタスクにはしない。
 - `scripts/ci/`: 候補入力の検証・証拠収集。`tasks.ts`はキャッシュなし導入の引数検証と既存CIの入口に限定し、通常のmiseタスクはBunへ直接渡す。
-- `scripts/package/`・`scripts/release/`・`scripts/terrarium/`・`scripts/guest-distribution/`: テストから使う検証・配布ロジック。YAMLへ複製せず、引き続き単体試験する。
+- `scripts/package/`・`scripts/release/`: テストから使う検証・配布ロジック。YAMLへ複製せず、引き続き単体試験する。
 - `.github/workflows/`: PRイベント、matrix、キャッシュ、artifact、保守自動化の制御。製品ビルドはローカルと同じ `mise-tasks/` の実装を実行する。
 
 生成された `.js`・`.js.map`は `mise run build` の出力で、管理対象のスクリプトではない。

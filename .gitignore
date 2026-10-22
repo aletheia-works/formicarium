@@ -7,7 +7,6 @@
 /runtime/**/*.js
 /web/**/*.js
 /scripts/**/*.js
-/integration/**/*.js
 /tests/**/*.js
 **/*.js.map
 /test-results/

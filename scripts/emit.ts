@@ -4,7 +4,7 @@ import { buildWorkerBundle } from './package/worker-bundle.js';
 
 // Keep generated browser modules next to their sources so static URLs and
 // package staging share the same layout. These outputs are ignored by SCM.
-for (const directory of ['runtime', 'web', 'scripts', 'integration', 'tests']) {
+for (const directory of ['runtime', 'web', 'scripts', 'tests']) {
   await cp(resolve('.build', directory), resolve(directory), {
     recursive: true,
     filter: (source) => !source.endsWith('.ts'),

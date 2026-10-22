@@ -21,7 +21,6 @@
     "runtime/**/*.ts",
     "web/**/*.ts",
     "scripts/**/*.ts",
-    "integration/**/*.ts",
     "playwright.config.ts",
     "tests/**/playwright.config.ts"
   ],

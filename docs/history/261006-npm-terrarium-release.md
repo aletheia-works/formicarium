@@ -14,7 +14,7 @@ terrarium はツールごとに wasm へ移植した実行部を持っていた�
 ## 主な決定
 
 - **責任を 4 つに分ける。** コアの扱い、1 回のゲスト実行、run をまたぐファイル状態、Worker の寿命を別の部品にした。ファイル状態の持ち主は 1 つだけにする。terrarium に状態を持たせると、UI と Node の利用者で規則が二重になるため。Node とブラウザの違いは Worker の adapter の中に閉じる。
-- **共通パッケージとゲスト配布を分ける。** コアの版とゲストの ref を別々に追える。ゲストを npm に入れる案は要件（FR1.3、FR6）に反するので採らなかった。詳細は [guest-distribution.md](../guest-distribution.md)。
+- **共通パッケージとゲスト配布を分ける。** コアの版とゲストの ref を別々に追える。ゲストを npm に入れる案は要件（FR1.3、FR6）に反するので採らなかった。詳細は、git の commit `300969f5` の `docs/guest-distribution.md` にある。
 - **terrarium の互換は翻訳層で保つ。** 低層の API は stdout/stderr の bytes と終了の分類を返す。terrarium の code/output/transcript とイベントへの対応は terrarium 側で行う。formicarium に DOM 依存を入れない。
 - **RC と stable の判定を分ける。** 公開済みの RC を terrarium で受け入れることを RC 公開の前提にすると、循環してしまう。そこで RC は公開前の検査と最小 consumer の成功で判定し、stable には公開済み RC の受け入れと全 NFR を求めることにした。判定の詳細は [release-assurance.md](../release-assurance.md)。
 - **terrarium の端末は stdout と stderr を両方表示する。** 基準の terrarium が同じ表示に両方を流しているため。native と比べる記録は stdout だけで別に取る。
@@ -72,7 +72,7 @@ terrarium はツールごとに wasm へ移植した実行部を持っていた�
 
 ## 運用・リリースの手順
 
-公開候補の作り方、証拠の保存、RC と stable の判定、coverage の測り方、初回パッケージの bootstrap の順序は [release-assurance.md](../release-assurance.md) にある。ゲスト配布物の作り方は [guest-distribution.md](../guest-distribution.md) にある。いまの stable 公開は [automated-releases.md](../automated-releases.md) に従う。
+公開候補の作り方、証拠の保存、RC と stable の判定、coverage の測り方、初回パッケージの bootstrap の順序は [release-assurance.md](../release-assurance.md) にある。ゲスト配布物の作り方は、git の commit `300969f5` の `docs/guest-distribution.md` にある。いまの stable 公開は [automated-releases.md](../automated-releases.md) に従う。
 
 記録にだけ残っている注意：
 - ゲストのソースが変わっていなければ aube は再ビルドしない。

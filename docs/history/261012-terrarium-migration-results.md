@@ -55,7 +55,7 @@ terrarium の機能を formicarium と vivarium へ移し、terrarium を退役�
 ### U9 退役
 
 - 何か：terrarium への参照を formicarium と vivarium から消し、terrarium の repository・fork・npm package を消す。
-- 主な決定：削除は元に戻せないので、手順書を作って人間が行う。npm は unpublish（deprecate は使わない）。OpenTofu の terrarium の state は destroy しない（repository の削除で消える）。release の判定から terrarium の consumer の受入を外し、代わりは足さない。名前に terrarium がある formicarium 自身の code は名前を変えて残す（例：`integration/terrarium/guest-distribution/` → `integration/guest-distribution/`、[guest-distribution.md](../guest-distribution.md)）。公開の名前は変えない。
+- 主な決定：削除は元に戻せないので、手順書を作って人間が行う。npm は unpublish（deprecate は使わない）。OpenTofu の terrarium の state は destroy しない（repository の削除で消える）。release の判定から terrarium の consumer の受入を外し、代わりは足さない。名前に terrarium がある formicarium 自身の code は名前を変えて残す（例：`integration/terrarium/guest-distribution/` → `integration/guest-distribution/`、`docs/guest-distribution.md`。どちらも commit `300969f5` まで存在）。公開の名前は変えない。
 
 ## 品質の目標と結果
 
