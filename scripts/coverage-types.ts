@@ -20,8 +20,6 @@ export interface CoverageInventory {
     path?: string;
     files?: { path: string; size: number; sha256: string }[];
   };
-  u1Report?: string;
-  u1ReportSha256?: string;
   exclusions?: Record<string, string>;
 }
 export interface Measurement {

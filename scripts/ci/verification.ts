@@ -13,8 +13,8 @@ export const REQUIRED_CHECKS = Object.freeze([
   'browser-regression',
   'native-aube',
   'native-pitchfork',
-  'u1-node',
-  'u1-browser',
+  'package-coverage-node',
+  'package-coverage-browser',
 ]);
 export interface FilePin {
   path: string;

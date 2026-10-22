@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 
 // Historical 0.1.0 evidence inventory: recorded RC/stable evidence binds these
-// fourteen modules, so it stays fixed (see HISTORICAL_U1_JS in the fixed-24 coverage).
+// fourteen modules, so it stays fixed.
 export const HISTORICAL_FIRST_PARTY_JS = Object.freeze([
   'runtime/contracts.js',
   'runtime/public.js',
@@ -75,10 +75,12 @@ export const HISTORICAL_REQUIRED_CHECKS = Object.freeze([
 export const sha256 = (bytes: string | Uint8Array) =>
   createHash('sha256').update(bytes).digest('hex');
 
-export const U2_FILES = ['manifest', 'fixtures', 'resolver'].map(
-  (name) => `integration/guest-distribution/${name}.js`,
-);
-export const U3_FILES = [
+export const GUEST_DISTRIBUTION_FILES = [
+  'manifest',
+  'fixtures',
+  'resolver',
+].map((name) => `integration/guest-distribution/${name}.js`);
+export const TERRARIUM_FILES = [
   'formicarium-session',
   'catalog',
   'terminal',
@@ -90,8 +92,8 @@ export const U3_FILES = [
   .concat('terrarium/web/terminal.mjs');
 export const FILES = Object.freeze([
   ...HISTORICAL_FIRST_PARTY_JS,
-  ...U2_FILES,
-  ...U3_FILES,
+  ...GUEST_DISTRIBUTION_FILES,
+  ...TERRARIUM_FILES,
 ]);
 export const BROWSER_TITLES = Object.freeze([
   'latest aube ready fields, events and actual Worker version',
@@ -113,7 +115,7 @@ export const BROWSER_TITLES = Object.freeze([
 ]);
 const PROJECTS = ['chromium', 'firefox', 'webkit'];
 
-const u1Inventory = {
+const historicalPackageInventory = {
   version: 1,
   threshold: 80,
   files: [
@@ -186,19 +188,21 @@ const u1Inventory = {
       'development-only, excluded from distribution',
   },
 };
-export const REQUIRED_U1_REALMS = Object.freeze([
+export const HISTORICAL_PACKAGE_REALMS = Object.freeze([
   'node-host',
   ...Array.from(
-    { length: u1Inventory.node.workers },
+    { length: historicalPackageInventory.node.workers },
     (_, index) => `node-worker-${index + 1}`,
   ),
   ...PROJECTS.flatMap((project) =>
-    Object.entries(u1Inventory.browserCases).flatMap(([title, workers]) => [
-      `${project}:${title}:browser-host`,
-      ...Array.from(
-        { length: Number(workers) },
-        (_, index) => `${project}:${title}:browser-worker-${index + 1}`,
-      ),
-    ]),
+    Object.entries(historicalPackageInventory.browserCases).flatMap(
+      ([title, workers]) => [
+        `${project}:${title}:browser-host`,
+        ...Array.from(
+          { length: Number(workers) },
+          (_, index) => `${project}:${title}:browser-worker-${index + 1}`,
+        ),
+      ],
+    ),
   ),
 ]);

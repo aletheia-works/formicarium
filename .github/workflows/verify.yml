@@ -56,8 +56,8 @@ jobs:
           name: modernization-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             .artifacts/ci-results/
-            .artifacts/u1-coverage-v1000001/coverage-report.json
-            .artifacts/u1-coverage-v1000001/browser-results/
+            .artifacts/package-coverage/coverage-report.json
+            .artifacts/package-coverage/browser-results/
           include-hidden-files: true
           if-no-files-found: error
   credential-read:

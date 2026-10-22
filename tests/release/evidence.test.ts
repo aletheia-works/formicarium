@@ -8,7 +8,10 @@ import {
   saveEvidence,
   validateEvidence,
 } from '../../scripts/release/evidence.js';
-import { REQUIRED_U1_REALMS, sha256 } from '../../scripts/release/inventory.js';
+import {
+  HISTORICAL_PACKAGE_REALMS,
+  sha256,
+} from '../../scripts/release/inventory.js';
 import { coverageFixture, fixture } from './fixtures.js';
 
 async function boundCoverage(t: TestContext) {
@@ -184,7 +187,7 @@ test('coverage rejects global one-realm substitution and missing imported realm 
         : {
             ...f.report,
             componentImport: {
-              originalRealmNames: REQUIRED_U1_REALMS.slice(1),
+              originalRealmNames: HISTORICAL_PACKAGE_REALMS.slice(1),
             },
           };
     await f.saveReport(changed);

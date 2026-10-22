@@ -5,7 +5,7 @@ import type { TestContext } from 'node:test';
 import {
   BROWSER_TITLES,
   FILES,
-  REQUIRED_U1_REALMS,
+  HISTORICAL_PACKAGE_REALMS,
   sha256,
 } from '../../scripts/release/inventory.js';
 import type {
@@ -53,7 +53,7 @@ export function coverageFixture(c: CandidateIdentity) {
       ),
     ],
     componentImport: {
-      originalRealmNames: [...REQUIRED_U1_REALMS],
+      originalRealmNames: [...HISTORICAL_PACKAGE_REALMS],
       originalTarballSha256: c.tarballSha256,
     },
   };

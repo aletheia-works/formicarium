@@ -3,7 +3,7 @@ import { isAbsolute, join, resolve, sep } from 'node:path';
 import {
   BROWSER_TITLES,
   FILES,
-  REQUIRED_U1_REALMS,
+  HISTORICAL_PACKAGE_REALMS,
   sha256,
 } from './inventory.ts';
 import { ASSET_LIMITS, readBoundedFile } from './publication-assets.ts';
@@ -306,10 +306,10 @@ export async function validateEvidence(
     const imported = report.componentImport?.originalRealmNames;
     requireCondition(
       Array.isArray(imported) &&
-        imported.length === REQUIRED_U1_REALMS.length &&
+        imported.length === HISTORICAL_PACKAGE_REALMS.length &&
         new Set(imported).size === imported.length &&
         JSON.stringify([...imported].sort()) ===
-          JSON.stringify([...REQUIRED_U1_REALMS].sort()),
+          JSON.stringify([...HISTORICAL_PACKAGE_REALMS].sort()),
       'coverage imported realm set differs',
     );
     for (const realm of imported) allowedRealms.add(realm);

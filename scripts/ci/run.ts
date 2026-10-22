@@ -4,8 +4,8 @@ import { tmpdir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
-  prepareCoverage as prepareU1,
-  reportCoverage as reportU1,
+  prepareCoverage as preparePackageCoverage,
+  reportCoverage as reportPackageCoverage,
 } from '../package/coverage.js';
 import { FIRST_PARTY_JS } from '../release/inventory.js';
 import { validatePayloadInventory } from './bundle.js';
@@ -289,13 +289,13 @@ export async function runVerification(
     if (hash(await readFile(baseline)) !== before)
       throw Error(`native baseline differs: ${session}`);
   }
-  const u1 = resolve(root, '.artifacts/u1-coverage-v1000001');
-  await prepareU1({ source: installedPackage, out: u1 });
+  const coverageOut = resolve(root, '.artifacts/package-coverage');
+  await preparePackageCoverage({ source: installedPackage, out: coverageOut });
   results.push(
-    await command('u1-node', [
+    await command('package-coverage-node', [
       node,
       '--import',
-      resolve(u1, 'coverage-node-preload.mjs'),
+      resolve(coverageOut, 'coverage-node-preload.mjs'),
       '--test',
       '--test-reporter=tap',
       '--test-isolation=none',
@@ -323,12 +323,12 @@ export async function runVerification(
         'command-dispatch',
         'command-parse',
         'command-public',
-      ].map((name) => resolve(u1, `tests/package/${name}.test.js`)),
+      ].map((name) => resolve(coverageOut, `tests/package/${name}.test.js`)),
     ]),
   );
   results.push(
     await command(
-      'u1-browser',
+      'package-coverage-browser',
       [
         // Playwright cannot load these compiled coverage specs under Bun 1.4.3.
         // Node is required here; ordinary browser suites continue to use Bun.
@@ -340,14 +340,14 @@ export async function runVerification(
         '--workers=1',
         '--retries=0',
         '--output',
-        resolve(u1, 'browser-results'),
+        resolve(coverageOut, 'browser-results'),
       ],
-      { cwd: resolve(u1, 'tests/package') },
+      { cwd: resolve(coverageOut, 'tests/package') },
     ),
   );
-  const coverage = await reportU1({
-    out: u1,
-    browserResults: resolve(u1, 'browser-results'),
+  const coverage = await reportPackageCoverage({
+    out: coverageOut,
+    browserResults: resolve(coverageOut, 'browser-results'),
     candidatePath: process.env.FORMICARIUM_CANDIDATE,
     extraNodeWorkers: COMMAND_COVERAGE_NODE_WORKERS,
   });

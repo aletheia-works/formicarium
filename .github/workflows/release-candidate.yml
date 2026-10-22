@@ -115,8 +115,8 @@ jobs:
             .artifacts/release-candidate/package-manifest.json
             .artifacts/release-candidate/preparation.json
             .artifacts/ci-results/
-            .artifacts/u1-coverage-v1000001/coverage-report.json
-            .artifacts/u1-coverage-v1000001/browser-results/
+            .artifacts/package-coverage/coverage-report.json
+            .artifacts/package-coverage/browser-results/
           include-hidden-files: true
           retention-days: 30
           if-no-files-found: error
