@@ -3,7 +3,8 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 test('U3 runner executes Node 26 ESM with web stream primitives', async () => {
-  assert.equal(process.versions.node, '26.12.0');
+  // The runner uses the latest Node 26 release; only the major line is fixed.
+  assert.equal(Number(process.versions.node.split('.')[0]), 26);
   assert.equal(typeof import.meta.url, 'string');
   const response = new Response(new Uint8Array([127, 69, 76, 70]));
   assert.deepEqual(

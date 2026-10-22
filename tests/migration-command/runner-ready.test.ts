@@ -12,8 +12,9 @@ const U4_UNIT_FILES = [
   'acceptance-ci',
 ];
 
-test('U4 runner executes Node 26.12.0 ESM with the string and encoding primitives the parser uses', () => {
-  assert.equal(process.versions.node, '26.12.0');
+test('U4 runner executes Node 26 ESM with the string and encoding primitives the parser uses', () => {
+  // The runner uses the latest Node 26 release; only the major line is fixed.
+  assert.equal(Number(process.versions.node.split('.')[0]), 26);
   assert.equal(typeof import.meta.url, 'string');
   assert.equal(typeof String.prototype.isWellFormed, 'function');
   assert.equal('\uD800'.isWellFormed(), false);
