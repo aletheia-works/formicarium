@@ -35,11 +35,11 @@
     { "id": "NFR4.1", "status": "OK", "target": "showcase/tests/build.test.ts" },
     { "id": "NFR4.2", "status": "OK", "target": "showcase/scripts/accept-node.ts" },
     { "id": "NFR5.1", "status": "OK", "target": "showcase/scripts/candidate.ts" },
-    { "id": "NFR5.2", "status": "OK", "target": ".github/workflows/showcase.yml" },
+    { "id": "NFR5.2", "status": "OK", "target": ".github/workflows/showcase.yml", "detail": "2026-10-20: main c9b37c4a の showcase.yml run 39412286499 の候補 artifact を取得し、13 資産の SHA256 と大きさ、受入 log・catalog の SHA256、candidateId の再計算の一致を確かめた。U8 での digest の照合は U8 の最初の配布で確かめる。" },
     { "id": "NFR5.3", "status": "OK", "target": "showcase/scripts/pack.ts" },
     { "id": "NFR6.1", "status": "OK", "target": "showcase/tests/accept.spec.ts" },
-    { "id": "NFR8.1", "status": "OK", "target": "showcase/scripts/mode.ts" },
-    { "id": "NFR8.2", "status": "OK", "target": "showcase/README.md" }
+    { "id": "NFR8.1", "status": "OK", "target": "showcase/scripts/mode.ts", "note": "showcase/scripts/mode.ts。2026-10-22：U8 の #54（merge 94970a9e）で mode.ts が distribute を main への push と workflow_dispatch だけで受け付け schedule を拒否し、#57（merge c8497135）で showcase-site.yml の deploy を candidate の成功に結び付けた。distribute の実行は run 39422079965 で確かめた（distributable=true、deploy success）" },
+    { "id": "NFR8.2", "status": "OK", "target": "showcase/README.md", "detail": "2026-10-20: 同じ候補 artifact に NOTICES.md と 5 個の license（aube・biome・pitchfork・formicarium とその THIRD_PARTY_NOTICES）があることを確かめた。" }
   ],
   "reverse": []
 }

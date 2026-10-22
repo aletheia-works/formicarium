@@ -1,0 +1,170 @@
+{
+  "stage": "code-generation",
+  "unit": "u9-retirement-acceptance",
+  "version": 1,
+  "writes": [
+    {
+      "path": "AGENTS.md"
+    },
+    {
+      "path": "CHANGELOG.md"
+    },
+    {
+      "path": "README.md"
+    },
+    {
+      "path": "package.json"
+    },
+    {
+      "path": "docs/architecture.md"
+    },
+    {
+      "path": "docs/automated-releases.md"
+    },
+    {
+      "path": "docs/guest-distribution.md"
+    },
+    {
+      "path": "docs/install-api.md"
+    },
+    {
+      "path": "docs/release-assurance.md"
+    },
+    {
+      "path": "infra/github/README.md"
+    },
+    {
+      "path": "infra/github/main.tf"
+    },
+    {
+      "path": "integration/guest-distribution/fixtures.ts"
+    },
+    {
+      "path": "integration/guest-distribution/index.d.ts"
+    },
+    {
+      "path": "integration/guest-distribution/manifest.ts"
+    },
+    {
+      "path": "integration/guest-distribution/resolver.d.ts"
+    },
+    {
+      "path": "integration/guest-distribution/resolver.ts"
+    },
+    {
+      "path": "integration/vivarium/preflight/baseline-workflow.yml"
+    },
+    {
+      "path": "mise-tasks/build/guests.sh"
+    },
+    {
+      "path": "runtime/command-parse.ts"
+    },
+    {
+      "path": "runtime/session.ts"
+    },
+    {
+      "path": "scripts/ci/release-candidate.ts"
+    },
+    {
+      "path": "scripts/emscripten-env.sh"
+    },
+    {
+      "path": "scripts/guest-distribution/coverage.ts"
+    },
+    {
+      "path": "scripts/guest-distribution/stage.ts"
+    },
+    {
+      "path": "scripts/migration-preflight/assets.ts"
+    },
+    {
+      "path": "scripts/migration-session/stage.ts"
+    },
+    {
+      "path": "scripts/release/collect.ts"
+    },
+    {
+      "path": "scripts/release/decision.ts"
+    },
+    {
+      "path": "scripts/release/evidence.ts"
+    },
+    {
+      "path": "scripts/release/inventory.ts"
+    },
+    {
+      "path": "scripts/release/types.ts"
+    },
+    {
+      "path": "scripts/terrarium/evidence.ts"
+    },
+    {
+      "path": "showcase/site/tooling/astro-check/package.json"
+    },
+    {
+      "path": "tests/browser-modules.d.ts"
+    },
+    {
+      "path": "tests/guest-distribution/consumer.spec.ts"
+    },
+    {
+      "path": "tests/guest-distribution/fixtures.test.ts"
+    },
+    {
+      "path": "tests/guest-distribution/integration.test.ts"
+    },
+    {
+      "path": "tests/guest-distribution/manifest.test.ts"
+    },
+    {
+      "path": "tests/guest-distribution/resolver.test.ts"
+    },
+    {
+      "path": "tests/guest-distribution/serve.ts"
+    },
+    {
+      "path": "tests/guest-distribution/stage.test.ts"
+    },
+    {
+      "path": "tests/guest-distribution/types.ts"
+    },
+    {
+      "path": "tests/migration-preflight/serve.ts"
+    },
+    {
+      "path": "tests/release/decision.test.ts"
+    },
+    {
+      "path": "tests/release/evidence.test.ts"
+    },
+    {
+      "path": "tests/release/fixtures.ts"
+    },
+    {
+      "path": "tests/release/publication-alignment-fixture.ts"
+    },
+    {
+      "path": "tests/tooling/publication-evidence.test.ts"
+    },
+    {
+      "path": "tests/tooling/publication-version.test.ts"
+    },
+    { "path": "integration/terrarium/guest-distribution/fixtures.ts" },
+    { "path": "integration/terrarium/guest-distribution/index.d.ts" },
+    { "path": "integration/terrarium/guest-distribution/manifest.ts" },
+    { "path": "integration/terrarium/guest-distribution/resolver.d.ts" },
+    { "path": "integration/terrarium/guest-distribution/resolver.ts" },
+    { "path": "scripts/terrarium/acceptance.ts" },
+    { "path": "scripts/terrarium/current-candidate.ts" },
+    { "path": "scripts/terrarium/prepare.ts" },
+    { "path": "tests/terrarium/acceptance.test.ts" },
+    { "path": "tests/terrarium/adapter.test.ts" },
+    { "path": "tests/terrarium/assets.test.ts" },
+    { "path": "tests/terrarium/consumer.spec.ts" },
+    { "path": "tests/terrarium/current-candidate.test.ts" },
+    { "path": "tests/terrarium/playwright.config.ts" },
+    { "path": "tests/terrarium/serve.ts" },
+    { "path": "docs/terrarium-integration.md" }
+  ]
+}

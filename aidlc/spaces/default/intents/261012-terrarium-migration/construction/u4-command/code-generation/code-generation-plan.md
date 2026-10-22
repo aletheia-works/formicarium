@@ -2,6 +2,9 @@
 
 ## Summary
 
+- Builds（5回目の再開、2026-10-20、追加Step 17–26）：mainの上で、U1〜U4をまとめた正式受入とB1の正式な行（`verified-with-ci`、`b1.formal: true`）を作る仕組み。手動で動かす受入のworkflow、入力を戻すscript、CIのrunを観測して `observed-ci-summary` を書くscript。
+- Touches（5回目）：新規は `.github/workflows/migration-acceptance.yml`、`scripts/migration-command/acceptance-inputs.ts`、`scripts/migration-command/observe-ci.ts`、`ci/migration-command/inputs.json`、`tests/migration-command/acceptance-ci.test.ts`、`mise-tasks/migration/command-observe.sh`。変更は `package.json`（scriptの追加）と、U4の `unit-test-instructions.md`・`code-summary.md`・`traceability.json`・`source-manifest.json`。U1〜U3のfileと製品コードは変えない。
+- Tests（5回目）：入力の照合・観測・workflowの定義の拒否試験を中心に約25件（各部品5–8件）。そのうえで、CIの受入1回、観測、手元のU4の正式な完了確認（U2・U3の試験を含む）、U1の今の確認（最新のNodeでの36試行）を行う。push・CI・Release・証明書の操作は、それぞれ実コマンドを示して個別に承認を受ける。
 - 今回の再開（2026-10-18、追加Step 11–16）：U4の記録を新しい土台（upstreamのmain `2a79860`）に合わせ、review-04のR-09〜R-12を直す。受入の方法はU3と同じ「ローカル暫定＋最終確認へ」とする（人間の指示、2026-10-18）。U4の製品コード・受入の入口のコードは変えない。触るのはU4の記録（この計画、`unit-test-instructions.md`、`code-summary.md`、`traceability.json`、`source-manifest.json`）と、working copyに残るgitignoreされた古い生成物だけ。試験は加えず、mainでlint・typecheck・build・test:light・U4の候補作成・`migration-command-unit`・`migration-command-browser`・`FORMICARIUM_COMMAND_LOCAL_ONLY=1` の暫定の完了確認を1つずつ実行する。証明書の一時登録は人間がターミナルで行う。下の各行は、それより前の再開の要約（古い土台の履歴）である。
 - Builds: C05の公開command API（`createCommandSession`／`execute`）。Tokenizer、builtin・install・guest runへの振分け、lsの表示を作る。あわせて、U4専用の受入入口（B1統合受入＝C06の証拠、CI経路、完了確認）を作る。
 - Touches: 新規はruntime/command.ts・runtime/command-parse.ts、tests/migration-command/、scripts/migration-command/、.github/workflows/migration-command-u4.yml。変更はruntime/public.ts、types/index.d.ts、package.json、bun.lock（@types/nodeを最新の26系へ）、scripts/package/stage-package.ts・coverage-inventory.json、mise.toml、docs/command-api.md、README.md。
@@ -148,14 +151,80 @@ U3は、U3の再開（U3計画のStep 16–18、review-06 READY、checkpoint承�
 
 受入の方法（人間が決めた、2026-10-18。U3と同じ）：古い土台での受入（ローカル22工程、署名付きCI run 39029827794、B1 31 check）は履歴として残す。新しい土台では、手元に残るactual-site（`.artifacts/migration-install/actual-site`。`requireInstallActualSite` が固定11ファイルを検査する）を使い、`FORMICARIUM_COMMAND_LOCAL_ONLY=1` で暫定の完了確認だけを行う。その結果は `status: 'local-provisional'`・`acceptancePassed: false`・`b1.formal: false` であり、U4の正式受入でもB1の正式な行でもない。actual-siteを作る手段とCI証拠（`observed-ci-summary`）を作る手段は追跡コードに作り直さない。U4の正式受入とB1の正式な行は、U1〜U4のまとめた最終確認とterrariumの受入で決める。
 
-- [x] Step 11: 記録を新しい土台に合わせる（R-09）。`code-summary.md`・`unit-test-instructions.md`・`traceability.json` の、`ci.ts`・`ci-inputs.ts`・`mapCommandCICommand`・`migration-command-u4.yml`・`.github/publication`・生成JSの追跡・旧source identity（372 file）・旧pack・旧head・CI run 39029827794の記述を、古い土台の履歴として区別する。新しい土台の状態（いまのfileで確かめられること）と、上の受入の方法を書く。`traceability.json` の、消したfile（`scripts/migration-command/ci.ts`、workflow）を指す対象を、mainにある受入の入口（`scripts/migration-command/completion.ts`・`b1.ts` など）に直し、ほかの対象がすべてmainにあることを確かめる。
-- [x] Step 12: 受入の必須入力2つ（R-10）を、上の受入の方法として `code-summary.md` に記録する。(a) actual-siteは手元の検査済みのcopyだけがあり、clean checkoutから作る手段がないこと（手作業の前提）、(b) CI証拠の作り手がないため、`verified-with-ci` の完了とB1の正式な行は今は成立しないこと、(c) その2つを最終確認で決めること。
-- [x] Step 13: `source-manifest.json` を直す（R-11）。U4のtaskの実体 `mise-tasks/migration/command-browser.sh`・`command-completion.sh`・`command-stage.sh`・`command-unit.sh` を加える。manifestの共有file（`tests/package/*`、`tests/terrarium/coverage.test.ts`、`tests/tooling/publication-alignment.test.ts`、`scripts/release/inventory.ts`、`scripts/terrarium/coverage.ts`、`tests/migration-install/*`、`tests/migration-preflight/current-completion.test.ts`、`tests/migration-session/reservation.test.ts`、`mise.toml`、`bun.lock`）は、上の項目1–7と対応付け、新しい土台でU4が書いた内容が残っているかをfileとPR #29のdiffで確かめる。残っていなければ外し、残っていれば外さずに理由を `code-summary.md` に書く。
-- [x] Step 14: working copyの古い生成物を消す（R-12の一部）。`scripts/migration-command`・`tests/migration-command` と `.build/` の同じ場所に、対応する追跡 `.ts` のないgitignoreされた `.js`・`.js.map`（`ci.js`・`ci-inputs.js` など）が残っていれば消す。コードは変えない。`commandSourceInventory`・`sessionSourceInventory` が生成 `.js` も拾い、追跡の有無を見ないこと（R-12）と、`completion.ts` 349行の固定値 `coverageReport.files.length !== 23` は、残余リスクとして `code-summary.md` に書き、直すかどうかはU1〜U4の最終確認で決める（U2の `stage.ts` を変えるとU1〜U3の承認に影響するため）。
-- [x] Step 15: mainで1つずつ、`mise run lint:all`、`mise run typecheck`、`mise run build`、`mise run test:light` を実行する。続いて、新しい土台のsourceでU4の候補を作り（`mise run migration-command-stage`）、独立consumerを作って、`mise run migration-command-unit`・`mise run migration-command-browser` を実行し、件数とfail・skip 0を記録する。そのあと、手元のactual-siteと `FORMICARIUM_COMMAND_LOCAL_ONLY=1` で `mise run migration-command-completion`（全工程・23JS全realmのcoverage 80%以上・ローカル36試行・B1の事前確認）を実行する。証明書の一時登録・削除はkeychainの信頼設定の変更なので、wrapperの実コマンドを示し、人間がターミナルで実行する（終わったら削除・未登録を確かめる）。実行できない工程は未検証として記録する。install180秒、非download中央値3000ms、probe600秒、aube840秒、1worker・retry0、容量上限は変えない。
+- [ ] Step 11: 記録を新しい土台に合わせる（R-09）。`code-summary.md`・`unit-test-instructions.md`・`traceability.json` の、`ci.ts`・`ci-inputs.ts`・`mapCommandCICommand`・`migration-command-u4.yml`・`.github/publication`・生成JSの追跡・旧source identity（372 file）・旧pack・旧head・CI run 39029827794の記述を、古い土台の履歴として区別する。新しい土台の状態（いまのfileで確かめられること）と、上の受入の方法を書く。`traceability.json` の、消したfile（`scripts/migration-command/ci.ts`、workflow）を指す対象を、mainにある受入の入口（`scripts/migration-command/completion.ts`・`b1.ts` など）に直し、ほかの対象がすべてmainにあることを確かめる。
+- [ ] Step 12: 受入の必須入力2つ（R-10）を、上の受入の方法として `code-summary.md` に記録する。(a) actual-siteは手元の検査済みのcopyだけがあり、clean checkoutから作る手段がないこと（手作業の前提）、(b) CI証拠の作り手がないため、`verified-with-ci` の完了とB1の正式な行は今は成立しないこと、(c) その2つを最終確認で決めること。
+- [ ] Step 13: `source-manifest.json` を直す（R-11）。U4のtaskの実体 `mise-tasks/migration/command-browser.sh`・`command-completion.sh`・`command-stage.sh`・`command-unit.sh` を加える。manifestの共有file（`tests/package/*`、`tests/terrarium/coverage.test.ts`、`tests/tooling/publication-alignment.test.ts`、`scripts/release/inventory.ts`、`scripts/terrarium/coverage.ts`、`tests/migration-install/*`、`tests/migration-preflight/current-completion.test.ts`、`tests/migration-session/reservation.test.ts`、`mise.toml`、`bun.lock`）は、上の項目1–7と対応付け、新しい土台でU4が書いた内容が残っているかをfileとPR #29のdiffで確かめる。残っていなければ外し、残っていれば外さずに理由を `code-summary.md` に書く。
+- [ ] Step 14: working copyの古い生成物を消す（R-12の一部）。`scripts/migration-command`・`tests/migration-command` と `.build/` の同じ場所に、対応する追跡 `.ts` のないgitignoreされた `.js`・`.js.map`（`ci.js`・`ci-inputs.js` など）が残っていれば消す。コードは変えない。`commandSourceInventory`・`sessionSourceInventory` が生成 `.js` も拾い、追跡の有無を見ないこと（R-12）と、`completion.ts` 349行の固定値 `coverageReport.files.length !== 23` は、残余リスクとして `code-summary.md` に書き、直すかどうかはU1〜U4の最終確認で決める（U2の `stage.ts` を変えるとU1〜U3の承認に影響するため）。
+- [ ] Step 15: mainで1つずつ、`mise run lint:all`、`mise run typecheck`、`mise run build`、`mise run test:light` を実行する。続いて、新しい土台のsourceでU4の候補を作り（`mise run migration-command-stage`）、独立consumerを作って、`mise run migration-command-unit`・`mise run migration-command-browser` を実行し、件数とfail・skip 0を記録する。そのあと、手元のactual-siteと `FORMICARIUM_COMMAND_LOCAL_ONLY=1` で `mise run migration-command-completion`（全工程・23JS全realmのcoverage 80%以上・ローカル36試行・B1の事前確認）を実行する。証明書の一時登録・削除はkeychainの信頼設定の変更なので、wrapperの実コマンドを示し、人間がターミナルで実行する（終わったら削除・未登録を確かめる）。実行できない工程は未検証として記録する。install180秒、非download中央値3000ms、probe600秒、aube840秒、1worker・retry0、容量上限は変えない。
 - [ ] Step 16: 独立レビューを受ける。そのあと、intentの検証コマンドでU4のcheckpointを確かめ、通常の単位完了承認を進める。コードの変更はないので、PRは作らない（記録はU1〜U3・U7の記録と一緒に、後でまとめる）。
 
 R-05〜R-08（Minor）は今回の範囲外として残す。Step 10は、古い土台での最終レビューと完了確認の手順として未完了のまま残し、新しい土台ではStep 16で置き換える。
+
+## 追加Step：mainでの正式受入とB1の正式な行（2026-10-20、5回目の再開）
+
+人間の指示（「U1〜U4をまとめた最終確認とB1の正式な受入を今のmainで行い、そのpackでReleaseを作りましょう」）で、U4のCode Generationを開き直した。目的は、U8のshowcaseの配布に使うB1のpackを、正式な受入で固定することである。上の「受入の方法（2026-10-18）」のうち「actual-siteを作る手段とCI証拠を作る手段は追跡コードに作り直さない」という決定は、人間の判断（2026-10-20、決めごと1）で取り消す。ほかの基準は変えない。
+
+人間が選んだ方針（2026-10-20、お勧めの5つ）：
+1. 前の決定を取り消し、正式受入の仕組みを追跡コードとしてmainに置く。
+2. 入力の置き場所：aubeの `aube.tar.gz` とbiomeの `biome.elf` は、`docs/results/terrarium-migration-preflight-evidence/mirror-input.json` の公式のrelease URLから取り、SHA256で照合する。actual-siteのarchive（`actual-site-v2.tar.gz`、36.7 MB、SHA256 `9c0d…`）は、prereleaseのReleaseの資産として置く（Releaseは人間が作る）。約125 MBの入力をrepositoryに戻さない。
+3. 道具の版：Node・Bun・Playwright・Actionsは、実装を始める時点の最新版にする（古いworkflowのNode 26.12.0の固定は使わない）。U1の記録の証拠（Node v24.21.0）は履歴として扱い、U1の今の確認（36試行を含む）を最新版で取り直す。
+4. guestの版：B1は、契約で固定したactual-siteの版（aube v2.6.1・v2.7.0の公式版、pitchfork v2.30.0のmusl向けパッチ版 `67bcb90c…`）のまま確かめる。pitchforkのパッチ版のELFは作り直さず、今のbytesを使う。今の `ci.yml` のaube・pitchforkの版とは別である。
+5. packの版の番号：候補の版は今の固定（`0.3.0`）のまま変えない。B1のpackのReleaseと `code-summary.md` に、npmに公開済みの0.3.0とは中身が違うことを明記する。
+
+仕組みの形（調査の結果に基づく。PR #32より前も、`observed-ci-summary` を書くworkflowはなく、main sessionがGitHubのAPIでrunを確かめて書いていた）：
+- CIの受入は、U4の完了確認を `FORMICARIUM_COMMAND_LOCAL_ONLY=1` で1回流す（U2・U3の試験、23JSのcoverage、36試行、B1の31行を含む）。workflowは手動実行（`workflow_dispatch`）だけで、`github.repository == 'aletheia-works/formicarium'` かつ `github.ref == 'refs/heads/main'` のときだけ動く。権限は `contents: read` だけにする。
+- main sessionが、そのrunをGitHubのRESTで観測し（runの結果・workflowのpath・head・eventとbranch・commitの署名・artifactのdigest）、`observed-ci-summary` を1つ書く。
+- main sessionが、CIのartifactにある候補（同じtarball）を使って、手元でU2・U3・U4の正式な完了確認を流す。U4の正式な完了確認が `b1.formal: true` とC06のJSONを作る。
+
+- [ ] Step 17: 道具の版を確かめる。Node・Bun・@playwright/test・TypeScript・Biome・mise・各Actions（checkout・setup-node・setup-bun・mise-action・upload-artifact）の最新版を調べ、`package.json`・`mise.toml` と比べる。古いものがあれば、その版と差分を報告してから更新する。runnerの準備として、既存の `tests/migration-command/runner-ready.test.ts` を最新のNodeで実行し、結果を記録する。手元に残る追跡されない生成JS（`scripts/migration-session/ci.js`、`scripts/release/bundle.js`・`bootstrap.js`、`runtime/web/` の一部など）が、`mise run build` の生成物か、古い残りかを確かめる。古い残りは消し、source identityが手元とCIで同じになることを確かめる。（NFR6.1）
+- [ ] Step 18: 入力を戻すscript `scripts/migration-command/acceptance-inputs.ts` と、入力の一覧 `ci/migration-command/inputs.json` を作る。一覧には、3つの入力（`aube.tar.gz`・`biome.elf`・`actual-site-v2.tar.gz`）の取得元のURL、SHA256、size、置き場所を書く。scriptは、取得した各fileをsizeの上限の中で読み、SHA256を照合してから置く。上書きはしない。archiveを `.artifacts/migration-install/actual-site` へ展開した後、U3の `requireInstallActualSite`（`scripts/migration-install/actual-site.ts`）で固定11ファイルを検査する。展開は、既存の制限（path、link、件数、size）の中で行う。U3のfileは変えずにimportして使う。実装後に `tests/migration-command/acceptance-ci.test.ts` に試験を書いて実行する。確認するのは、SHA256の不一致・sizeの超過・一覧の欠落とunknown field・重複key・既存fileの上書き・archiveの中の `..` と絶対path・link・余分なfile・固定11ファイルの不一致の拒否と、正しい入力の受理。（NFR8.1、NFR8.2、FR6）
+- [ ] Step 19: 観測のscript `scripts/migration-command/observe-ci.ts` と、task `mise-tasks/migration/command-observe.sh`（`package.json` の `migration:command:observe`）を作る。入力はrunのIDと、期待するcommit（mainの40桁）。GitHub RESTで、runの `conclusion: success`・`status: completed`・workflowのpathが `.github/workflows/migration-acceptance.yml`・eventが `workflow_dispatch`・branchが `main`・`head_sha` が期待するcommit・repositoryが `aletheia-works/formicarium` であること、commitの `verification.verified: true`、jobの結果がすべてsuccess、artifactのZIPのSHA256がAPIのdigestと一致することを確かめる。ZIPから候補の `package.manifest.json` とtarballを取り出し、`sourceCommit`・`sourceIdentity`・`candidateSha256` を読む。そのうえで、`recordKind: 'observed-ci-summary'`・`unit: 'u4-command'`・`conclusion: 'success'`・`sourceCommit`・`sourceIdentity`・`candidateSha256`・`runURL`・`runID`・`attempt` を持つ記録を1つ書き、そのSHA256を出力する。tokenは環境変数から読み、記録とlogに書かない。U4の検査（`scripts/migration-command/completion.ts` の `checkCommandCIEvidence`）が、この記録を受け付けることを試験で確かめる。（2026-10-20の変更、人間の判断B：U2・U3・U4の完了確認は、それぞれ自分のUnitの候補と、Unitごとに違う `sourceIdentity` を求めるので、1つの記録を3つすべてが受け付けることはできない。U2・U3の確認は、U4の完了確認の中で流れるU2・U3の試験で覆うことにし、U2・U3を単独で正式に受け入れたとは主張しない。U2・U3の検査は変えない。）実装後に、`acceptance-ci.test.ts` に試験を書いて実行する。確認するのは、失敗・未完了・別のworkflow・別のevent・別のbranch・別のhead・別のrepository・署名なし・失敗したjob・digestの不一致・ZIPの中の候補の欠落と不一致の拒否と、正しい観測からの記録の作成。GitHubのAPIは試験用の偽のserverで置き換え、外部のnetworkは使わない。（NFR8.1、FR6）
+- [ ] Step 20: 受入のworkflow `.github/workflows/migration-acceptance.yml` を作る。triggerは `workflow_dispatch` だけ。jobの条件はrepositoryとmainのref。権限は `contents: read`。`ubuntu-24.04`、timeout 360分、`persist-credentials: false`、actionsはcommitのSHAで固定する。工程は次の順にする。(1) 依存のfrozenなinstall・build・typecheck、(2) `scripts/migration-session/ci-core.js` で固定のblinkを戻す、(3) `acceptance-inputs.js` で3つの入力を取得・照合し、actual-siteを戻す、(4) Playwrightの3browserのinstall、(5) このcommitから候補を作り（`FORMICARIUM_SESSION_SOURCE=$GITHUB_SHA`）、checkoutの外の `$RUNNER_TEMP` に独立consumerを作る、(6) jobだけで使うlocalhostのCA・leaf・NSS・Firefox profileを作る（U7・U8のshowcaseと同じ形。CAの鍵はすぐ消す）、(7) `FORMICARIUM_COMMAND_LOCAL_ONLY=1` でU4の完了確認を流す（`mise run migration-command-completion`。miseは `jdx/mise-action` で入れる）、(8) 常に、信頼設定と鍵を消す、(9) 完了確認のdirectory全体（生log・B1のJSON・`local-provisional-report.json`）と候補のmanifest・tarballを、保持期間7日のartifactに上げる。probe 600秒、aube 840秒、1worker、retry 0、install 180秒、非download中央値3000ms、wasm 1GB、23JSのcoverage 80%は、既存のcodeと設定のまま使い、workflowで変えない。実装後に、`acceptance-ci.test.ts` にworkflowの定義の試験を書いて実行する。確認するのは、trigger・条件・権限（write無し）・actionsのSHA固定・timeout・artifactの保持期間・`LOCAL_ONLY` の指定・信頼設定の後始末が `always()` であること・secretsを使わないこと。actionlintも実行する。（NFR2.1、NFR2.2、NFR8.1、NFR8.2）
+- [ ] Step 21: 文書と追跡。`docs/terrarium-integration.md` の受入の節（又はU4の `docs/command-api.md`）に、正式受入の手順（Releaseの資産、workflowの実行、観測、手元の正式な完了確認）と、Safari実機が未検証であることを書く。`unit-test-instructions.md`・`traceability.json`（FR6・NFR8.1をGAPからこの仕組みへ）・`source-manifest.json` を更新する。（NFR7.1、FR6）
+- [ ] Step 22: mainで1つずつ、`mise run lint:all`・`mise run typecheck`・`mise run build`・`mise run test:light`・`mise run migration-command-unit`（`acceptance-ci.test.js` を加えた一覧）を実行し、件数とfail・skip 0を記録する。続いて、actual-siteのarchiveを用意する。git履歴にある元のarchive（blob `9c0d…`）を取り出し、SHA256が一致することと、展開した中身が手元の固定11ファイルと一致することを確かめる。一致しなければ止めて報告する。人間に、prereleaseのRelease（tag `migration-inputs-actual-site-v2`）とその資産のアップロードをお願いする（実コマンドを示す）。
+- [ ] Step 23: 変更のPRを作る（fork からのpush、上流へのPR。実コマンドを示して承認を受ける）。PRのCIが通り、人間がmergeした後、人間に受入のworkflowの手動実行をお願いする（又は承認を受けて実行する）。失敗した場合は、基準を変えずに止めて、観測した結果と修正案を示す。
+- [ ] Step 24: run完了の直後に、`mise run migration-command-observe` で観測し、`observed-ci-summary` を書く。artifactのZIP・REST（run・jobs・commit・artifacts）の記録を `.artifacts/migration-command/ci-<runID>/` に保存する。
+- [ ] Step 25: 手元の正式な完了確認を、main sessionで1つずつ流す。候補はCIのartifactのtarballと同じもの（SHA256が一致すること）を使い、独立consumerを作り直す。(1) U1：最新のNodeで、`mise run migration-preflight-browser`（36試行）とcurrent completionを取り直す（`current-local-verification` のまま。U1の記録の証拠は書き換えない）。(2) U4：`FORMICARIUM_COMMAND_CI_EVIDENCE` に観測の記録を渡して `mise run migration-command-completion`。U2・U3の単独の正式な完了確認は行わない（2026-10-20、人間の判断B。Step 19を参照）。U4の完了確認の中で流れるU2・U3の試験の結果を、U2・U3の確認として記録する。36試行の証明書の一時登録・削除はkeychainの信頼設定の変更なので、wrapperの実コマンドを示し、人間がターミナルで実行する。終わったら削除・未登録を確かめる。U4の `completion-report.json` が `status: 'verified-with-ci'`・`acceptancePassed: true`・`b1.formal: true` で、`b1-acceptance.json` の31行がすべてpassedであることを確かめる。計測中は重い処理を並行しない。未変更のaubeは作り直さない。（NFR2.1、NFR2.2、NFR8.1、FR6）
+- [ ] Step 26: B1のpackのReleaseを用意する。pack（CIのartifactのtarball）とC06のJSONとそのSHA256の一覧を示し、人間の承認を受ける。人間が、prereleaseの `b1-<packSha256の先頭12桁>` を作り、2つの資産と一覧を上げる（上書き・削除はしない。npmの0.3.0とは別物であることをRelease notesに書く）。そのあと、`showcase/b1-pack.json` にtag・資産名・SHA256を書くPRを作る（U7のfileなので、U7の記録とあわせて扱う）。最後に、独立レビューを受け、intentの検証コマンドでU4のcheckpointを確かめる。このStepでStep 16を置き換える。（FR6、NFR8.1）
+
+### 2026-10-20の追記：受入のrun 39373780795の失敗への対応（人間の判断A）
+
+PR #50のmerge後（main `22b662d2`）、受入のworkflowの1回目（run 39373780795）は、U4の完了確認の工程で失敗した。失敗したのは `tests/node/build.test.js` の1件（「pitchfork.build-info に当てたパッチ・UI の node・UI の成果物が記録され、今のパッチと一致する」）だけで、それより前の工程（入力の取得と照合、actual-siteの復元、候補とconsumer、jobの証明書）と後始末・artifactのuploadは成功した。原因：今のmainの試験は、今の `ci.yml` が作るパッチなしのpitchfork（v2.30.1）を前提にするが、U2の入力のbundleから戻した `dist/guests/pitchfork` は古いパッチ版（v2.30.0）だった。手元では、今のmainの手順で作り直したpitchforkを使っていたので通っていた。基準と試験は変えない。
+
+- [ ] Step 27: 受入のworkflowで、同じcommitのmainのCI（`ci.yml`）が作ったguestのartifact（`product-build-guests-<sha>-<runID>-<attempt>`）から、`dist/guests/pitchfork`・`dist/guests/pitchfork.build-info`・`dist/guests/pitchfork.commit` の3つだけを取り、U2のbundleから戻したものと置き換える。取る前に、GitHub RESTで次を確かめる：workflowのpathが `.github/workflows/ci.yml`、eventが `push`、branchが `main`、`head_sha` がこの受入のcommit（`github.sha`）と同じ、`status: completed`・`conclusion: success`、repositoryが `aletheia-works/formicarium`、artifactの名前が `product-build-guests-<github.sha>-` で始まり期限切れでないこと、ZIPのSHA256がAPIのdigestと一致すること。条件に合うrunが1つでなければ止める。ZIPの中の3つ以外は使わない。置き換えたfileのSHA256とsizeを記録に残す。部品は `scripts/migration-command/acceptance-inputs.ts` に足し（既存の観測の部品を使う）、workflowの工程はU2のbundleの復元の後・候補を作る前に置く。jobの権限に `actions: read` を加え（書込みは持たない）、tokenは `github.token` を環境変数で渡すだけにして、fileとlogに書かない。受入のworkflowは、そのcommitのmainのCIが終わった後に動かす。実装後に `tests/migration-command/acceptance-ci.test.ts` に試験を足して実行する。確認するのは、別のworkflow・event・branch・head・repository・失敗・未完了・該当なし・複数・名前の不一致・期限切れ・digestの不一致・ZIPに3つのどれかがない・3つ以外のpathの拒否と、正しい入力での置き換え。workflowの定義の試験も、`actions: read` だけを加えたことと、工程の順に合わせて直す。そのあと、Step 22の検査を1つずつやり直し、Step 23（PR、merge後の受入の再実行）からやり直す。（NFR8.1、FR6）
+
+## 追加Step：terrarium の削除（PR #58）の後の確認（2026-10-21、6回目の再開）
+
+U9 の PR aletheia-works/formicarium#58（merge `5735433d`）で terrarium を消した。U4 の source-manifest.json に当たる file のうち、#58 が変えたのは次の4つ。
+
+- `README.md`：terrarium の言及を消した。
+- `package.json`：`scripts` の、消した試験の glob を直した。
+- `runtime/command-parse.ts`：comment の1行（`terrarium's .sort()` → `Array.prototype.sort()`）。
+- `scripts/release/inventory.ts`：guest の配布の部品の path を `integration/guest-distribution/` に変えた。
+
+U4 の Code Generation は、レビューの回数を使い切っていた。そのため、人間の判断（2026-10-21「はい、開き直して良いです。」）で開き直した。U4 の製品コードの振る舞いと公開 API は変えない。Step 1〜27 は履歴として残す。
+
+- [ ] Step 28: #58 の影響を確かめる。
+  - 上の4つの file の差分を読み、U4 の振る舞い（C03 の command、`createCommandSession`、B1 の受入）を変えていないことを確かめる。
+  - 次を main session で1つずつ実行し、件数と fail・skip を記録する：`mise run typecheck`、`mise run build`、`mise run test:light`、`mise run migration:command-unit`
+  - `consumer.test.js` などで、stage した候補の環境変数が要るものは、準備できなければ未検証として記録する。
+  - B1 の受入済みの pack（Release `b1-a3370ca4df1f`）と、その証拠は作り直さない。#58 の後の pack は、comment と文書だけが違う（U9 の Step 5）。
+  - 影響があれば止めて報告する。（FR6、NFR2、NFR8.1）
+- [ ] Step 29: U4 の記録を、#58 の後の状態に合わせる。
+  - `code-summary.md` にこの再開の節を足し、Step 28 の結果を書く。
+  - `traceability.json`・`source-manifest.json` に、移した file・消した file を指す行があれば直す。
+  - 製品コードは変えない。（NFR8.1）
+- [ ] Step 30: 独立レビューを受ける。そのあと、intent の検証コマンドで U4 の checkpoint を確かめる。
+
+### 2026-10-21 の Request Changes について
+
+2026-10-21 に、Code Generation の段階を閉じるときの扱いで、人間の選んだ Request Changes が段階の全体に記録された。人間の意図は U2 の一覧の変更だけで、U4 の計画を変える指示ではなかった。この計画の Step と内容は変えない（人間の回答 2026-10-21「A」：計画をそのまま承認し直して Unit ごとに進める）。
+
+## 追加Step：Build and Test の Loop-back 1（Node の版の固定、2026-10-22）
+
+Build and Test で、人間の承認により起動した `migration-acceptance.yml`（run 39702294398、main `6b5bac1f`）が失敗した。U3 の `tests/migration-install/runner-ready.test.ts` が Node の patch の版を `26.12.0` に固定しており、CI が入れた最新の Node 26.12.1 で U3 の単体試験が失敗して、U4 の completion が止まった（Build and Test の `test-results.md` の Loop-Back Log 1）。U4 の `tests/migration-command/runner-ready.test.ts` の15–16行も同じ固定（`26.12.0`）を持つ。製品のコードの不具合ではなく、試験の前提の誤りで、最新の道具を使う決まりとも合わない。
+
+- [ ] Step 31: `tests/migration-command/runner-ready.test.ts` の版の確認を、ほかの runner-ready の試験と同じく major の版（26）の確認に改め、試験の題の「Node 26.12.0」を「Node 26」に直す。試験が名前で確かめる機能（Node 26 の ESM と、parser が使う文字列と encoding の primitive）の確認は残す。製品のコードと基準は変えない。U3 の同じ修正と1つの PR（formicarium #65、head `4c96f634`、2 file、merge `6a90a45b`）にまとめた。merge の後、main の CI（run 39706177745）の成功を待ってから、人間の承認で `migration-acceptance.yml` を起動し、run 39709015067（head `6a90a45b`、Node 26.12.1）が成功した（U4 の command の試験 112 件と completion を含む）。あわせて `unit-test-instructions.md` の Node の版の記述を、major の版だけを固定する書き方に直す。このあと Step 30 と同じく、独立レビューを受け、intent の検証コマンドで U4 の checkpoint を確かめる。（NFR8.1）
 
 ## テスト設計と追跡
 
@@ -166,15 +235,15 @@ R-05〜R-08（Minor）は今回の範囲外として残す。Step 10は、古い
 | FR3（command） | 2、3、4、5 |
 | FR4（install経由） | 3、4、5 |
 | FR5（競合・状態） | 3、4、5 |
-| FR6（B1・配布） | 1、5、6、8–10 |
+| FR6（B1・配布） | 1、5、6、8–10、18–26 |
 | BR4.1–BR4.17 | 2（BR4.2–4.7、4.11）、3（BR4.1、4.8–4.17）、4（BR4.1、4.10、4.15） |
-| NFR2.1、NFR2.2 | 6、8 |
+| NFR2.1、NFR2.2 | 6、8、20、25 |
 | NFR3.1–NFR3.3 | 2、3 |
 | NFR4.1、NFR4.2 | 3 |
 | NFR5.1 | 3、4 |
 | NFR6.1 | 1、5 |
 | NFR7.1、NFR7.2 | 2、3、4、7 |
-| NFR8.1、NFR8.2 | 5、6、8–10 |
+| NFR8.1、NFR8.2 | 5、6、8–10、18–20、24–27 |
 
 Safari実機は未検証と明記し、WebKitの結果を実機の合格としない。新しいcore不具合が見つかった場合は、先にnative Linuxで再現する。新しい費用・公開・本番適用は、この計画の承認に含めない。
 

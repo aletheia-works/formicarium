@@ -18,10 +18,10 @@
 | FR6 | 公開基点を履歴/sourceと照合し、公開状況の古い文書を訂正する。0.3.0候補の公開API/types/配布inventoryとconsumer証拠を揃え、個別承認後公開しterrariumを追従させる。個人inputs.tar.gz依存を公開npm APIへ置換し既存consumer/配布チェックを通す。候補CIのowner入力依存も変更後の検証所有者へ対応付ける | S1/B1、現状manifest/CI |
 | FR7 | vivarium recipe.guestsはtool/repository/40桁commit/fixtureを宣言する。PR/branchは作成時にcommitへ解決する参考情報。builder keyはtool/repository/commit/builder hashを含み、同入力2回目はELFを再利用しコンパイル省略と同digestを記録する。GitHub Releaseで成果物・metadataを保持し、欠損/不一致を成功扱いしない | S2/B2、intent Q4 |
 | FR8 | 固定build-infoにsource URL/commit/target/rustc/sourcePatchesとbuild入力を記録し、pitchfork UIのaubeも固定する。共通install catalogを出力する。builder CIの合否はELF/build-info検証、recipe verdictの合否はrecipeテストに分離する。bump-upstreamはbranch commitを直接確認する | S2/B2、計画 |
-| FR9 | 最初にBiome baseline biomejs/biome@2405c7620169bd0719166af09a8d89cc76fb37fbの1件をvivarium CIでbuildしformicariumで--version成功・再利用を記録する。完全commitのremote存在を事前照合する。その後fix JamBalaya56562/biome@f79f85d58ae499647c127f1e90a4931e3dbbb206も同様に検証する。試行時だけ旧入力を一時利用できる | S0/S2、現行repro/recipe |
+| FR9 | 最初にBiome baseline biomejs/biome@2405c7620169bd0719166af09a8d89cc76fb37fbの1件をvivarium CIでbuildしformicariumで--version成功・再利用を記録する。完全commitのremote存在を事前照合する。その後fix JamBalaya56562/biome@f79f85d58ae499647c127f1e90a4931e3dbbb206も同様に検証する。試行時だけ旧入力を一時利用できる（2026-10-18改訂あり：末尾の「改訂」節を参照） | S0/S2、現行repro/recipe |
 | FR10 | vivariumはformicarium/browserをbundleしWorker/資産を同origin配布する。xterm ready/run/transcript互換と共通コマンドを維持し、biome-migrate-prettier fixtureをrecipe側で所有する。実行前にguest source commitとdigestをrecipe固定値へ照合する。不一致時は実行/verdict算出を拒否する | S3/B3 |
-| FR11 | biome-12265でbeforeのsemi/quotesがasNeeded/single、afterがalways/doubleとなり、3ブラウザでreproducedかつ旧verdictと一致する。移行前のfixture、command、stdout/生成設定/exit/verdictを固定した比較証拠を作成し同条件で比較する。builderには期待verdictを持たせない | S3/B3、計画・既存recipe |
-| FR12 | Contract v1はruntime.name=formicariumを受け付けterrariumをdeprecated互換として残す。guests schema、en/ja文書、template、説明、consumer試験を更新し、旧loader/proxy/middleware/builds.json依存と旧専用試験を整理する。互換の説明と歴史記録以外の現役terrarium依存参照を除去する | S4/B4、intent Q4 |
+| FR11 | biome-12265でbeforeのsemi/quotesがasNeeded/single、afterがalways/doubleとなり、3ブラウザでreproducedかつ旧verdictと一致する。移行前のfixture、command、stdout/生成設定/exit/verdictを固定した比較証拠を作成し同条件で比較する。builderには期待verdictを持たせない（2026-10-18改訂：題材を変更。末尾の「改訂」節を参照） | S3/B3、計画・既存recipe |
+| FR12 | Contract v1はruntime.name=formicariumを受け付けterrariumをdeprecated互換として残す。guests schema、en/ja文書、template、説明、consumer試験を更新し、旧loader/proxy/middleware/builds.json依存と旧専用試験を整理する。互換の説明と歴史記録以外の現役terrarium依存参照を除去する（2026-10-18改訂：terrariumのdeprecated互換は作らない。末尾の「改訂」節を参照） | S4/B4、intent Q4 |
 | FR13 | formicarium/showcaseがlatest stable aube/pitchfork/Biomeの解決・取得・検証・catalog生成を所有し、公式musl資産がない場合のsource buildを提供する。ツール条件は設定で表現する。回帰guest/fixtureは固定のまま分離し、Node/3ブラウザで各--versionが選択版に一致する | S5/B5 |
 | FR14 | showcaseは公開APIだけをimportしruntime内部import、本体→showcase依存、回帰fixture共有を機械検査で拒否する。専用CIは受入済み/構築済み本体資産を利用し重い本体CIと分離する | S5/B5 |
 | FR15 | Astro/Starlightのカード/デモをshowcase/siteへ移し、トップはエミュレータ説明、一覧は/tools/、空端末からinstallして3ツールを実行できる。個別ページは事前導入を許す。日次buildと受入後のPages deployを提供し、失敗候補を配布せず前回サイトを維持する | S6/B6 |
@@ -73,3 +73,12 @@ sourceのremote存在、比較証拠、計測、固定build再利用、公開権
 | S7/B7 | FR16/NFR8 |
 
 再現互換=FR7–12、デモ移管=FR13–15、固定再利用=FR7–9、外部入力解消=FR6/FR12/FR16、退役=FR16、品質維持=NFR2/NFR6/NFR8。順序はB0通過後にB1、B1後B2/B5、B2→B3→B4、B5→B6、B4/B6→B7を守る。
+
+## 改訂（2026-10-18、人間の決定：U6 Functional Design の Q1・Q6–Q8・Q10・Q11）
+
+vivarium の読取り調査で、biome-12265 の recipe が #518（`04a8724`）で削除済みで、terrarium を使う recipe が0件であることが分かった。人間の回答（`../../construction/u6-recipe-runtime/functional-design/functional-design-questions.md`）により、次のように読み替える。上の表の文言は承認時の記録として残す。
+
+- FR9：Biome の baseline `2405c762` と fix `f79f85d5` の固定build・再利用は、U5 の正式経路の証拠として済んでいる（formicarium の記録と手元の証拠は残す）。この2件の上流 Release と tag、vivarium の build残骸は、旧題材として消す。
+- FR11：題材を `JamBalaya56562/biome` の branch `fix/migrate-prettier-override-bracket-spacing`（`25e3e2c2`）に変える。Prettier の override の `bracketSpacing:false` が、baseline（作成時点の biomejs/biome main を40桁へ解決した値。上流の bump が追う）では Biome の override へ移らず、fix では `formatter.bracketSpacing:false` として移ることを、3ブラウザで同じ入力の before/after として比べ、比較の証拠を固定する。旧verdictとの比較は、旧題材が無いので行わない。baseline でも移る場合は「最新の main で直っている」と記録し、人間の判断に回す。
+- FR12：`runtime.name`・`expected_runtime` に formicarium を加え、terrarium は現役の値から外す（deprecated互換・adapter は作らない。人間の補足「terrariumは完全削除の予定」）。terrarium の歴史の説明は残す。
+

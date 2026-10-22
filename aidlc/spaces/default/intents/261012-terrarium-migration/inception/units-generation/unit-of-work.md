@@ -61,6 +61,7 @@ U4の完了には、U2/U3/U4のB1統合受入と最終API候補のconsumer再検
 - 成果と境界：固定recipe/fixture、公開browser bundleとsame-origin Worker、xterm互換、before/after/verdict、Contract v1/schema/template/en-jaと旧依存整理。
 - 単位の合格証拠：移行前比較証拠を固定し、biome-12265のasNeeded/single→always/doubleと旧verdict一致を3ブラウザで確認。commit/digest不一致拒否、ready/run/transcript互換、deprecated名consumer試験。
 - 制約：builderはビルド時のみ。runtime内部/個人archive/旧loader等の現役依存を除去し、歴史/互換説明は保持。実機Safariは別証拠なしなら未検証。
+- 2026-10-18改訂：biome-12265 は vivarium #518 で削除済みのため、題材を JamBalaya56562/biome の `fix/migrate-prettier-override-bracket-spacing` の before/after 比較に変え、terrarium の deprecated 互換と deprecated 名の consumer 試験は行わない（人間の決定。`../contract-design/contract-summary.md` と `../requirements-analysis/requirements.md` の末尾の「改訂」節）。
 
 ### U7: u7-showcase-guests
 

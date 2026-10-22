@@ -1,5 +1,26 @@
 # U4 command 単体・統合試験手順
 
+## mainでの正式受入の仕組み（2026-10-20、追加Step 17–26）
+
+新しい試験file `tests/migration-command/acceptance-ci.test.ts` を加える。U4の他の試験fileと、U1〜U3の試験fileは変えない。枠組みは既存の `node:test`（最新のNode。Step 17で確かめた版を記録する）。試験は `mise run build` が生成する `tests/migration-command/acceptance-ci.test.js` を実行する。
+
+U4だけの実行（個別path）：
+```sh
+mise run build
+node --test --test-concurrency=1 tests/migration-command/acceptance-ci.test.js
+```
+`mise run migration-command-unit` の一覧（`package.json` の `migration:command:unit`）にも、このfileを個別pathで加える。globや全体の探索には置き換えない。
+
+必須ケース（実装の後に書いて実行する。部品ごとに5–8件）：
+- 入力の照合（`acceptance-inputs.ts`）：SHA256の不一致、sizeの上限+1、一覧の欠落・unknown field・重複key、既存fileの上書き、archiveの中の `..`・絶対path・link・余分なfile、固定11ファイルの不一致を拒否する。正しい入力を受け付け、固定11ファイルが揃う。
+- 観測（`observe-ci.ts`）：runの失敗・未完了、別のworkflowのpath・event・branch・head・repository、commitの署名なし、失敗したjob、artifactのdigestの不一致、ZIPの中の候補の欠落・不一致を拒否する。正しい観測から、`observed-ci-summary` を1つ作る。作った記録を、U4の検査（`scripts/migration-command/completion.ts` の `checkCommandCIEvidence`）が受け付ける。U2・U3の検査はUnitごとに別の候補と `sourceIdentity` を求めるので、この記録の対象にしない（2026-10-20、人間の判断B）。tokenを記録とlogに書かない。
+- mainのCIのpitchforkの取得（計画Step 27、`acceptance-inputs.ts`）：別のworkflowのpath・event・branch・head・repository、失敗・未完了のrun、該当するrunがない・複数ある、artifactの名前の不一致・期限切れ、ZIPのdigestの不一致、ZIPに3つ（`dist/guests/pitchfork`・`pitchfork.build-info`・`pitchfork.commit`）のどれかがない、3つ以外のpathを置こうとする、を拒否する。正しい入力では3つだけを置き換え、SHA256とsizeを記録する。GitHubのAPIは偽のlocal serverで置き換える。
+- workflowの定義：triggerが `workflow_dispatch` だけ、repositoryとmainのrefの条件、権限が `contents: read` と `actions: read` だけでwriteが無いこと（`actions: read` は計画Step 27のmainのCIのartifactの取得のため）、pitchforkの取得がU2のbundleの復元の後・候補を作る前にあること、actionsのcommit SHAの固定、timeout、artifactの保持期間7日、`FORMICARIUM_COMMAND_LOCAL_ONLY=1`、信頼設定の後始末が `always()`、secretsを使わないこと。actionlintも実行する。
+
+mockとstub：GitHubのAPIは、試験の中で立てる偽のlocal serverで置き換える。取得の試験も、偽のlocal serverとその場で作った小さなfileを使う。外部のnetwork・本番の資産は使わない。
+
+この節の試験の成功は、仕組みの拒否の性質だけを確かめる。正式受入の成功（CIの受入1回、観測、手元のU4の正式な完了確認（U2・U3の試験を含む）、U1の今の確認）は、計画のStep 23–25の別工程であり、基準（install 180秒、非download中央値3000ms、probe 600秒、aube 840秒、1worker・retry 0、23JS全realmの行coverage 80%、容量上限）は変えない。
+
 ## 新しい土台（upstreamのmain）での確認（2026-10-18、追加Step 11–16）
 
 新しい試験は加えない。U4の製品コード・受入の入口のコードは変えない。下の各節の、`scripts/migration-command/ci.ts`・`ci-inputs.ts`、`.github/workflows/migration-command-u4.yml`、`.github/publication`、生成JSの追跡、署名付きCIを使う手順は、古い土台で行った手順の履歴であり、新しい土台では実行しない。新しい土台では、生成JSは追跡されず、`mise run build` が作る。taskは `mise-tasks/migration/command-*.sh` が `bun run migration:command:*` を呼ぶ。
@@ -26,13 +47,13 @@ U4の製品コードと試験は未実装で、以下の実行結果はすべて
 
 ## 試験の構成
 
-- 枠組み：既存の `node:test`（Node 26.12.0）、Playwright 1.64.1（Chromium/Firefox/WebKit、`--workers=1 --retries=0`）、TypeScript 7.0.2の型検査。新しい試験依存は追加しない。
+- 枠組み：既存の `node:test`（最新の Node 26。runner-ready の試験は major の版の 26 だけを確かめ、patch の版は固定しない）、Playwright 1.64.1（Chromium/Firefox/WebKit、`--workers=1 --retries=0`）、TypeScript 7.0.2の型検査。新しい試験依存は追加しない。
 - 置き場所：`tests/migration-command/`。TSを書き、`mise run build` が同じ場所へJSを生成する。試験はその生成JSを実行する。
 - 型fixture：`types-invalid.ts` はtsconfig.tests.jsonの通常buildから除外し、consumer.test.tsが専用の型検証で明示的にcompileして、期待どおり失敗することを確かめる。
 
 ## コマンド
 
-Nodeは `mise ls` で実体pathを確認して使う。現在の値は `/Users/mutoakio/.local/share/mise/installs/node/26.12.0/bin/node`（以下 `<node>`）。各U4試験の前に `mise run build` を実行する。
+Nodeは `mise ls` で実体pathを確認して使う。2026-10-22 の値は `/Users/mutoakio/.local/share/mise/installs/node/26.12.1/bin/node`（以下 `<node>`）。各U4試験の前に `mise run build` を実行する。
 
 1. runner（最初のテストより前に実行できることを確認する）：
    ```sh

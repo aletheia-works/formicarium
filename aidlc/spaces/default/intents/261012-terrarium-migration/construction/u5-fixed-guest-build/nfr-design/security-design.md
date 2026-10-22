@@ -145,8 +145,15 @@ Releaseの並べ方は、次のとおりにする（NFR5.3）。
 ## D7：bump-upstream（Q5=A）
 
 - 人が手動で起動する（workflow_dispatch）。宣言したrepositoryのbranchは、`git ls-remote` で直接解決する。PRの情報やGitHubの画面の値は使わない。
-- 解決したcommitには、D1の確認を通す。その後で、commit・解決した時刻・branch名を記録し、宣言を更新するPRを作る。PRのmergeは人が行う（NFR3.5）。
+- 解決したcommitには、D1の確認を通す。その後で、commit・解決した時刻・branch名を記録し、宣言を更新するPRを作る。PRのmergeは人が行う（NFR3.5）。（2026-10-22 の注記：NFR3.5 は merge の方法を決めておらず、この「（NFR3.5）」の帰属は不正確だった。この文は下の 2026-10-22 の変更で置き換えた。）
 - PRを作るjobにだけ、必要な書込み権限を与える。buildのjobとは分ける。
+- 2026-10-22 の変更（人間の決定「bumpのPRも自動でマージされる仕組みにして欲しいです」）：上の「PRのmergeは人が行う」をやめ、bump の PR は必須の check がすべて通ったら自動で merge する。branch の直接の解決、D1 の確認、記録、PR を作る job だけの書込み権限は変えない。bump が動かすのは宣言の `commit` だけで、受け入れ済みの build（`accepted`）は変わらず、新しい commit の build と受け入れは人が行う。要件（FR8・NFR3.5）は merge の方法を決めていないので変えない。
+  - 必須の check：vivarium の main の ruleset（`required_status_checks`）のもの。2026-10-22 に `gh api repos/aletheia-works/vivarium/rules/branches/main` で読んだときは10個（`Unit (resolveReproFile)`・`Polyglot lint`・`check / Commitlint`・`E2E (chromium|firefox|webkit)`・`regression (chromium|firefox|webkit)`・`Test MCP server`）。必須の check を変えるときは、bump の PR もその check を通ることになる。
+  - bot の PR で必須の check が報告されること：recipe.json だけを変える bot の PR aletheia-works/vivarium#554 で、10個すべてが報告された（9個が pass、`check / Commitlint` だけが題の形のため fail。`gh pr checks 554`、2026-10-22）。題は #555 で直した。PR は App token で作るので、ほかの workflow も動く。
+  - build は始まらないこと：`fixed-guest-build.yml` は `workflow_dispatch` だけで起動するので、bump の merge では build は始まらない。新しい commit の build・Release・`accepted` の更新は、これまでどおり人が起動し承認する。
+  - token と merge の権限（確かめたこと）：workflow の `GITHUB_TOKEN` は `contents: read`・`actions: read` だけ。PR の作成は、PR を作る job の中で `actions/create-github-app-token` が作る `aletheia-works-bot` の App token（`permission-contents: write`・`permission-pull-requests: write`、その job の間だけ有効）で行う（どちらも `fixed-guest-bump.yml` を読んで確かめた）。ruleset の種類は `deletion`・`required_linear_history`・`required_signatures`・`pull_request`・`required_status_checks`・`non_fast_forward`（`gh api`、2026-10-22）。merge は job ではなく repository の auto-merge と ruleset が行う設計にする。
+  - 未検証のこと（次に bump を実際に動かすときに確かめる）：repository の auto-merge が有効か、ruleset の `pull_request` が承認の数を求めるか（求めるなら bot の PR は人の承認まで merge されない）、App の private key の置き場所、App が ruleset を迂回できるか（`bypass_actors` は私たちの権限では読めない。`null`、`current_user_can_bypass: never`）、変更後の bump の実 run で PR が実際に自動で merge されること。
+  - `commit` と `accepted` が違う間：宣言の `commit` が新しく、`accepted` が古いままの間、vivarium の Layer 1 は `accepted` の commit・`buildKey`・digest で配布と照合を行う（FR10）。読んで確かめた箇所：aletheia-works/vivarium@f4be3299 の `src/layer1_wasm/_shared/formicarium_terminal.ts`（build-info の commit と `buildKey` を `accepted` と照合し、`elfSha256`・`buildInfoSha256` を `accepted` から取る）、`src/layer1_wasm/biome-migrate-override-bracket-spacing/repro.ts`（`acceptedFor`）、`docs/scripts/stage-formicarium-assets.ts`（`guest.accepted` を配布する）。実行はしていない。
 
 ## D8：品質・証拠・builderの部品（Q6=A）
 
@@ -185,15 +192,18 @@ U1のbaselineからの移行と証拠は、次のとおりにする。
 - cacheの汚染は、保存をmainのbuildだけに許すことで防ぐ。digestの検証では、汚染は見つけられない（D5）。
 - 過大な権限は、buildのjobを `contents: read` にし、書込みを承認後の別のworkflowに分けることで防ぐ（D6、D7）。
 - 資源の使い過ぎは、取得の監視と4時間の期限で防ぐ（D3、D4）。
+- 宣言の branch の先端に入った未確認の commit が、自動の merge で宣言に入る（2026-10-22 の D7 の変更による）。D1 の確認（許可一覧、repository 自身の ref からの到達）と必須の check を通ったものだけが入り、入るのは宣言の `commit` だけにする。配布と照合は `accepted` で行い、新しい commit の build と受け入れは人の関門として残るので、未確認の commit は配布されない（D7）。
+- bot の資格情報（App の private key）が漏れると、その App の権限の範囲で branch への push と PR の作成ができる。確かめたこと：workflow は private key を secret（`secrets.BOT_PRIVATE_KEY`）として受け取り、PR を作る job の中だけで、その job の間だけの token にする。main への反映は ruleset（署名・必須の check・linear history）を通る。未検証のこと：secret がどの水準（repository か organization か）に置かれ誰が読めるか、App が ruleset を迂回できるか。次に bump を実際に動かすときに確かめる（D7）。
 
 切り戻しは、次のとおりにする。
 - vivariumへの変更はPR単位にし、revertで切り戻せるようにする。
 - Releaseの公開済みの成果物は消さない。不具合のある成果物は、宣言をそれより前のkeyに戻して参照から外す。
+- 誤って入った bump は、その merge commit を revert する PR で戻す。`accepted` は変わっていないので、配布中の guest は変わらない（D7）。
 
 ## Assumptions & Open Questions
 
 - source2GiB・依存4GiBの上限は仮の値で、最初の正式なCIで実測する。監視の間隔の分だけ、上限を少し超えることがある。
 - GitHub Actionsのcacheについて、PRのscopeではmainのcacheを書き換えられない（GitHubの文書による。未検証）。設計では、PRからの保存自体をしない。
 - concurrencyの待機の扱いと、draftのReleaseが公開まで見えないことは、GitHubの文書による（未検証）。
-- `GITHUB_TOKEN` で作ったPRでは、ほかのworkflowが自動で動かない。bump-upstreamのPRでCIを動かす方法は、Code Generationで決める。
+- `GITHUB_TOKEN` で作ったPRでは、ほかのworkflowが自動で動かない。bump-upstreamのPRでCIを動かす方法は、Code Generationで決める。（2026-10-22 の注記：Code Generation で、PR を `aletheia-works-bot` の App token で作ることに決まった。aletheia-works/vivarium#554 で、必須の check の10個すべてが報告された〈9個 pass、Commitlint は題の形のため fail〉。）
 - vivariumの構成（置き場所とcommand）は、vivariumのセッションの確認を待つ。

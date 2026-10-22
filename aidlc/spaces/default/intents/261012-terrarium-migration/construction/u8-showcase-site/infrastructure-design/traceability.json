@@ -1,0 +1,189 @@
+{
+  "stage": "infrastructure-design",
+  "unit": "u8-showcase-site",
+  "upstream_ids": [
+    "NFR2.3",
+    "NFR5.2",
+    "NFR5.3",
+    "NFR6.1",
+    "NFR6.4",
+    "NFR6.6",
+    "NFR8.1",
+    "NFR8.2",
+    "NFR8.4",
+    "NFR8.5",
+    "NFR8.9",
+    "NFR8.10",
+    "NFR8.11",
+    "NFR2.1",
+    "NFR2.2",
+    "NFR3.1",
+    "NFR4.1",
+    "NFR5.1",
+    "NFR6.2",
+    "NFR6.3",
+    "NFR6.5",
+    "NFR6.7",
+    "NFR7.1",
+    "NFR7.2",
+    "NFR7.3",
+    "NFR7.4",
+    "NFR8.3",
+    "NFR8.6",
+    "NFR8.7",
+    "NFR8.8"
+  ],
+  "coverage": [
+    {
+      "id": "NFR2.3",
+      "status": "OK",
+      "target": "showcase-site.yml の build の job の11の工程と起動の表（cicd-pipeline）"
+    },
+    {
+      "id": "NFR5.2",
+      "status": "OK",
+      "target": "deploy の job の concurrency の group showcase-site-pages と deploy-guard（Actions の API、actions read）"
+    },
+    {
+      "id": "NFR5.3",
+      "status": "OK",
+      "target": "job の needs と if の表と、workflow の YAML の単体試験（cicd-pipeline）"
+    },
+    {
+      "id": "NFR6.1",
+      "status": "OK",
+      "target": "accept-chromium・accept-firefox・accept-webkit の job（timeout 60 分、16件）"
+    },
+    {
+      "id": "NFR6.4",
+      "status": "OK",
+      "target": "GitHub Pages の site 全体 1073741824 bytes 未満（check-site）と Pages の制限の確認（infrastructure-specification）"
+    },
+    {
+      "id": "NFR6.6",
+      "status": "OK",
+      "target": "Pages は header を付けられないので coi-serviceworker を public の root に置く（build の工程7）"
+    },
+    {
+      "id": "NFR8.1",
+      "status": "OK",
+      "target": "Actions の artifact showcase-site-evidence-<run_id> と -deployed（90 日）"
+    },
+    {
+      "id": "NFR8.2",
+      "status": "OK",
+      "target": "OpenTofu の github_repository の pages と github_repository_environment github-pages の reviewers、基盤の変更の流れ（cicd-pipeline）、Pages の artifact の retention-days 7"
+    },
+    {
+      "id": "NFR8.4",
+      "status": "OK",
+      "target": "job ごとの権限の表（cicd-pipeline）と mode の決め方"
+    },
+    {
+      "id": "NFR8.5",
+      "status": "OK",
+      "target": "切戻しの節（cicd-pipeline）"
+    },
+    {
+      "id": "NFR8.9",
+      "status": "OK",
+      "target": "summary の job と Alerts の表（monitoring-design）"
+    },
+    {
+      "id": "NFR8.10",
+      "status": "OK",
+      "target": "verify-deployment の job（page_url、10 分）"
+    },
+    {
+      "id": "NFR8.11",
+      "status": "OK",
+      "target": "bun.lock と bun install --frozen-lockfile --ignore-scripts、dependency-review"
+    },
+    {
+      "id": "NFR2.1",
+      "status": "N/A",
+      "target": "境界の検査の規則（boundary.ts）の設計で、基盤の資源を要しない（NFR Design の S1）。実行の場所は NFR2.3"
+    },
+    {
+      "id": "NFR2.2",
+      "status": "N/A",
+      "target": "coverage の測り方の設計（NFR Design の S2）。job は NFR2.3 の coverage の job"
+    },
+    {
+      "id": "NFR3.1",
+      "status": "N/A",
+      "target": "page の code の検証で、基盤を要しない（NFR Design の S4）"
+    },
+    {
+      "id": "NFR4.1",
+      "status": "N/A",
+      "target": "page の code の取得の上限で、基盤を要しない（NFR Design の P2）"
+    },
+    {
+      "id": "NFR5.1",
+      "status": "N/A",
+      "target": "build の job の中の照合の script（NFR Design の S5、cicd-pipeline の build の工程2）で、新しい資源を要しない"
+    },
+    {
+      "id": "NFR6.2",
+      "status": "N/A",
+      "target": "page の取得の設計（P2）"
+    },
+    {
+      "id": "NFR6.3",
+      "status": "N/A",
+      "target": "page の中の資源と表示の buffer（P3）"
+    },
+    {
+      "id": "NFR6.5",
+      "status": "N/A",
+      "target": "page の script の分け方（P5）"
+    },
+    {
+      "id": "NFR6.7",
+      "status": "N/A",
+      "target": "端末の page の meta の CSP（S9）。Pages の header は使わない"
+    },
+    {
+      "id": "NFR7.1",
+      "status": "N/A",
+      "target": "表示の設計（S10）"
+    },
+    {
+      "id": "NFR7.2",
+      "status": "N/A",
+      "target": "操作の設計（S10）"
+    },
+    {
+      "id": "NFR7.3",
+      "status": "N/A",
+      "target": "進捗の表示（S10）"
+    },
+    {
+      "id": "NFR7.4",
+      "status": "N/A",
+      "target": "fixture の index の設計（S11）"
+    },
+    {
+      "id": "NFR8.3",
+      "status": "N/A",
+      "target": "build の job の notices の script（S14）"
+    },
+    {
+      "id": "NFR8.6",
+      "status": "N/A",
+      "target": "log の書き方（S17）"
+    },
+    {
+      "id": "NFR8.7",
+      "status": "N/A",
+      "target": "guides の build の切替え（S18）"
+    },
+    {
+      "id": "NFR8.8",
+      "status": "N/A",
+      "target": "site の identity の file（S19）"
+    }
+  ],
+  "note": "基盤（Pages・Actions・OpenTofu）に関わる NFR だけを OK とし、page と script の中の設計で基盤の資源を要しないものは理由付きで N/A にした（NFR Design の P・S を参照）。"
+}

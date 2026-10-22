@@ -2,9 +2,9 @@
 
 ## Summary
 
-- Builds: 新しい土台（upstreamのmain `bbf97ba6`）への合わせ（追加Step 20–24）。`scripts/migration-session/completion.ts` のcoverageの件数の固定（16件）を、配布一覧 `FIRST_PARTY_JS` の件数と比べる形に直す。U2の記録（traceability・code-summary・計画の古い記述）を、mainにあるものだけを根拠にするよう直す。
-- Touches: `scripts/migration-session/completion.ts`（と、件数を確かめる試験 `tests/migration-session/completion.test.ts`。どちらもmainへのPR）と、U2の記録（traceability.json・code-summary.md・source-manifest.json）。
-- Tests: 先に、completionが件数の不一致で拒否されることを再現する試験を書いて失敗を観測し、直したあと成功を確かめる。`lint:all`・`typecheck`・`build`・`test:light`・`migration-session-unit` を1つずつ実行し、独立レビューとintentの検証コマンドによるcheckpointの確認を行う。
+- Builds: 今回の再開（2026-10-19、追加Step 25–31）：WebKit でも分離の下で動くように、browser の package Worker を import の無い1つの file（`runtime/web/package-worker.bundle.js`）にして配布物に入れ、browser API の既定の Worker の URL をそれに替える（U6 の観測と人間の回答 A）。下の各行は、それより前の要約（履歴）である。新しい土台（upstreamのmain `bbf97ba6`）への合わせ（追加Step 20–24）。`scripts/migration-session/completion.ts` のcoverageの件数の固定（16件）を、配布一覧 `FIRST_PARTY_JS` の件数と比べる形に直す。U2の記録（traceability・code-summary・計画の古い記述）を、mainにあるものだけを根拠にするよう直す。
+- Touches: 今回：formicarium の build の最後の段階（`.build/scripts/emit.js` の元の `scripts/emit.ts`、又は同じ段階の新しい script）、`runtime/web/api.ts` の既定の Worker の URL、`package.json` の files、`scripts/package/stage-package.ts`・`verify-package` の一覧、coverage の一覧（`coverage-inventory.json`）、試験（`tests/package/`・`tests/migration-session/`）。履歴：`scripts/migration-session/completion.ts`（と、件数を確かめる試験 `tests/migration-session/completion.test.ts`。どちらもmainへのPR）と、U2の記録（traceability.json・code-summary.md・source-manifest.json）。
+- Tests: 今回：bundle の形の試験（静的な import と `import.meta` が無い、同じ入力から同じ bytes、配布一覧と pack に入る）を5–8件と、既存の consumer・browser の試験を3ブラウザで1つずつ実行する。WebKit を含む3ブラウザの分離の確認は U6 の Step 3 の観測をやり直して行う。履歴：先に、completionが件数の不一致で拒否されることを再現する試験を書いて失敗を観測し、直したあと成功を確かめる。`lint:all`・`typecheck`・`build`・`test:light`・`migration-session-unit` を1つずつ実行し、独立レビューとintentの検証コマンドによるcheckpointの確認を行う。
 
 ## 対象と前提
 FR2/FR5/FR6、BR2.1–BR2.11、U2 NFR2.1/2.2/3.1–3.5/4.1/4.2/6.1/8.1/8.2を実装する。User Storiesは省略されており、直接FR/BR/NFRで追跡する。
@@ -61,7 +61,7 @@ U4の追加Step項目3・4で、U2がclaimするfileが変わった。人間の�
 - `tests/migration-install/lifecycle.test.ts` の模擬portへの `resolvePath` の追加はU3のfileなので、U3のやり直しで引き受ける。
 
 - [x] Step 16: 上の変更をU2の変更として確かめ、U2の記録（code-summary.md、source-manifest.json、traceability.json）に書く。`resolvePath` が既存のC02/C03の振る舞いと公開API（package exportにSessionPortを出さないこと）を変えないこと、`normalizePath` の拒否条件を緩めていないこと、試験の期待値は実際の配布一覧に合わせただけで判定条件を緩めていないことを、file を読んで確かめる。mainで `tests/migration-session/reservation.test.js` と `tests/package/public.test.js` を逐次実行し、件数とfail・skip 0を記録する。最終的なsourceでのU1〜U4のまとめた確認はU4の後に行い、それまではv10を変更後のsourceの成功証拠として扱わない。（FR5/NFR8）
-- [ ] Step 17: 独立レビューを受ける。そのあと、intentに記録された検証コマンドでU2のcheckpointを確かめ、通常の単位完了承認を自動で進める。（NFR2/8）
+- [x] Step 17: 独立レビューを受ける。そのあと、intentに記録された検証コマンドでU2のcheckpointを確かめ、通常の単位完了承認を自動で進める。（NFR2/8）
 
 ## 追加Step：review-08の指摘の修正（2026-10-17、4回目の再開）
 
@@ -74,7 +74,7 @@ review-08（READY）のR-08〜R-10を直す。人間が承認した修正案 `u2
   - mainで `mise run build` と `node --test --test-concurrency=1 tests/migration-session/reservation.test.js` を逐次実行し、件数とfail・skip 0を記録する。
 Step 18はmainで実施済み（build exit 0、reservation試験12件pass、fail・skip 0）。前の試行ではreview-08でレビューを使い切っていたため、エンジンがレビューの依頼を拒否した。人間の判断で、レビューのためにcode-generationをもう一度開き直した（2026-10-17）。計画の内容は変えていない。
 
-- [ ] Step 19: 2回目の独立レビューを受ける。そのあと、intentに記録された検証コマンドでU2のcheckpointを確かめ、通常の単位完了承認を自動で進める。（NFR2/8）（このレビューとcheckpointは、下の「新しい土台への合わせ」のStep 24で行う。Step 17のcheckpointの確認も、ここに含める。）
+- [x] Step 19: 2回目の独立レビューを受ける。そのあと、intentに記録された検証コマンドでU2のcheckpointを確かめ、通常の単位完了承認を自動で進める。（NFR2/8）（このレビューとcheckpointは、下の「新しい土台への合わせ」のStep 24で行う。Step 17のcheckpointの確認も、ここに含める。）
 
 ## 追加Step：新しい土台（upstreamのmain）への合わせ（2026-10-18、5回目の再開）
 
@@ -86,7 +86,51 @@ Step 18はmainで実施済み（build exit 0、reservation試験12件pass、fail
 - [x] Step 21: `traceability.json` のNFR8.2の対象を、消した `scripts/migration-session/ci.ts` から、mainにありnoticesの同梱を決める `scripts/package/stage-package.ts` に直す（review-10のMajor）。ほかの対象がすべてmainにあることを確かめる。
 - [x] Step 22: `code-summary.md` の、`ci.ts`・`migration-session-u2.yml`・`.github/publication/`・16JSの記述を、古い土台の履歴として区別し、新しい土台での状態（いまのfileで確かめられること）を書く（review-10のMinor）。上の「検証と停止条件」のv8の証拠と旧verification-command.txtは、古い土台・古いtoolchainの履歴であり、新しい土台での確認はintentの新しい検証コマンドで行うと書く（R-05）。
 - [x] Step 23: `source-manifest.json` に、Step 20で変えたfileが含まれていることを確かめる。U2の内容がない `mise.toml` を外し、U2のtaskの実体の `mise-tasks/migration/session-*.sh` を加える。
-- [ ] Step 24: main sessionで1つずつ、`mise run lint:all`、`mise run typecheck`、`mise run build`、`mise run test:light`、`mise run migration-session-unit`（候補・consumerの準備が要るなら、その準備と、準備できない場合は未検証として記録する）とStep 20の試験を実行する。そのあと独立レビューを受け、intentの検証コマンドでcheckpointを確かめる。Step 20のコードの変更は、mainへのPRにする（push・PRの作成は人間の指示に含まれる）。
+- [x] Step 24: main sessionで1つずつ、`mise run lint:all`、`mise run typecheck`、`mise run build`、`mise run test:light`、`mise run migration-session-unit`（候補・consumerの準備が要るなら、その準備と、準備できない場合は未検証として記録する）とStep 20の試験を実行する。そのあと独立レビューを受け、intentの検証コマンドでcheckpointを確かめる。Step 20のコードの変更は、mainへのPRにする（push・PRの作成は人間の指示に含まれる）。
+
+## 追加Step：WebKit のための1つの file の package Worker（2026-10-19、6回目の再開）
+
+U6（recipe-runtime）の Code Generation の Step 3 の観測で、vivarium の recipe page（coi-serviceworker で分離）から formicarium の browser Worker を起動すると、WebKit 27.2 では基準を満たさなかった。追加調査で、coi-serviceworker の `coepCredentialless` を false に固定し、package Worker を import の無い1つの file にまとめると、Chromium・Firefox・WebKit × en・ja × 初回・再訪問の24組すべてで、page・Worker・子 Worker の分離と SAB、2端末の ready を満たした（検証済み。観測用の bundle は `bun build runtime/web/package-worker.js --target browser --format esm --external 'node:*'`。記録は U6 の code-summary の Step 3）。Worker の import の一部が service worker を通らずに COEP で拒否されることが原因と読んでいる（推測）。人間の回答（2026-10-19）：1つの file の Worker は formicarium の package に入れる（A）、U2 の Code Generation を開き直す。
+
+方針：今の `runtime/web/package-worker.js`（module の Worker）は配布物に残し、別に `runtime/web/package-worker.bundle.js` を足す。browser API の既定の Worker の URL（`createSession` の `options.assets` が無いときの `packageAssets(...)`）を bundle に替える。子 Worker（`em-pthread`）は `child-create` で同じ `workerURL` を使うので、子も bundle になる。Node の Worker は変えない。公開 API・型・C02/C03 の振る舞いは変えない。0.3.0 は未公開なので、版の番号は変えない（公開の手順は U2〜U4 の範囲の別の作業）。
+
+- [x] Step 25: 構成と tool の確認。formicarium の upstream の main を fetch して比べ、最新の Bun・TypeScript・Playwright を確かめる。bundle を作る道具は `bun build`（Bun の latest）とし、同じ入力から同じ bytes になるかを2回の build で確かめる。ならない場合は止めて報告する。既存の試験 `tests/package/public.test.js` と `tests/migration-session/consumer.spec.js` が main で動くことを確かめ、command を code-summary に書く。
+- [x] Step 26: 実装。build の最後の段階で `runtime/web/package-worker.js` から `runtime/web/package-worker.bundle.js` を作る（`--target browser --format esm`、`node:*` は外部のまま、source map を一緒に出す）。`runtime/web/api.ts` の既定の Worker の URL を bundle に替える。`package.json` の files、`scripts/package/stage-package.ts` と `verify-package` の一覧に bundle（と map を配る場合は map）を足す。coverage の一覧では、bundle を「生成物（元は既存の第一者の JS）」として理由付きで対象外にし、bundle の中で動いた行は source map で元の `runtime/*.js` に対応させる。元の file を分母から外さない。（BR2.10/2.11、NFR2.2、NFR8.1）
+- [x] Step 27: Step 26 の後の試験。`tests/package/worker-bundle.test.ts`（新しい file）に、bundle に静的な `import`・`export ... from`・`import.meta` が無いこと、`node:*` 以外の動的 import が無いこと、2回の build で同じ SHA256 になること、pack と配布一覧に入ること、既定の Worker の URL が bundle を指すこと、`options.assets` で別の Worker を渡したときは従来どおりそれを使うことを確かめる5–8件を書き、実行する。既存の `tests/package/public.test.js` も実行する。
+- [x] Step 28: browser の試験。既存の `tests/migration-session/consumer.spec.js` を Chromium・Firefox・WebKit で1つずつ実行し、bundle の Worker で session・guest の検証・run が今までどおり動くことを確かめる。coverage の収集が bundle の source map で元の file に対応し、分母の file がすべて report に出ることを確かめる。
+- [x] Step 29: U6 の観測のやり直し。新しい pack を作り（U6 の Step 1 と同じ手順）、U6 の Step 3 の観測の写し（`.artifacts/u6-recipe-runtime/s8-observation/`）で、候補2の置き場、`coepCredentialless` を false に固定、配布物の bundle の Worker で、3ブラウザ × en・ja × 初回・再訪問を観測する。24組すべてで基準（page・Worker・子 Worker の `crossOriginIsolated === true` と SAB、2端末の ready）を満たすことを確かめ、U2 と U6 の code-summary に書く。満たさなければ止めて報告する。
+- [x] Step 30: 記録と回帰。U2 の code-summary.md・traceability.json・source-manifest.json に今回の変更を書く。main session で1つずつ `mise run lint:all`、`mise run typecheck`、`mise run build`、`mise run test:light`、`mise run migration-session-unit` を実行する。U3・U4 の試験のうち browser の Worker を使うもの（install・command の browser の試験）も1つずつ実行し、影響が無いことを確かめる。影響があれば止めて報告する。
+- [x] Step 30a: review-01（NOT-READY）の指摘を直す（2026-10-19）。R-01：bundle の Worker の中で `Atomics.waitAsync` が `undefined` であることを3ブラウザで確かめる browser の試験を足す（project の必須の規則）。R-02：`tests/package/worker-bundle.test.ts` が一時の dir を作る前に `.artifacts` を作るように直す（先に `.artifacts` の無い状態での失敗を観測する）。R-03：試験の手順の文を、人間が認めた差（coverage の数え方、残る動的 import）に合わせた。R-04：配布する bundle が、元の file から build し直した結果と同じ bytes であることを `worker-bundle.test.ts` で確かめ、使った Bun の版を code-summary に書く。R-05：子 Worker の script の URL が既定の Worker の URL と同じことを、R-01 の試験で記録する。R-06：U2 の試験だけの coverage は参考の値として記録する（人間の判断で根拠はまとめた収集）。直した後、`mise run build`、`worker-bundle.test.js`、`public.test.js`、browser の試験（3ブラウザを1つずつ）、`mise run lint:all`、`mise run typecheck`、`mise run test:light` を1つずつ実行する。
+- [x] Step 31: 独立レビューを受ける。そのあと、intent の検証コマンドで U2 の checkpoint を確かめる。formicarium の変更は main への PR にする（push・PR の作成は、実際の内容を示して承認を受けてから行う）。
+
+## 追加Step：terrarium の削除（PR #58）の後の確認（2026-10-21、7回目の再開）
+
+U9 の PR aletheia-works/formicarium#58（merge `5735433d`）で、terrarium を消した。U2 に関係するのは次の3つ。
+
+- `scripts/migration-session/stage.ts` の `sessionSourceInventory`：消した3件（`docs/terrarium-integration.md`、`tests/terrarium/current-candidate.test.{ts,js}`）を外した。
+- guest の配布の部品：`integration/terrarium/guest-distribution/` から `integration/guest-distribution/` へ移した。
+- release の判定：terrarium の consumer の受入を外した。
+
+U2 の Code Generation は、レビューの回数を使い切っていた。そのため、人間の判断（2026-10-21「はい、開き直して下さい」）で開き直した。U2 の製品コード（`runtime/`・`types/`）と公開 API は変えていない。Step 1〜31 は履歴として残す。
+
+- [x] Step 32: #58 の影響を確かめる。
+  - `jj diff -r u9-remove-terrarium` のうち、U2 の source-manifest.json の path に当たる file を読み、U2 の振る舞い（C02・C03、候補の inventory、coverage の分母）を変えていないことを確かめる。
+  - 次を main session で1つずつ実行し、件数と fail・skip を記録する：`mise run typecheck`、`mise run build`、`mise run test:light`、`mise run migration:session-unit`
+  - `consumer.test.js` などで、stage した候補の環境変数（`FORMICARIUM_CANDIDATE` など）が要るものは、準備できなければ未検証として記録する。
+  - 影響があれば止めて報告する。（FR2/FR5/FR6、NFR2、NFR8）
+- [x] Step 33: U2 の記録を、#58 の後の状態に合わせる。
+  - `traceability.json` と `source-manifest.json` の対象の path のうち、移した file・消した file を指すものを直す。
+  - `code-summary.md` にこの再開の節を足し、#58 で変わった file と Step 32 の結果を書く。
+  - 開いている指摘（R-15〜R-18）は、この再開で直せる記録の部分だけを直し、残りはそう書く。
+  - 製品コードは変えない。（NFR8）
+- [x] Step 34: 独立レビューを受ける。そのあと、intent の検証コマンドで U2 の checkpoint を確かめる。
+
+### 2026-10-21 の Request Changes について
+
+Code Generation の段階を閉じるとき、どの Unit も一覧に持たない変更が 178 件あると AI-DLC が止めた。そのうち `ci/migration-session/payload/*.bin` の 18 件は U2 の固定の入力なので、人間の判断（2026-10-21「1でお願いします。」、その後「A」）で U2 の `source-manifest.json` に足した。そのためのレビューを受けるために、人間が Request Changes を選んだ（2026-10-21）。計画の Step と内容、製品コードは変えない。
+
+- [x] Step 35: `source-manifest.json` に足した 18 件（`ci/migration-session/payload/*.bin`）が、`ci/migration-session/inputs.bundle.json` の `files` の SHA256 と1対1で対応することを読取りで確かめ、code-summary に書く。そのあと独立レビューを受け、intent の検証コマンドで U2 の checkpoint を確かめる。（NFR8）
+- [x] Step 36: `scripts/ci/run.ts` を U2 の `source-manifest.json` に足す（2026-10-22、人間の指示「はい、その形で進めて下さい。」）。PR #29（`f5bc078c`）が足した migration の coverage の suite（`MIGRATION_COVERAGE_SUITES`：migration-session・migration-install・migration-command と、その試験の一覧）は、Code Generation の間の変更で、どの Unit の一覧にも無かった。U2 の session・guest-validation の試験を含むので U2 が持つ。#29 の差分を読んで、今の file に U2 の内容（suite の一覧）が残っていることを確かめ、code-summary に書く。同じ判断で、この intent の変更ではない148件（intent の開始前に main に入った変更と、ほかの作業の変更）と `.aidlc-source-paths.json` を、file の名前で `.aidlc-source-paths.json` の `exclude` に足したことを記録する（一覧は formicarium の `.artifacts/u9-retirement/uncovered-report.md`）。code は変えない。独立レビューを受け、intent の検証コマンドで U2 の checkpoint を確かめる。（NFR8）
 
 ## 検証と停止条件
 各層のtest-after順序、main sessionでの逐次実行、既存品質基準を維持する。今回の変更は記録の整合であり、新規の実装追従テストは追加しない。

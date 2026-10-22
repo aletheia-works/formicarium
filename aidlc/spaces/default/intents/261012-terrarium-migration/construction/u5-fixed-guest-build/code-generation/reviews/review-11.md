@@ -1,0 +1,93 @@
+**Collaborator:** aidlc-architecture-reviewer-agent
+
+### Review
+
+**Verdict:** READY
+**Reviewer:** aidlc-architecture-reviewer-agent
+**Date:** 2026-10-22
+**Iteration:** 1
+
+**Prior findings**
+
+| ID | Now | Severity | Note |
+|---|---|---|---|
+| R-02 | Fixed | Minor | 変化なし。壊れた mbx cache の挙動は本物の mbx では未検証、mbx あり／なしで同じ ELF digest になることは実 CI（39073445357・39080082205）で確認済み、という記録が code-summary の「R-02（記録だけ）」と traceability の NFR5.4 に揃っている。 |
+| R-06 | Fixed | Minor | 変化なし。Step 42 の節に「前提が無くなった。#554 での確認は変更前の設計の証拠として残す」とあり、変更後の bump の実 run で自動 merge されることは未検証のまま正直に残っている。 |
+| R-09 | Fixed | Minor | 変化なし。`WITHHELD` の限界を書くコメントは vivarium#553（merge 23e9f452）で入ったと code-summary と traceability の NFR8.3 に記録がある。上流の file は読めないので、記録に基づく判断。 |
+| R-10 | Fixed | Minor | 変化なし。builder の本体は上流 vivarium の PR 番号と merge で、formicarium 側は追跡された file で書かれている。Step 43・44 の節も同じ形を保っている。 |
+| R-11 | Fixed | Minor | 変化なし。古い完了確認の command（`verify-final-u5.mjs` と135件の binding）は履歴と明記されたまま。 |
+| R-12 | Fixed | Minor | 変化なし。Step 43・44 は code を変えないので source-manifest の変更は要らない。 |
+| R-13 | Fixed | Minor | 変化なし。Step 38 の R-13 の項目に Step 40 で CLI の試験を改めた旨の注記があり、Step 40 の節の記録（`finally` の `rm` を外すと試験が失敗することの観測）とも合う。 |
+| R-14 | Fixed | Minor | 変化なし。build-info・各 dependency・catalog・catalog entry の形の検査は Step 40 の節に記録がある。 |
+| R-15 | Fixed | Minor | 変化なし。FR9 の欄は Step 22 の実行済みと、Step 38・40 の追加（11件、12件）を書いている。 |
+| R-16 | Fixed | Minor | 変化なし。Step 22 の件数が再実行されていない点は、5735433d での検証コマンド全体の実行（Step 37・38 の節）で置き換えられたまま。 |
+
+**New findings**
+
+| Severity | Location | Finding | Required action |
+|---|---|---|---|
+| Minor | aidlc/spaces/default/intents/261012-terrarium-migration/construction/u5-fixed-guest-build/code-generation/traceability.json > FR8 の target | review-10 の指摘1（「push 前」という誤り）は直った。しかし FR8 の欄には、同じ内容がまだ2回書かれている。「PR aletheia-works/vivarium#556 で merge 済み dee1ba5e。変更後の実 run は未検証」と、末尾の「PR aletheia-works/vivarium#556（merge dee1ba5e）で fixed-guest-bump.yml から auto-merge を外す step を除き、…（変更後の実 run は未検証）」である。矛盾は無いが、読む人には2つの別の主張に見える。 | 末尾の重複文を削除するか、前半と1文に統合し、#556 の merge 済みと「変更後の実 run は未検証」を1回ずつだけ残す。 |
+| Minor | aidlc/spaces/default/intents/261012-terrarium-migration/construction/u5-fixed-guest-build/nfr-design/security-design.md > D7 の「token と merge の権限」の項、Threat Response and Rollback の bot の資格情報の項 | 次の2点が、code-summary の「Step 43・44」の節に根拠が無いまま事実として書かれている。(1) 「private key は repository の secret に置き、使うのは PR を作る job の中で、その job の間だけの token」（secret の置き場所は読んで確かめた記録が無い）。(2) 「merge は repository の auto-merge と ruleset が行う」について、ruleset の `pull_request` の種類が承認の数を求めているか、repository の auto-merge の設定が有効かは、記録が無い（Step 43・44 の節は ruleset の種類の名前だけ）。止まる場合は merge されない側（安全側）で、blocking ではないが、設計は「確かめた」と読める。 | 「private key の置き場所」と「`pull_request` の承認数・repository の auto-merge の設定」を、読んで確かめたことと確かめていないことに分けて D7 か code-summary に1行ずつ書く。確かめていないものは「未検証」とする。変更後の bump の実 run で自動 merge まで通ったら、結果を traceability の FR8 に書く。 |
+
+**Validation Tool Results**
+
+| Tool | Result | Interpretation |
+|---|---|---|
+| shell の検査 | 未実行（この review は shell を使わない指示） | 記録の件数と exit は記録の主張で、再現していない。Step 43・44 は記録と設計の書き足しだけで code を変えていないので、影響は無い。 |
+| 上流 vivarium の file、GitHub の状態（ruleset、PR #554・#556） | 未読 | formicarium から読めない。D7 の記述は code-summary の記録（`gh api`・`gh pr checks` の結果）に基づく判断。 |
+| review-10 の Minor 4件 | 概ね直った | (1) FR8 の「push 前」は直ったが重複が残る（新しい指摘1）。(2) token の書き分け（`GITHUB_TOKEN` は read だけ、PR は App token、bypass は未検証）は D7 に入り、Threat Response に bot の資格情報の脅威も入った。(3) 必須の check の読み方（`gh api .../rules/branches/main`）と #554 の報告（10個、9 pass、Commitlint fail）は code-summary に記録された。(4) NFR8.2 の checkpoint の確認（exit 0、日時、土台の内容）は code-summary に記録された。 |
+| NFR Design review-04 の R-09 の残りと新しい Minor | 直った | D7 の token の分離と、bot の資格情報の脅威（秘密の扱い、ruleset、迂回は未検証）が入った。必須の check の根拠と Assumptions の注記は、検証済み／未検証を分けた書き方に直った。 |
+
+**Summary**
+
+Step 44 は記録と設計の書き足しだけで、code は変えておらず、前回の Minor 4件と NFR Design review-04 の指摘を実質的に直した。要件（FR8・NFR3.5・FR10）との矛盾は見つからない。残るのは、traceability の FR8 の重複文と、D7 の資格情報の置き場所・auto-merge の設定の根拠の2点の Minor だけで、実装や配布の安全を壊さない。Critical と Major は無いので READY とする。
+
+### Sources
+
+- aidlc/spaces/default/intents/261012-terrarium-migration/construction/u5-fixed-guest-build/code-generation/code-generation-plan.md
+- aidlc/spaces/default/intents/261012-terrarium-migration/construction/u5-fixed-guest-build/code-generation/code-summary.md
+- aidlc/spaces/default/intents/261012-terrarium-migration/construction/u5-fixed-guest-build/code-generation/traceability.json
+- aidlc/spaces/default/intents/261012-terrarium-migration/construction/u5-fixed-guest-build/code-generation/reviews/review-10.md
+- aidlc/spaces/default/intents/261012-terrarium-migration/construction/u5-fixed-guest-build/nfr-design/security-design.md
+- aidlc/spaces/default/intents/261012-terrarium-migration/construction/u5-fixed-guest-build/nfr-design/reviews/review-04.md
+
+### Findings
+
+| ID | Severity | Location | Finding | Required action | Status |
+|---|---|---|---|---|---|
+| R-01 | Major | proposals/vivarium/u5/tools/fixed-guest-builder/src/pipeline.ts > buildInfo.reference.mbxCacheRestored (L366付近) | `mbxCacheRestored` は compile の後に mbx cache ディレクトリの中身を数えている。mbx が compile 中に書くため、mbx on なら復元の有無にかかわらず常に true になる。D5 は「cacheの汚染への防御は保存をmainに限ることで、残るリスクの代わりに、復元したかどうかとcacheのkeyをbuild-infoの参考欄に記録する」としているが、この記録は誤っており、cacheのkeyはそもそも記録されていない。公開済みの2つのRelease（guest-biome-15432368…、guest-biome-4751f68d…）のbuild-infoにも、この誤った値が不変のまま入っている。code-summary.md はこれをMinorとして扱い、traceability.json の NFR5.4 は OK になっている。 | 復元の状態を compile の前に測る（件数または大きさ）。build-info の参考欄に cache key と復元の有無を記録する。公開済み2件の値は信用できないと code-summary.md に明記し、traceability.json の NFR5.4 の欄にこの制限を書く。 | Resolved (reviewer) |
+| R-02 | Minor | proposals/vivarium/u5/tools/fixed-guest-builder/tests/ （build.test.ts・pipeline.test.ts） | D5 が Code Generation で試験するとした2件のうち、「壊れたcacheではbuildが失敗するか同じdigestになる」試験が無い（`corrupt` を含む試験は Release の取得側だけ）。mbx あり／なしで同じ ELF digest になることは実CI（39073445357 と 39080082205）で確かめられているが、壊れたcacheは未検証である。 | 壊れたmbx cacheを使った試験（またはCIの1回）を足すか、未検証として code-summary.md の「未完・未検証」に載せ、traceability.json の NFR5.4 の記述を実際の証拠に合わせる。 | Unresolved |
+| R-03 | Minor | proposals/vivarium/u5/CONFIG-CHANGES.md > infra/github（`prevent_self_review = false`）、code-summary.md「未完・未検証」の can_admins_bypass | 承認者は起動者本人（JamBalaya56562）で、自己承認を禁じておらず、admin による迂回も既定の true のままである。D6 の「人間が具体的な対象を承認したときだけ動く」は、run name の plan SHA256 を人がチャットの値と見比べることに依存し、機械は照合しない。1人運用では妥当だが、ゲートの強さは名目に近い。 | 1人運用の前提と、SHA256の目視照合が統制であることを HANDOFF.md に明記する。`can_admins_bypass` と `prevent_self_review` の扱いを人間が決めて記録する。 | Resolved (reviewer) |
+| R-04 | Minor | proposals/vivarium/u5/tools/fixed-guest-builder/src/lockfile.ts > allowedGitRepository、code-summary.md「未完・未検証」 | 依存のgit（react/react）の commit が、そのrepository自身のrefから辿れるかを確かめていない。NFR3.2 の確認は宣言したguestのrepositoryにだけ働くため、fork network にだけある commit を Cargo.lock が指しても検出されない。 | 依存のgit commitにも `verifyReachable` 相当の確認を入れるか、残るリスクとして人間が受け入れた記録を残す。 | Resolved (reviewer) |
+| R-05 | Minor | proposals/vivarium/u5/tools/fixed-guest-builder/src/process.ts > spawnGroup（`{ ...process.env, ...options.env }`）と src/build.ts の docker run | 外部の git（clone・checkout・ls-remote）が、`GITHUB_TOKEN` と Actions のruntime tokenを含むrunnerの環境をそのまま継承する。gitは使わないが、D9「外部の取得にはcredentialを送らない」を環境の最小化では担保していない。docker run には `--cap-drop` と `no-new-privileges` が無い（compileは `--network none` で緩和される）。 | gitのprocessには最小の環境（PATH・HOME・GIT_*）だけを渡す。docker run に `--cap-drop ALL`、`--security-opt no-new-privileges` を足すことを検討する。 | Resolved (reviewer) |
+| R-06 | Minor | proposals/vivarium/u5/.github/workflows/fixed-guest-bump.yml > Leave the merge to a person、tests/workflows.test.ts | bot-pull-request が auto-merge を有効にしてから外すまでに窓がある。試験は2つのstepの順序だけを見ており、外す動作そのものは確かめていない。本物のbump-upstream の run と PR の作成は未実行である。 | 初回の実run で auto-merge が外れていることを確認して記録する。 | Unresolved |
+| R-07 | Minor | code-summary.md「検証の結果」（上流のActionsのcacheが10.21GBで既定の上限10GBを超える） | 上限を超えたため、mbx cacheや他のworkflowのcacheが追い出されうる。NFR8.3 の「新しい費用が出る場合は事前に相談」の対象になる。 | 人間に報告済みであることを記録し、追い出しの影響（mbxが無くても同じELFになる）をREADMEに書く。 | Resolved (reviewer) |
+| R-08 | Minor | aidlc/spaces/default/intents/261012-terrarium-migration/construction/u5-fixed-guest-build/code-generation/code-summary.md > 検証の結果 / 最終レビューへの対応 / 完了確認の入口 | 修正後の数値と状態が古いまま残っている。builderの試験は「146件・行coverage 98.36%」と書かれているが、現在は158件成功・98.43%である。完了確認のbindingは冒頭と別の箇所で「135件」「案の52件」と「131件」「案の51件」が混在している。Majorの修正は「vivariumへのPRで反映する（mergeは未）」と書かれているが、冒頭ではPR #536がmerge済み（71e0ef92）とされ、矛盾している。 | 158件・98.43%、135件・52件に揃え、「mergeは未」を「#536で71e0ef92にmerge済み」へ直す。 | Resolved (reviewer) |
+| R-09 | Minor | proposals/vivarium/u5/tools/fixed-guest-builder/src/process.ts > WITHHELD | 子processから外す環境変数の正規表現は `ACTIONS_*`・`GITHUB_TOKEN`・`GH_TOKEN`・`*_TOKEN`・`*_SECRET`・`*_PASSWORD` に限られる。`*_KEY`（例 `AWS_SECRET_ACCESS_KEY`）や `SSH_AUTH_SOCK` は外れない。現在のrunnerには存在しないので実害は確認できず、将来workflowに足された秘密が子processへ漏れる余地として残る。 | 名前による除外の限界を `process.ts` のコメントか README に一文で書く。許可リスト方式への切替は別の判断にしてよい。 | Unresolved |
+| R-10 | Minor | aidlc/spaces/default/intents/261012-terrarium-migration/construction/u5-fixed-guest-build/code-generation/code-generation-plan.md > Summary の Touches、前提と境界、Steps 1–17、2026-10-17の追記（L3・L36–L53・L59）、unit-test-instructions.md > 試験の枠組み・U5だけを実行するcommand（L5・L13・L19・L33・L37・L41）、code-summary.md > 実装したもの（L15–L25）、traceability.json の target 欄 | 記録が、builder を formicarium の `proposals/vivarium/u5/` にあるものとして書いている。確認した事実では、そのdirectory は node_modules の空の殻だけで（`find proposals` の結果）、Git でも追跡されていない。このため unit-test-instructions.md の `bun test --cwd proposals/vivarium/u5/tools/fixed-guest-builder ...` と `actionlint`・`shellcheck` の各commandは、今の formicarium では実行できない。traceability.json の NFR と FR の target（`proposals/vivarium/u5/tools/fixed-guest-builder/src/...`）も、formicarium では解決しない。U5 の本体が上流 aletheia-works/vivarium の merge 71e0ef92（PR #531・#533–#536）にあるという事実と、plan の「Touches」が一致していない。 | 計画を開き直し、次のように書き直す。(1) U5 は「上流 vivarium の固定guest builder（`tools/fixed-guest-builder/` とworkflow 4つ。merge 71e0ef92）」と「formicarium側の確認（`scripts/migration-guest-build/*`、`tests/migration-guest-build/verify.test.ts`、`mise-tasks/migration/guest-build-*.sh`、package.json の `migration:guest-build:*`）」の2つに分かれると明示する。(2) builder の試験・actionlint・shellcheck のcommandは、上流の71e0ef92のcheckoutに対するcommandと明記し、formicarium内のpathを使わない。(3) traceability.json の target は、上流の path にリポジトリ名とcommitを付けて書き直す。 | Unresolved |
+| R-11 | Minor | aidlc/spaces/default/intents/261012-terrarium-migration/construction/u5-fixed-guest-build/code-generation/code-summary.md > Status（L5–L11）、traceability.json > NFR8.2（L114）、plan > 持ち越し（2026-10-18の追記） | 「完了確認のcommand」の記録が、今のintentの設定と食い違っている。code-summary は、検証commandを `node .artifacts/migration-guest-build/verify-final-u5.mjs ...binding-71e0ef92.json <sha>`（135件）としている。しかし `aidlc-state.md` L62 の Construction Verification Command は `... mise run migration-guest-build-unit && mise run showcase-unit` で、`verify-final-u5.mjs` を含まない。さらにこの script は `PROPOSAL = 'proposals/vivarium/u5'` を読み、`proposalFiles: 52` を期待する（`verify-final-u5.mjs` L14・L38）ので、proposals が空の今は成功しないと推測される（実行はしていない）。bindingにも `proposals/vivarium/u5` の参照が54件ある。さらに `.artifacts/` はBiomeの対象外で、追跡されているかを確認できなかった。 | 受入の証拠が何に結び付くかを1か所で定義する。(1) 上流 merge 71e0ef92 と、CIのrun（39073445357・39076793651・39077142098・39079897400・39080082205）とRelease2件。(2) formicarium の `scripts/migration-guest-build/verify.ts` の確認（`mise run migration-guest-build-unit`、9件）。(3) `verify-final-u5.mjs` を引き続き使うなら、案の52件ではなく上流のtreeを直接照合するように直すか、使わないと記録して code-summary と NFR8.2 の target から外す。`.artifacts/` の証拠を残すなら、追跡の有無を記録する。 | Unresolved |
+| R-12 | Minor | aidlc/spaces/default/intents/261012-terrarium-migration/construction/u5-fixed-guest-build/code-generation/source-manifest.json > writes | manifest の4件が、今の土台の U5 の追跡fileと一致していない。(a) `biome.json` は U5 のものではない。plan が書く U5 の変更（`!!proposals/vivarium/u5` の1行）は今の `biome.json` に無く（includes に `proposals` は無い）、今の `biome.json` は showcase の overrides など別の作業の変更を含む。(b) U5 の追跡fileである `mise-tasks/migration/guest-build-unit.sh`・`guest-build-verify.sh` が入っていない。これらは検証commandの `mise run migration-guest-build-unit` が実際に動かす。(c) package.json の `migration:guest-build:unit`・`migration:guest-build:verify`（L104–L105）も入っていない。package.json は共有fileなので、行単位で扱いを決める必要がある。 | `biome.json` を manifest から外す。plan の「Touches」と2026-10-17の追記（L59）の `biome.json` の説明も、今は変更が無いと直す。`mise-tasks/migration/guest-build-unit.sh` と `guest-build-verify.sh` を manifest に加える。package.json は共有fileなので、U5の2行を含めるか、記録で「U5の2行だけが対象」と明記する。 | Unresolved |
+| R-13 | Minor | scripts/migration-guest-build/assets.ts > nodeAssets（L8–L30） | `tests/package/fixtures.ts > developmentAssets` と同じ処理の複製である。`nodeAssets` は `verify.ts > main` だけが呼び、試験は通らない（試験は `developmentAssets` を使う）。`mkdtemp` で作る一時directoryは、どこでも消されない。assets.ts を読んだ限り、コードの誤りは見つからなかった。 | `main()` 経路（`nodeAssets` と引数処理）を覆う試験を1件足すか、「`main()` は試験していない」と code-summary に書く。一時directoryは終了時に消す。 | Unresolved |
+| R-14 | Minor | scripts/migration-guest-build/verify.ts > checkSet（L83–L106）、tests/migration-guest-build/verify.test.ts | `info` に `dependencies` が無いJSON（例：`{}`）が渡ると、`guestBuildKey(info)` が `info.dependencies` を展開して `TypeError` を投げ、他の入力不正のような `INVALID_INPUT` の拒否にならない。試験は、この場合を含んでいない。`guest(name)` は `dist/guests/{aube,hello,exit3,probe}`（生成物。追跡されない）を読むが、unit-test-instructions.md に、これらを先にbuildする前提が書かれていない（検証commandは `mise run build` を先に実行するので、通常は満たされる）。 | `refuse` で拒否する入力検査（`schemaVersion`、`dependencies` が配列であること）を `guestBuildKey` の前に置き、試験を1件足す。unit-test-instructions.md に、`dist/guests/` と `dist/blink/` が先に必要だと書く。 | Unresolved |
+| R-15 | Minor | aidlc/spaces/default/intents/261012-terrarium-migration/construction/u5-fixed-guest-build/code-generation/traceability.json > FR9・NFR2.1・NFR8.2 の target、code-summary.md > L5 | これらの欄は「この記録の作成時点では未実行」のまま残っている。一方、同じcode-summary.md のStep 22の節（L48–L56）は、同じ確認がexit 0で実行されたと記録している。「作成時点」と断ってあるので矛盾ではないが、traceabilityだけを読む人は、今も未実行と読む。 | traceability.json の3欄に、Step 22で実行済み（`migration-guest-build-unit` 9件、保存済みRelease 2組の照合）と書き足す。 | New |
+| R-16 | Minor | aidlc/spaces/default/intents/261012-terrarium-migration/construction/u5-fixed-guest-build/code-generation/code-summary.md > Step 22（L48–L56） | Step 22の実行結果のうち、lint・typecheck・build・test:light・`migration-guest-build-unit` の件数は、main sessionの記録であり、この再レビューでは読取りのみの条件のため再実行していない（未検証）。byte一致だけは `cmp` で確認した。 | 追加の行動は不要。人間のcheckpointで、検証コマンドを1回通した結果と一緒に確認する。 | New |
+
+> R-02 Not re-checked this round
+
+> R-06 Not re-checked this round
+
+> R-09 Not re-checked this round
+
+> R-10 Not re-checked this round
+
+> R-11 Not re-checked this round
+
+> R-12 Not re-checked this round
+
+> R-13 Not re-checked this round
+
+> R-14 Not re-checked this round
+
+> R-15 Not re-checked this round
+
+> R-16 Not re-checked this round

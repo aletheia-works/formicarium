@@ -24,6 +24,15 @@ node node_modules/@playwright/test/cli.js test --config tests/migration-session/
 第一者配布JS固定inventory全ファイル、全realmを集約しline coverage≥80%。既存回帰はU2 completion側で1回ずつ逐次実行し、Unit test指示へ全体suiteのbare commandを混ぜない。timeout 600秒probe/840秒browser aube、probe8、native一致、wasm1GB、1worker/retry0を維持する。
 同一source/pack/inventoryのU2暫定証拠を保存する。旧16JS/26pack・署名付きCIは履歴として保持し、現在21JS/31packのCI成功とは扱わない。U3 installは既存コードがあるが正式受入れ未完了、U4 commandは今後の作業として区別する。B1完全受入れへ昇格しない。実機Safari、現在sourceの未実施CIは未検証と記載する。
 
+## 1つの file の package Worker の確認（2026-10-19、6回目の再開、追加Step 25–31）
+main session で1つずつ実行する。`node` は mise の実体の path で呼ぶ。
+1. Step 27：`mise run build` のあと、`node --test --test-concurrency=1 tests/package/worker-bundle.test.js` と `node --test --test-concurrency=1 tests/package/public.test.js`。worker-bundle は5–8件（静的な import・`import.meta` が無い、文字列の specifier の動的 import は `node:*` だけ（blink loader の URL を実行時の値で読む動的 import 2つは元の `core.js` と同じで残る。人間が認めた差）、2回の build で同じ SHA256、配布する bundle が元の file から build し直した結果と同じ bytes、pack と配布一覧に入る、既定の Worker の URL が bundle、`options.assets` の Worker が優先）。試験は一時の dir を作る前に `.artifacts` を作り、clean checkout でも動くこと。
+2. Step 28：`node node_modules/@playwright/test/cli.js test --config tests/migration-session/playwright.config.ts tests/migration-session/consumer.spec.ts --project=chromium`、続けて `--project=firefox`、`--project=webkit`（1つずつ、workers=1、retries=0）。宣言 task の `mise run migration-session-browser` で同じ範囲を実行してもよい。
+3. Step 29：U6 の観測の写し（`.artifacts/u6-recipe-runtime/s8-observation/`）を、新しい pack で3ブラウザ × en・ja × 初回・再訪問の24組で実行する（U6 の code-summary の Step 3 と同じ基準）。
+4. Step 30：`mise run lint:all`、`mise run typecheck`、`mise run build`、`mise run test:light`、`mise run migration-session-unit`。U3・U4 の browser の試験は、それぞれの unit-test-instructions の browser の command で1つずつ。
+5. coverage：bundle は生成物として理由付きで対象外にし、計測を入れた元の `runtime/*.js` から bundle を作り直して、bundle の中で動いた行を元の file に数える（人間が認めた差）。source map は、固定の一覧の外の module が bundle に入っていないかの検査に使う。元の file を分母から外さず、U1〜U4 の試験をまとめた収集で 80% 以上を保つ（人間の判断。U2 の試験だけの収集は参考の値として記録する）。
+6. review-01 の指摘の確認：`delete Atomics.waitAsync` が bundle の Worker の中で効くこと（bundle の Worker を起動し、Worker の中で `Atomics.waitAsync` が `undefined` であること）を browser の試験で確かめる。`tests/migration-session/consumer.spec.ts`（又は同じ config の新しい spec）で、Chromium・Firefox・WebKit を1つずつ、`--project` を付けて実行する。子 Worker の script の URL が既定の Worker の URL と同じことも、同じ試験で記録する。使った Bun の版を code-summary に書く。
+
 ## 新しい土台（upstreamのmain）での確認（2026-10-18、5回目の再開、追加Step 20–24）
 下の各節のv8・v10の証拠、旧verification-command.txt、`ci.ts`・`migration-session-u2.yml` による確認は、古い土台・古いtoolchainの履歴として扱い、新しい土台の根拠にしない。main sessionで1つずつ実行する。
 1. Step 20の再現試験：`tests/migration-session/completion.test.ts` に、coverageのreportの件数が `FIRST_PARTY_JS.length` と違うときの拒否と、同じときの受付けを確かめる試験を加える。`mise run build` のあと `node --test --test-concurrency=1 tests/migration-session/completion.test.js` で、直す前の失敗を観測し、直したあと同じコマンドで成功を確かめる（`node` はmiseの実体のpathで呼ぶ）。

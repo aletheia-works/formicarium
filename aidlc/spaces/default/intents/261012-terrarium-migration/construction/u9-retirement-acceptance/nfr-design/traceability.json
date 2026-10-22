@@ -1,0 +1,23 @@
+{
+  "stage": "nfr-design",
+  "unit": "u9-retirement-acceptance",
+  "upstream_ids": ["NFR1.1", "NFR2.1", "NFR2.2", "NFR2.3", "NFR2.4", "NFR8.1", "NFR8.2", "NFR8.3", "NFR8.4", "NFR8.5", "NFR8.6", "NFR8.7", "NFR8.8", "NFR8.9", "NFR8.10", "NFR8.11"],
+  "coverage": [
+    { "id": "NFR1.1", "status": "OK", "target": "S10: list of the U1 and U3 measurement records" },
+    { "id": "NFR2.1", "status": "OK", "target": "S2: local checks one at a time and the PR's required CI checks" },
+    { "id": "NFR2.2", "status": "OK", "target": "S2: terrarium-only tests removed with their code, mapping table, denominator change needs approval" },
+    { "id": "NFR2.3", "status": "OK", "target": "S3: npm pack --dry-run before and after, accepted versions kept" },
+    { "id": "NFR2.4", "status": "OK", "target": "S4: inventory of name contracts, senders and receivers changed together, no adapter" },
+    { "id": "NFR8.1", "status": "OK", "target": "S1: U6 file SHA256 and rows, U8 artifact, manual rerun when expired" },
+    { "id": "NFR8.2", "status": "OK", "target": "S5 runbook executed by the human, S7 read-only checks" },
+    { "id": "NFR8.3", "status": "OK", "target": "S5 steps 1b and 2: support requests, no deprecate, human decides on refusal" },
+    { "id": "NFR8.4", "status": "OK", "target": "S5: no token values in the runbook or records" },
+    { "id": "NFR8.5", "status": "OK", "target": "S2: one signed change on main@upstream, no history rewrite, ruleset unchanged" },
+    { "id": "NFR8.6", "status": "OK", "target": "S6: local rg, git grep on every upstream branch, gh search code as a list only" },
+    { "id": "NFR8.7", "status": "OK", "target": "S8: org rulesets and infra/ read, no destroy" },
+    { "id": "NFR8.8", "status": "OK", "target": "flow D0-D7 with times and results in order" },
+    { "id": "NFR8.9", "status": "OK", "target": "S5: runbook header states irreversibility, PR revert, third-party copies" },
+    { "id": "NFR8.10", "status": "OK", "target": "S9: npm last-month and last-week, JSR meta, GitHub dependents" },
+    { "id": "NFR8.11", "status": "OK", "target": "S5 steps 4 and 5: forks, local clone, jj remotes" }
+  ]
+}

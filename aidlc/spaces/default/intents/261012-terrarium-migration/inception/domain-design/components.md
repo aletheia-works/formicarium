@@ -539,3 +539,5 @@ NFR1はMigrationAcceptance、NFR2はExecutionSessionと全受入、NFR3はGuestV
 
 Release直接取得か同originミラーかはFR1実測後に確定。download/build deadline・展開上限・関数shapeは契約設計で確定してから実装する。既存公開Session・cleanup・core・検証済みbyte実行を再利用し、大規模移管はB0通過まで開始しない。部品間graphは非循環。依存が同期か非同期かは呼出しの完了方式を表し、別deploy単位を意味しない。
 
+2026-10-18改訂：RecipeRunner の「deprecated Contract互換を維持する」は、人間の決定により「terrarium の deprecated 互換は作らない（ready/run/transcript だけを提供）」と読み替える（`../contract-design/contract-summary.md` の末尾の「改訂」節）。
+

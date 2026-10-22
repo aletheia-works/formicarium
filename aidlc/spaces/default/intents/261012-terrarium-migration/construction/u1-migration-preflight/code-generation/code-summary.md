@@ -1,5 +1,41 @@
 # U1 Code Summary
 
+## Step 31〜34：CI Pipeline の境界の確認の後（2026-10-22、人間の回答 A）
+
+この節が、この file の中で最も新しい。下の節は、それぞれの時点の記録として残す。
+
+- 原因（検証済み）：CI Pipeline の Construction → Operation の確認が FAIL（`verification/phase-check-construction.md`）。U1 の `NFR3.2`・`NFR4.1` が `GAP` のままで、U1-NFR1.2 は Build and Test で Not Met なのに追跡表では `OK` だった（`.artifacts/ci-pipeline/gap-rows-proposal.md`）。
+- Step 31（NFR4.1、R-02）：`scripts/migration-preflight/assets.ts` の `extractTar` を非同期にし、signal を受け取って、tar の entry の走査と link の確認の64件ごとに1回、macrotask の境目で `signal.throwIfAborted()` を確かめる（DS2）。`acquireAsset` は自分の signal を渡す。上限・境界・判定は変えていない。不具合の修正の順：先に試験「a tar scan stops at its next entry boundary once the signal is cancelled」を足し、直す前は `extractTar` が signal を受け取れないので build が `error TS2554: Expected 2-3 arguments, but got 4` で止まることを観測した（`.artifacts/build-and-test/logs/u1lb/red-build.log`）。直した後、`assets.test.js` は 10 pass（新しい試験は 29.5ms で取消で終わる）。前からの `extractTar` の試験は、期待を変えずに `await assert.rejects` の形にした。
+- Step 32（NFR1.2）：`tests/migration-preflight/consumer.spec.ts` の trial の `environment` に `testSourceCommit`（環境変数 `FORMICARIUM_PREFLIGHT_SOURCE_COMMIT`、40桁、無ければ止まる）・`os`・`cpu`・`loadBefore`・`loadAfter` を足した。`sourceCommit`（資産の固定の入力の commit）はそのまま。`scripts/migration-preflight/verify.ts` は必須の key の有無と値が文字列であることだけを確かめるので、変えていない。
+- 確認（検証済み、jj workspace `.artifacts/ws-biome`、upstream main `2c00ca1a` の上の change、Node v26.12.1、1つずつ、`.artifacts/build-and-test/logs/u1lb/`）：`mise run lint:all` exit 0（整形は Biome で2 file だけ直した）、`typecheck`・`build` exit 0、`test:light` exit 0（fail 0）、`migration-preflight-unit` 58 pass、`migration-preflight-current-unit` 21 pass。
+- 36試行（検証済み）：人間が証明書 `mirror-tls-20261022` を一時に登録した間に、`mise run migration-preflight-browser`（HTTPS の mirror、1 worker、retry なし、`FORMICARIUM_PREFLIGHT_SOURCE_COMMIT=e915bf48…`）を1回実行した。07:55:39Z〜07:56:17Z、**36 passed**、全 trial の exitCode 0。記録（`.artifacts/ws-biome/.artifacts/migration-preflight/mirror-browser-20261022b/trials/`、36 file）に `Darwin 27.0.0 arm64`・`Apple M1 x8`・load average・`testSourceCommit` がある。phase の合計の中央値／最大：aube chromium 486.8／593.6ms、firefox 551.5／634.3ms、webkit 531.7／609.9ms、biome chromium 662.7／716.1ms、firefox 755.4／958.8ms、webkit 561.0／564.8ms（基準 3000ms）。修正の前の run（Build and Test、firefox の中央値 2245.7〜2477.9ms）より速い。理由は確かめていない（推測：tar の展開を非同期にしたこと）。証明書は人間が削除し、`find-certificate … | grep -ci` が `0` であることを確かめた。
+- Step 33：`traceability.json` の `NFR3.2` を `OK`（R-01 Resolved）、`NFR4.1` を `OK`（target `scripts/migration-preflight/assets.ts`、related `baseline.ts`）、`NFR1.2` は `OK` のまま note に根拠を足した。`aidlc engine sensor-traceability --stage build-and-test`（`.artifacts/build-and-test/sensor-traceability-4.txt`）で U1 の行は未対応に出ない（残るのは U3 と U9）。
+- 未実施：commit・push・PR（人間の承認の後）、独立レビュー、intent の検証コマンドでの checkpoint の確認（Step 35）。
+
+## 2026-10-21：Request Changes の後の承認し直しと Step 30 の確認
+
+この節が、この file の中で最も新しい。
+
+2026-10-21 に、Code Generation の段階を閉じるときの扱いで、人間の選んだ Request Changes が、段階の全体に記録された。人間は、U1 の計画を変えずに承認し直した。計画の Step と内容は変えていない。
+
+PR aletheia-works/formicarium#58（terrarium の削除、merge `5735433d`）の影響：
+
+- Step 26 で直した `tests/terrarium/current-candidate.test.ts` は、terrarium だけの受入として消した。
+- Step 27 の `scripts/terrarium/coverage.ts` は、release の coverage の固定24件のために残している（U9 の S-A）。
+
+Step 30 の確認（main session で1つずつ、2026-10-21、今の source）：
+
+| コマンド | 結果 |
+|---|---|
+| `mise run lint:all` | exit 0 |
+| `mise run typecheck` | exit 0 |
+| `mise run build` | exit 0 |
+| `mise run test:light` | bun 71 pass・37 pass、node 120件（118 pass・2 skip・0 fail）、node 124 pass |
+| `mise run migration-preflight-unit` | 57 pass・0 fail |
+| `mise run migration-preflight-current-unit` | 21 pass・0 fail |
+
+Step 26 の試験は、#58 で消したので実行していない。
+
 Status: いまの土台はupstreamのmain `bbf97ba6` である。v10は履歴。古い土台の最終sourceでの36試行とv11（Step 24の節）は成功済みだが、古い土台での結果であり、新しい土台のsourceの成功証拠としては使わない。署名付きCIとU4のB1統合受入は未実施。新しい土台での修正（Steps 26〜29）は下の節のとおりで、Step 30のうちlint・typecheck・build・test:light・U1の単体2種・Step 26の試験の結果は下に記録した。独立レビュー、intentの検証コマンドによるcheckpoint、mainへのPRは未完。R-02・R-07・R-11・R-13・R-14・R-19は持越し。
 
 ## 新しい土台（upstreamのmain `bbf97ba6`）への合わせ：Steps 26〜29（2026-10-18）

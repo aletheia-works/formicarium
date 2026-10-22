@@ -1,0 +1,62 @@
+{
+  "stage": "nfr-requirements",
+  "unit": "u9-retirement-acceptance",
+  "upstream_ids": [
+    "FR16",
+    "NFR1",
+    "NFR2",
+    "NFR3",
+    "NFR4",
+    "NFR5",
+    "NFR6",
+    "NFR7",
+    "NFR8"
+  ],
+  "coverage": [
+    {
+      "id": "FR16",
+      "status": "OK",
+      "target": "replacement table, NFR8.1-NFR8.11 (the 2026-10-21 human policy replaces deprecation and archive with deletion)"
+    },
+    {
+      "id": "NFR1",
+      "status": "OK",
+      "target": "NFR1.1"
+    },
+    {
+      "id": "NFR2",
+      "status": "OK",
+      "target": "NFR2.1, NFR2.2, NFR2.3, NFR2.4"
+    },
+    {
+      "id": "NFR3",
+      "status": "N/A",
+      "target": "U9 does not change path or archive handling; U9 only changes comments, docs, names (NFR2.4) and terrarium-only code; NFR2.1's CI and NFR2.3 confirm no behaviour change"
+    },
+    {
+      "id": "NFR4",
+      "status": "N/A",
+      "target": "U9 does not change fetch or build deadlines"
+    },
+    {
+      "id": "NFR5",
+      "status": "N/A",
+      "target": "U9 does not build or publish artifacts"
+    },
+    {
+      "id": "NFR6",
+      "status": "N/A",
+      "target": "U9 does not change the browser Worker, COI or CSP; U9 only changes comments, docs, names (NFR2.4) and terrarium-only code; NFR2.1's CI and NFR2.3 confirm no behaviour change"
+    },
+    {
+      "id": "NFR7",
+      "status": "N/A",
+      "target": "U9 does not change the terminal or install UI"
+    },
+    {
+      "id": "NFR8",
+      "status": "OK",
+      "target": "NFR8.1, NFR8.2, NFR8.3, NFR8.4, NFR8.5, NFR8.6, NFR8.7, NFR8.8, NFR8.9, NFR8.10, NFR8.11"
+    }
+  ]
+}

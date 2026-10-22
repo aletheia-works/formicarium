@@ -1,5 +1,38 @@
 # U7 showcase-guests コード生成の要約
 
+## Step 17・18：Build and Test の Loop-back 2（Node の版の固定と追跡表の target、2026-10-22、人間の指示）
+
+この節が、この file の中で最も新しい。下の節は、それぞれの時点の記録として残す。
+
+- 原因（検証済み）：`.github/workflows/showcase.yml` の5か所が `node-version: '26.12.0'` と固定しており、人間の承認で起動した run 39716571748（main `6a90a45b`）は最新の Node 26.12.1 ではなく v26.12.0 で動いた（log の setup-node、`.artifacts/build-and-test/logs/showcase-39716571748.log`）。`traceability.json` の `NFR8.1` の target は path の後に説明の文が続き、`aidlc engine sensor-traceability` に file として読まれなかった。
+- Step 17（`.github/workflows/showcase.yml` だけ）：5か所の `node-version: '26.12.0'` を、`ci.yml` と同じ `node-version: 'latest'` と `check-latest: true` の2行にした（`check-latest` が無いと、runner に入っている古い Node を使うことがあるため、`ci.yml` に合わせた）。Bun の `'1.4.3'`（今の最新と同じ）、試験、基準は変えていない。`showcase/tests/workflow.test.ts` は Node の版を確かめていないので変えていない（`grep` で確かめた）。jj workspace `.artifacts/ws-biome`（`main@upstream` `6a90a45b` の上の change、まだ commit していない）。
+- 確認（検証済み、1つずつ、Node v26.12.1、`.artifacts/build-and-test/logs/lb2/`）：`mise run lint:all` exit 0（警告48・info 47、エラー0）、`mise run showcase-typecheck` exit 0、`mise run showcase-unit` exit 0（100 pass・0 fail・0 skip、行 coverage 88.60%）、`mise run showcase-boundary` exit 0、actionlint 1.7.12 で `showcase.yml` exit 0。
+- Step 18（`traceability.json` の `NFR8.1` だけ）：target を `showcase/scripts/mode.ts` だけにし、前の target の文を `note` にそのまま移した。直した後の `aidlc engine sensor-traceability --stage build-and-test`（`.artifacts/build-and-test/sensor-traceability-3.txt`）で、読めない target は0件になり、U7 の行は未対応に出ない。全体は U1・U3 の `GAP` と U9 の `Deferred` で Fail のまま（U7 の範囲ではない）。
+- 未実施：U8 の `showcase-site.yml` の同じ修正と1つの PR にすること、push と PR、merge の後の `showcase.yml`・`showcase-site.yml` の起動と最新の Node での結果の確認、独立レビュー、intent の検証コマンドでの U7 の checkpoint の確認（Step 19）。
+
+## Step 16：review-07 の Minor 6件の修正（2026-10-22、人間の指示、記録と確認の取り直しだけ）
+
+- 今の main での確認（検証済み、2026-10-22）：別の作業場所 `.artifacts/ws-biome` を formicarium の `main@upstream` `6b5bac1f`（#63。#58・#60・#61・#62 を含む）に合わせ、1つずつ実行した。`mise run lint:all` exit 0（Biome 2.6.2、エラー0、警告48・info 47）、`mise run typecheck`・`mise run build`・`mise run showcase-typecheck` exit 0、`mise run showcase-unit` exit 0（100件 pass・fail 0・skip 0、`showcase/scripts` の行 coverage 88.60%、分岐 81.67%、関数 86.31%）、`mise run showcase-boundary` exit 0（`boundary: no violation`）、`mise run test:light` exit 0（bun 71件 pass、tooling 38件 pass、node 120件中 118 pass・skip 2〈既存〉、124件 pass）。下の節の値（警告48、100/100・88.61%、130/130 など）は #60 の前の値である。
+- R-08：U8 の PR aletheia-works/formicarium#54（merge `94970a9e`）は `showcase/scripts/mode.ts` を変え、`distribute` を main への `push` と `workflow_dispatch` だけで受け付け、`schedule` を拒否するようにした（`showcase/tests/mode.test.ts` も変えた）。#57（merge `c8497135`）は `showcase-site.yml` の deploy を candidate の成功に結び付けた。`showcase/trusted-callers.json` は `distributeCaller` が `.github/workflows/showcase-site.yml` のまま。`traceability.json` の NFR8.1 に足した。
+- R-09：`distribute` の実行を確かめた。`showcase-site.yml` の run 39422079965（main への push、head `94970a9e`、2026-10-20T12:25:04Z、success）の candidate の job が `mode: distribute` で動き、`distributable=true` の候補 `5e1297ed827c2bb75b945e2270ad9a332303427824558af19259899d2e7080f2` を作り、deploy・verify-deployment まで success だった（GitHub の jobs と log の読取りで検証済み）。
+- R-06：古い記録（`b1-pack.json` の `null`、候補の artifact は未検証、`distribute` は未検証、記録との差）に、その時点の記録だという注記を足した。
+- R-07・新2・ci.yml の読み方：計画の末尾の Step 16 の節に注記を足した。
+- terrarium の参照（検証済み）：`showcase/` を grep すると、2か所が残る。`showcase/fixtures/biome-basic/app/example.js` の文言「Hello, terrarium!」と、それを確かめる `showcase/site/tests/accept/site.spec.ts` の38行。showcase の demo fixture の文言で、移管元への参照ではない。直すかどうかは、前に「showcase の fixture の文言は main で直す」とした別の件として残す（U7 では変えない）。
+
+## 2026-10-20の再開（Step 14・15）
+
+人間の指示で、#52で変わったU7のfileを記録に取り込み（Step 14）、review-03までのMinorの指摘R-01〜R-05を直した（Step 15）。製品のscript（`showcase/scripts/`）の振る舞いは変えていない。
+
+### Step 14：B1のpackのReleaseを指す（検証済み）
+- PR aletheia-works/formicarium#52（main `c9b37c4a`）で、`showcase/b1-pack.json` をprerelease `b1-a3370ca4df1f`（pack `a3370ca4…4046`、C06の証拠 `0c6e547f…7a35`。U4の正式な受入、受入run 39378404328）に向けた。`showcase/tests/config.test.ts` の期待値をこの値に変え、`showcase/README.md` のB1の節を直した。`validateB1Pack`・`checkEvidence` が値を受け付け、本物のReleaseに向けた `packDistribute` で配布の記録まで作れた。lint:all・build・showcase typecheck exit 0、showcase unit 96/96、test-light 130/130。
+
+### Step 15：Minorの指摘の修正（検証済み、mainで1つずつ）
+- R-01：`showcase/README.md` の冒頭と「未検証のこと」節、本体 `README.md` のshowcaseの節を、CIの受入（12行。最初はrun 39113037176、今のmain `c9b37c4a` ではrun 39412286499）が通ったことと、本当に未検証の部分（`distribute` の実行、実機Safari）だけを書く形に直した。
+- R-02：main `c9b37c4a` の `showcase.yml` run 39412286499（push・main・success）の `showcase-candidate`（artifact 12260591461、ZIPのSHA256 `bf43df82…d8cb` がAPIのdigestと一致）を読取りだけで取得した。`manifest.json` の13個の資産のSHA256と大きさ、`acceptance-log.json`（12行）と `catalog.json` のSHA256、`computeCandidateId` の再計算がすべて一致した。3ツール（aube 2.8.0・biome 2.5.15・pitchfork 2.32.0）のbuild-info、`NOTICES.md`、5個のlicenseがあった。`distributable: false`（verify）。`traceability.json` のNFR5.2・NFR8.2に記録した。
+- R-03：`showcase/tests/candidate.test.ts` に `lastDistributableAt` の試験を3件足した（新しい順で最初の配布可能な候補の時刻、信頼しないworkflow・期限切れ・artifactなし・`distributable` が真でない場合はnullで、信頼しないrunや期限切れのartifactはdownloadしない、`limit` を超えて読まない）。偽のGitHub APIと偽のZIPを使い、外部のnetworkは使わない。`candidate.ts` の行coverageは76.65%→85.93%。残る未計測はCLIの `main()`（286–332行）。`accept-node.ts`・`tls.ts` の多くの経路はCIの受入でだけ守られることを `showcase/README.md` に書いた。
+- R-04：`showcase/tests/workflow.test.ts` に、`trusted-callers.json` の `distributeCaller`（`.github/workflows/showcase-site.yml`）が実在し、そのjobが `uses: ./.github/workflows/showcase.yml` を `mode: distribute` で呼ぶこと、`reuseWorkflows` にも入っていることを確かめる試験を1件足した。別のworkflowやmodeの違う呼び出しを数えないことも確かめる。
+- R-05：今のmainで1つずつ実行した。`mise run lint:all` exit 0（警告48、前と同じ）、`mise run showcase:typecheck` exit 0、`mise run showcase:unit` 100/100（showcaseのscript全体の行88.61%、基準80%）、`mise run showcase:boundary` は `boundary: no violation`、`mise run test:light` 130/130。下の「Status」と「Test coverage summary」の値（91件、87.76%）は、U8の取り込み前（2026-10-18）の結果である。
+
 ## Status
 
 - 実装（Step 1–8・10・11）は upstream の main に PR aletheia-works/formicarium#31（merge `880cfd4a`）で取り込み済み。この記録の作成時点（2026-10-18）の working copy は main `bbf97ba6` の上で、`jj diff -r '880cfd4a..bbf97ba6'` は `showcase/`・`.github/workflows/showcase.yml`・`mise-tasks/showcase/`・`package.json`・`biome.json`・`.gitignore`・`README.md`・`runtime/`・`types/`・`web/` のいずれも 0 files changed（検証済み）。U7 のコードはこの stage で書き直していない。
@@ -20,7 +53,7 @@ U7 が作成・変更した application source（`source-manifest.json` と同�
 - showcase は公開 export（root・`/node`・`/browser`）だけを使い、tar.gz の展開と正規化 JSON（buildKey・candidateId）は showcase の中に実装した。最終の検証は公開の `validateGuest`・`createInstaller`・`createCommandSession` がもう一度行う（ドキュメント根拠：計画の「前提と境界」）。
 - upstream の規約への合わせ（2026-10-18、人間の指示）：task は `mise.toml` ではなく `package.json` の `showcase:*` と `mise-tasks/showcase/*.sh` に置いた。repository の保護の OpenTofu（`infra/github/`）は、upstream の既存の `infra/github/` が管理しているため新しく作らなかった。
 - source build の toolchain は upstream の宣言を優先し、なければ最新の安定版（CI では rustup の stable 1.99.1。acquire job の log `latest update on 2026-10-15 for version 1.99.1`）。pitchfork の `sourcePatches` は空。
-- `showcase/b1-pack.json` は B1 の Release を作るまで全 field `null`。`distribute` は `b1-pack-unavailable` で失敗する（`showcase/tests/pack.test.ts` の `distribute fails closed without a B1 Release`）。
+- `showcase/b1-pack.json` は B1 の Release を作るまで全 field `null`。`distribute` は `b1-pack-unavailable` で失敗する（`showcase/tests/pack.test.ts` の `distribute fails closed without a B1 Release`）。（2026-10-22 の注記：その時点の記録。今は Step 14 で B1 の Release `b1-a3370ca4df1f` を指す。冒頭の再開の節が正しい。）
 
 ## Test coverage summary
 
@@ -86,9 +119,9 @@ Step 9 の受入（CI、`gh run view 39113037176 -R aletheia-works/formicarium -
 - ローカルの受入（`mise run showcase-accept-node`・`mise run showcase-accept-browser`）：実行していない。人間の回答 Q1（CIで受入）により CI の受入で置き換えた。理由は、`resolve.ts` が `origin/main` の許可一覧だけを読むことと、browser の受入が job 専用 CA を信頼した環境を要すること（macOS では人間の操作が要る）。
 - pitchfork の source build：ローカル（macOS）では実行していない（計画どおり Linux の CI だけ）。CI の acquire job で build 済み。
 - 実機 Safari：未検証。WebKit の結果で置き換えない（NFR6.1）。
-- 候補 artifact の中身（`manifest.json`・受入 log・license と notices・build-info）：artifact を取得していないので未検証。CI の log で見えた値だけを上に記録した。
+- 候補 artifact の中身（`manifest.json`・受入 log・license と notices・build-info）：artifact を取得していないので未検証。CI の log で見えた値だけを上に記録した。（2026-10-22 の注記：その時点の記録。今は Step 15 の R-02 で中身を確かめた。冒頭の再開の節が正しい。）
 - candidate job の job summary（「最後に `distributable: true` の候補を作った run からの日数」）：log には出ないので、今回の run の値は未検証。計算は `showcase/tests/candidate.test.ts` の `days since the last distributable run, and the job summary line` で検証済み。
-- `distribute` mode の実行：未検証。B1 の Release がまだなく（`showcase/b1-pack.json` は `null`）、U8 の workflow も未作成。
+- `distribute` mode の実行：未検証。B1 の Release がまだなく（`showcase/b1-pack.json` は `null`）、U8 の workflow も未作成。（2026-10-22 の注記：その時点の記録。今は確かめた：U8 の `showcase-site.yml` の run 39422079965〈main への push、head `94970a9e`、2026-10-20T12:25:04Z、success〉の candidate の job が `mode: distribute` で動き、`distributable=true` の候補 `5e1297ed…80f2` を作り、deploy と verify-deployment まで success〈GitHub の読取りで検証済み、2026-10-22〉。）
 - browser の COI：`showcase/tests/accept.spec.ts` は `crossOriginIsolated` が偽なら `not-cross-origin-isolated` で行を失敗させるので、CI の 9 行の `passed` は COI の成立を含む（検証済み、log と code から）。CSP（blob・wasm）は `showcase/scripts/accept-server.ts` が付ける（ドキュメント根拠）。Worker の `delete Atomics.waitAsync` は本体の browser Worker のもので、U7 は変えていない。応答 header の実測値は artifact・log にないので未検証。
 
 ## Deviations from the plan
@@ -97,7 +130,7 @@ Step 9 の受入（CI、`gh run view 39113037176 -R aletheia-works/formicarium -
 - Step 9：ローカルの受入を CI の受入で置き換えた（人間の回答 Q1）。
 - Step 11：OpenTofu（`infra/github/` の新設、`tofu fmt -check`・`tofu validate`）は、upstream の既存の `infra/github/` が管理しているため取り下げた。`showcase/README.md` と本体 `README.md` の 1 節は作成済み。
 - Step 12：計画の一覧に加えて、単体試験の手順の 2（`showcase-stage`）を `SHOWCASE_SOURCE_COMMIT` を付けて実行した（README の手順どおり。付けないと `config-invalid: verify needs the 40-hex source commit` で止まる）。
-- 記録との差（未修正、指摘外の変更をしないため）：本体 `README.md` の showcase の節と `showcase/README.md` の「未検証のこと」は「受入・CI は未検証」と書いているが、CI の受入は run 39113037176 で通った。文言の更新は別の変更として人間の判断を待つ。
+- 記録との差（未修正、指摘外の変更をしないため）：本体 `README.md` の showcase の節と `showcase/README.md` の「未検証のこと」は「受入・CI は未検証」と書いているが、CI の受入は run 39113037176 で通った。文言の更新は別の変更として人間の判断を待つ。（2026-10-22 の注記：その時点の記録。Step 15 の R-01 で文言を直した。冒頭の再開の節が正しい。）
 
 ## Sources
 

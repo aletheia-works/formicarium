@@ -1,5 +1,204 @@
 # U2 code summary（2026-10-16 再開）
 
+## Step 36：`scripts/ci/run.ts` を U2 の一覧に足し、この intent の変更でない148件を外した（2026-10-22、人間の判断「はい、その形で進めて下さい。」）
+
+- Code Generation の段階を閉じるとき、どの Unit の一覧にも無い変更が146件あると AI-DLC が止めた。私の計算（WORKFLOW_STARTED の baseline `baseline-d4cdc9bc3d99.tsv`〈2026-10-12 18:54〉と今の作業場所の差のうち、どの Unit の `source-manifest.json` にも無く、ignore されていないもの）では150件。各 file を formicarium の main（`5735433d`）と比べて分類した（一覧は formicarium の `.artifacts/u9-retirement/uncovered-report.md`、追跡しない）。
+- この intent の変更：`scripts/ci/run.ts` の1件。PR #29（`f5bc078c`）が、migration の session・install・command の coverage の suite（`MIGRATION_COVERAGE_SUITES`、`migration-session/guest-validation` などの試験の一覧）を足した。今の file にその内容が残り（40行・47行・324行）、SHA256 `0d1fcffc7cc5f8c8562c72e573cc2373ddcaeaf2122d9e13bd798fc4a43750a5` は main の `5735433d` と同じ（検証済み）。U2 の session・guest-validation の試験を含むので、U2 の `source-manifest.json` に足した（71件）。code は変えていない。
+- AI-DLC の設定：`.aidlc-source-paths.json`（何を source の確認から外すかを書く file）。`exclude` に自分自身を足した。
+- この intent の変更でないもの：148件。intent の開始前（2026-10-11〜12）に main に入った変更（#3・#8・#9・#11・#14・#15・#17・#18・#19・#20・#23・#24・#27。うち50件は main で消された file）と、開始後のほかの作業（dependabot の #28・#37、release 0.3.0 の #30、OpenTofu の #39）と、`OUTCOMES.md`（main の初めの snapshot と同じ）。baseline を取ったときの作業場所が main より古かったため、差に見えた。人間の判断で、folder ではなく file の名前で1件ずつ `.aidlc-source-paths.json` の `exclude` に足した（`exclude` は151件）。影響：この148件は、この intent の残りの段階で source の確認の対象から外れる。この intent の作業でこれらの file を変える予定は無い。intent を閉じた後の D7 で AI-DLC の記録ごと消す。
+
+## Step 35：固定の入力の payload を U2 の一覧に足した（2026-10-21）
+
+この節が、この file の中で最も新しい。
+
+Code Generation の段階を閉じるとき、どの Unit の一覧にも無い変更として、AI-DLC が `ci/migration-session/payload/*.bin` を挙げた。これは U2 の CI の固定の入力なので、人間の判断で U2 の `source-manifest.json` に 18 件を足した。計画の Step と内容、製品コードは変えていない。
+
+読取りの確認（2026-10-21、`node` で `ci/migration-session/inputs.bundle.json` と disk を比べた）：
+
+- `inputs.bundle.json` の `files`：19行で、SHA256 は 18 種類。2行が同じ内容を指す。
+- U2 の一覧に足した path：18件。
+- disk の `ci/migration-session/payload/`：18 file。
+- 一覧にあって bundle に無いもの、bundle にあって一覧に無いもの、disk にあって一覧に無いもの：どれも0件。
+
+## Step 32〜34：terrarium の削除（PR #58）の後の確認（2026-10-21、7回目の再開）
+
+この節が、この file の中で最も新しい。下の節は、それぞれの時点の記録として残す。
+
+U2 の Code Generation は、レビューの回数を使い切っていた。そのため、人間の判断（2026-10-21「はい、開き直して下さい」）で開き直した。土台は upstream の main `5735433d`（PR aletheia-works/formicarium#58 の merge）。U2 の製品コード（`runtime/`・`types/`）と公開 API は変えていない。
+
+### Step 32：#58 が U2 の file に与えた影響（検証済み）
+
+`jj diff -r u9-remove-terrarium` のうち、U2 の `source-manifest.json` の path に当たる file を読んだ。
+
+- `scripts/migration-session/stage.ts` の `sessionSourceInventory`：消した3件（`docs/terrarium-integration.md`、`tests/terrarium/current-candidate.test.{ts,js}`）を一覧から外しただけ。外した file は存在しないので、残すと readFile で失敗する。
+- `scripts/release/inventory.ts`：guest の配布の部品の path を、`integration/terrarium/guest-distribution/` から `integration/guest-distribution/` に変えただけ。件数は変わらない。
+- `scripts/terrarium/coverage.ts`：固定の terrarium の試験の中の文字列を置き換える先の path を、移した先に変えただけ。
+- `tests/release/publication-alignment-fixture.ts`・`tests/tooling/publication-version.test.ts`：release の判定から外した `ADOPTION_CHECKS`（terrarium の consumer の受入）を、`RC_CHECKS` に置き換えただけ。
+- `README.md`・`package.json`：terrarium の言及と、消した試験の glob を除いただけ。
+- `docs/terrarium-integration.md`・`tests/terrarium/current-candidate.test.ts`：#58 で消した（terrarium だけの受入）。
+
+結論：U2 の振る舞い（C02・C03、候補の inventory の作り方、coverage の分母）は変わっていない。
+
+試験の結果（main session で1つずつ、2026-10-21）：
+
+| コマンド | 結果 |
+|---|---|
+| `mise run typecheck` | exit 0 |
+| `mise run build` | exit 0 |
+| `mise run test:light` | bun 71 pass・37 pass、node 120件（118 pass・2 skip・0 fail）、node 124 pass |
+| `mise run migration:session-unit` | 48件のうち 47 pass・1 fail |
+
+`migration:session-unit` の1件の失敗は `tests/migration-session/consumer.test.js` である。この試験は、stage した候補を指す環境変数（`FORMICARIUM_CANDIDATE`・`FORMICARIUM_CONSUMER`・`FORMICARIUM_SESSION_GUEST`）が無いと、`tests/migration-session/consumer-input.ts` の最初の確認で必ず失敗する。今回は準備していないので、未検証とする。
+
+### Step 33：記録の更新
+
+- `source-manifest.json`：#58 で消した `tests/terrarium/current-candidate.test.ts` と `docs/terrarium-integration.md` を外した。
+- `traceability.json`：移した file・消した file を指す行は無かった（`rg` で確かめた）。
+- 開いている指摘の扱い：
+  - R-16：下の「5回目の再開」の見出しの土台（`bbf97ba6`）は、その時点の値として残す。今の土台は、この節の `5735433d` である。その時点の46件の試験は、`checkSessionCandidate` の U2 の identity の確認を通していない（その時の候補の unit は `u4-command`）。
+  - R-18：U2 の完了の coverage の根拠は、人間の判断（2026-10-19）どおり、U1〜U4 をまとめた収集とする。U2 の試験だけで測った値（59.75%）は、参考の値として残す。
+  - R-15：`completion.ts` の比較を path の集合にする変更は、code の変更なので、この再開（記録だけ）では直さない。Minor として残る。
+  - R-17：intent の検証コマンドは `migration:session-unit` を含まない。`completion.test.js` は `migration:session-unit` の中でだけ動く。Minor として残る。
+
+## Step 30a：review-01（NOT-READY）の指摘の修正（2026-10-19）
+
+この節が今の状態である。下の「6回目の再開」の節は、この修正の直前の状態として残す。表記は下の節と同じ（**検証済み**・**ドキュメント根拠**・**推測**）。Step 31（独立レビュー・checkpoint・PR）は行っていない。製品コード（`runtime/**`）は変えていない。変えたのは試験の2つの file と、U2 の coverage の realm の一覧（`scripts/migration-session/coverage.ts`、配布物に入らない開発用の script）である。
+
+### 変えた file
+- `tests/package/worker-bundle.test.ts`（U2 の新しい file）：R-02 と R-04。7件→8件。
+- `tests/migration-session/consumer.spec.ts`（U2 の file）：R-01 と R-05 の試験を1件足した。3件→4件。後のレビューの R-07 で、main の bundle Worker を URL ではなく name で探すように直した（下の R-07）。`playwright.config.ts` は変えていない（`testMatch` が `consumer.spec.ts` なので、宣言 task の `migration-session-browser` と coverage の収集でもこの試験が走る。検証済み：下の R-07 の coverage の収集で 3ブラウザ×4件が走った）。
+- `scripts/migration-session/coverage.ts`（U2 の file）：R-07。`SESSION_REALMS.browserCases` に新しい試験の題名と Worker の realm の数 20 を足した。
+- `traceability.json`：NFR8.1 → `tests/package/worker-bundle.test.ts`、NFR2.2 → `scripts/migration-session/coverage.ts` の行を足した。`source-manifest.json`：変えた3つの file は既に一覧にあるので、変更は無い。
+- U1・U3・U4 が claim する file は変えていない。U3 の `INSTALL_REALMS`（`scripts/migration-install/coverage.ts`）と U4 の `COMMAND_REALMS` は `SESSION_REALMS.browserCases` を展開して作るので、U3・U4 の file を変えずに新しい試験が入る（ドキュメント根拠：両方の file の読取り。U1〜U4 の収集が通ったことは下で検証済み）。
+
+### R-07：coverage の収集での新しい試験（後のレビューの指摘、検証済み）
+- 指摘：`SESSION_REALMS.browserCases` に新しい試験が無く、`reportCoverage` が「計画の case の数と realm の数」の不一致で拒否する。また、coverage の下では page の `Worker` が `/coverage-browser-worker.mjs` に置き換わるので、`page.waitForEvent('worker', w.url() === defaultURL)` が一致せず止まる（推測とされていた）。
+- 直す前の観測1（止まること）：`node scripts/migration-session/coverage.js prepare .artifacts/migration-session/r07-red-20261019/coverage` の後、その `tests/migration-session` で `node …/@playwright/test/cli.js test --config playwright.coverage.config.mjs --workers=1 --retries=0 --project=chromium -g 'default bundle Worker'` を実行した。1 failed（14.0m）：`Test timeout of 840000ms exceeded.` `Error: page.waitForEvent: Test timeout of 840000ms exceeded.`（`waiting for event "worker"`、spec の 116 行目＝手順2）。手順1（URL と name の記録）はこの時点で通っていた。timeout は変えていない。
+- 直したこと1：手順2の main の bundle Worker に name `waitasync-main-probe` を付けて起動し、返事を受けた後に `page.workers()` の各 Worker で `self.name` を読んで、その名前の Worker 1つだけで `typeof Atomics.waitAsync` を読む（`expect(inspected).toEqual(['undefined'])`）。bundle は name が `em-pthread` でなければ main の経路を通るので、name を付けても main の振る舞いは同じである（ドキュメント根拠：`runtime/web/package-worker.ts` の読取り）。既定の URL の性質は、手順1の page 側の `Worker` の引数の記録で確かめる。coverage の収集の包みより外側で引数を記録するので、どちらの実行でも同じ値になる（検証済み：下の2つの実行で `defaultURL` と子の URL が一致）。
+- 直す前の観測2（report の拒否）：直したこと1の後、`SESSION_REALMS` を変える前に、新しい copy `.artifacts/migration-session/r07-a-20261019/coverage` で U2 の収集を `completion.ts` と同じ順に1つずつ実行した（package の Node 115 pass、U2 の Node 46 pass、package の browser 99 passed、U2 の browser 12 passed）。report は `Error: missing planned browser case: chromium` で拒否した。新しい試験の realm は3ブラウザとも 21行（host 1＋Worker 20、すべて登録済み）だった。
+- 直したこと2：`SESSION_REALMS.browserCases` に新しい試験を 20 で足した。内訳は aube の実行1回の17（既存の case と同じ数）と、普通の Worker・main の bundle Worker・子の bundle Worker の3つである。子 Worker の数は aube の実行1回で16と、既存の case の17と同じく固定なので、数は固定にした（検証済み：3ブラウザ・3回の実行のどれでも子 Worker 16）。
+- 閾値（80）、分母（23 file）、timeout、worker 1、retry 0 は変えていない。
+
+### tool の版（検証済み）
+- **Bun 1.4.3**（`/Users/mutoakio/.local/share/mise/installs/bun/1.4.3/bin/bun --version`、`mise latest bun` も 1.4.3）。Node 26.12.0（`mise latest node` も 26.12.0）。
+- node の試験は mise の実体の path で実行し、`buildWorkerBundle` が呼ぶ `bun` も、PATH の先頭に mise の実体の dir を置いて shim を使わないようにした（`which bun` → `/Users/mutoakio/.local/share/mise/installs/bun/1.4.3/bin/bun`）。
+
+### R-02：`.artifacts` が無い状態での失敗と修正（検証済み）
+- 再現の方法：本物の `.artifacts` を消さないため、試験の一時 dir の親を環境変数 `FORMICARIUM_WORKER_BUNDLE_ARTIFACTS`（既定は `.artifacts`、root からの相対）で変えられるようにした。親を、存在しない `.artifacts/r02-clean-checkout/.artifacts` にして実行した（実行前に `ls` で無いことを確かめた）。親の path が違うだけで、`mkdtemp` を呼ぶ処理は clean checkout と同じである。
+- 直す前（RED）：`mise run build` exit 0 の後、`FORMICARIUM_WORKER_BUNDLE_ARTIFACTS=.artifacts/r02-clean-checkout/.artifacts node --test --test-concurrency=1 tests/package/worker-bundle.test.js` で7件のうち pass 6・fail 1・skip 0。fail は `two Bun builds of the same modules give the built bundle bytes`（`ENOENT: no such file or directory, mkdtemp '…/.artifacts/r02-clean-checkout/.artifacts/worker-bundle-WrHgGf'`）。
+- 直したこと：`mkdtemp` の前に `await mkdir(artifacts, { recursive: true })` を呼ぶ（`tests/package/coverage.test.ts` と同じ形）。
+- 直した後（GREEN）：`mise run build` exit 0 の後、同じコマンドで7件 pass・fail 0・skip 0。親の dir が作られた（`.artifacts/r02-clean-checkout/.artifacts` は空のまま残る。`.artifacts/` は SCM の対象外）。
+
+### R-04：配布する bundle と作り直した bundle の一致（検証済み）
+- 新しい試験 `staged package bundle has the bytes of a Bun rebuild from the staged originals`：`stagePackage` で `.artifacts/worker-bundle-stage-*/package` に配布物を作り、manifest の bundle の SHA256 と stage された bundle が同じことを確かめる。stage された bundle を消し、stage された `runtime/**`（配布する元の file だけ）から `buildWorkerBundle` で作り直し、同じ SHA256 になることと、source map の `sources` が `FIRST_PARTY_JS` の中だけであることを確かめる。
+- これで、`runtime/*.js` を変えて bundle を作り直さずに stage した場合（review の R-04 の推測の場合）は、この試験が失敗するはずである（推測：その状態を作って実行してはいない）。stage-package・verify-package 自体には照合を足していない（製品の script を変えないため。見送りの理由）。Bun の版は build-info に残していない。この code-summary に Bun 1.4.3 を記録した。
+- bundle の SHA256 は `8cc5f46890d469bd8516ffbf9dd3f81bde91c38bb00f97e79d2c70c15772ee98` のまま（`shasum -a 256`）。U2 候補 `candidate-9497a91c…` の tgz の中の bundle も同じ値（`tar -xOzf … | shasum -a 256`）。
+
+### R-01・R-05：bundle の Worker の中の `Atomics.waitAsync` と子 Worker の URL（検証済み）
+- 新しい試験 `default bundle Worker and its em-pthread children share one URL and lack Atomics.waitAsync`（`consumer.spec.ts`、install した U2 候補の package を配る）：
+  1. page の `Worker` を包んで、既定の `createSession()` で本物の aube `--version` を実行し、page が作るすべての Worker の URL と name を記録する。最初の Worker は既定の URL（`/runtime/web/package-worker.bundle.js`）で name なし、残りはすべて name `em-pthread` で、URL は既定の URL と同じであることを確かめる。
+  2. 既定の URL を main の Worker として（name `waitasync-main-probe` を付けて）起動し、不正な要求への `EXECUTION` の返事を受けてから（bundle が評価された後）、Playwright の `worker.evaluate` で、その name の Worker の中の `typeof Atomics.waitAsync` を読む（R-07 で URL ではなく name で探すように直した）。
+  3. 既定の URL を name `em-pthread` の子として起動し、`core-bootstrap` の `moduleURL` に、`typeof Atomics.waitAsync` を返す blob の module を渡す。bundle は core の loader を import するのと同じ `import(descriptor.moduleURL)` でこれを読むので、core の loader を import する時点の値が分かる。
+  4. 比べるために、bundle ではない普通の module Worker の中の値も記録する。
+- 結果（`--project` を付けて1つずつ、workers=1、retries=0。各4 passed、fail・skip 0）：
+
+| browser | 普通の Worker | main の bundle Worker | 子の bundle Worker（core の import の時点） | 子 Worker の数 | 子の URL が既定の URL と同じ |
+|---|---|---|---|---|---|
+| chromium | `function` | `undefined` | `undefined` | 16 | true |
+| firefox | `function` | `undefined` | `undefined` | 16 | true |
+| webkit | `function` | `undefined` | `undefined` | 16 | true |
+
+- 3つのブラウザとも普通の Worker には `Atomics.waitAsync` があるので、この試験は bundle の `delete Atomics.waitAsync` が無くなれば失敗する（推測：delete を外した bundle で実行してはいない）。
+- review の R-05 の (b)（U6 の観測は `options.assets` 相当で、既定の切り替えを通っていない）について：既定の切り替えと子 Worker の URL はこの試験（3ブラウザ、分離は `crossOriginIsolated` の COI server）で確かめ、coi-serviceworker の分離の下での動作は U6 の明示の URL の観測で確かめた。この2つを組み合わせて根拠にしている。
+
+### R-03：人間が認めた差の書き方
+- 試験指示の「1つの file の package Worker の確認」の1と5は、下の節の差の2（coverage は計測を入れた元の file から bundle を作り直す。source map は範囲の検査に使う）と差の3（文字列の specifier の動的 import は `node:*` だけ、実行時の値の2つは `core.js` と同じで残る）と同じ内容になっている（ドキュメント根拠：両方の文を読んで比べた）。この code-summary の書き方もそれに合わせている。
+
+### R-06：U2 の試験だけの coverage
+- 人間の判断（試験指示の5）に従い、U2 の試験だけの収集の値は**参考の値**として記録し、根拠は U1〜U4 をまとめた収集とする。R-07 を直した後、新しい試験を含めて両方を新しい copy で1つずつやり直した（検証済み）：
+  - U2 だけ（`.artifacts/migration-session/r07-b-20261019/coverage`、U2 候補 `candidate-9497a91c…`）：package の Node 115 pass、U2 の Node 46 pass、package の browser 99 passed、U2 の browser 12 passed（すべて fail・skip 0）。report は **1228/2055 行＝59.75%**、23 file、1441 realm、`passed: false`（`Error: fixed inventory line coverage 59.75% is below 80%`。realm の検査は通った）。SHA256 `ba0485159953022855595e1cc5a91040523b57a1a5b70e3a5192ff2d0dc6c7a3`。
+  - U1〜U4 をまとめた収集（`scripts/migration-command/completion.ts` と同じ coverage の command を1つずつ。`.artifacts/migration-command/r07-combined-20261019/coverage`、U4 候補 `candidate-413e2265…`、consumer は scratchpad の `u4-bundle-consumer`）：package の Node 115 pass、U2〜U4 の Node 188 pass、package の browser 99・U2 12・U3 9・U4 9 passed（すべて fail・skip 0）。report は **1894/2055 行＝92.16%**、23 file、1676 realm、threshold 80、`passed: true`、error なし。SHA256 `6ce151cc32c28e66f8a23e6f317a5da8964a982ad580fac8e638845f7fb3a8ee`。bundle は report の file に無い。
+  - 行の数は、下の節の Step 28（1228/2055、1894/2055）と同じである。realm は新しい試験の3ブラウザ×21 だけ増えた（1378→1441、1613→1676）。
+- bundle に替える前の U2 の試験だけの収集は**未測定**である。したがって、bundle に替えたことで U2 の試験だけの行が減っていないことは示せていない。この点は Step 31 の人間への報告に載せる。
+
+### R-07 を直した後の試験（main session で1つずつ、2026-10-19）
+- `mise run build`：exit 0。
+- U2 だけの収集と U1〜U4 の収集：上の R-06 のとおり。
+- `consumer.spec.ts` を `--project=chromium`・`firefox`・`webkit` の順に：各4 passed（fail・skip 0）。waitAsync は3ブラウザとも、普通の Worker `function`、main の bundle `undefined`、子の bundle（core の import の時点）`undefined`。子 Worker 16、子の URL は既定の URL と同じ。
+- `mise run lint:all`：exit 0、error 0（warning 48・info 47、前と同じ数）。変えた3つの file の diagnostic は、`scripts/migration-session/coverage.ts` の変えていない行（133行目、`session-collection-boundary.json` の書出しの `+ '\n'`）の info `useTemplate` 1件だけ。指摘の範囲の外なので直していない。
+- `mise run typecheck`：exit 0。
+- `mise run test:light`：exit 0。bun 71・37 pass、node 125 件のうち pass 123・skip 2、node 130 pass、fail 0（skip の2件は前と同じ数）。
+
+### R-07 より前の試験（main session で1つずつ、2026-10-19）
+- `mise run build`：exit 0。
+- `node --test --test-concurrency=1 tests/package/worker-bundle.test.js`：8 pass・fail 0・skip 0。
+- `node --test --test-concurrency=1 tests/package/public.test.js`：6 pass・fail 0・skip 0。
+- `node node_modules/@playwright/test/cli.js test --config tests/migration-session/playwright.config.ts tests/migration-session/consumer.spec.ts --project=chromium`、続けて `firefox`、`webkit`：各4 passed（計12、fail・skip 0）。入力は `FORMICARIUM_CANDIDATE=.artifacts/migration-session/candidate-9497a91c-65ff-4f3d-a9c0-a812f0c2fef5/package.manifest.json`、`FORMICARIUM_CONSUMER=`（scratchpad の）`u2-bundle-consumer`、`FORMICARIUM_SESSION_GUEST=.artifacts/u2-release-inputs/aube-v2.7.0/aube`。今回は製品コードを変えていないので、候補は作り直していない。
+- `mise run lint:all`：exit 0、error 0（warning 48・info 47。前と同じ数）。変えた2つの file には diagnostic が無い（`node_modules/.bin/biome check` で確かめた）。
+- `mise run typecheck`：exit 0。
+- `mise run test:light`：exit 0。bun 71 pass・37 pass、node 125 件のうち pass 123・skip 2、node 130 pass。fail 0。skip の2件は数が前と同じで、前からの既知のもの（「Actual release assets absent」）と読む（ドキュメント根拠：名前は今回の出力では確かめていない）。成功には数えない。
+
+### 未検証・していないこと
+- Step 31（独立レビュー、intent の検証コマンドでの checkpoint、push、PR）。
+- coverage 付きの `migration-session-completion`・`migration-command-completion` の全工程（probe・aube の回帰、CI 証拠を含む）。上の収集は、その中の coverage の command だけを1つずつ実行した結果である。
+- 実機 Safari。
+
+## 6回目の再開：WebKit のための1つの file の package Worker（2026-10-19、Steps 25–30）
+
+この節は Step 30a の直前の状態である。下の「5回目の再開」の節は、その直前の状態の履歴として残す。表記：**検証済み**＝この作業でコマンドを実行して出力を確かめた。**ドキュメント根拠**＝記録・設定・source の読取り。**推測**＝確かめていない。Step 31（独立レビュー・checkpoint・PR）は行っていない。
+
+### 変えた file
+- `scripts/package/worker-bundle.ts`（新規）：`bun build runtime/web/package-worker.js --target browser --format esm --external 'node:*' --sourcemap=external --outdir runtime/web --entry-naming '[name].bundle.[ext]'` を実行する `buildWorkerBundle` と、source map の `sources` を root からの path に直す `workerBundleSources` を置いた。
+- `scripts/emit.ts`：build の最後の段階で `buildWorkerBundle` を呼ぶ。`runtime/web/package-worker.bundle.js` と `.map` ができる（どちらも `.gitignore` の `/runtime/**/*.js`・`**/*.js.map` で追跡されない。ドキュメント根拠）。
+- `runtime/web/api.ts`：`options.assets` が無いときの既定の Worker の URL を `./package-worker.bundle.js` に替えた。`options.assets` があるときの扱い、子 Worker の `child-create`（同じ `workerURL` を使う）、公開 API・型・C02/C03 は変えていない。Node の Worker（`runtime/node/*`）も変えていない。
+- `package.json` の `files`、`scripts/package/stage-package.ts` の `PACKAGE_FILES` に bundle を足した（`FIRST_PARTY_JS` には入れない）。`verify-package.ts` は `PACKAGE_FILES` を使うので file は変えていない。
+- `scripts/package/coverage-inventory.json`：`exclusions` に bundle を「生成物」として理由付きで足した。分母の `files` は変えていない（23件のまま）。
+- `scripts/package/coverage.ts`：計測用の写しでは、bundle を写さず、計測を入れた元の `runtime/*.js` から同じ `bun build` で作り直す。作り直した bundle の source map の `sources` が固定の一覧（`FIRST_PARTY_JS`）の中だけであることと、package Worker を含むことを確かめ、外れたら失敗にする。
+- `tests/package/worker-bundle.test.ts`（新規、7件）と `tests/package/pack.test.ts`（`PACKAGE_FILES` の件数 33→34）。
+
+### 承認済みの計画との差・判断（人間の確認が要るもの）
+1. **`scripts/release/inventory.ts` の `PACKAGE_FILES` にも bundle を足した**。計画の Step 26 は名前を挙げていない。この file は stage-package との値の一致を前提にしており（file の注記、ドキュメント根拠）、`scripts/release/publication.ts` が tarball の一覧をこれと比べるため、足さないと新しい pack を拒否する（推測。publication を新しい pack で実行してはいない）。
+2. **coverage の対応のさせ方**：計画は「bundle の中で動いた行は source map で元の `runtime/*.js` に対応させる」。実装では、source map の行の対応で数を移すのではなく、計測を入れた元の file から bundle を作り直し、bundle の中の文がそのまま元の file の文の数を増やすようにした。source map は、bundle が固定の一覧の外の module を含まないことの検査に使う。browser の Worker の realm が元の file を登録して数えることは確かめた（下の Step 28）。
+3. **動的 import の試験の読み方**：計画・試験指示は「`node:*` 以外の動的 import が無い」。実際の bundle には、検証済みの blink loader（blob URL）を読む `import(…url)` と `import(…descriptor.moduleURL)` の2つ（文字列ではなく実行時の値）が残る。これは元の `runtime/core.js` にある2つと同じで、bundle で増えたものではない。試験は「文字列の specifier は `node:*` だけ」「値の specifier は `core.js` と同じ2つだけ」と確かめる。U6 の記録の「`node:*` の動的 import だけが残る」は、この2つを数えていない（検証済み：AST の数え）。
+4. **source map は配らない**：他の `runtime/*.js` の `.js.map` も配っていないのに合わせた。`--sourcemap=external` なので、bundle に `sourceMappingURL` の行は無い（末尾は `//# debugId=F06E7DD2014A626B64756E2164756E21`）。
+5. **独立した consumer の置き場**：`tests/migration-session/consumer-input.ts` は consumer が repository の外にあることを求める。そのため、この session の scratchpad（`/private/tmp/claude-501/…/scratchpad/u2-bundle-consumer`、`…/u4-bundle-consumer`）に `npm install` した。
+6. **U2 だけの coverage の report は 80% に届かない**（下の数値。人間の判断で参考の値とし、根拠は U1〜U4 をまとめた収集。上の Step 30a の R-06）。U3/U4 の file（`install-*`・`command*`）を U2 の試験が実行しないためで、bundle の変更とは関係が無いと読む（推測：変更前の同じ収集は実行していない）。U1〜U4 をまとめた収集では 92.16% で通る。`migration-session-completion` を今の23件の分母で実行すると、この理由で失敗するはずである（推測、未実行）。
+
+### tool の版（Step 25、検証済み）
+- `jj git fetch`：「Nothing changed.」。`main`・`main@upstream`・`main@origin` はどれも `112e036e`（#36）。
+- Node 26.12.0、Bun 1.4.3、TypeScript 7.0.2、@playwright/test 1.64.1、Biome 2.5.15、@types/node 26.6.5、yaml 2.9.1、istanbul-lib-coverage 3.2.2、istanbul-lib-instrument 6.0.3。どれも latest と同じ（`mise latest`・`npm view <pkg> dist-tags.latest`）。`mise outdated` は rust `stable` の1行だけ（固定ではない `stable` 指定）。
+- 変更前の確認：`node --test --test-concurrency=1 tests/package/public.test.js` 6 pass。`node node_modules/@playwright/test/cli.js test --config tests/migration-session/playwright.config.ts tests/migration-session/consumer.spec.ts`（既存の候補 `candidate-a7e27b2d…` と consumer `/private/tmp/formicarium-b1-consumer-20261018`）9 passed（3ブラウザ×3件）。
+
+### bundle の bytes（検証済み）
+- `runtime/web/package-worker.bundle.js`：23,276 bytes、**SHA256 `8cc5f46890d469bd8516ffbf9dd3f81bde91c38bb00f97e79d2c70c15772ee98`**。`mise run build` を何度か実行しても同じ値。別の dir に写した module から2回作っても同じ値（worker-bundle の試験）。
+- source map の `sources`：`runtime/core.js`・`contracts.js`・`errors.js`・`protocol.js`・`guest-io.js`・`worker-execution.js`・`web/package-worker.js` の7件（すべて `FIRST_PARTY_JS`）。
+
+### 試験（main session で1つずつ、node は mise の実体の path）
+- Step 27：`mise run build` の後、`node --test --test-concurrency=1 tests/package/worker-bundle.test.js` 7 pass・fail 0・skip 0。`node --test --test-concurrency=1 tests/package/public.test.js` 6 pass・fail 0・skip 0。
+- Step 28：U2 候補 `.artifacts/migration-session/candidate-9497a91c-65ff-4f3d-a9c0-a812f0c2fef5/package.manifest.json`（`mise run migration-session-stage`、0.3.0、34 file、tgz SHA256 `a3370ca4df1f969ca613fe7253c831933d594b14f9650c609a6ced4581834046`）で、`consumer.spec.ts` を `--project=chromium`・`firefox`・`webkit` の順に実行し、各3 passed（計9、fail・skip 0）。install した `runtime/web/api.js` は bundle を既定にしている。
+- Step 28 の coverage（`scripts/migration-session/completion.ts` と同じ coverage の command を1つずつ、`.artifacts/migration-session/bundle-coverage-20261019/coverage`）：package の Node 115 pass、U2 の Node 46 pass、package の browser 99 passed、U2 の browser 9 passed。report は23件すべての file を出し、1228/2055 行＝**59.75%**、1378 realm、`passed: false`（上の6）。bundle の Worker の realm（例：`real installed browser archive …` の34個、`same installed U2 pack …` の17個）は、3ブラウザとも `runtime/web/package-worker.js`・`core.js`・`worker-execution.js`・`protocol.js`・`guest-io.js` を登録し、文の数を持つ（検証済み：`coverage-realms.json` と `coverage-metadata.json` の layout で数えた）。
+- Step 28 の coverage（U1〜U4 をまとめた収集。`scripts/migration-command/completion.ts` と同じ coverage の command を1つずつ、U4 候補 `.artifacts/migration-command/candidate-413e2265-f65f-48e3-af1f-a47a990e779c/package.manifest.json`。tgz は U2 候補と同じ SHA256）：package の Node 115 pass、U2〜U4 の Node 188 pass、package の browser 99・U2 9・U3 9・U4 9 passed。report `.artifacts/migration-command/bundle-coverage-20261019/coverage/coverage-report.json`（SHA256 `a34ff77a1a36b14d002f7ee16ad54c0bb92c94cb2af7c00a669db206dc52002f`）は **1894/2055 行＝92.16%、23 file、1613 realm、`passed: true`、threshold 80**。
+- Step 29：下の「U6 の観測のやり直し」。
+- Step 30（すべて exit 0）：
+  - `mise run lint:all`：error 0（warning 48・info 47。Step 24 の記録と同じ数）。途中で新しい試験の file の整形の error が1件出たので、整形を直した。
+  - `mise run typecheck`、`mise run build`。
+  - `mise run test:light`：bun 71 pass・37 pass、node 125 件のうち pass 123・skip 2（前からの `actual official aube release supply …`・`actual latest pitchfork …`、「Actual release assets absent」。成功には数えない）、node 130 pass。fail 0。
+  - `mise run migration-session-unit`（U2 候補）：55 pass・fail 0・skip 0。
+  - `mise run migration-install-browser`（U3、U4 候補で）：45 passed。`mise run migration-command-browser`（U4）：9 passed。
+  - `mise run test:consumer`（U2 候補）：214 pass・fail 0・skip 0。
+- 不具合修正の順序：`tests/package/pack.test.js` は、bundle を足した後に `34 !== 33` で1件 fail した（RED、検証済み）。件数の期待値を 34 に直した後、`mise run test:consumer` の中で pass した（GREEN）。判定の条件は緩めていない（tarball の一覧が `PACKAGE_FILES` と一致することはそのまま）。
+
+### U6 の観測のやり直し（Step 29、検証済み）
+- pack：U6 の Step 1 の手順（`bun scripts/ci/tasks.ts build`、`node scripts/package/stage-package.js --out .artifacts/u6-recipe-runtime/private-bundle`、`bun x npm@latest pack … --ignore-scripts`、`verify-package.js`）。既存の `private/` を消さないよう、名前を `private-bundle` にした。`.artifacts/u6-recipe-runtime/private-bundle.tgz`（34 file、267,868 bytes、**SHA256 `72172c2887057468e6dbd2bf7213ee6b2983de4361378147849bdc6f234bbe1b`**、version 0.2.1）。中の bundle は `8cc5f468…`。
+- 結果：候補2の置き場、`coepCredentialless` を false に固定、配布物の bundle の Worker で、3ブラウザ × en・ja × 初回・再訪問の**12の訪問（2端末ずつで24の ready）すべてで基準を満たした**。詳細は U6 の code-summary の「Step 3 の配布物の bundle での観測のやり直し」。
+- 計画の「24組」は、3×2×2＝12 の訪問に2端末を掛けた数と読んだ（推測）。
+
+### 未検証・していないこと
+- Step 31（独立レビュー、intent の検証コマンドでの checkpoint、push、PR）。
+- coverage 付きの `migration-session-completion`・`migration-command-completion` の全工程（probe・aube の回帰、CI 証拠を含む）：実行していない。上の coverage は、その中の coverage の command だけを1つずつ実行した結果である。
+- 新しい pack での `scripts/release/publication.ts` の確認、npm に公開済みの 0.2.1 との比較。
+- 実機 Safari（WebKit 27.2 は Playwright の同梱版）。
+
 ## 5回目の再開：新しい土台（upstreamのmain `bbf97ba6`）への合わせ（2026-10-18、Steps 20–24）
 
 この節が、今の状態を書いた節である。下の節は古い土台・古いtoolchainの履歴であり、新しい土台での根拠にしない。

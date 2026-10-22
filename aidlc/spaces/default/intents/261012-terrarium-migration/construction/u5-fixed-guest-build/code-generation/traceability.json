@@ -1,6 +1,7 @@
 {
   "stage": "code-generation",
   "unit": "u5-fixed-guest-build",
+  "note": "N/A の行の多くは、適用されないのではなく別のリポジトリ（aletheia-works/vivarium）で実装した行である。道具が workspace の外の file を読めないため、N/A と理由で表す（人間の決定 2026-10-22 A）。各行の note に、実装の commit・path・PR・run の記録を残す。",
   "upstream_ids": [
     "FR7",
     "FR8",
@@ -25,98 +26,117 @@
   "coverage": [
     {
       "id": "FR7",
-      "status": "OK",
-      "target": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/declaration.ts, src/key.ts, src/reuse.ts, src/release.ts; aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/declaration.test.ts, tests/key.test.ts, tests/reuse.test.ts, tests/release.test.ts; upstream runs 39076793651 and 39079897400 (compiled=false)"
+      "status": "N/A",
+      "target": "formicarium の workspace の外の aletheia-works/vivarium で実装（tools/fixed-guest-builder と .github/workflows/fixed-guest-*.yml）。この workspace の file ではないので、この表では N/A とする。実装と証拠は note のとおり",
+      "note": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/declaration.ts, src/key.ts, src/reuse.ts, src/release.ts; aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/declaration.test.ts, tests/key.test.ts, tests/reuse.test.ts, tests/release.test.ts; upstream runs 39076793651 and 39079897400 (compiled=false). 6回目の再開（Steps 24–30、#538 merge e9084941）：aletheia-works/vivarium@e9084941:tools/fixed-guest-builder/src/prepare.ts (deriveSet: build run, receipt, build-info, tools.json and digests cross-checked), src/cli.ts (prepare, release --build-run-id), src/reuse.ts; aletheia-works/vivarium@e9084941:tools/fixed-guest-builder/tests/prepare.test.ts, tests/cli.test.ts; release runs 39191728502 and 39191750168 published from build runs 39178190974 and 39178274922 by run ID only"
     },
     {
       "id": "FR8",
-      "status": "OK",
-      "target": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/artifact.ts (build-info, catalog), src/bump.ts, src/cli.ts; aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/artifact.test.ts, tests/bump.test.ts; aletheia-works/vivarium@71e0ef92:.github/workflows/fixed-guest-bump.yml"
+      "status": "N/A",
+      "target": "formicarium の workspace の外の aletheia-works/vivarium で実装（tools/fixed-guest-builder と .github/workflows/fixed-guest-*.yml）。この workspace の file ではないので、この表では N/A とする。実装と証拠は note のとおり",
+      "note": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/artifact.ts (build-info, catalog), src/bump.ts, src/cli.ts; aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/artifact.test.ts, tests/bump.test.ts; aletheia-works/vivarium@71e0ef92:.github/workflows/fixed-guest-bump.yml; 実 run 39608682081（2026-10-21、aletheia-works/vivarium@23e9f452、role baseline）で bot の PR aletheia-works/vivarium#554 ができ、auto-merge は外れていた（autoMergeRequest null、AutoMergeDisabledEvent、検証済み。R-06）。2026-10-22 の人間の決定で、bump の PR は必須の check が通ったら自動で merge する設計に変えた（D7 の注記、vivarium の fixed-guest-bump.yml から auto-merge を外す step を除いた。PR aletheia-works/vivarium#556 で merge 済み dee1ba5e。変更後の実 run は未検証）。PR の題は conventional commit の形（aletheia-works/vivarium#555）。"
     },
     {
       "id": "FR9",
       "status": "OK",
-      "target": "formicarium: scripts/migration-guest-build/verify.ts, scripts/migration-guest-build/assets.ts, tests/migration-guest-build/verify.test.ts, mise-tasks/migration/guest-build-unit.sh, mise-tasks/migration/guest-build-verify.sh; upstream runs 39073445357 and 39077142098 and Releases from runs 39076401324 and 39079705708. 新しい土台での `mise run migration-guest-build-unit` と保存済みRelease 2組に対する `mise run migration-guest-build-verify` は Step 22（この記録の作成時点では未実行）。.artifacts/migration-guest-build/ は追跡されない手元の記録"
+      "target": "scripts/migration-guest-build/verify.ts",
+      "note": "formicarium: scripts/migration-guest-build/verify.ts, scripts/migration-guest-build/assets.ts, tests/migration-guest-build/verify.test.ts, mise-tasks/migration/guest-build-unit.sh, mise-tasks/migration/guest-build-verify.sh; upstream runs 39073445357 and 39077142098 and Releases from runs 39076401324 and 39079705708. 新しい土台での `mise run migration-guest-build-unit` と保存済みRelease 2組に対する `mise run migration-guest-build-verify` は Step 22 で実行済み（結果は code-summary の Step 22 の節）。.artifacts/migration-guest-build/ は追跡されない手元の記録。Step 38（2026-10-21、土台 5735433d）：checkSet が object でない build-info と dependencies が配列でない build-info を INVALID_INPUT で拒否し（R-14、直す前の失敗を観測）、main() が一時 directory を消す（R-13）。tests/migration-guest-build/verify.test.ts の2件を足し、`mise run migration-guest-build-unit` 11件 pass（検証済み）。Step 40（PR aletheia-works/formicarium#62、merge 2faec369）：checkSet が object でない catalog・catalog entry・dependency も INVALID_INPUT で拒否し、CLI の試験が assets を書いた後の拒否の後片付けを確かめる。`mise run migration-guest-build-unit` 12件 pass（検証済み）"
     },
     {
       "id": "NFR2.1",
-      "status": "OK",
-      "target": "formicarium: U5 は配布JSを変えない（scripts/migration-guest-build/*、tests/migration-guest-build/* は配布対象外）。新しい土台での `mise run typecheck`・`mise run build`・`mise run test:light` は Step 22（未実行）"
+      "status": "N/A",
+      "target": "U5 は配布 JS を変えない（scripts/migration-guest-build/*・tests/migration-guest-build/* は配布の対象外）",
+      "note": "formicarium: U5 は配布JSを変えない（scripts/migration-guest-build/*、tests/migration-guest-build/* は配布対象外）。新しい土台での `mise run typecheck`・`mise run build`・`mise run test:light` は Step 22 で実行済み（結果は code-summary の Step 22 の節）"
     },
     {
       "id": "NFR2.2",
-      "status": "OK",
-      "target": "aletheia-works/vivarium@71e0ef92:.github/workflows/test-fixed-guest-builder.yml; aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/bunfig.toml (coverageThreshold lines 0.8); upstream bun test 158 pass, line coverage 98.43% (review-02); formicarium では再実行しない"
+      "status": "N/A",
+      "target": "formicarium の workspace の外の aletheia-works/vivarium で実装（tools/fixed-guest-builder と .github/workflows/fixed-guest-*.yml）。この workspace の file ではないので、この表では N/A とする。実装と証拠は note のとおり",
+      "note": "aletheia-works/vivarium@71e0ef92:.github/workflows/test-fixed-guest-builder.yml; aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/bunfig.toml (coverageThreshold lines 0.8); upstream bun test 158 pass, line coverage 98.43% (review-02、71e0ef92 の時点の履歴); formicarium では再実行しない。最新（R-05）：Step 29a の後（#539、merge c15d5bfa）に `mise run ci:fixed-guest-builder` 174 pass・行 98.49%・関数 98.41%。Steps 33–35 の change（merge 前の手元）で 188 pass・0 fail・行 98.49%・関数 98.49%、exit 0（2026-10-19、検証済み）。この change は PR #540 で aletheia-works/vivarium@a80df74e に merge 済みで、手元の change・PR head 17a02b65 と tree が同じ（`jj diff --stat` 0 files、検証済み）。merge 後の main での再実行と #540 の上流 CI の結果は、この記録では確かめていない（未検証）"
     },
     {
       "id": "NFR3.1",
-      "status": "OK",
-      "target": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/declaration.ts; aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/declaration.test.ts"
+      "status": "N/A",
+      "target": "formicarium の workspace の外の aletheia-works/vivarium で実装（tools/fixed-guest-builder と .github/workflows/fixed-guest-*.yml）。この workspace の file ではないので、この表では N/A とする。実装と証拠は note のとおり",
+      "note": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/declaration.ts; aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/declaration.test.ts. Step 35（R-03、PR #540 で merge 済み）：aletheia-works/vivarium@a80df74e:tools/fixed-guest-builder/src/release.ts（publishSet が publish の時点の allowlist.json に repository があることを確かめ、無ければ何も書かずに INVALID_INPUT）、src/cli.ts（release が allowlist.json を読む）、tests/release.test.ts"
     },
     {
       "id": "NFR3.2",
-      "status": "OK",
-      "target": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/source.ts (verifyReachable, GIT_NO_LAZY_FETCH), src/lockfile.ts (dependency git reachability); aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/source.test.ts (fork-only commit refused), tests/lockfile.test.ts"
+      "status": "N/A",
+      "target": "formicarium の workspace の外の aletheia-works/vivarium で実装（tools/fixed-guest-builder と .github/workflows/fixed-guest-*.yml）。この workspace の file ではないので、この表では N/A とする。実装と証拠は note のとおり",
+      "note": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/source.ts (verifyReachable, GIT_NO_LAZY_FETCH), src/lockfile.ts (dependency git reachability); aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/source.test.ts (fork-only commit refused), tests/lockfile.test.ts"
     },
     {
       "id": "NFR3.3",
       "status": "OK",
-      "target": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/artifact.ts (parseUniqueJson, limits, canonical build-info); aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/artifact.test.ts; formicarium: scripts/migration-guest-build/verify.ts (checkSet: limits, canonical build-info)"
+      "target": "scripts/migration-guest-build/verify.ts",
+      "note": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/artifact.ts (parseUniqueJson, limits, canonical build-info); aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/artifact.test.ts; formicarium: scripts/migration-guest-build/verify.ts (checkSet: limits, canonical build-info)"
     },
     {
       "id": "NFR3.4",
-      "status": "OK",
-      "target": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/source.ts (applyPatches), src/key.ts (sourcePatches in the key); aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/source.test.ts, tests/key.test.ts"
+      "status": "N/A",
+      "target": "formicarium の workspace の外の aletheia-works/vivarium で実装（tools/fixed-guest-builder と .github/workflows/fixed-guest-*.yml）。この workspace の file ではないので、この表では N/A とする。実装と証拠は note のとおり",
+      "note": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/source.ts (applyPatches), src/key.ts (sourcePatches in the key); aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/source.test.ts, tests/key.test.ts"
     },
     {
       "id": "NFR3.5",
-      "status": "OK",
-      "target": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/bump.ts (git ls-remote); aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/bump.test.ts"
+      "status": "N/A",
+      "target": "formicarium の workspace の外の aletheia-works/vivarium で実装（tools/fixed-guest-builder と .github/workflows/fixed-guest-*.yml）。この workspace の file ではないので、この表では N/A とする。実装と証拠は note のとおり",
+      "note": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/bump.ts (git ls-remote); aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/bump.test.ts。2026-10-22（Step 42、人間の決定）：bump の PR の merge は人ではなく、必須の check が通ったときの自動の merge にした（nfr-design/security-design.md の D7 の注記）。branch の直接の解決・記録・D1 の確認は変えていない。NFR3.5 は merge の方法を決めていない"
     },
     {
       "id": "NFR4.1",
-      "status": "OK",
-      "target": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/deadline.ts, src/process.ts; aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/deadline.test.ts, tests/pipeline.test.ts (TIMEOUT)"
+      "status": "N/A",
+      "note": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/deadline.ts, src/process.ts; aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/deadline.test.ts, tests/pipeline.test.ts (TIMEOUT). Step 29a：aletheia-works/vivarium@c15d5bfa（PR #539、merge 済み）の tools/fixed-guest-builder/src/pipeline.ts（BuildDeps.killGraceMs を監視つきの git へ渡す。production の既定 30秒と LIMIT_EXCEEDED は不変）、tests/pipeline.test.ts と tests/fixtures/stuck-git.sh（SIGTERM を無視する clone の再現）",
+      "target": "formicarium の workspace の外の aletheia-works/vivarium で実装（tools/fixed-guest-builder と .github/workflows/fixed-guest-*.yml）。この workspace の file ではないので、この表では N/A とする。実装と証拠は note のとおり"
     },
     {
       "id": "NFR4.2",
-      "status": "OK",
-      "target": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/monitor.ts, src/http.ts; aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/monitor.test.ts, tests/reuse.test.ts; receipts record source and dependency sizes"
+      "status": "N/A",
+      "target": "formicarium の workspace の外の aletheia-works/vivarium で実装（tools/fixed-guest-builder と .github/workflows/fixed-guest-*.yml）。この workspace の file ではないので、この表では N/A とする。実装と証拠は note のとおり",
+      "note": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/monitor.ts, src/http.ts; aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/monitor.test.ts, tests/reuse.test.ts; receipts record source and dependency sizes"
     },
     {
       "id": "NFR5.1",
-      "status": "OK",
-      "target": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/busy.ts, src/build.ts (finalizeArtifacts); aletheia-works/vivarium@71e0ef92:.github/workflows/fixed-guest-build.yml, fixed-guest-release.yml, fixed-guest-bump.yml (concurrency groups); aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/busy.test.ts, tests/build.test.ts, tests/workflows.test.ts"
+      "status": "N/A",
+      "target": "formicarium の workspace の外の aletheia-works/vivarium で実装（tools/fixed-guest-builder と .github/workflows/fixed-guest-*.yml）。この workspace の file ではないので、この表では N/A とする。実装と証拠は note のとおり",
+      "note": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/busy.ts, src/build.ts (finalizeArtifacts); aletheia-works/vivarium@71e0ef92:.github/workflows/fixed-guest-build.yml, fixed-guest-release.yml, fixed-guest-bump.yml (concurrency groups); aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/busy.test.ts, tests/build.test.ts, tests/workflows.test.ts. 6回目の再開：aletheia-works/vivarium@e9084941:tools/fixed-guest-builder/src/busy.ts (in_progress の別の run だけを BUSY と数える), tests/busy.test.ts; aletheia-works/vivarium@e9084941:.github/workflows/fixed-guest-release.yml (concurrency fixed-guest-release, cancel-in-progress false), fixed-guest-build.yml (concurrency fixed-guest-build を build job へ移した); 検証済み：dispatch した run 39191750168 は run 39191728502 の完了（02:50:38）まで待ってから prepare を始めた。未検証：workflow_call 経路の concurrency。Step 34（R-08・R-02・R-07、PR #540 で aletheia-works/vivarium@a80df74e に merge 済み。下の path はその commit の .github/workflows/ と tools/fixed-guest-builder/ の下）：GitHub の文書（docs.github.com の workflow syntax と control-workflow-concurrency）により、group の pending は既定で1つで、新しい pending が古い pending を取り消す。そこで fixed-guest-release.yml と fixed-guest-build.yml の concurrency group を外した。tools/fixed-guest-builder/src/turn.ts（publish job の step「Wait for the publish turn」：両 workflow の in_progress の run の publish job を見て、turn の step を終えたもの、又は待っている run ID の小さいものが居る間は待つ。5秒から倍に60秒まで、上限20分で BUSY、確定の前に10秒後にもう一度確かめる）、src/busy.ts（build の BUSY は他の run の build job が in_progress のときだけ）、src/github.ts（runJobs が steps を返す）、src/cli.ts（publish-turn）、tests/turn.test.ts（新規）・tests/busy.test.ts・tests/workflows.test.ts・tests/cli.test.ts。修正前に busy 1件・workflows 1件・turn（module 無し）の失敗を観測（検証済み）。重なった build は待たずに BUSY と原因で止める形を、人間が決定（A、2026-10-19）。merge 後の確認の run 39196723994（workflow_dispatch、a80df74e、build_run_id 39178190974）で、step「Wait for the publish turn」は他に動く run が無い状態で waitedMs 14398 で成功した（検証済み：main session の GET と jobs の GET）。未検証：workflow_call の経路（この run は workflow_dispatch だけ）、呼ばれた publish job が呼んだ build の run の jobs に steps 付きで出て待ちの対象になること（推測）、2つの release が実際に重なったときの待ち"
     },
     {
       "id": "NFR5.2",
-      "status": "OK",
-      "target": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/key.ts, src/reuse.ts, src/release.ts (NOT_REPRODUCIBLE); upstream reuse runs 39076793651 and 39079897400"
+      "status": "N/A",
+      "target": "formicarium の workspace の外の aletheia-works/vivarium で実装（tools/fixed-guest-builder と .github/workflows/fixed-guest-*.yml）。この workspace の file ではないので、この表では N/A とする。実装と証拠は note のとおり",
+      "note": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/key.ts, src/reuse.ts, src/release.ts (NOT_REPRODUCIBLE); upstream reuse runs 39076793651 and 39079897400"
     },
     {
       "id": "NFR5.3",
-      "status": "OK",
-      "target": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/release.ts; upstream Releases guest-biome-15432368… and guest-biome-4751f68d…"
+      "status": "N/A",
+      "target": "formicarium の workspace の外の aletheia-works/vivarium で実装（tools/fixed-guest-builder と .github/workflows/fixed-guest-*.yml）。この workspace の file ではないので、この表では N/A とする。実装と証拠は note のとおり",
+      "note": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/release.ts; upstream Releases guest-biome-15432368… and guest-biome-4751f68d…. 6回目の再開：aletheia-works/vivarium@e9084941:tools/fixed-guest-builder/src/prepare.ts (makePublishPlan from the build run); Releases guest-biome-086287f859011917208c205bd00239373027ed52fffdc7d07f9526129268322c and guest-biome-dabb518b1731e82752bf6f26471df6ba9ad41947b7a31352cdc45638e746c24d（3つの asset の digest は build の receipt と一致、検証済み）"
     },
     {
       "id": "NFR5.4",
-      "status": "OK",
-      "target": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/build.ts, src/pipeline.ts (mbx; mbxCacheRestored counted before any container runs and mbxCacheKeys recorded, PR #536); aletheia-works/vivarium@71e0ef92:.github/workflows/fixed-guest-build.yml (cache steps); upstream runs 39073445357 (mbx on) and 39080082205 (mbx off) give the same ELF 3d7e7e8c…. 制限：公開済み2件の build-info の reference.mbxCacheRestored は compile 後に数えた値で信用できない（baseline の復元は miss）。#536 より前の run なので mbxCacheKeys も無い"
+      "status": "N/A",
+      "target": "formicarium の workspace の外の aletheia-works/vivarium で実装（tools/fixed-guest-builder と .github/workflows/fixed-guest-*.yml）。この workspace の file ではないので、この表では N/A とする。実装と証拠は note のとおり",
+      "note": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/build.ts, src/pipeline.ts (mbx; mbxCacheRestored counted before any container runs and mbxCacheKeys recorded, PR #536); aletheia-works/vivarium@71e0ef92:.github/workflows/fixed-guest-build.yml (cache steps); upstream runs 39073445357 (mbx on) and 39080082205 (mbx off) give the same ELF 3d7e7e8c…. 制限：公開済み2件の build-info の reference.mbxCacheRestored は compile 後に数えた値で信用できない（baseline の復元は miss）。#536 より前の run なので mbxCacheKeys も無い。未検証（R-02、2026-10-21）：壊れた mbx の cache で build が失敗するか同じ digest になるかは本物の mbx では確かめていない。#536 の試験は、壊れた cache で build が失敗したときに artifact と作業 directory が残らないことだけを確かめる"
     },
     {
       "id": "NFR8.1",
-      "status": "OK",
-      "target": "aletheia-works/vivarium@71e0ef92:.github/workflows/fixed-guest-*.yml (permissions); aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/workflows.test.ts; fixed-guest-release environment and checkApprovalGate (aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/release.ts, tests/release.test.ts); approvals of release runs 39076401324 and 39079705708"
+      "status": "N/A",
+      "target": "formicarium の workspace の外の aletheia-works/vivarium で実装（tools/fixed-guest-builder と .github/workflows/fixed-guest-*.yml）。この workspace の file ではないので、この表では N/A とする。実装と証拠は note のとおり",
+      "note": "aletheia-works/vivarium@71e0ef92:.github/workflows/fixed-guest-*.yml (permissions); aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/workflows.test.ts; fixed-guest-release environment and checkApprovalGate (aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/release.ts, tests/release.test.ts); approvals of release runs 39076401324 and 39079705708. 6回目の再開：aletheia-works/vivarium@e9084941:.github/workflows/fixed-guest-release.yml (prepare: contents read・actions read、environment なし；publish: needs prepare、environment fixed-guest-release、contents write・actions read、計画の SHA256 を prepare の出力と照合), fixed-guest-build.yml (top-level permissions {}、release job を uses で呼ぶ); aletheia-works/vivarium@e9084941:tools/fixed-guest-builder/tests/workflows.test.ts; approvals of release runs 39191728502 and 39191750168. 未検証：job summary の本文（REST で読めない）。Step 32（R-01、検証済み）：2つの run の artifact fixed-guest-plan の plan.json の SHA256 は log の PLAN_SHA256（6c338e01…3981・90a3b5f2…7e58）と一致し、計画の targets と inputDigests は Release の3つの asset の名前と digest に一致した（.artifacts/u5-fixed-guest-build/plans/、追跡されない）。Step 33（R-01、PR #540 で merge 済み）：aletheia-works/vivarium@a80df74e:.github/workflows/fixed-guest-release.yml の publish job の name を `publish ${{ needs.prepare.outputs.plan_sha256 }}` にし、PLAN_SHA256 と同じ式であることを aletheia-works/vivarium@a80df74e:tools/fixed-guest-builder/tests/workflows.test.ts で確かめる。aletheia-works/vivarium@a80df74e:tools/fixed-guest-builder/README.md に承認前の照合を書いた。確認の run 39196723994：publish job の名前は `publish 5c1fbc28ff267a350c13b969d3337288240182aaf6e3e0cb8c04d732fb86ac86` で、log の PLAN_SHA256 と同じ。environment fixed-guest-release は JamBalaya56562 が承認。結果は `already-published` で、Release guest-biome-086287f8…322c は不変（published_at 2026-10-19T02:50:35Z、3つの asset の digest も同じ）（検証済み：main session の GET、job の名前は jobs の GET でも確認）。未検証：承認の画面にこの job の名前が人に見えたか、job summary の本文"
     },
     {
       "id": "NFR8.2",
       "status": "OK",
-      "target": "新しい土台：intent の検証コマンド（`mise run migration-guest-build-unit` を含む）と Step 22 の照合（formicarium: scripts/migration-guest-build/verify.ts、mise-tasks/migration/guest-build-unit.sh、mise-tasks/migration/guest-build-verify.sh、tests/migration-guest-build/verify.test.ts）。どちらもこの記録の作成時点では未実行。.artifacts/migration-guest-build/verify-final-u5.mjs と135件の binding は古い土台での完了確認の履歴で、追跡されない（.gitignore の .artifacts/）。U1 baseline branch already removed, no duplicate builder upstream"
+      "target": "scripts/migration-guest-build/verify.ts",
+      "note": "新しい土台：intent の検証コマンド（`mise run migration-guest-build-unit` を含む）と Step 22 の照合（formicarium: scripts/migration-guest-build/verify.ts、mise-tasks/migration/guest-build-unit.sh、mise-tasks/migration/guest-build-verify.sh、tests/migration-guest-build/verify.test.ts）。どちらも Step 22 で実行済み（結果は code-summary の Step 22 の節）。.artifacts/migration-guest-build/verify-final-u5.mjs と135件の binding は古い土台での完了確認の履歴で、追跡されない（.gitignore の .artifacts/）。U1 baseline branch already removed, no duplicate builder upstream。今の土台（2026-10-21、main@upstream 5735433d）：intent の検証コマンドの各 task（typecheck・build・test:light・migration-preflight-unit 57件・migration-preflight-current-unit 21件・migration-guest-build-unit 11件・showcase-unit 100件）を main session が1つずつ実行し、すべて exit 0、fail 0（検証済み）。Step 22 の件数は 2a79860 の土台での履歴。保存済み Release 2組への照合は今回は再実行していない。Step 40 の後（2026-10-21T19:52Z、checkpoint の確認、code-summary の「Step 43・44」の節）：intent の検証コマンドが exit 0、`migration-guest-build-unit` は12件"
     },
     {
       "id": "NFR8.3",
-      "status": "OK",
-      "target": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/cli.ts (secret redaction), src/process.ts (token withheld from child processes); aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/cli.test.ts, tests/process.test.ts; aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/README.md (rollback section)"
+      "status": "N/A",
+      "target": "formicarium の workspace の外の aletheia-works/vivarium で実装（tools/fixed-guest-builder と .github/workflows/fixed-guest-*.yml）。この workspace の file ではないので、この表では N/A とする。実装と証拠は note のとおり",
+      "note": "aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/src/cli.ts (secret redaction), src/process.ts (token withheld from child processes; aletheia-works/vivarium@23e9f452 で名前による除外の限界をコメントに書いた、PR #553、R-09); aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/tests/cli.test.ts, tests/process.test.ts; aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/README.md (rollback section). 6回目の再開：aletheia-works/vivarium@e9084941:tools/fixed-guest-builder/README.md (Publishing a set：build の起動と summary を読んでの承認、後からは run ID だけ)"
     }
   ]
 }

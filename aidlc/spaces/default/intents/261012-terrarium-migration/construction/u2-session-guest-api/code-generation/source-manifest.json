@@ -3,55 +3,218 @@
   "unit": "u2-session-guest-api",
   "version": 1,
   "writes": [
-    { "path": ".gitignore" },
-    { "path": "tests/package/pack.test.ts" },
-    { "path": "tests/terrarium/current-candidate.test.ts" },
-    { "path": "runtime/guest-validation.ts" },
-    { "path": "runtime/session-port.ts" },
-    { "path": "runtime/state.ts" },
-    { "path": "runtime/lifecycle.ts" },
-    { "path": "runtime/public.ts" },
-    { "path": "types/index.d.ts" },
-    { "path": "package.json" },
-    { "path": "mise-tasks/migration/session-browser.sh" },
-    { "path": "mise-tasks/migration/session-completion.sh" },
-    { "path": "mise-tasks/migration/session-stage.sh" },
-    { "path": "mise-tasks/migration/session-unit.sh" },
-    { "path": "scripts/package/stage-package.ts" },
-    { "path": "scripts/package/coverage.ts" },
-    { "path": "scripts/package/coverage-inventory.json" },
-    { "path": "scripts/migration-session/ci-core.ts" },
-    { "path": "scripts/migration-session/ci-inputs.ts" },
-    { "path": "scripts/migration-session/completion.ts" },
-    { "path": "scripts/migration-session/coverage.ts" },
-    { "path": "scripts/migration-session/stage.ts" },
-    { "path": "tests/migration-session/browser-modules.d.ts" },
-    { "path": "tests/migration-session/ci.test.ts" },
-    { "path": "tests/migration-session/completion.test.ts" },
-    { "path": "tests/migration-session/consumer-input.ts" },
-    { "path": "tests/migration-session/consumer.spec.ts" },
-    { "path": "tests/migration-session/consumer.test.ts" },
-    { "path": "tests/migration-session/fixture.test.ts" },
-    { "path": "tests/migration-session/fixtures.ts" },
-    { "path": "tests/migration-session/guest-validation.test.ts" },
-    { "path": "tests/migration-session/playwright.config.ts" },
-    { "path": "tests/migration-session/public.test.ts" },
-    { "path": "tests/migration-session/reservation.test.ts" },
-    { "path": "tests/migration-session/tsconfig.json" },
-    { "path": "tests/migration-session/types-invalid.ts" },
-    { "path": "tests/migration-session/types-valid.ts" },
-    { "path": "tests/package/lifecycle.test.ts" },
-    { "path": "tests/package/public.test.ts" },
-    { "path": "tests/package/coverage.test.ts" },
-    { "path": "scripts/terrarium/coverage.ts" },
-    { "path": "tests/terrarium/coverage.test.ts" },
-    { "path": "scripts/release/inventory.ts" },
-    { "path": "scripts/release/publication.ts" },
-    { "path": "scripts/release/publication-cli.ts" },
-    { "path": "tests/release/publication-alignment-fixture.ts" },
-    { "path": "tests/tooling/publication-alignment.test.ts" },
-    { "path": "tests/tooling/publication-version.test.ts" },
-    { "path": "README.md" },
-    { "path": "docs/terrarium-integration.md" }
+    {
+      "path": ".gitignore"
+    },
+    {
+      "path": "README.md"
+    },
+    {
+      "path": "ci/migration-session/payload/1fbffc142253fcd793da2bad8981146949ef18c7134629467f08b4375a750818.bin"
+    },
+    {
+      "path": "ci/migration-session/payload/3610e5defdfc32858a4f5e6937635f43a758ed7aeff89fcd6baeb195a5756e61.bin"
+    },
+    {
+      "path": "ci/migration-session/payload/38715dd1123ddc80b37f438aac2a3cef1805ee59e6ff09d944446d24cd02bcaa.bin"
+    },
+    {
+      "path": "ci/migration-session/payload/3f00350cc66a27e55188c7647abfd7c18a33d46ff2c747a03013b0da457db5bd.bin"
+    },
+    {
+      "path": "ci/migration-session/payload/5eefa02f680d4a3e30249aad55f07675cced08c794e6a44d7e60197026dbeb2f.bin"
+    },
+    {
+      "path": "ci/migration-session/payload/703fd9925a0bd8d5d38ff85bad0c5e180d9a7de1fdf33d036b2f54d36b565544.bin"
+    },
+    {
+      "path": "ci/migration-session/payload/809c8281688c8d9991df3ad9a176820547880bef0bdb2522c593802efda78228.bin"
+    },
+    {
+      "path": "ci/migration-session/payload/8e8df25b072f4970f98d160a2b7985ff79b60959e66e3f8da40d499036397a2e.bin"
+    },
+    {
+      "path": "ci/migration-session/payload/939466d397658897730cf84d64581605b3aa27671da577626a72f50a71e5be04.bin"
+    },
+    {
+      "path": "ci/migration-session/payload/a180e20a5c5e208d74cb0b1cd5e6e6e28f61c5afff0cc581cb50bbbcfa9dcbe2.bin"
+    },
+    {
+      "path": "ci/migration-session/payload/a2481a801fadc778929c5673823818ad915653d905fe239dd7ea06be45ca0cd1.bin"
+    },
+    {
+      "path": "ci/migration-session/payload/c7d7d13692d01c5f6adc5511c40adc6b3769080b7c433b44c411a3e52ebcd99e.bin"
+    },
+    {
+      "path": "ci/migration-session/payload/ca67cc4efd284ae93190d14cc9b394220cb7a2f1c7f01f682bb9f195589387be.bin"
+    },
+    {
+      "path": "ci/migration-session/payload/cdab7437ae1eca979e32dd70131302ac184ece8e7eab4c10401cf7009ad3a3e7.bin"
+    },
+    {
+      "path": "ci/migration-session/payload/e733951d3039b2bd4f8af861a663797c27c8f915fa099ba7539c12b767446498.bin"
+    },
+    {
+      "path": "ci/migration-session/payload/f061ed9273f3ecd2a535ca585f0a5c10615960caed4fc51dee60ecb17ba3c338.bin"
+    },
+    {
+      "path": "ci/migration-session/payload/f30395a418e526e939350cc87e03d43c92d1aa0a0b0b104130761a8b8daa841e.bin"
+    },
+    {
+      "path": "ci/migration-session/payload/fd0dd9186e1edd64b224ba729204d44fe10d3fd7a439433d7975958517d0c5d5.bin"
+    },
+    {
+      "path": "mise-tasks/migration/session-browser.sh"
+    },
+    {
+      "path": "mise-tasks/migration/session-completion.sh"
+    },
+    {
+      "path": "mise-tasks/migration/session-stage.sh"
+    },
+    {
+      "path": "mise-tasks/migration/session-unit.sh"
+    },
+    {
+      "path": "package.json"
+    },
+    {
+      "path": "runtime/guest-validation.ts"
+    },
+    {
+      "path": "runtime/lifecycle.ts"
+    },
+    {
+      "path": "runtime/public.ts"
+    },
+    {
+      "path": "runtime/session-port.ts"
+    },
+    {
+      "path": "runtime/state.ts"
+    },
+    {
+      "path": "runtime/web/api.ts"
+    },
+    {
+      "path": "scripts/ci/run.ts"
+    },
+    {
+      "path": "scripts/emit.ts"
+    },
+    {
+      "path": "scripts/migration-session/ci-core.ts"
+    },
+    {
+      "path": "scripts/migration-session/ci-inputs.ts"
+    },
+    {
+      "path": "scripts/migration-session/completion.ts"
+    },
+    {
+      "path": "scripts/migration-session/coverage.ts"
+    },
+    {
+      "path": "scripts/migration-session/stage.ts"
+    },
+    {
+      "path": "scripts/package/coverage-inventory.json"
+    },
+    {
+      "path": "scripts/package/coverage.ts"
+    },
+    {
+      "path": "scripts/package/stage-package.ts"
+    },
+    {
+      "path": "scripts/package/worker-bundle.ts"
+    },
+    {
+      "path": "scripts/release/inventory.ts"
+    },
+    {
+      "path": "scripts/release/publication-cli.ts"
+    },
+    {
+      "path": "scripts/release/publication.ts"
+    },
+    {
+      "path": "scripts/terrarium/coverage.ts"
+    },
+    {
+      "path": "tests/migration-session/browser-modules.d.ts"
+    },
+    {
+      "path": "tests/migration-session/ci.test.ts"
+    },
+    {
+      "path": "tests/migration-session/completion.test.ts"
+    },
+    {
+      "path": "tests/migration-session/consumer-input.ts"
+    },
+    {
+      "path": "tests/migration-session/consumer.spec.ts"
+    },
+    {
+      "path": "tests/migration-session/consumer.test.ts"
+    },
+    {
+      "path": "tests/migration-session/fixture.test.ts"
+    },
+    {
+      "path": "tests/migration-session/fixtures.ts"
+    },
+    {
+      "path": "tests/migration-session/guest-validation.test.ts"
+    },
+    {
+      "path": "tests/migration-session/playwright.config.ts"
+    },
+    {
+      "path": "tests/migration-session/public.test.ts"
+    },
+    {
+      "path": "tests/migration-session/reservation.test.ts"
+    },
+    {
+      "path": "tests/migration-session/tsconfig.json"
+    },
+    {
+      "path": "tests/migration-session/types-invalid.ts"
+    },
+    {
+      "path": "tests/migration-session/types-valid.ts"
+    },
+    {
+      "path": "tests/package/coverage.test.ts"
+    },
+    {
+      "path": "tests/package/lifecycle.test.ts"
+    },
+    {
+      "path": "tests/package/pack.test.ts"
+    },
+    {
+      "path": "tests/package/public.test.ts"
+    },
+    {
+      "path": "tests/package/worker-bundle.test.ts"
+    },
+    {
+      "path": "tests/release/publication-alignment-fixture.ts"
+    },
+    {
+      "path": "tests/terrarium/coverage.test.ts"
+    },
+    {
+      "path": "tests/tooling/publication-alignment.test.ts"
+    },
+    {
+      "path": "tests/tooling/publication-version.test.ts"
+    },
+    {
+      "path": "types/index.d.ts"
+    }
   ]
 }

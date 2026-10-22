@@ -65,6 +65,17 @@ mise run showcase-accept-browser
 - 再利用元のrunとartifactの一覧は、GitHub REST APIの応答の固定JSONで模擬する。
 - ELFの検証は公開の `validateGuest` をそのまま使い、試験用の小さな静的ELFと動的ELF（PT_INTERPあり）を `showcase/tests/fixtures/` に生成用のcodeとして置く（バイナリfileはcommitしない）。
 
+## B1のpackのReleaseを指す変更（2026-10-20、計画Step 14）
+
+新しい試験は加えない。`showcase/tests/config.test.ts` の「commitした設定が正しい」試験は、`b1-pack.json` が `null` であることの代わりに、Release `b1-a3370ca4df1f` の値（tag・資産名・2つのSHA256）であることを確かめる。`b1-pack.json` の規則（すべてnullか、すべて正しい値か、tagがpackのdigestを名乗るか）の試験は変えない。mainで1つずつ `mise run lint:all`・`mise run showcase-typecheck`・`mise run showcase-unit`（96件、showcaseのscriptの行coverage 80%以上）・`mise run test:light` を実行する。
+
+## Minorの指摘の修正（2026-10-20、計画Step 15）
+
+- `showcase/tests/candidate.test.ts`：`candidate.ts` の未計測の経路の試験を3–5件足す（正常と、少なくとも2つの拒否）。`candidate.ts` の行coverageを80%以上にする。
+- `showcase/tests/workflow.test.ts`：`trusted-callers.json` の `distributeCaller` のworkflow fileが実在し、`uses: ./.github/workflows/showcase.yml` と `mode: distribute` で呼ぶことを確かめる試験を1件足す。fileがない・別のworkflowを呼ぶ・modeが違う場合に失敗することは、文字列の照合で確かめる。
+- 実行（mainで1つずつ）：`mise run build`、`node --test --test-concurrency=1 showcase/tests/candidate.test.ts showcase/tests/workflow.test.ts`、`mise run showcase-unit`（showcaseのscriptの行80%以上）、`mise run showcase-boundary`、`mise run showcase-typecheck`、`mise run lint:all`、`mise run test:light`。
+- 外部のnetworkは、候補のartifactの読取りだけの取得（GitHub REST）だけに使う。試験は外部のnetworkを使わない。
+
 ## Test Data
 
 - `showcase/tests/fixtures/`：試験用の小さなELFの組立て、tar.gzの組立て（正常・escape・link・重複・truncate・上限）、GitHub APIの応答のJSON。

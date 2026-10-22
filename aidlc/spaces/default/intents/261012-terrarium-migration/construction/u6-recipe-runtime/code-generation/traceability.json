@@ -1,0 +1,457 @@
+{
+  "stage": "code-generation",
+  "unit": "u6-recipe-runtime",
+  "note": "U6 の code は vivarium（aletheia-works/vivarium の main dcf959a1、#537–#542・#544）にあり、この intent の記録した repo ではない。Code Generation の target は workspace の実在の file に限られるので、OK の行の target は U6 の code-summary（vivarium の変更の file・SHA256・試験の記録）とし、vivarium の具体の path は各行の detail に書いた。formicarium には U6 の記録だけを置いた（U2 の Worker の bundle は U2 の記録）。",
+  "upstream_ids": [
+    "FR10",
+    "FR11",
+    "FR12",
+    "NFR2.1",
+    "NFR2.2",
+    "NFR3.1",
+    "NFR3.2",
+    "NFR3.3",
+    "NFR3.4",
+    "NFR3.5",
+    "NFR3.6",
+    "NFR4.1",
+    "NFR4.2",
+    "NFR6.1",
+    "NFR6.2",
+    "NFR6.3",
+    "NFR6.4",
+    "NFR6.5",
+    "NFR6.7",
+    "NFR6.8",
+    "NFR7.1",
+    "NFR7.2",
+    "NFR7.3",
+    "NFR8.1",
+    "NFR8.2",
+    "NFR8.3",
+    "NFR8.4",
+    "NFR8.5",
+    "BR1.1",
+    "BR1.2",
+    "BR1.3",
+    "BR1.4",
+    "BR1.5",
+    "BR1.6",
+    "BR1.7",
+    "BR1.8",
+    "BR2.1",
+    "BR2.2",
+    "BR2.3",
+    "BR2.4",
+    "BR3.1",
+    "BR3.2",
+    "BR3.3",
+    "BR3.4",
+    "BR3.5",
+    "BR3.6",
+    "BR3.7",
+    "BR4.1",
+    "BR4.2",
+    "BR4.3",
+    "BR4.4",
+    "BR4.5",
+    "BR4.6",
+    "BR5.1",
+    "BR5.2",
+    "BR5.3",
+    "BR5.4",
+    "BR6.1",
+    "BR6.2",
+    "BR6.3",
+    "BR7.1",
+    "BR7.2",
+    "BR8.1",
+    "FR16"
+  ],
+  "coverage": [
+    {
+      "id": "FR10",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の recipe biome-migrate-override-bracket-spacing（recipe.json の guests と accepted、repro.ts）と AssetStager（docs/scripts/stage-formicarium-assets.ts）。C10 の recipe-identity 3行。2026-10-22（Step 21、aletheia-works/vivarium#557、merge e4ef0dc4）：assets.json の entry が _formicarium/ の外へ解決されるものを拒否し、boot の失敗時に session を dispose し、check-site が局所 staging の accepted.json を拒否する（各試験は直す前に fail を観測）"
+    },
+    {
+      "id": "FR11",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の verdict.ts と共有 module の _shared/formicarium_terminal.ts。C10 の reproduction-comparison・terminal-compatibility 3行ずつ"
+    },
+    {
+      "id": "FR12",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の terrarium の現役参照の除去（terrarium_loader・terrarium-proxy・terrariumPins の削除）。C10 の active-reference-cleanup"
+    },
+    {
+      "id": "NFR2.1",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の tests/biome-migrate-override-bracket-spacing.spec.ts（retry 0・180秒）と repro-regression の3ブラウザ（run 39233229665 で各29 passed）"
+    },
+    {
+      "id": "NFR2.2",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の src/layer1_wasm/scripts/u6-coverage.ts と u6-coverage.json の分母。CI の artifact u6-coverage-39233229665 で 83.39%。2026-10-22（#557）：repro-regression の CI が pin の tarball を取って SHA256 を照合し、formicariumTypes の型の照合を skip せずに動かす（手元で同じ command が 1 pass）"
+    },
+    {
+      "id": "NFR3.1",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の recipe の guests の検証（generate-recipes-index.ts の U6 の検証、role の一意・accepted の5 field の全部か無し）と recipesIndex.test.ts。C10 の contract-schema"
+    },
+    {
+      "id": "NFR3.2",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の AssetStager（stage-formicarium-assets.ts の pin mode：tarball の SHA256・entry の path・各 file の SHA256、Release は accepted.buildKey の tag だけ）と stageFormicariumAssets.test.ts。C10 の fixed-build-reuse"
+    },
+    {
+      "id": "NFR3.3",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の _shared/formicarium_terminal.ts の照合（build-info と accepted、validateGuest の後に登録）。ELF を1 byte 変えた spec で fix が digest mismatch（3ブラウザ）"
+    },
+    {
+      "id": "NFR3.4",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "pin が無い間は pending（generate-recipes-index.ts）。0.3.0 の公開と pin（#542）の後に公開 site で受入した C10 の証拠"
+    },
+    {
+      "id": "NFR3.5",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の docs/scripts/coi-serviceworker-pin.ts と coiServiceWorkerPin.test.ts（tree の全写しの digest）"
+    },
+    {
+      "id": "NFR3.6",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "pin の PR（#542）の provenance の確認（npm audit signatures、code-summary の Step 18 の 2.）"
+    },
+    {
+      "id": "NFR4.1",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の AssetStager の取得の上限（C11 の deadline と大きさ、非2xx・offline・429・不正な body）と stageFormicariumAssets.test.ts"
+    },
+    {
+      "id": "NFR4.2",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の _shared/formicarium_terminal_element.ts（要素が外れたら abort と dispose）と formicarium_terminal.test.ts の取外しの試験"
+    },
+    {
+      "id": "NFR6.1",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の tests/biome-migrate-override-bracket-spacing.spec.ts（180秒・120秒・retry 0）と公開 site の受入の時間（pages-*.json の elapsedMs）"
+    },
+    {
+      "id": "NFR6.2",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の _shared/formicarium_terminal.ts の fetchBytes（120秒の deadline、TIMEOUT で端末の失敗）。pages-*.json の elfFetch の bytes と ms"
+    },
+    {
+      "id": "NFR6.3",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "1つの page の2端末（baseline、fix の順。repro.ts）、wasm 1GB は formicarium の既存の上限のまま。公開 site で3ブラウザとも2端末 ready"
+    },
+    {
+      "id": "NFR6.4",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "ELF は en の dir の guests/ に1か所（scripts/bundle-layer1-pages.sh）、check-site の site の大きさの上限。deploy-docs の run 39233229635 で 235579557 bytes"
+    },
+    {
+      "id": "NFR6.5",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "ELF の大きさ（baseline 112564936・fix 112500608 bytes、C11 の 128MiB の下）を AssetStager の上限で検査"
+    },
+    {
+      "id": "NFR6.7",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "3ブラウザ × en・ja の受入（公開 site の pages-*.json と CI の repro-regression run 39233229665）"
+    },
+    {
+      "id": "NFR6.8",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "S8 の置き場（候補2、_formicarium/ を各 page の dir と ja の dir へ。scripts/bundle-layer1-pages.sh、serve-repro.ts）。公開 site で子の Worker まで分離（pages-*.json の workers）"
+    },
+    {
+      "id": "NFR7.1",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の _shared/formicarium_terminal.ts の TranscriptBuffer（1MiB・10000行）と formicarium_terminal_element.ts（textContent だけで表示）。formicarium_terminal.test.ts"
+    },
+    {
+      "id": "NFR7.2",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の _shared/formicarium_terminal_element.ts（状態の文字表示、keyboard の form、判定の列の間は入力を無効）と formicarium_terminal.test.ts"
+    },
+    {
+      "id": "NFR7.3",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の _shared/formicarium_terminal.ts の fetchBytes の進捗（unknown と 0 を区別）と formicarium_terminal.test.ts"
+    },
+    {
+      "id": "NFR8.1",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "C10 の証拠 acceptance-evidence.json（identitySha256 と各 check の記録 check-logs/）と、code-summary の外部操作の記録。2026-10-22（#557）：staging の log と job summary の URL から署名付きの query を落とした（R-12）"
+    },
+    {
+      "id": "NFR8.2",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "PR の作成・push・Release の削除は、対象を示して人間の承認を受けた後に行った。merge と削除は人間が実施した（#537–#544、code-summary の各 Step と R-02）。2026-10-22：C10 の証拠を作り直し、coverage-80 は run の記録と artifact の記録と ZIP の digest で commit に結び付け、deployedIdentity（deploy-docs の run 39233229635、Pages の deployment 7170705016）を入れた。acceptance-evidence.json の SHA256 8b757563…225e8a"
+    },
+    {
+      "id": "NFR8.3",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の AssetStager が formicarium の LICENSE・THIRD_PARTY_NOTICES.md を _formicarium/ に置く（欠落で失敗）と stageFormicariumAssets.test.ts"
+    },
+    {
+      "id": "NFR8.4",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の deploy-docs.yml・repro-regression.yml（token を使わない、persist-credentials false、main への push と dispatch だけ）と docs/scripts/__tests__/workflows.test.ts"
+    },
+    {
+      "id": "NFR8.5",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "切戻しの手順は code-summary の Step 19 に記録（#542 を revert すると recipe は pending に戻り site から外れる）。pin の無い tree の site build は deploy-docs の run 39201684062（1188ec80）で成功（ドキュメント根拠。revert した tree での build そのものは未実施）"
+    },
+    {
+      "id": "BR1.1",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の generate-recipes-index.ts の guests[] の必須と recipesIndex.test.ts"
+    },
+    {
+      "id": "BR1.2",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の recipe.json の role（baseline・fix）の一意と recipesIndex.test.ts"
+    },
+    {
+      "id": "BR1.3",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の guests の宣言の規則（正規の repository の URL・allowlist・40桁 commit）と recipesIndex.test.ts"
+    },
+    {
+      "id": "BR1.4",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の commit と accepted の分離（recipe.schema.json の revision、accepted の5 field の全部か無し）"
+    },
+    {
+      "id": "BR1.5",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の tools/fixed-guest-builder の bump.ts が baseline の commit だけを main の先頭へ動かす（bump.test.ts）"
+    },
+    {
+      "id": "BR1.6",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の accepted の置き換えは人の PR（#541）。bump は accepted を消さない（bump.test.ts）"
+    },
+    {
+      "id": "BR1.7",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の active と pending（generate-recipes-index.ts、pin と accepted が揃うまで pending）"
+    },
+    {
+      "id": "BR1.8",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の formicarium の recipe は fix_candidate を宣言しない（recipesIndex.test.ts）"
+    },
+    {
+      "id": "BR2.1",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の AssetStager の pin mode（pin file の tarball から同じ origin の _formicarium/ へ）"
+    },
+    {
+      "id": "BR2.2",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の AssetStager が accepted.buildKey の Release の ELF・build-info・catalog を照合"
+    },
+    {
+      "id": "BR2.3",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の AssetStager の C11 の上限（stageFormicariumAssets.test.ts）"
+    },
+    {
+      "id": "BR2.4",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の coi-serviceworker-pin.ts の 0.1.7 と SHA256（coiServiceWorkerPin.test.ts）"
+    },
+    {
+      "id": "BR3.1",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の repro.ts の分離の待ち（waitForIsolation）と window.coi の coepCredentialless false"
+    },
+    {
+      "id": "BR3.2",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の formicarium_terminal.ts の実行前の再照合（validateGuest の後に登録）"
+    },
+    {
+      "id": "BR3.3",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の formicarium_terminal.ts の fixtureEntries（/work/app へ、BR3.3 からの変更は code-summary の Step 13）"
+    },
+    {
+      "id": "BR3.4",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の formicarium_terminal_element.ts の run の逐次化と判定の列の間の入力の無効化"
+    },
+    {
+      "id": "BR3.5",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の formicarium_terminal.ts の TranscriptBuffer（1MiB・10000行、原本は別）"
+    },
+    {
+      "id": "BR3.6",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の 端末の API は ready・transcript・run だけ（DOM event・iframe の bridge なし）"
+    },
+    {
+      "id": "BR3.7",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の repro.ts の起動の順（baseline、fix）と要素が外れたときの dispose"
+    },
+    {
+      "id": "BR4.1",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の verdict.ts の事前確認（fixture・空の biome.json）"
+    },
+    {
+      "id": "BR4.2",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の verdict.ts の exit の扱い"
+    },
+    {
+      "id": "BR4.3",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の verdict.ts の override の bracketSpacing の2か所の検査"
+    },
+    {
+      "id": "BR4.4",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の verdict.ts の baseline だけで verdict を決める"
+    },
+    {
+      "id": "BR4.5",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の verdict.ts の失敗は判定ではない（baseline_error・fix_error）"
+    },
+    {
+      "id": "BR4.6",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の verdict.ts の Result v1 の envelope（runtime.extras）"
+    },
+    {
+      "id": "BR5.1",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の 3ブラウザの比較（公開 site の pages-*.json と CI の run 39233229665）"
+    },
+    {
+      "id": "BR5.2",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の C10 の identity（evidence-c10/acceptance-evidence.json）"
+    },
+    {
+      "id": "BR5.3",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の verdict.ts の fixtureSha256・commandSha256（正規化 JSON）"
+    },
+    {
+      "id": "BR5.4",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の u6-coverage.json の分母と u6-coverage.ts（CI で 83.39%）"
+    },
+    {
+      "id": "BR6.1",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の terrarium の現役参照の除去（Step 16、host-active-reference-cleanup.log は歴史の4件だけ）"
+    },
+    {
+      "id": "BR6.2",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の schema と Contract v1 の revision 4（en・ja）"
+    },
+    {
+      "id": "BR6.3",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "旧題材の Release 2件と tag の削除。人間が承認し、GitHub の web 画面で自分で実施した。releases/tags・git/ref/tags・releases/<id> の GET がすべて 404 であることを確認した（code-summary の review-01 の修正の R-02）。2026-10-22：旧 Release・tag の6つの GET（すべて 404）を evidence-c10/old-release-404.log に保存した。削除の承認と報告は2件をまとめた1回（2026-10-19「はい、削除しました。」）"
+    },
+    {
+      "id": "BR7.1",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の formicarium_terminal_element.ts の textContent の表示と入力の保持"
+    },
+    {
+      "id": "BR7.2",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の formicarium_terminal_element.ts の状態の文字表示と keyboard の form"
+    },
+    {
+      "id": "BR8.1",
+      "status": "OK",
+      "target": "aidlc/spaces/default/intents/261012-terrarium-migration/construction/u6-recipe-runtime/code-generation/code-summary.md",
+      "detail": "vivarium の AssetStager の LICENSE・THIRD_PARTY_NOTICES.md、coi-serviceworker の MIT の注記、Biome の ELF の license の出所（README）"
+    },
+    {
+      "id": "FR16",
+      "status": "N/A",
+      "target": "terrarium の repository 自体の退役は U9 の範囲（functional-spec.md）。U6 は vivarium の現役参照の除去だけ（FR12）"
+    }
+  ],
+  "reverse": []
+}

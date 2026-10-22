@@ -14,16 +14,16 @@ FR1/FR9、U1、C01/C11、U1 NFR要件/DS1–6/基盤設計。user storiesは省�
 
 ## Implementation Steps
 
-- [x] Step 1: main sessionでjj状態/変更前revision、既存generated資産・依存・API consumer baselineを記録。mise run build / typecheck / test-light / test-consumer と必要な既存probe/aube回帰を順次確認。失敗・入力欠損では変更前に停止し既存失敗を提示する。未変更aube再buildなし。（NFR2/NFR8）
-- [x] Step 2: scripts/migration-preflight/とtests/migration-preflight/のrunner/configを整備。mise.tomlにmigration-preflight-unit、migration-preflight-browser、migration-preflight-verify taskを追加。tests/migration-preflight/playwright.config.tsは3browser/worker1/retry0、isolated server。scriptsのgenerated JSは既存build/emit方式を確認して適合させる。新taskは実装後に実体を確認し、既存taskを呼べることだけでU1合格にしない。（FR1/NFR6）
-- [x] Step 3: scripts/migration-preflight/evidence.tsにC01型・36行一意性・有限非負時間・各組合せ中央値/初回/最大/fetch・baseline identity/reuse照合と全条件AND判定を実装。その後tests/migration-preflight/evidence.test.tsに正常、欠落、重複、CORS/exit失敗、3000境界/超過、時間不正、cache identity不一致の5–8件以上を作成・実行。（FR1/FR9/NFR1.1/NFR5.1/NFR7.1）
-- [x] Step 4: scripts/migration-preflight/assets.tsに公式資産を固定版/URL/digest/source metadata入力から有限取得・全entry安全検査・展開・ELF検証copyへ導く試行用経路を実装。既存検証を再利用し、新公開APIを先行変更しない。全hopを検査できないbrowser取得はredirect:error等で検査不能を失敗とし、ミラー案確認まで停止。tests/migration-preflight/assets.test.tsでdigest/ELF/metadata、path/link/duplicate/truncated、容量境界、HTTP/redirect/timeout/abortのfixtureを実装後に実行。（NFR3.1/NFR3.2/NFR4.1/NFR4.2）
-- [x] Step 5: scripts/migration-preflight/runner.tsとtests/migration-preflight/serve.tsで既存公開browser API/Worker資産をsame-origin/COI/CSP下で起動。計測と非計測の検査を分け、各trialは新session、cache条件を明示。実行対象は同一固定版guest、trial0と1–5、6組合せ36行。出力はtextとbyte digest。tests/migration-preflight/runner.test.ts（5–8件、epoch/取消/cleanup/計測欠落/入力copy）とconsumer.spec.ts（3browser×2tool×6trial）を実装後に逐次実行。性能trialはcoverage instrumentationなし、coverageは別経路で既存固定分母を維持。（FR1/NFR1.2/NFR2.1/NFR6.1/NFR7.1）
-- [x] Step 6: integration/vivarium/preflight/build-baseline.sh と baseline-workflow.yml に最小Biome musl CI試行案を作成。FR9完全commit事前照合、tool/repo/commit/builder hash/全依存入力によるcanonical key、ELF/build-info検証、staging/単一writer/atomic受入、同key第2回compile省略、4h deadline/子process group取消を備える。Actionの最新versionを公式情報で確認し全SHA/commentを固定、toolchain/image入力を明示。tests/migration-preflight/baseline.test.tsでkey変化/改変/欠損/同key再利用/途中終了を実装後に検証。これはvivariumへ移すレビュー可能な案で、local模擬試験をremote CI実績と呼ばない。（FR9/NFR4.1/NFR5.1/NFR8.1）
-- [x] Step 7: scripts/migration-preflight/verify.tsへ実C01/環境・入力inventory/CI run URL・build evidence/必要試験・coverage照合を組み込み、欠落では非zero終了。migration-preflight-verifyが実装済みUnitだけを対象に、必須unit/integration/E2E/coverageと実成果を検査する入口となる。現時点のtask名は設計上の予定で共通検証コマンドの承認ではない。（全NFR）
-- [x] Step 8: docs/results/terrarium-migration-preflight.md とJSON evidenceの出力先を整備、実URL/版/digest/環境/負荷/cache/36行/初回中央値最大/fetch/remote build再利用を記録。実際のvivariumへの変更・push・workflow起動・Release保存が必要な段階では具体差分/対象commit/job/保存先/費用/切戻しを示し個別承認を待つ。その操作とremote実測証拠が未完ならU1未完のまま停止。（FR1/FR9/NFR8）
-- [x] Step 9: 本体既存回帰とfirst-party固定分母line coverage≥80%をmain sessionで逐次検証。probe600s/8項目、aube840s、worker1/retry0、native完全一致、wasm1GB、waitAsync削除維持。入口整備後、初回の単位完了確認前に実コマンド・必須試験/coverage対応と未実行範囲を提示して承認後に確定。code-summary/traceability/source-manifestには生成物も含め全変更と実結果を記録し、完成したコードの独立レビュー後にU1受入。（全NFR）
-- [x] Step 10: 完了確認の復旧。修正済みverify-completed-result.mjsの固定U2一覧・277 source snapshot・135 evidence seal・14工程・1370 realms・coverage80%・同一CI/head/署名/pack照合を維持する。retained-evidenceの成功は過去のU2だけを確認し、currentSourceVerified=falseの結果で現在のUnitを承認しない。現在のU1/U2を検査する入口を整備し、新規候補のsource/pack/独立consumerを固定して、U1試験、既存U2/APIのNode・Worker・3ブラウザ回帰、現在の全配布JSを分母とするcoverageを逐次実行する。新しいinstall JSを未収集として分母から除かず、必要なinstall回帰も収集する。U3の性能受入とCIはU3の未完項目として残し、今回の成功でU3完了としない。改変・欠落・非zero・古い候補の拒否を試験し、新しい実コマンドと検査範囲を人間に提示・承認後に設定する。新しい結果のsource/pack/全工程記録が揃うまで、過去の成功資料で現在のコードを合格にしない。（FR1/FR9/NFR2/NFR8）
+- [ ] Step 1: main sessionでjj状態/変更前revision、既存generated資産・依存・API consumer baselineを記録。mise run build / typecheck / test-light / test-consumer と必要な既存probe/aube回帰を順次確認。失敗・入力欠損では変更前に停止し既存失敗を提示する。未変更aube再buildなし。（NFR2/NFR8）
+- [ ] Step 2: scripts/migration-preflight/とtests/migration-preflight/のrunner/configを整備。mise.tomlにmigration-preflight-unit、migration-preflight-browser、migration-preflight-verify taskを追加。tests/migration-preflight/playwright.config.tsは3browser/worker1/retry0、isolated server。scriptsのgenerated JSは既存build/emit方式を確認して適合させる。新taskは実装後に実体を確認し、既存taskを呼べることだけでU1合格にしない。（FR1/NFR6）
+- [ ] Step 3: scripts/migration-preflight/evidence.tsにC01型・36行一意性・有限非負時間・各組合せ中央値/初回/最大/fetch・baseline identity/reuse照合と全条件AND判定を実装。その後tests/migration-preflight/evidence.test.tsに正常、欠落、重複、CORS/exit失敗、3000境界/超過、時間不正、cache identity不一致の5–8件以上を作成・実行。（FR1/FR9/NFR1.1/NFR5.1/NFR7.1）
+- [ ] Step 4: scripts/migration-preflight/assets.tsに公式資産を固定版/URL/digest/source metadata入力から有限取得・全entry安全検査・展開・ELF検証copyへ導く試行用経路を実装。既存検証を再利用し、新公開APIを先行変更しない。全hopを検査できないbrowser取得はredirect:error等で検査不能を失敗とし、ミラー案確認まで停止。tests/migration-preflight/assets.test.tsでdigest/ELF/metadata、path/link/duplicate/truncated、容量境界、HTTP/redirect/timeout/abortのfixtureを実装後に実行。（NFR3.1/NFR3.2/NFR4.1/NFR4.2）
+- [ ] Step 5: scripts/migration-preflight/runner.tsとtests/migration-preflight/serve.tsで既存公開browser API/Worker資産をsame-origin/COI/CSP下で起動。計測と非計測の検査を分け、各trialは新session、cache条件を明示。実行対象は同一固定版guest、trial0と1–5、6組合せ36行。出力はtextとbyte digest。tests/migration-preflight/runner.test.ts（5–8件、epoch/取消/cleanup/計測欠落/入力copy）とconsumer.spec.ts（3browser×2tool×6trial）を実装後に逐次実行。性能trialはcoverage instrumentationなし、coverageは別経路で既存固定分母を維持。（FR1/NFR1.2/NFR2.1/NFR6.1/NFR7.1）
+- [ ] Step 6: integration/vivarium/preflight/build-baseline.sh と baseline-workflow.yml に最小Biome musl CI試行案を作成。FR9完全commit事前照合、tool/repo/commit/builder hash/全依存入力によるcanonical key、ELF/build-info検証、staging/単一writer/atomic受入、同key第2回compile省略、4h deadline/子process group取消を備える。Actionの最新versionを公式情報で確認し全SHA/commentを固定、toolchain/image入力を明示。tests/migration-preflight/baseline.test.tsでkey変化/改変/欠損/同key再利用/途中終了を実装後に検証。これはvivariumへ移すレビュー可能な案で、local模擬試験をremote CI実績と呼ばない。（FR9/NFR4.1/NFR5.1/NFR8.1）
+- [ ] Step 7: scripts/migration-preflight/verify.tsへ実C01/環境・入力inventory/CI run URL・build evidence/必要試験・coverage照合を組み込み、欠落では非zero終了。migration-preflight-verifyが実装済みUnitだけを対象に、必須unit/integration/E2E/coverageと実成果を検査する入口となる。現時点のtask名は設計上の予定で共通検証コマンドの承認ではない。（全NFR）
+- [ ] Step 8: docs/results/terrarium-migration-preflight.md とJSON evidenceの出力先を整備、実URL/版/digest/環境/負荷/cache/36行/初回中央値最大/fetch/remote build再利用を記録。実際のvivariumへの変更・push・workflow起動・Release保存が必要な段階では具体差分/対象commit/job/保存先/費用/切戻しを示し個別承認を待つ。その操作とremote実測証拠が未完ならU1未完のまま停止。（FR1/FR9/NFR8）
+- [ ] Step 9: 本体既存回帰とfirst-party固定分母line coverage≥80%をmain sessionで逐次検証。probe600s/8項目、aube840s、worker1/retry0、native完全一致、wasm1GB、waitAsync削除維持。入口整備後、初回の単位完了確認前に実コマンド・必須試験/coverage対応と未実行範囲を提示して承認後に確定。code-summary/traceability/source-manifestには生成物も含め全変更と実結果を記録し、完成したコードの独立レビュー後にU1受入。（全NFR）
+- [ ] Step 10: 完了確認の復旧。修正済みverify-completed-result.mjsの固定U2一覧・277 source snapshot・135 evidence seal・14工程・1370 realms・coverage80%・同一CI/head/署名/pack照合を維持する。retained-evidenceの成功は過去のU2だけを確認し、currentSourceVerified=falseの結果で現在のUnitを承認しない。現在のU1/U2を検査する入口を整備し、新規候補のsource/pack/独立consumerを固定して、U1試験、既存U2/APIのNode・Worker・3ブラウザ回帰、現在の全配布JSを分母とするcoverageを逐次実行する。新しいinstall JSを未収集として分母から除かず、必要なinstall回帰も収集する。U3の性能受入とCIはU3の未完項目として残し、今回の成功でU3完了としない。改変・欠落・非zero・古い候補の拒否を試験し、新しい実コマンドと検査範囲を人間に提示・承認後に設定する。新しい結果のsource/pack/全工程記録が揃うまで、過去の成功資料で現在のコードを合格にしない。（FR1/FR9/NFR2/NFR8）
 
 ## Test Ordering and Scope
 
@@ -33,10 +33,10 @@ runner準備→各層実装→同層試験のtest-after。既存不具合は再�
 
 ## 今回の再開：現在の確認を復旧する
 
-- [x] Step 11: U1の既存実装・固定証拠・Testing Contractを保持し、現在のsource-manifestと実ファイルの対応を確認する。mise.tomlのAI-DLC pinと実行版は2.11.1-preview.20261015.1に一致している。AI-DLC本体・品質条件・U2/U3の実装はこの復旧で変更しない。
-- [x] Step 12: main sessionでU1単体とcurrent-completionの拒否試験を逐次実行し、既存成功資料が現在のsourceにも適用できるかを検査する。旧v6資料のsource一致を仮定せず、不一致なら過去資料として保持し、新固定入力・候補・全工程を具体化する。未実行試験やU3の成功をU1の現在の完了確認へ代用しない。
-- [x] Step 13: `.gitignore` に `!/scripts/migration-preflight/current-coverage.js` と `!/tests/migration-preflight/current-completion.test.js` の個別例外2行だけを追加する。2件の生成JSの内容は変更せず、jjでローカル追跡する。`.js.map`やほかの生成物へ追跡範囲を広げない。source-manifestへ `.gitignore` を個別claimし、変更範囲の記録を整合させる。v8の入力・候補・pack・全source・全証拠のSHA一致を確認し、不一致なら停止する。封印対象がすべて不変の場合は21工程を再実行せず、独立レビューを再要求する。（FR1/FR9/NFR2/NFR8）
-- [x] Step 14: 検証結果・source-manifest・code-summary・traceabilityを整合させ、現在の成果への独立レビューを実施する。新しい完了確認コマンドが必要な場合は実コマンドを提示し、人間の承認後に設定・実行する。確認成功後だけU1完了確認を復旧し、U3の承認済み修正計画へ戻る。外部push・CI起動・証明書操作は今回の再開承認に含めない。AI-DLC本体、180秒、非download中央値3秒、coverage80%、容量上限、worker1/retry0は維持する。
+- [ ] Step 11: U1の既存実装・固定証拠・Testing Contractを保持し、現在のsource-manifestと実ファイルの対応を確認する。mise.tomlのAI-DLC pinと実行版は2.11.1-preview.20261015.1に一致している。AI-DLC本体・品質条件・U2/U3の実装はこの復旧で変更しない。
+- [ ] Step 12: main sessionでU1単体とcurrent-completionの拒否試験を逐次実行し、既存成功資料が現在のsourceにも適用できるかを検査する。旧v6資料のsource一致を仮定せず、不一致なら過去資料として保持し、新固定入力・候補・全工程を具体化する。未実行試験やU3の成功をU1の現在の完了確認へ代用しない。
+- [ ] Step 13: `.gitignore` に `!/scripts/migration-preflight/current-coverage.js` と `!/tests/migration-preflight/current-completion.test.js` の個別例外2行だけを追加する。2件の生成JSの内容は変更せず、jjでローカル追跡する。`.js.map`やほかの生成物へ追跡範囲を広げない。source-manifestへ `.gitignore` を個別claimし、変更範囲の記録を整合させる。v8の入力・候補・pack・全source・全証拠のSHA一致を確認し、不一致なら停止する。封印対象がすべて不変の場合は21工程を再実行せず、独立レビューを再要求する。（FR1/FR9/NFR2/NFR8）
+- [ ] Step 14: 検証結果・source-manifest・code-summary・traceabilityを整合させ、現在の成果への独立レビューを実施する。新しい完了確認コマンドが必要な場合は実コマンドを提示し、人間の承認後に設定・実行する。確認成功後だけU1完了確認を復旧し、U3の承認済み修正計画へ戻る。外部push・CI起動・証明書操作は今回の再開承認に含めない。AI-DLC本体、180秒、非download中央値3秒、coverage80%、容量上限、worker1/retry0は維持する。
 
 runtime公開API/core、旧terrarium/vivarium recipe/verdict、showcase、infra stateはここで変更しない。新規試行scripts/tests/taskとCI試行案に限定。既存emit設定に不足があれば最小変更しmanifestへ記録。各PR変更前revisionとinventoryを保存しjjで当該変更だけ戻す。生成stagingだけを破棄して既存受入資産・他者変更を保持。外部操作は計画承認と別の具体承認を待つ。
 
@@ -46,21 +46,21 @@ runtime公開API/core、旧terrarium/vivarium recipe/verdict、showcase、infra 
 
 この再開は、U4の作業を戻したことによる。その変更（mise.tomlへのU4 taskの追加）と、AI-DLCの更新（mise.tomlのpinを2.11.1-preview.20261016.1へ）で、U1がclaimするmise.tomlが変わった。
 
-- [x] Step 15: 最新toolchainでの再確認（実施済み。人間が承認した3つの修正案 `u1-rereview-repair-proposal.md`・`u1-latest-toolchain-revalidation-proposal.md`・`u1-current-evidence-assembly-proposal.md` による）。
+- [ ] Step 15: 最新toolchainでの再確認（実施済み。人間が承認した3つの修正案 `u1-rereview-repair-proposal.md`・`u1-latest-toolchain-revalidation-proposal.md`・`u1-current-evidence-assembly-proposal.md` による）。
   - R-01を修正した：`baseline.ts` の `readAccepted` に1MiB上限と重複keyの拒否を入れた。新規の `unique-json.ts` を作った。
   - current completionを変えた：retained工程をやめて20工程にした。手作業の `verification-input.json` は使わず、同じ実行の証拠から受入証拠を組み立てて照合する（新規 `current-evidence.ts`）。
   - vivarium baselineをNode 26.12.0に上げた（`baseline-workflow.yml`・`build-baseline.sh`・controller）。
   - 実行の結果：vivarium CI run 38990951678はsuccess。36試行は36件すべてpass。v10は20工程すべてexit0、coverage 91.65%。
   - 承認済みの検証コマンドは `verification/verification-command-u1u2-v10.txt`。
   - 試験：current＋evidenceが25件、U1 unitが56件、どれもpassでskipなし。（FR1/FR9/NFR2/NFR8）
-- [x] Step 16: 前回の再レビュー（review-08）の指摘を直す。各項目で、先に再現試験を書いてfailを観測し、修正してから同じ試験のpassを確かめる。対象は次の4件。
+- [ ] Step 16: 前回の再レビュー（review-08）の指摘を直す。各項目で、先に再現試験を書いてfailを観測し、修正してから同じ試験のpassを確かめる。対象は次の4件。
   - (Major) 受入証拠の `environment.node` が、組み立てた時点の `process.version` になっている。36試行の記録自体にNodeの版がないので、「今のNodeで作った証拠だけ」という確認が、試行については空になっている。直し方：`tests/migration-preflight/consumer.spec.ts` が、試行の記録の `environment` に、実行したNodeの版（`node`）とPlaywrightの版（`playwright`）を書く。`scripts/migration-preflight/current-evidence.ts` は、全試行で両方の値が同じで、しかも今の `process.version` と導入済みの `@playwright/test` の版に一致する場合だけ受け付ける。
   - (Minor) 36試行のPlaywrightログ（browserLog）が、trials directoryと結び付いていない。直し方：ログに出た36件の試験名（tool・browser・trial番号）が、trial fileの36件と1対1で一致することを照合する。
   - (Minor) `readAccepted` の1MiB上限が、file全体を読んだ後に判定されている。直し方：読む前にfileの大きさを確かめ、上限を超えれば読まずに拒否する。
   - (Minor) reportの `pending` に、完了済みのU3の項目が残っている。直し方：今の未完の項目（現在のsourceの署名付きCIとmerge、U4のB1統合受入）だけを書く。
 
   変更するfileはU1のものだけ：`consumer.spec.ts`、`current-evidence.ts`、`current-completion.ts`、`baseline.ts` と、その試験。mainが逐次実行する：build、typecheck、`mise run migration-preflight-unit`、current＋evidenceの試験。（FR1/NFR2/NFR8）
-- [x] Step 17: code-summaryとsource-manifestを更新し、独立レビューを受ける。そのあと、intentに記録された検証コマンドでcheckpointを確かめる。
+- [ ] Step 17: code-summaryとsource-manifestを更新し、独立レビューを受ける。そのあと、intentに記録された検証コマンドでcheckpointを確かめる。
 
 v10の実行結果は、Step 16の修正より前のsourceで得たものである。Step 16の修正を含むsourceでの36試行とcurrent completion（v11）は、U4の共有fileの変更がすべて終わった後に、1回だけまとめて実行する（段階B）。新しい検証コマンドは、その時点で提示して承認を受ける。それまで、v10の結果を修正後のsourceの成功証拠としては扱わない。
 
@@ -70,8 +70,8 @@ U4の追加Step項目4（配布JSが23件になったことと、`createCommandS
 - `tests/package/pack.test.ts`・`coverage.test.ts`・`public.test.ts` と `tests/terrarium/coverage.test.ts`：package・terrariumの試験で44件。
 - `pack.test.ts`：U4の新しい候補で7件。
 
-- [x] Step 18: 上の試験fileの変更（21件を23件にする。PACKAGE_FILESを31件から33件にする。名前の一覧に `command`・`command-parse` を加える。root exportの一覧に `createCommandSession` を加える）をU1の変更として確かめ、U1の記録（code-summary、source-manifest）に書く。期待値は、実際の配布一覧（`FIRST_PARTY_JS`）に合わせただけで、試験の判定条件は緩めていないことを確かめる。（NFR2/NFR8）
-- [x] Step 19: 独立レビューを受ける。そのあと、intentに記録された検証コマンドでcheckpointを確かめる。
+- [ ] Step 18: 上の試験fileの変更（21件を23件にする。PACKAGE_FILESを31件から33件にする。名前の一覧に `command`・`command-parse` を加える。root exportの一覧に `createCommandSession` を加える）をU1の変更として確かめ、U1の記録（code-summary、source-manifest）に書く。期待値は、実際の配布一覧（`FIRST_PARTY_JS`）に合わせただけで、試験の判定条件は緩めていないことを確かめる。（NFR2/NFR8）
+- [ ] Step 19: 独立レビューを受ける。そのあと、intentに記録された検証コマンドでcheckpointを確かめる。
 
 U4の作業がすべて終わった後に、最終的なsourceで、36試行とcurrent completion（v11）を1回だけまとめて行う。この方針は変えない。
 
@@ -85,16 +85,16 @@ U4の作業がすべて終わった後に、最終的なsourceで、36試行とc
 
 この3つのfile（と生成JS）はU1もclaimしているので、U1をこの1回だけやり直す。
 
-- [x] Step 20: 上の変更をU1の変更として確かめ、U1の記録（code-summary、source-manifest）に書く。fileを読んで、公開の境界（`HISTORICAL_PACKAGE_FILES` にないfileを含むpackを「U2 publication missing module coverage; U4/B1 evidence required」で拒否すること）が変わっていないことと、期待値を実際の配布一覧に合わせただけであることを確かめる。（NFR8）
-- [x] Step 21: 独立レビューを受ける（この試行のやり直しのレビューは使用済みなので、人間の依頼として記録する）。そのあと、intentに記録された検証コマンドでcheckpointを確かめる。
+- [ ] Step 20: 上の変更をU1の変更として確かめ、U1の記録（code-summary、source-manifest）に書く。fileを読んで、公開の境界（`HISTORICAL_PACKAGE_FILES` にないfileを含むpackを「U2 publication missing module coverage; U4/B1 evidence required」で拒否すること）が変わっていないことと、期待値を実際の配布一覧に合わせただけであることを確かめる。（NFR8）
+- [ ] Step 21: 独立レビューを受ける（この試行のやり直しのレビューは使用済みなので、人間の依頼として記録する）。そのあと、intentに記録された検証コマンドでcheckpointを確かめる。
 
 ## 今回の再開（2026-10-17、4回目）：current-candidateの試験の期待値の引受け
 
 公開用inventoryの更新のあと、最後のまとめた確認のD2（U3の受入）が、今度は `test-consumer` で止まった。`tests/terrarium/current-candidate.test.ts` が、配布fileを31件と固定していたためである（実際は33件）。人間の指示で、期待値を33へ直した（1行だけ）。このfileはU1もclaimしているので、U1をこの1回だけやり直す。
 - mainの観測（証明書なし、Node v26.12.0）：U3の候補で、build・typecheck・test-light（194・237件pass）・test-consumer（205件pass）・migration-session-unit（46件）・migration-install-unit（74件）。候補を作り直したあと、U4の候補で、test-consumer（205件）・migration-command-unit（94件）。どれもfail・skip 0。
 
-- [x] Step 22: 上の変更をU1の変更として確かめ、U1の記録（code-summary）に書く。期待値を実際の配布一覧（`PACKAGE_FILES` の33件）に合わせただけで、判定（`verifyInstalledPackage` の照合）は変えていないことを、fileを読んで確かめる。（NFR8）
-- [x] Step 23: 独立レビューを受ける。そのあと、intentに記録された検証コマンドでcheckpointを確かめる。
+- [ ] Step 22: 上の変更をU1の変更として確かめ、U1の記録（code-summary）に書く。期待値を実際の配布一覧（`PACKAGE_FILES` の33件）に合わせただけで、判定（`verifyInstalledPackage` の照合）は変えていないことを、fileを読んで確かめる。（NFR8）
+- [ ] Step 23: 独立レビューを受ける。そのあと、intentに記録された検証コマンドでcheckpointを確かめる。
 
 ## 今回の再開（2026-10-17、5回目）：共有coverageのsuiteの許可リストの引受けと、最後のまとめた確認の結果
 
@@ -104,8 +104,8 @@ U4の作業がすべて終わった後に、最終的なsourceで、36試行とc
 - U1の36試行（`mirror-browser-final-20261017`）：36件pass、中央値505〜751ms、記録にNode v26.12.0・Playwright 1.64.1。
 - U1のcurrent completion v11：入力 `current-recovery-input-20261017-v11.json`（SHA256 d0798e289bb017cc17bae5e95788dcea0cdcf8bde0041d2292afdf46ab758a6f）、20工程pass、report `current-completion-64f021b6-7aba-46dd-acb3-265040ada0fb/current-local-verification-report.json`（SHA256 387549e63296321962b83a062b1d2535e9c04c852783230afff5a6ec5021d486）、verifyは `verified:true`・`currentSourceVerified:true`。pendingは、署名付きCIとU4のB1（U4の受入ではB1の31 checkがpass済み。CIは未実施）。
 
-- [x] Step 24: 上の変更をU1の変更として確かめ、U1の記録（code-summary）に書く。許可リストに1つ加えただけで、空・重複・未知のsuiteの拒否と、suite registryの完全一致の判定は変えていないことを、fileを読んで確かめる。v11の結果を記録する（v10は履歴）。（NFR8）
-- [x] Step 25: 独立レビューを受ける。そのあと、intentに記録された検証コマンドでcheckpointを確かめる。（このレビューと確認は、下の「新しい土台への合わせ」のStep 30で行う。）
+- [ ] Step 24: 上の変更をU1の変更として確かめ、U1の記録（code-summary）に書く。許可リストに1つ加えただけで、空・重複・未知のsuiteの拒否と、suite registryの完全一致の判定は変えていないことを、fileを読んで確かめる。v11の結果を記録する（v10は履歴）。（NFR8）
+- [ ] Step 25: 独立レビューを受ける。そのあと、intentに記録された検証コマンドでcheckpointを確かめる。（このレビューと確認は、下の「新しい土台への合わせ」のStep 30で行う。）
 
 ## 今回の再開（2026-10-18）：新しい土台（upstreamのmain）への合わせ
 
@@ -113,11 +113,25 @@ U4の作業がすべて終わった後に、最終的なsourceで、36試行とc
 
 新しい土台で取り直したレビュー（review-14、NOT-READY）の指摘のうち、次を直す（人間の指示：「U1の計画を新しい土台に合わせて直して承認を取り、current-candidate.test.tsの修正をPRにし、U1の記録を書き直して」）。ほかの持越しの指摘（R-02・R-07・R-11・R-13・R-14・R-19）は、この再開では扱わない。
 
-- [x] Step 26: `tests/terrarium/current-candidate.test.ts` の87行目 `assert.equal(manifest.files.length, 24)` を、`PACKAGE_FILES.length`（いまは33件）と比べる形に直す（Critical、R-16）。先に `tests/terrarium/current-candidate.test.ts` を実行して、期待値24で失敗することを観測し、直したあと同じ試験が成功することを確かめる。この試験を実行するcommandと、その前提（候補・資産の準備が要るか）を記録する。
-- [x] Step 27: `scripts/terrarium/coverage.ts` の33行目のコメントの古い件数（twenty-one）を、件数を書かない表現に直す（R-17）。動きは変えない。
-- [x] Step 28: U1の記録を新しい土台に合わせて書き直す（Major、R-12、R-18）。`code-summary.md` のStatus行と、Step 18・Step 20・Step 22の記述から、mainにないもの（`.github/publication/runner.mjs`、`runner-manifest.json`、`HISTORICAL_PACKAGE_FILES`、`publication-alignment.test.ts` の23件・33fileの判定）を根拠にした主張を、古い土台での履歴として区別し、新しい土台での状態（いまのfileで確かめられること）を書く。Step 18の `tests/package/public.test.ts` の項目は、U2が引き受けると直す。
-- [x] Step 29: `source-manifest.json` を、いまU1の内容を持つfileに合わせる。U1の内容がない `mise.toml` と `.gitignore` を外し、U1のtaskの実体の `mise-tasks/migration/preflight-*.sh` と `package.json` を加える。Step 26・Step 27で変えたfileを含める。
+- [ ] Step 26: `tests/terrarium/current-candidate.test.ts` の87行目 `assert.equal(manifest.files.length, 24)` を、`PACKAGE_FILES.length`（いまは33件）と比べる形に直す（Critical、R-16）。先に `tests/terrarium/current-candidate.test.ts` を実行して、期待値24で失敗することを観測し、直したあと同じ試験が成功することを確かめる。この試験を実行するcommandと、その前提（候補・資産の準備が要るか）を記録する。
+- [ ] Step 27: `scripts/terrarium/coverage.ts` の33行目のコメントの古い件数（twenty-one）を、件数を書かない表現に直す（R-17）。動きは変えない。
+- [ ] Step 28: U1の記録を新しい土台に合わせて書き直す（Major、R-12、R-18）。`code-summary.md` のStatus行と、Step 18・Step 20・Step 22の記述から、mainにないもの（`.github/publication/runner.mjs`、`runner-manifest.json`、`HISTORICAL_PACKAGE_FILES`、`publication-alignment.test.ts` の23件・33fileの判定）を根拠にした主張を、古い土台での履歴として区別し、新しい土台での状態（いまのfileで確かめられること）を書く。Step 18の `tests/package/public.test.ts` の項目は、U2が引き受けると直す。
+- [ ] Step 29: `source-manifest.json` を、いまU1の内容を持つfileに合わせる。U1の内容がない `mise.toml` と `.gitignore` を外し、U1のtaskの実体の `mise-tasks/migration/preflight-*.sh` と `package.json` を加える。Step 26・Step 27で変えたfileを含める。
 - [ ] Step 30: main sessionで1つずつ、`mise run lint:all`、`mise run typecheck`、`mise run build`、`mise run test:light`、`mise run migration-preflight-unit`、`mise run migration-preflight-current-unit` とStep 26の試験を実行する。そのあと独立レビューを受け、intentに記録された検証コマンドでcheckpointを確かめる。Step 26・Step 27のコードの変更は、mainへのPRにする（push・PRの作成は人間の指示に含まれる）。
+
+### 2026-10-21 の Request Changes について
+
+2026-10-21 に、Code Generation の段階を閉じるときの 178 件の扱いで、人間の選んだ Request Changes が Code Generation の段階の全体に記録された。人間の意図は U2 の一覧の変更だけで、U1 の計画を変える指示ではなかった。この計画の Step と内容は変えない（人間の回答 2026-10-21「A」：U1 の計画をそのまま承認し直して Unit ごとに進める）。
+
+### 追加Step：CI Pipeline の境界の確認の後（追跡表の GAP と trial の記録、2026-10-22、人間の回答 A）
+
+CI Pipeline の Construction → Operation の確認（`verification/phase-check-construction.md`）が FAIL になった。U1 の `traceability.json` の `NFR3.2`・`NFR4.1` が `GAP` のまま残っているため。調べた結果（`.artifacts/ci-pipeline/gap-rows-proposal.md`）：`NFR3.2` のもとの原因 R-01 は review-20 で Resolved だが表を直していない。`NFR4.1` は R-02（`scripts/migration-preflight/assets.ts` の `extractTar` が同期の関数で、tar の検査の途中で取消の signal を確かめない。設計 DS2「展開/検証はサイズと signal を分割境界で確認」）が未解決。あわせて、Build and Test の U1-NFR1.2 は Not Met（trial の記録の `environment` に OS・CPU・負荷が無く、`sourceCommit` が mirror を作った commit `7c7ceaf4` で試験の source ではない）なのに、追跡表では `OK` で食い違っている。人間の回答（2026-10-22「A」）：U1 を開き直してこの3つを直し、36試行を1回やり直す。
+
+- [ ] Step 31: `scripts/migration-preflight/assets.ts` の `extractTar` を、取消の signal を受け取る非同期の処理にし、一定の entry 数（と byte 数）ごとに処理を返して `signal.throwIfAborted()` を確かめる（DS2）。上限・境界・判定は変えない。不具合の修正の順：先に「tar の検査の途中で取消すと、検査の完了を待たずに取消で終わる」試験を `tests/migration-preflight/assets.test.ts` に足し、今の code で失敗することを観測してから直し、同じ試験が通ることを確かめる。配布の23 JS は変えない。（NFR4.1、R-02）
+- [ ] Step 32: `tests/migration-preflight/consumer.spec.ts` の trial の記録の `environment` に、OS（種類・release・arch）、CPU（model と数）、負荷（trial の前と後の load average）を足す。`sourceCommit`（資産の固定の入力の commit）とは別に、試験の source の commit（40桁）を記録する欄を足す。記録を読む照合（`scripts/migration-preflight/` の verify・completion）が key を厳しく確かめていれば、それに合わせて直し、その試験も足す。基準・試行の数・時間の上限は変えない。（NFR1.2）
+- [ ] Step 33: `traceability.json` を直す。`NFR3.2` は `OK`（target `scripts/migration-preflight/assets.ts`、note に「R-01 Resolved（review-20）。重複 key・1MiB の拒否は `baseline.ts`・`unique-json.ts` と `baseline.test.ts`」）。`NFR4.1` は Step 31 と試験が通った後に `OK`（target `scripts/migration-preflight/assets.ts`、note に R-02 の修正）。`NFR1.2` は Step 32 と36試行の記録で確かめた後に `OK` のまま、note に根拠を書く。直したあと `aidlc engine sensor-traceability --stage build-and-test` で、U1 の行が未対応に出ないことを確かめる。
+- [ ] Step 34: 最新の main の上の change で、main session が1つずつ `mise run lint:all`・`mise run typecheck`・`mise run build`・`mise run test:light`・`mise run migration-preflight-unit`・`mise run migration-preflight-current-unit` を実行する。そのあと、人間が証明書を一時に登録した間に `mise run migration-preflight-browser`（HTTPS の mirror、1 worker、retry なし、36行）を1回実行し、記録に OS・CPU・負荷・試験の source の commit があることと、基準（中央値 ≤3000ms ほか）を確かめる。証明書の削除は人間が行う。差分を示して push と PR の承認を受ける。`code-summary.md` にこの節を足す。
+- [ ] Step 35: 独立レビューを受け、intent の検証コマンドで U1 の checkpoint を確かめる。
 
 ## Testing Contract
 

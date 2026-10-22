@@ -16,11 +16,15 @@
     { "id": "BR2.8", "status": "OK", "target": "tests/migration-session/public.test.ts" },
     { "id": "BR2.9", "status": "OK", "target": "runtime/guest-validation.ts" },
     { "id": "BR2.10", "status": "OK", "target": "scripts/migration-session/completion.ts" },
+    { "id": "BR2.10", "status": "OK", "target": "scripts/package/worker-bundle.ts" },
     { "id": "BR2.11", "status": "OK", "target": "scripts/migration-session/stage.ts" },
+    { "id": "BR2.11", "status": "OK", "target": "tests/package/worker-bundle.test.ts" },
     { "id": "BR2.12", "status": "OK", "target": "runtime/lifecycle.ts" },
     { "id": "BR2.12", "status": "OK", "target": "tests/migration-session/reservation.test.ts" },
     { "id": "NFR2.1", "status": "OK", "target": "tests/node/build.test.ts" },
     { "id": "NFR2.2", "status": "OK", "target": "scripts/package/coverage.ts" },
+    { "id": "NFR2.2", "status": "OK", "target": "scripts/package/coverage-inventory.json" },
+    { "id": "NFR2.2", "status": "OK", "target": "scripts/migration-session/coverage.ts" },
     { "id": "NFR3.1", "status": "OK", "target": "runtime/guest-validation.ts" },
     { "id": "NFR3.2", "status": "OK", "target": "runtime/guest-validation.ts" },
     { "id": "NFR3.3", "status": "OK", "target": "runtime/guest-validation.ts" },
@@ -29,7 +33,10 @@
     { "id": "NFR4.1", "status": "OK", "target": "runtime/lifecycle.ts" },
     { "id": "NFR4.2", "status": "OK", "target": "tests/migration-session/reservation.test.ts" },
     { "id": "NFR6.1", "status": "OK", "target": "tests/migration-session/consumer.spec.ts" },
+    { "id": "NFR6.1", "status": "OK", "target": "runtime/web/api.ts" },
     { "id": "NFR8.1", "status": "OK", "target": "scripts/migration-session/stage.ts" },
+    { "id": "NFR8.1", "status": "OK", "target": "scripts/emit.ts" },
+    { "id": "NFR8.1", "status": "OK", "target": "tests/package/worker-bundle.test.ts" },
     { "id": "NFR8.2", "status": "OK", "target": "scripts/package/stage-package.ts" }
   ]
 }

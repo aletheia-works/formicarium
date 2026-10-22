@@ -2,7 +2,8 @@
 
 ## Summary
 
-- 今回の再開（2026-10-18、追加Step 18–23）：U5の記録を新しい土台（formicariumのupstream main `2a79860`）に合わせ、review-03のR-10〜R-14を直す。記録を「上流vivariumの本体（builderとworkflow。aletheia-works/vivarium mainのmerge `71e0ef92`）」と「formicarium側の確認（`scripts/migration-guest-build/`、`tests/migration-guest-build/`、`mise-tasks/migration/guest-build-*.sh`、package.jsonの `migration:guest-build:*`）」に分ける（人間の指示）。U5のcodeは変えない。触るのはU5の記録（この計画、`unit-test-instructions.md`、`code-summary.md`、`traceability.json`、`source-manifest.json`）だけ。mainでlint・typecheck・build・test:light・`mise run migration-guest-build-unit` と、保存済みのRelease 2組に対する `verify.ts` の照合を1つずつ実行する。下の各行は、それより前の要約（古い土台の履歴）である。
+- 今回の再開（2026-10-19、追加Step 24–31）：Release の起動の入力を減らす（人間の指示）。build の workflow の最後に release を続け、人は build を1回起動して environment `fixed-guest-release` を承認するだけにする。release は build の run ID だけでも起動できる。tool・binary・key・repository・commit・計画とその SHA256 は、build の run と artifact から workflow が割り出し、計画の内容と SHA256 を job summary に出す。2つの release が重なったら順に待ち、待っている run を BUSY と数えない。上流 vivarium の `tools/fixed-guest-builder/` と `.github/workflows/fixed-guest-{build,release}.yml` を変える（vivarium の fork で直接作る）。下の各行は、それより前の要約（履歴）である。
+- 前回の再開（2026-10-18、追加Step 18–23）：U5の記録を新しい土台（formicariumのupstream main `2a79860`）に合わせ、review-03のR-10〜R-14を直す。記録を「上流vivariumの本体（builderとworkflow。aletheia-works/vivarium mainのmerge `71e0ef92`）」と「formicarium側の確認（`scripts/migration-guest-build/`、`tests/migration-guest-build/`、`mise-tasks/migration/guest-build-*.sh`、package.jsonの `migration:guest-build:*`）」に分ける（人間の指示）。U5のcodeは変えない。触るのはU5の記録（この計画、`unit-test-instructions.md`、`code-summary.md`、`traceability.json`、`source-manifest.json`）だけ。mainでlint・typecheck・build・test:light・`mise run migration-guest-build-unit` と、保存済みのRelease 2組に対する `verify.ts` の照合を1つずつ実行する。下の各行は、それより前の要約（古い土台の履歴）である。
 - Builds: vivariumの固定guestのbuilder。宣言の検証、sourceの取得と確認、key、取得の監視、containerでのbuild、成果物の検証、Releaseへの書込み、bump-upstreamを作り、3つのworkflowで動かす。あわせて、formicariumで成果物を照合する入口を作る。
 - Touches: formicariumの `proposals/vivarium/u5/`（vivariumへ反映する案。新しいpackage `tools/fixed-guest-builder/`、workflow 4つ、mise.tomlとdependabotとinfra/githubとAGENTS.mdへの追記の案）、`scripts/migration-guest-build/`、`tests/migration-guest-build/`、`biome.json`（案のdirectoryを検査の対象から外す1行）。formicariumの `mise.toml` と `tsconfig.json` は変えない。vivariumへの反映・PR・merge・CIの起動は、別に承認を受ける。
 - Tests: builderの各部品の単体試験（部品ごとに5–8件以上、formicariumの照合を含め計約100件。bun test）と、workflowの静的な試験、formicariumの照合の試験。そのうえで、vivariumのCIでbaselineとfixをbuildし、Releaseへの保存、同じkeyの再利用、mbxありとなしの比較を行う。
@@ -104,12 +105,140 @@ Step 17の最終レビュー（READY、Major 1・Minor 6）を受けて、人間
 - 上流vivariumの本体：上流のmerge `71e0ef92` と、保存済みの記録（`.artifacts/migration-guest-build/upstream-commit-71e0ef92.json`・`upstream-tree-71e0ef92.json`・`upstream-compare-f1bf9058-71e0ef92.json`）、CIのrun（39073445357、39076793651、39077142098、39079897400、39080082205）とRelease 2組（`release-39076401324`・`release-39079705708`）。builderの試験（158件・行98.43%）は上流で行ったもので、formicariumでは再実行しない。
 - formicarium側の確認：`scripts/migration-guest-build/verify.ts`・`assets.ts`、`tests/migration-guest-build/verify.test.ts`、task 2件とpackage.jsonの2行。新しい土台で、試験と、保存済みのRelease 2組に対する照合をやり直す。
 
-- [x] Step 18: 記録を2つに分けて直す（R-10）。`code-summary.md`・`traceability.json` を、上の「証拠の分け方」に合わせて書き直す。`proposals/vivarium/u5/` をformicariumの中にある前提で書いた記述は、案の置き場所での履歴と明記する。`traceability.json` の対象は、上流の本体は上流の場所（`aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/...` の形）、formicarium側は追跡されたfileに直し、formicariumで追跡されていないpathを、formicariumのfileとして指さない。`unit-test-instructions.md` は計画作成時に新しい節を足してあるので、変えない。
-- [x] Step 19: 完了確認の記録を直す（R-11）。`code-summary.md` の冒頭と `traceability.json` のNFR8.2の、`verify-final-u5.mjs` と135件のbindingを、古い土台での完了確認の履歴とする。新しい土台では、intentの検証コマンド（`migration-guest-build-unit` を含む）と、Step 22の照合をU5のformicarium側の証拠とする。R-08の古い数値（146件・98.36%・131件・51件・「mergeは未」）を、158件・98.43%・135件・52件・「#536で71e0ef92にmerge済み」に揃える。
-- [x] Step 20: `source-manifest.json` を直す（R-12）。formicarium側のU5のfile（`scripts/migration-guest-build/assets.ts`・`verify.ts`、`tests/migration-guest-build/verify.test.ts`、`mise-tasks/migration/guest-build-unit.sh`・`guest-build-verify.sh`、`package.json`）にする。`biome.json` は外す。`package.json` は共有fileで、U5の内容は `migration:guest-build:*` の2行だけであることを `code-summary.md` に書く。
-- [x] Step 21: Minorを記録する（R-13・R-14）。`assets.ts` の `nodeAssets` が `tests/package/fixtures.ts` の `developmentAssets` と重なり、試験を通らないこと、`checkSet` が `dependencies` の無いbuild-infoで `INVALID_INPUT` でなく `TypeError` になることを、残余リスクとして `code-summary.md` に書く。codeは変えない（直すかどうかは別に決める）。R-03・R-05〜R-07・R-09（上流のfileの指摘）は、上流の残余リスクとして持ち越す。
-- [x] Step 22: mainで1つずつ、`mise run lint:all`、`mise run typecheck`、`mise run build`、`mise run test:light`、`mise run migration-guest-build-unit` を実行し、件数とfail・skip 0を記録する。そのあと、保存済みのRelease 2組（baselineとfix）に対して、`mise run migration-guest-build-verify`（`verify.ts`。引数は保存済みの `baseline-reuse-evidence.json`・`fix-reuse-evidence.json` と同じtool・key・repository・commit・receipt）を、新しい出力pathへ実行する。結果が保存済みの照合と一致することを確かめる（`--version` の成功・digest・build-info・`buildKey`・再利用）。Releaseの再取得・CI・上流への書込みはしない。入力が足りない場合は、その照合を未検証として記録する。
+- [ ] Step 18: 記録を2つに分けて直す（R-10）。`code-summary.md`・`traceability.json` を、上の「証拠の分け方」に合わせて書き直す。`proposals/vivarium/u5/` をformicariumの中にある前提で書いた記述は、案の置き場所での履歴と明記する。`traceability.json` の対象は、上流の本体は上流の場所（`aletheia-works/vivarium@71e0ef92:tools/fixed-guest-builder/...` の形）、formicarium側は追跡されたfileに直し、formicariumで追跡されていないpathを、formicariumのfileとして指さない。`unit-test-instructions.md` は計画作成時に新しい節を足してあるので、変えない。
+- [ ] Step 19: 完了確認の記録を直す（R-11）。`code-summary.md` の冒頭と `traceability.json` のNFR8.2の、`verify-final-u5.mjs` と135件のbindingを、古い土台での完了確認の履歴とする。新しい土台では、intentの検証コマンド（`migration-guest-build-unit` を含む）と、Step 22の照合をU5のformicarium側の証拠とする。R-08の古い数値（146件・98.36%・131件・51件・「mergeは未」）を、158件・98.43%・135件・52件・「#536で71e0ef92にmerge済み」に揃える。
+- [ ] Step 20: `source-manifest.json` を直す（R-12）。formicarium側のU5のfile（`scripts/migration-guest-build/assets.ts`・`verify.ts`、`tests/migration-guest-build/verify.test.ts`、`mise-tasks/migration/guest-build-unit.sh`・`guest-build-verify.sh`、`package.json`）にする。`biome.json` は外す。`package.json` は共有fileで、U5の内容は `migration:guest-build:*` の2行だけであることを `code-summary.md` に書く。
+- [ ] Step 21: Minorを記録する（R-13・R-14）。`assets.ts` の `nodeAssets` が `tests/package/fixtures.ts` の `developmentAssets` と重なり、試験を通らないこと、`checkSet` が `dependencies` の無いbuild-infoで `INVALID_INPUT` でなく `TypeError` になることを、残余リスクとして `code-summary.md` に書く。codeは変えない（直すかどうかは別に決める）。R-03・R-05〜R-07・R-09（上流のfileの指摘）は、上流の残余リスクとして持ち越す。
+- [ ] Step 22: mainで1つずつ、`mise run lint:all`、`mise run typecheck`、`mise run build`、`mise run test:light`、`mise run migration-guest-build-unit` を実行し、件数とfail・skip 0を記録する。そのあと、保存済みのRelease 2組（baselineとfix）に対して、`mise run migration-guest-build-verify`（`verify.ts`。引数は保存済みの `baseline-reuse-evidence.json`・`fix-reuse-evidence.json` と同じtool・key・repository・commit・receipt）を、新しい出力pathへ実行する。結果が保存済みの照合と一致することを確かめる（`--version` の成功・digest・build-info・`buildKey`・再利用）。Releaseの再取得・CI・上流への書込みはしない。入力が足りない場合は、その照合を未検証として記録する。
 - [ ] Step 23: 独立レビューを受ける。そのあと、intentの検証コマンドでU5のcheckpointを確かめ、通常の単位完了承認を進める。codeの変更はないので、PRは作らない（記録はU1〜U4・U7の記録と一緒に、後でまとめる）。
+
+## 追加Step：Release の起動を build の run から割り出す形にする（2026-10-19、人間の指示）
+
+U6 の Step 17 で、新しい題材の baseline と fix の Release を、今の fixed-guest-release（入力8つ：build_run_id・tool・binary・key・repository・commit・plan・plan_sha256）で起動した。`plan` と `plan_sha256` の入力が入れ替わり、さらに待機中のもう1つの run を busy と数えて、baseline の run 39188699745 は BUSY で失敗した（何も書いていない）。fix の run 39188781155 も入力が入れ替わっている。人間の判断：入力が多く使いづらく、失敗も起きたので、やり方を変える。起動は「build に続け、run ID でも起動」、重なりは「順に待つ」（2026-10-19 の回答）。
+
+方針（C12 の「JSON の操作計画を人が承認する」は保つ）：
+- 人が入れるのは build の入力（tool・repository・commit・fixture・mbx。今のまま）だけ。build が成功したら、同じ run の後の job で release の workflow を `workflow_call` で呼ぶ。release の `workflow_dispatch` の入力は `build_run_id` だけにする（今の2つの build のように、後から release するときと、やり直しに使う）。
+- release の最初の job（`contents: read`・`actions: read`、environment なし）が、build の run を GitHub の API で確かめ（aletheia-works/vivarium、`fixed-guest-build.yml` の main の workflow_dispatch の成功した run、artifact `fixed-guest-<run_id>` がある）、artifact を取り、receipt・build-info・成果物を照合して、tool・key・repository・commit を割り出す。binary は `tools.json` の tool の設定から決める。今の `verifyArtifactSet` と `makePublishPlan` で計画を作り、計画の JSON と SHA256、対象の tag と各 digest を job summary に出し、計画の file を artifact にする。rollback の文と approvalReference は code に固定する（approvalReference は「environment fixed-guest-release の承認、run <release の run_id>」）。
+- 次の job（`environment: fixed-guest-release`、`contents: write`）は、人の承認の後に、前の job の計画の file を取り、job の出力の SHA256 と一致することを確かめてから、今の `release` の処理で公開する。公開済みなら検証だけ、ELF の違いは `NOT_REPRODUCIBLE`（今のまま）。
+- busy の確認は、同じ workflow の `in_progress` の run だけを数え、`queued`・`waiting`・`pending` の run は数えない。順番は今の concurrency group（`cancel-in-progress: false`）で守る。同じ key を同時に書かないことは保つ。
+- build が同じ key の既存の Release を再利用した（`compiled=false`）ときも release の job は動き、公開済みの Release を検証するだけで終わる。
+
+- [ ] Step 24: 構成と tool の確認。vivarium の `jj git fetch` で `main@upstream` を確かめ、そこから `jj new` して bookmark `fixed-guest-release-from-run` を作る。使う tool（Bun・TypeScript・Biome・actionlint・ShellCheck・使う Action の最新の SHA）の最新版を確かめ、古いものは差分を報告する。`mise run ci:fixed-guest-builder` が今の main で通ることを確かめ、command を code-summary に書く。
+- [ ] Step 25: 実装：build の run から計画を作る。`tools/fixed-guest-builder/src/` に、run の確認（GitHub の API、上の条件）・artifact の receipt と build-info の照合・tool・key・repository・commit・binary の割り出し・計画の作成を行う部品（新しい module。CLI の subcommand `prepare --build-run-id <id> --artifacts <dir> --plan-out <file> --summary <file>`）を作る。割り出した値は、receipt・build-info・成果物の digest・`tools.json` の間で一致しなければ失敗にする（片方だけを信じない）。（C12、D6、NFR5.3、NFR8.1）
+- [ ] Step 26: Step 25 の後の試験。`tools/fixed-guest-builder/tests/prepare.test.ts`（新しい file）に、正しい run と artifact から計画ができること、run の workflow・branch・event・結論・repository の違い、receipt と build-info の不一致、成果物の digest の不一致、`tools.json` に無い tool、artifact の欠落をそれぞれ拒否すること、summary に計画の SHA256 と各 digest が出ることを確かめる5–8件を書き、実行する。偽の GitHub の API を使う。
+- [ ] Step 27: busy の確認の変更と試験。`src/busy.ts` を、`in_progress` の run だけを数えるように直す。先に `tests/busy.test.ts` に、待機中（`queued`・`waiting`・`pending`）の run があっても busy にならないこと、`in_progress` の別の run があれば busy になることを確かめる試験を足し、直す前の失敗を観測してから直し、同じ試験が通ることを確かめる（不具合の修正の順）。（NFR5.1）
+- [ ] Step 28: workflow の変更。`fixed-guest-release.yml` を、`workflow_dispatch`（入力は `build_run_id` だけ）と `workflow_call`（入力 `build_run_id`）で起動し、`prepare` の job（`contents: read`・`actions: read`）と `publish` の job（`needs: prepare`、`environment: fixed-guest-release`、`contents: write`・`actions: read`）に分ける。`publish` は計画の SHA256 を `prepare` の出力と照合する。`fixed-guest-build.yml` の最後に、build が成功したときだけ release を `uses:` で呼ぶ job を足す（job ごとに権限を書き、build の job の権限は広げない）。どちらも main の aletheia-works/vivarium だけで動く条件、`persist-credentials: false`、SHA で固定した Action、concurrency を保つ。`tests/workflows.test.ts` を新しい形に合わせて直し、actionlint と ShellCheck とともに実行する。（NFR8.1、D5–D7）
+- [ ] Step 29: 文書と回帰。`tools/fixed-guest-builder/README.md` の「Publishing a set」を新しい手順に書き直す（人がすること：build の起動と、summary を読んでの environment の承認。release を後から起動するときは run ID だけ）。vivarium で1つずつ `mise run ci:fixed-guest-builder`、`mise run fixed-guest-builder:check`、actionlint、ShellCheck を実行する。formicarium 側の U5 の照合（`mise run migration-guest-build-unit`）も1つずつ実行し、影響が無いことを確かめる。
+- [ ] Step 29a: 不安定な試験の修正（別の PR、2026-10-19 の人間の判断「1」）。vivarium#538 の CI（run 39191078848）で `tests/pipeline.test.ts` の「stops a source above the size limit before building」が5秒の制限で失敗した。#538 はこの試験と `pipeline.ts`・`monitor.ts`・`source.ts`・`build.ts` を変えておらず、手元では10回とも通った。原因の候補（推測）：試験は上限10 bytes・測定の間隔10ms なので、runner が遅いと clone の途中で上限を超えたと判断し、`spawnGroup` の stop が SIGTERM の後に `DEFAULT_KILL_GRACE_MS`（30秒）まで待つ。進め方：
+  1. `main@upstream` から別の bookmark `fix/fixed-guest-builder-size-limit-test` を作る（#538 の change とは分ける）。
+  2. 先に失敗を再現する。clone の途中で上限を超える経路を、試験の中で必ず通るようにして（例：測定を注入して最初の測定で上限を超えさせる、又は git の偽物で clone を遅くする）、今の code で5秒を超えることを観測する。再現できなければ止めて報告する。
+  3. 原因に合わせて最小の修正をする。候補は、`BuildDeps` から監視つきの git に `killGraceMs` を渡せるようにして試験で短くするか、SIGTERM で終わらない process の扱いを直すこと。production の既定の待ち時間（30秒）と、上限を超えたら止めて `LIMIT_EXCEEDED` にする振る舞いは変えない。試験の timeout は延ばさない。
+  4. 同じ試験が通ることを確かめ、`mise run ci:fixed-guest-builder` と `mise run fixed-guest-builder:check` を1つずつ実行する。
+  5. fork への push と上流への PR は、内容を示して承認を受けてから行う。
+- [ ] Step 30: 外部操作（それぞれ実際の内容を示して個別に承認を受ける）。（review-05 の R-01・R-04 により未完了に戻した。release と Release の digest の確認は済んだが、計画の SHA256 の確認が残る。Step 32 で行う。旧い形の fix の run 39188781155 は、取り消されず承認された後に `VERIFY_FAILED` で止まり、何も書かなかった。）fork への push と上流への PR → 書込み権限のある人の merge → 今の2つの build（run 39178190974 と 39178274922。artifact は 2026-10-26 まで）を、新しい fixed-guest-release を run ID だけで起動して release する（起動と environment の承認は書込み権限のある人）。job summary の計画の SHA256 と、できた Release の3つの file の digest を確かめて記録する。待機中の旧い形の fix の run 39188781155 は、承認せず取り消してもらう。
+- [ ] Step 31a（review-05 の指摘の修正、2026-10-19 の人間の回答「推奨の範囲で直す」）：下の Step 32–36 を先に行い、その後で Step 31 を行う。
+- [ ] Step 32: R-01（Major）の確認：今回の2つの release の run（39191728502・39191750168）の artifact `fixed-guest-plan` を、formicarium の `.artifacts/u5-fixed-guest-build/plans/<run>/` に読取りだけで取り、計画の file の SHA256 が log の `PLAN_SHA256`（baseline `6c338e01…3981`、fix `90a3b5f2…7e58`）と一致すること、計画の `targets` と `inputDigests` ができた Release の3つの file と一致することを確かめて記録する。一致しなければ止めて報告する。
+- [ ] Step 33: R-01（Major）の修正：承認の画面に計画の SHA256 が見えるようにする。`fixed-guest-release.yml` の `publish` の job の `name` に `needs.prepare.outputs` の計画の SHA256 を入れ、job summary の値と同じであることを `tests/workflows.test.ts` で確かめる。README の手順に「承認の前に、job の名前と summary の SHA256 が同じことを確かめる」を書く。
+- [ ] Step 34: R-08・R-02・R-07 の修正（不具合の修正の順：先に試験の失敗を観測してから直す）。まず GitHub の concurrency の公式の文書で、待ちが1つしか持てず新しい待ちが古い待ちを取り消すかを確かめて記録する。その結果に合わせて：(a) release は workflow の concurrency group で並べず、`publish` の job の中で、ほかの run の `publish` の job（`fixed-guest-release.yml` の run と、`fixed-guest-build.yml` から呼ばれた run の両方）が `in_progress` の間は待つ（run ID の小さい方を先にする。待つ上限は job の timeout の内で、超えたら原因付きで失敗）。(b) build の BUSY の確認は、ほかの run の `build <tool>` の job だけを数え、release の段階を数えない。(c) build の job の concurrency も同じく待ちの取り消しが起き得るなら、同じ形の待ちにするか、取り消しを README に書いて検出できるようにするかを、文書で確かめた上で決めて記録する。`tests/busy.test.ts`・`tests/workflows.test.ts`・必要なら新しい試験で確かめる。
+- [ ] Step 35: R-03 の修正：`publish` の時点で、guest の repository が `allowlist.json` に今もあることを確かめ、無ければ書かずに失敗する。`tests/prepare.test.ts` 又は `release.test.ts` に試験を足す。R-06（#539 の原因は推測のまま）は記録だけにする。
+- [ ] Step 36: 回帰と外部操作。vivarium で1つずつ `mise run ci:fixed-guest-builder`、`mise run fixed-guest-builder:check`、actionlint、ShellCheck を実行する。fork への push と上流への PR は、内容を示して承認を受けてから行う。merge の後に、release の経路を1回通して（既存の Release の key なら検証だけで終わる）、承認の画面の job の名前と summary の SHA256 が同じことを人に確かめてもらう。R-04・R-05：記録のチェックと traceability の古い数字（NFR2.2 の158件・98.43%、NFR4.1 の #539 の状態）を直す。
+- [ ] Step 31: 記録と確認。U5 の code-summary.md・traceability.json・source-manifest.json に今回の変更を書く。独立レビューを受け、intent の検証コマンドで U5 の checkpoint を確かめる。
+
+### 2026-10-21 の Request Changes について
+
+2026-10-21 に、Code Generation の段階を閉じるときの扱いで、人間の選んだ Request Changes が段階の全体に記録された。人間の意図は U2 の一覧の変更だけで、U5 の計画を変える指示ではなかった。この計画の Step と内容は変えない（人間の回答 2026-10-21「A」：計画をそのまま承認し直して Unit ごとに進める）。
+
+## 追加Step：review-07 の新しい Minor の修正（2026-10-21、人間の指示）
+
+人間の指示「先ほどの U5 の Minor 3件を直す Step を足す」「前からの Minor 6件（R-02・R-06・R-09・R-13・R-14・R-16）も対象にして下さい」による。review-07 の新しい Minor 3件は Step 37 で記録の更新により直す。前からの Minor 6件は、formicarium 側の code（R-13・R-14）を Step 38、上流 vivarium 側（R-09）と実 run の確認（R-06）を Step 39、記録だけで済むもの（R-02・R-16）を Step 37 で扱う。基準と製品の振る舞い（拒否の条件を除く）は変えない。
+
+- [ ] Step 37: review-07 の Minor 3件を直す。
+  - 指摘1（試験の前提）：`unit-test-instructions.md` と `code-summary.md` の「検証コマンドは `mise run build` を先に実行するので、通常は満たされる」を直す。`mise run build` は tsc と `scripts/emit.ts` だけで、`verify.test.ts` が読む生成物を作らない。`dist/blink/` は `mise run build-blink-wasm`、`dist/guests/`（aube・hello・exit3・probe）は `mise run build-guests` が作ること、両方が先に必要であること、aube はゲストのソースが変わっていなければ再ビルドしないことを書く。
+  - 指摘2（今の土台での確認）：`code-summary.md` の Step 22 の節に、その結果が 2026-10-18 の土台 `2a79860` のものだと明記する。今の土台（PR #58 の後の `main@upstream`）で intent の検証コマンドを checkpoint の確認として1回通し、exit と各 task の件数を新しい節に書く。`package.json` の `migration:guest-build:*` の行番号を今の106–107行に直す。`verify.ts` の13行が U1 の `scripts/migration-preflight/unique-json.ts` に依存することを書く。
+  - 指摘3（Step 30 の注記）：`code-summary.md` に一文を足す。計画の Step 30 の本文にある「未完了に戻した」は review-05 の時点の経過であり、そのあと人の回答「2は完了にして下さい」で完了にしたので印が `[x]` である、という内容にする。計画の Step 30 の本文は変えない。
+  - R-16：指摘2で今の土台の検証コマンドを main session が通した結果を書くので、Step 22 の件数が再実行されていない点はそれで置き換える。
+  - R-02：壊れた mbx cache の試験は、container での実際の build が要るので今回は作らない。`code-summary.md` の「未完・未検証」に「壊れた cache で build が失敗するか同じ digest になることは未検証。mbx あり／なしで同じ ELF digest になることは実 CI（39073445357・39080082205）で確認済み」と書き、`traceability.json` の NFR5.4 をこの証拠に合わせる。
+  - あわせて `traceability.json` の該当する欄（NFR8.2・NFR5.4、Step 38 で変わる FR9）を、今の土台での確認に合わせる。
+- [ ] Step 38: formicarium 側の code の修正（R-14・R-13、不具合の修正の順）。
+  - R-14：先に `tests/migration-guest-build/verify.test.ts` に、canonical な形の build-info が `{}`（`dependencies` が無い）や、`dependencies` が配列でない場合に、`INVALID_INPUT` で拒否されることを確かめる試験を足す。直す前に `TypeError` で失敗することを観測する。そのあと `scripts/migration-guest-build/verify.ts` の `checkSet` で、`guestCanonical`・`guestBuildKey` を呼ぶ前に、build-info が object であること、`dependencies` が配列であることを `refuse` で確かめるように直し、同じ試験が通ることを確かめる。
+  - R-13：`scripts/migration-guest-build/assets.ts` の `nodeAssets` が作る一時 directory を、`verify.ts` の `main()` の終了時（成功・失敗とも）に消すようにする（`nodeAssets` が directory を返し、`main()` の `finally` で `rm`）。`verify.test.ts` に、保存した set を一時 directory に書き、`node scripts/migration-guest-build/verify.js` を子 process で実行して、証拠の file ができること、必須の引数が無いときに失敗すること、`formicarium-guest-build-` の一時 directory が残らないことを確かめる試験を足す。`tests/package/fixtures.ts` の `developmentAssets` との重複は、試験用と製品用で置き場所を分けたままにし、`code-summary.md` に理由を書く。
+  - main session で1つずつ `mise run lint:all`・`mise run typecheck`・`mise run build`・`mise run test:light`・`mise run migration-guest-build-unit` を実行し、件数と fail・skip 0 を記録する。`source-manifest.json` と `code-summary.md` を更新する。差分を示して、formicarium への push と PR の承認を受ける。
+- [ ] Step 39: 上流 vivarium 側（R-09）と実 run の確認（R-06）。
+  - R-09：vivarium の fork で `main@upstream` から `jj new` し、`tools/fixed-guest-builder/src/process.ts` の `WITHHELD` の近くに、名前による除外の限界（`*_KEY`・`SSH_AUTH_SOCK` などは外れない。新しい秘密を workflow に足すときは、ここに足すか許可リスト方式へ切り替える）を一文のコメントで書く。code の振る舞いは変えない。vivarium で `mise run ci:fixed-guest-builder` を実行する。差分を示して、fork への push と上流への PR の承認を受ける。
+  - R-06：`fixed-guest-bump.yml` の実 run は vivarium に PR を作るので、起動の前に実際の入力を示して別に承認を受け、起動は書込み権限のある人が行う。run の後に、できた PR の auto-merge が外れていることを REST の読取りで確かめて記録する。承認が得られない場合は、未検証として `code-summary.md` に残す。
+  - 独立レビューを受け、intent の検証コマンドで U5 の checkpoint を確かめる。
+
+## 追加Step：review-08 の Minor と bump の PR の題の修正（2026-10-22、人間の指示）
+
+人間の指示「Minor3件を直して下さい。また、vivariumのPRはconventional commitのCIが失敗しているから、ここを修正して欲しいです」による。
+
+- [ ] Step 40: review-08 の Minor 3件を直す（formicarium）。
+  - 指摘1（CLI の試験の後片付け）：`tests/migration-guest-build/verify.test.ts` の CLI の試験に、`nodeAssets` の後で失敗する場合（別の `--key`。`checkSet` が `another key` で拒否する）を足し、失敗の後も一時 directory が残らないことを確かめる。必須の引数が無い場合の後の確認は、`nodeAssets` の前に拒否されて自明なので、拒否の内容だけを確かめる形にする。子 process には `TMPDIR`・`TEMP`・`TMP` を同じ directory で渡す。
+  - 指摘2（形の検査の残り、不具合の修正の順）：先に試験を足し、catalog が object でない場合（`null`）、`entries` の要素が object でない場合（`[null]`）、`dependencies` の要素が object でない場合（`[null]`）が、`TypeError` で失敗することを観測する。そのあと `scripts/migration-guest-build/verify.ts` の `checkSet` で、それぞれを `refuse`（`INVALID_INPUT`）にし、同じ試験が通ることを確かめる。拒否の条件のほかの振る舞いは変えない。
+  - 指摘3：`code-summary.md` の古い節の「検証コマンドは `mise run build` を先に実行するので、通常は満たされる」に、誤りであり冒頭の「試験の前提」が正しい、と注記する。
+  - main session で1つずつ `mise run lint:all`・`mise run typecheck`・`mise run build`・`mise run test:light`・`mise run migration-guest-build-unit` を実行し、件数と fail・skip 0 を記録する。差分を示して、formicarium への push と PR の承認を受ける。
+- [ ] Step 41: vivarium の bump の PR の題を conventional commit にする（不具合の修正の順）。
+  - bot の PR aletheia-works/vivarium#554 の Commitlint が、commit の題 `fixed-guest: bump baseline in ...` を type・subject が空として拒否した（run 39608896977）。`bot-pull-request` は PR の題をそのまま commit の題に使う。
+  - vivarium の `main@upstream` から `jj new` し、先に `tools/fixed-guest-builder/tests/workflows.test.ts` の期待を `chore(layer1): bump the ${{ inputs.role }} guest of ${{ steps.bump.outputs.slug }}`（conventional commit の形、100文字以内）に変えて失敗を観測する。そのあと `.github/workflows/fixed-guest-bump.yml` で bump の step に `slug` の出力を足し、PR の題をその形にする。
+  - vivarium で `mise run ci:fixed-guest-builder`・`fixed-guest-builder:check`・`fixed-guest-builder:typecheck`・`actions:check` を1つずつ実行する。差分を示して、fork への push と上流への PR の承認を受ける。#554 は人間が閉じる。
+  - 独立レビューを受け、intent の検証コマンドで U5 の checkpoint を確かめる。
+
+## 追加Step：bump の PR を自動で merge する設計への変更（2026-10-22、人間の決定）
+
+人間の指示「個人的にはbumpのPRも自動でマージされる仕組みにして欲しいです。今からそちらに設計変更して下さい」による。D7 の「PRのmergeは人が行う（NFR3.5）」を、「必須の check がすべて通ったら自動で merge する」に変える。要件（FR8・NFR3.5）は merge の方法を決めていないので、要件は変えない。branch の直接の解決、D1 の確認、記録、PR を作る job だけの書込み権限は変えない。bump が動かすのは宣言の `commit` だけで、受け入れ済みの build（`accepted`）は変わらない。新しい commit の build と受け入れは、これまでどおり別に人が行う。
+
+- [ ] Step 42: bump の PR を自動で merge する。
+  - 設計の記録：`construction/u5-fixed-guest-build/nfr-design/security-design.md` の D7 に、2026-10-22 の人間の決定で「必須の check がすべて通ったら自動で merge する」に変えたことを、日付つきの注記で足す（元の文は残す）。
+  - vivarium（#555 と同じ file に触るので、#555 の branch の上に積み、#555 の merge の後に `main@upstream` へ rebase して PR にする）：先に `tools/fixed-guest-builder/tests/workflows.test.ts` の「open bump PRs with the bot and leave the merge to a person」を、auto-merge を外す step が無く、`bot-pull-request` の後に merge を止める step が無いことを確かめる形に変え、失敗を観測する。そのあと `.github/workflows/fixed-guest-bump.yml` から「Leave the merge to a person」の step と、その前のコメントを外し、PR の本文の「A person merges this pull request.」を、必須の check が通ったら自動で merge されること、新しい key の build は別に行うことに書き換える。`tools/fixed-guest-builder/README.md` の bump の説明（auto-merge を外して人が merge する）を同じように直す。
+  - vivarium で1つずつ `mise run ci:fixed-guest-builder`・`fixed-guest-builder:check`・`fixed-guest-builder:typecheck`・`actions:check` を実行する。差分を示して、fork への push と上流への PR の承認を受ける。
+  - `code-summary.md`・`traceability.json`（FR8・NFR3.5）に、設計の変更と証拠を書く。R-06（auto-merge が外れること）は、この変更で前提が変わったことを記録する。
+  - 独立レビューを受け、intent の検証コマンドで U5 の checkpoint を確かめる。
+
+## 追加Step：review-09 と NFR Design review-03 の Minor の修正（2026-10-22、人間の指示）
+
+人間の指示「U5 の Minor 5件を直す」による。どれも記録と設計の書き足しで、code は変えない。
+
+- [ ] Step 43: Minor 5件を直す。
+  - Code Generation の指摘1（記録の追いつき）：`code-summary.md` の Step 40・41・42 の見出しの「push 前」を merge 済みに直し、merge commit（#62 `2faec369`、#555 `f4be3299`、#556 `dee1ba5e`）を見出しの近くに書く。Step 38 の節の R-13 の項目に、Step 40 で CLI の試験を改めたことを注記する。`traceability.json` の FR8 に #556、NFR3.5 に Step 42 の設計変更、FR9・NFR8.2 に Step 40（`migration-guest-build-unit` 12件、形の検査）を足す。`unit-test-instructions.md` の「試験の前提と追加の試験」の節に、Step 40 の試験と12件を足す。「持ち越す上流の残余リスク」の R-06 の記述に、Step 42 で前提が変わったことを注記する。
+  - Code Generation の指摘2と NFR Design の指摘1・2（自動 merge の安全の記録）：`nfr-design/security-design.md` に次を足す。
+    - D7：必須の check は vivarium の main の ruleset（`required_status_checks`）のものであること。2026-10-22 の読取りでは10個（`Unit (resolveReproFile)`・`Polyglot lint`・`check / Commitlint`・`E2E` 3つ・`regression` 3つ・`Test MCP server`）。bot の PR は `aletheia-works-bot` の App token で作るので CI が動くこと（#554 で動いた）。`fixed-guest-build.yml` は `workflow_dispatch` だけで起動するので、bump の merge で build は始まらないこと。PR を作る job の token の権限（contents・pull-requests の write）が merge を含むかではなく、merge は repository の auto-merge と ruleset が行うこと。
+    - Threat Response and Rollback：脅威に「宣言の branch の先端に入った未確認の commit が、必須の check を通って宣言に入る」を足す。D1 の確認（許可一覧・repository 自身の ref からの到達）と、`accepted` の build と受け入れが人の関門として残ることで影響を宣言の `commit` に限ること。切り戻しに「誤って入った bump は、その merge commit を revert する PR で戻す。`accepted` は変わっていないので、配布中の guest は変わらない」を足す。
+    - Assumptions：「`GITHUB_TOKEN` で作ったPRでは…Code Generationで決める」に、App token で作るので CI が動くと決まったこと（#554 で確認）を注記する。
+  - NFR Design の指摘3：D7 の元の行の「PRのmergeは人が行う（NFR3.5）」に、NFR3.5 は merge の方法を決めておらず、この行は 2026-10-22 の変更で置き換えた旨を注記する（元の文は残す）。`commit` だけが動いて `accepted` が古い間の扱いを D7 に書く：宣言の `commit` と `accepted.commit` が違う間は、FR10 の照合は `accepted` の build（commit と digest）に対して行う。これは実装（vivarium の Layer 1）での扱いを読んで確かめ、確かめられなければ未検証と書く。
+  - 独立レビューを Code Generation と NFR Design の両方で受け、intent の検証コマンドで U5 の checkpoint を確かめる。PR は作らない（code の変更が無いため）。
+
+## 追加Step：review-10 と NFR Design review-04 の Minor の修正（2026-10-22、人間の指示）
+
+人間の指示「minorの修正をお願いします」による。どれも記録と設計の書き足しで、code は変えない。
+
+- [ ] Step 44: Minor を直す。
+  - token の権限（Code Generation review-10 の指摘2、NFR Design R-09 の残り）：`nfr-design/security-design.md` の D7 で、workflow の `GITHUB_TOKEN` は `contents: read`・`actions: read` だけであり、PR の作成は `actions/create-github-app-token` で作る `aletheia-works-bot` の App token（`permission-contents: write`・`permission-pull-requests: write`、その job の間だけ）で行うことを分けて書く。App が ruleset を迂回できるかは、ruleset の `bypass_actors` が私たちの権限では読めない（`null`、`current_user_can_bypass: never`、2026-10-22 の読取り）ので未検証と書く。Threat Response の脅威に「bot の資格情報（App の private key）が漏れると、その権限の範囲で branch への push と PR の作成ができる」を足し、対策（秘密は repository の secret に置き job の間だけ token にする、署名・必須の check・linear history の ruleset、迂回できるかは未検証）を書く。
+  - 必須の check の根拠（NFR Design review-04 の新しい指摘、Code Generation review-10 の指摘3）：10個は `gh api repos/aletheia-works/vivarium/rules/branches/main` の `required_status_checks` で 2026-10-22 に読んだこと、#554（recipe.json だけを変える bot の PR）で10個すべてが報告され、9個が pass、`check / Commitlint` だけが fail だったこと（`gh pr checks 554`）を、`code-summary.md` の新しい「Step 43・44」の節に書く。D7 と Assumptions の注記を、この根拠に合わせて書き直す。
+  - `traceability.json` の FR8 の古い「push 前。変更後の実 run は未検証」の文を、merge 済み（#556 `dee1ba5e`）と、変更後の実 run は未検証、に直す（review-10 の指摘1）。
+  - NFR8.2 の主張の裏付け（review-10 の指摘4）：Step 40 の後の checkpoint の確認（`bolt checkpoint --action verify` の exit 0）を、日時と土台つきで `code-summary.md` の「Step 43・44」の節に書く。
+  - 独立レビューを Code Generation と NFR Design の両方で受け、intent の検証コマンドで U5 の checkpoint を確かめる。PR は作らない。
+
+## 追加Step：review-11 と NFR Design review-05 の Minor の修正（2026-10-22、人間の指示）
+
+人間の指示「はい、U5 の Minor 2件を直してください。U7 の計画は変えないでください」による。記録と設計の書き足しだけで、code は変えない。
+
+- [ ] Step 45: Minor 2件を直す。
+  - `traceability.json` の FR8 で、#556 の merge 済みと「変更後の実 run は未検証」が2回ずつ書かれているのを、1文にまとめる（review-11 の指摘1）。
+  - `nfr-design/security-design.md` の D7 の「token と merge の権限」と Threat Response の bot の資格情報の項で、確かめたことと未検証のことを分ける（review-11 の指摘2、NFR Design review-05 の新しい指摘）。確かめたこと：`GITHUB_TOKEN` の権限と App token の権限（workflow の file を読んだ）、ruleset の種類と必須の check（`gh api`）、#554 での check の報告、ruleset の `bypass_actors` が読めないこと。未検証のこと：repository の auto-merge が有効か、ruleset の `pull_request` が承認の数を求めるか、App の private key の置き場所、App が ruleset を迂回できるか、変更後の bump の実 run で PR が自動で merge されること。未検証のことは「次に bump を実際に動かすときに確かめる」と1行で書く。
+  - 独立レビューを Code Generation と NFR Design の両方で受け、intent の検証コマンドで U5 の checkpoint を確かめる。PR は作らない。
+
+## 追加Step：Build and Test の Loop-back 2（追跡表の target、2026-10-22、人間の決定 A）
+
+Build and Test の `aidlc engine sensor-traceability --stage build-and-test` が Fail した。この道具は `OK` の行の target を「workspace（formicarium）の中の、実在する1つの file の相対 path」としてだけ受け付ける。U5 の `traceability.json` の `OK` 19行のうち18行は、target が vivarium（別のリポジトリ、`aletheia-works/vivarium@<sha>:<path>`）と説明の文なので、道具が読めない（Build and Test の `cross-unit-traceability.md`、`test-results.md` の Loop-Back Log 2）。人間の決定（2026-10-22「A」）：formicarium の照合が確かめる行は `OK` のままにし、vivarium だけが実装する行は `N/A` にして理由を書き、記録に分かる注記を残す。
+
+- [ ] Step 46: `traceability.json` の coverage の19行を、次のとおりに直す。
+  - `OK` のまま（formicarium の照合の入口が確かめる行、3行）：`FR9`・`NFR3.3`・`NFR8.2`。target は `scripts/migration-guest-build/verify.ts`（1つの file の相対 path だけ）にする。
+  - `N/A` にする（vivarium の builder・workflow だけが実装する行、15行）：`FR7`・`FR8`・`NFR2.2`・`NFR3.1`・`NFR3.2`・`NFR3.4`・`NFR3.5`・`NFR4.1`・`NFR4.2`・`NFR5.1`・`NFR5.2`・`NFR5.3`・`NFR5.4`・`NFR8.1`・`NFR8.3`。target（道具が `N/A` の理由として読む欄）は「formicarium の workspace の外の aletheia-works/vivarium で実装（tools/fixed-guest-builder と .github/workflows/fixed-guest-*.yml）。この workspace の file ではないので、この表では N/A とする。実装と証拠は note のとおり」の形にする。
+  - `N/A` にする（U5 が配布 JS を変えない行、1行）：`NFR2.1`。理由は「U5 は配布 JS を変えない（scripts/migration-guest-build/*・tests/migration-guest-build/* は配布の対象外）」。
+  - 19行すべてに `note` の欄を足し、今の target の文（vivarium の commit・path・PR・run の記録と、formicarium の関連 file）をそのまま移す。記録の内容は消さない。
+  - 表の先頭に `note` の欄（行とは別の、表全体の注記）を足し、「`N/A` の行の多くは、適用されないのではなく別のリポジトリ（aletheia-works/vivarium）で実装した行である。道具が workspace の外の file を読めないため、N/A と理由で表す（人間の決定 2026-10-22 A）」と書く。
+  - 製品のコード・試験・基準は変えない。直したあと `aidlc engine sensor-traceability --stage build-and-test` を実行し、U5 の行が未対応に出ないことを確かめる。`code-summary.md` にこの Step の節を足す。（FR7・FR8・FR9、NFR8.2）
+- [ ] Step 47: 独立レビューを受け、intent の検証コマンドで U5 の checkpoint を確かめる。
 
 ## テスト設計と追跡
 

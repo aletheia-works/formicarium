@@ -202,6 +202,8 @@ referenceは説明専用、作成時にremote照合した40commitを実入力に
 
 ## C08: recipe Contract v1と埋込みUI
 
+（2026-10-18改訂あり：runtime の別名、RecipeGuest の role と accepted、端末互換の範囲、題材、取込み。末尾の「改訂」節を優先する）
+
 ```typescript
 interface RecipeRuntime { name: 'formicarium' | 'terrarium'; }
 interface RecipeGuest extends FixedGuestDeclaration {
@@ -235,6 +237,8 @@ interface ShowcaseCandidateManifest { schemaVersion: 1; candidateId: Sha256;
 candidateIdは自分自身とlog時刻を除いた入力identityの正規化digest。U7はlatestを一度解決し固定する。公式musl資産がない場合のみ設定で指定したsource build経路を選ぶ（取得失敗時の別URLfallbackではない）。Node/3browser --version、公開import/逆依存/回帰fixture分離のchecksを通した候補だけU8へ供給。U8は同じcatalog/assetを使用し再度latest解決しない。site build後のinventory/digestもC10へ記録し、受入したサイトそのものを配布する。失敗時は前回配布不変。Worker/wasmは同origin、COI/CSP/SharedArrayBufferを検証し、回帰fixtureをcopyして使わない。
 
 ## C10: 最終受入証拠
+
+（2026-10-18改訂あり：U6 の題材と check 名。末尾の「改訂」節を優先する）
 
 ```typescript
 interface AcceptanceEvidence { schemaVersion: 1; evidenceId: string;
@@ -335,7 +339,7 @@ C06 checks.nameの必須集合とenvironmentは以下で固定する。environme
 |---|---|---|
 | B1 | guest-validation, fixture-validation, handle-copy, install-lifecycle, command-behavior, package-consumer | Eの全4行ずつ |
 | B1 | types, package-inventory, source-baseline, coverage-80, probe-eight, aube-native-match, wasm-memory-cap | host各1行 |
-| U6 | recipe-identity, biome-12265-comparison, terminal-compatibility, contract-v1, browser-coi | chromium/firefox/webkit各1行 |
+| U6 | recipe-identity, biome-12265-comparison（2026-10-18改訂で reproduction-comparison）, terminal-compatibility, contract-v1, browser-coi | chromium/firefox/webkit各1行 |
 | U6 | fixed-build-reuse, contract-schema, active-reference-cleanup, coverage-80 | host各1行 |
 | U8 | tool-aube-version, tool-pitchfork-version, tool-biome-version | Eの全4行ずつ |
 | U8 | empty-terminal-install, ui-states-keyboard, browser-coi | chromium/firefox/webkit各1行 |
@@ -368,3 +372,21 @@ U2は共有検証/Session、U3はinstall、U4はparser/command、U5は固定成�
 | None | None | None |
 
 未回答の人間の選択はない。CORSと上限十分性の測定、既存Contract v1の具体的統合、remote存在/公開基点/infra照合は各単位の明示受入作業であり、証拠未取得のまま公開・退役しない。
+
+## 改訂（2026-10-18、人間の決定：U6 Functional Design の Q1–Q8・Q11）
+
+vivarium の読取り調査（ローカル main = `71e0ef92`）と人間の回答（`../../construction/u6-recipe-runtime/functional-design/functional-design-questions.md`）により、次のように直す。上の各節の文言は承認時の記録として残し、食い違う所はこの節を優先する。
+
+- C08 `RecipeRuntime`：`name` は `'formicarium'` だけを現役の値とする。`'terrarium'` の deprecated adapter alias は作らない（Q6）。Result v1 の `runtime.name` は従来どおり opaque string。
+- C08 `RecipeGuest`：`role: 'baseline' | 'fix'` を必須で足し、recipe 内で一意とする（Q2）。上流の fixed-guest-bump は role で対象を選び、PR の branch 名と title に role を含める。baseline の `commit` は作成時点の biomejs/biome main を40桁へ解決した値で、bump が main の先頭を追う。formicarium runtime の recipe は `fix_candidate` を宣言しない（Q3）。
+- C08 `RecipeGuest` の成果物：build の入力の `commit` と、受入済みの `accepted: {commit, versionOrName, buildKey, elfSha256, buildInfoSha256}` を分ける（Q12、review-01 R-01・R-02）。bump は `commit` だけを動かし、`accepted` は消さない。site は `accepted` だけを動かし、Release の tag は `accepted.buildKey` から作る。`accepted` の置き換えは、Release を受け入れた後の人の PR だけ。全guestに `accepted` があり formicarium の pin がある recipe だけを active とし、それ以外（最初の PR、0.3.0 公開前）は pending として、他の recipe を止めずに site から外す。
+- C08 の端末互換：提供するのは `ready`・`transcript`・`run` だけ。`terrarium-ready/exit/error` の DOM event と iframe の ParentRequest/ParentNotification bridge は作らない（Q7。vivarium は使っていない）。互換fixtureのうち、旧名 terrarium の受理と event・bridge の項目は外す。
+- C08 の比較：題材を biome-12265 から `JamBalaya56562/biome` の `fix/migrate-prettier-override-bracket-spacing` に変える（Q1）。`ReproductionComparison` の形は同じ。旧verdictとの比較は無い。
+- C08 の取込み：formicarium の browser用 file は npm の固定版 tarball（SHA256固定）から、固定 guest の ELF・build-info は Release から、どちらも site build 時に digest を照合して同じ origin へ置く（Q4・Q5）。ブラウザは実行前に C03 でもう一度照合する。
+- C10 `RecipeEvidenceIdentity`：`baseline*`・`fix*` は新しい題材の各 `accepted` を示す。`catalogSha256` は baseline と fix の catalog.json の SHA256 を `{baseline, fix}` の正規化JSONにした digest、`formicariumSourceCommit`・`formicariumPackSha256` は vivarium の pin file の値とする。旧題材の `2405c762`・`f79f85d5` の Release 2件と tag は消す（Q8。U5 の証拠と formicarium の記録は残す）。
+- C06/C10 の U6 profile：必須 check 名 `biome-12265-comparison` を `reproduction-comparison` に改める（他の check 名と environment は同じ）。
+- 同じ dir の規範参照は 2026-10-12 に固定した版のまま残し、次の差は U6 の Functional Design（`rules.md`）を正とする。vivarium の実際の schema の revision は U6 の Code Generation で作る。
+  - `recipe-v1-guests.schema.json` の guests の要素：`role` を必須で足す。`commit` と `accepted` を分け、digest（`elfSha256`・`buildInfoSha256`）と `buildKey` は `accepted` の中に置く（要素の直下の必須から外す）。`repository` は owner/name 形式ではなく、上流 builder と同じ `https://github.com/<owner>/<repo>` の小文字の正規形。`additionalProperties:false` と `minItems:1` は保つ（`accepted` と `reference` の field を許す）。
+  - `terminal-api-reference.ts`：DOM event と iframe の ParentRequest・ParentNotification は使わない。
+- `../units-generation/unit-of-work.md` の U6 の「biome-12265 の asNeeded/single→always/double と旧verdict一致」と「deprecated名consumer試験」、`../domain-design/components.md` の RecipeRunner の「deprecated Contract互換」は、この改訂で読み替える（新しい題材の before/after 比較、deprecated 互換なし）。
+

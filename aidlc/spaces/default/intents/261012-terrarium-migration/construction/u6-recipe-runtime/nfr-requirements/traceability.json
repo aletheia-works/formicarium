@@ -1,0 +1,15 @@
+{
+  "stage": "nfr-requirements",
+  "unit": "u6-recipe-runtime",
+  "upstream_ids": ["NFR1", "NFR2", "NFR3", "NFR4", "NFR5", "NFR6", "NFR7", "NFR8"],
+  "coverage": [
+    { "id": "NFR1", "status": "N/A", "target": "U6はinstallを使わず検証済みguestを登録する。install非DL中央値の受入はU1・U3・U9の範囲。照合・登録の時間はNFR6.2で記録する。" },
+    { "id": "NFR2", "status": "OK", "target": "NFR2.1, NFR2.2" },
+    { "id": "NFR3", "status": "OK", "target": "NFR3.1, NFR3.2, NFR3.3, NFR3.4, NFR3.5, NFR3.6" },
+    { "id": "NFR4", "status": "OK", "target": "NFR4.1, NFR4.2" },
+    { "id": "NFR5", "status": "N/A", "target": "同keyの直列化と原子的受入はU5の範囲。U6はacceptedを人のPRだけで置き換える（BR1.6）。" },
+    { "id": "NFR6", "status": "OK", "target": "NFR6.1, NFR6.2, NFR6.3, NFR6.4, NFR6.5, NFR6.7, NFR6.8" },
+    { "id": "NFR7", "status": "OK", "target": "NFR7.1, NFR7.2, NFR7.3" },
+    { "id": "NFR8", "status": "OK", "target": "NFR8.1, NFR8.2, NFR8.3, NFR8.4, NFR8.5" }
+  ]
+}

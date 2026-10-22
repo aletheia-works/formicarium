@@ -4,10 +4,16 @@
   "version": 1,
   "writes": [
     {
+      "path": ".github/workflows/migration-acceptance.yml"
+    },
+    {
       "path": "README.md"
     },
     {
       "path": "bun.lock"
+    },
+    {
+      "path": "ci/migration-command/inputs.json"
     },
     {
       "path": "docs/command-api.md"
@@ -17,6 +23,9 @@
     },
     {
       "path": "mise-tasks/migration/command-completion.sh"
+    },
+    {
+      "path": "mise-tasks/migration/command-observe.sh"
     },
     {
       "path": "mise-tasks/migration/command-stage.sh"
@@ -46,6 +55,9 @@
       "path": "runtime/session-port.ts"
     },
     {
+      "path": "scripts/migration-command/acceptance-inputs.ts"
+    },
+    {
       "path": "scripts/migration-command/b1.ts"
     },
     {
@@ -58,6 +70,9 @@
       "path": "scripts/migration-command/measure.ts"
     },
     {
+      "path": "scripts/migration-command/observe-ci.ts"
+    },
+    {
       "path": "scripts/migration-command/stage.ts"
     },
     {
@@ -68,6 +83,9 @@
     },
     {
       "path": "scripts/release/inventory.ts"
+    },
+    {
+      "path": "tests/migration-command/acceptance-ci.test.ts"
     },
     {
       "path": "tests/migration-command/acceptance.test.ts"
