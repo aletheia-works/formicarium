@@ -291,18 +291,28 @@ interface TarEntry {
   bytes: Uint8Array;
   target?: string;
 }
+// Entries scanned between cancellation checks (DS2: check the signal at split boundaries).
+const TAR_CHECK_ENTRIES = 64;
+async function checkpoint(signal: AbortSignal | undefined): Promise<void> {
+  if (!signal) return;
+  // A macrotask turn lets a pending abort (external or deadline) be delivered.
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  signal.throwIfAborted();
+}
 /** Scan every entry, including unselected paths and links, before returning bytes. */
-export function extractTar(
+export async function extractTar(
   bytes: Uint8Array,
   selected: string,
   limits: AssetLimits = ASSET_LIMITS,
-): Uint8Array<ArrayBuffer> {
+  signal?: AbortSignal,
+): Promise<Uint8Array<ArrayBuffer>> {
   checkSize(bytes.length, limits.expanded, 'archive expanded');
   const entries = new Map<string, TarEntry>();
   let offset = 0;
   let ended = false;
   let total = 0;
   while (offset + 512 <= bytes.length) {
+    if (entries.size % TAR_CHECK_ENTRIES === 0) await checkpoint(signal);
     const header = bytes.subarray(offset, offset + 512);
     offset += 512;
     if (header.every((byte) => byte === 0)) {
@@ -354,7 +364,9 @@ export function extractTar(
     offset += padded;
   }
   if (!ended) invalid('archive: missing end/truncated');
+  let checked = 0;
   for (const entry of entries.values()) {
+    if (checked++ % TAR_CHECK_ENTRIES === 0) await checkpoint(signal);
     const seen = new Set<string>();
     let current = entry;
     while (current.target !== undefined) {
@@ -484,7 +496,12 @@ export async function acquireAsset(
         : download;
     const elf =
       input.format === 'tar.gz'
-        ? extractTar(expanded, input.archiveEntry!, limits)
+        ? await extractTar(
+            expanded,
+            input.archiveEntry!,
+            limits,
+            controller.signal,
+          )
         : new Uint8Array(expanded);
     checkSize(elf.length, limits.elf, 'ELF');
     times.extract = input.format === 'elf' ? 0 : performance.now() - start;

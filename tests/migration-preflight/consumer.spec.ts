@@ -1,4 +1,5 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { arch, cpus, loadavg, release, type } from 'node:os';
 import { resolve } from 'node:path';
 import { expect, test } from '@playwright/test';
 import type { AssetInput } from '../../scripts/migration-preflight/assets.js';
@@ -33,6 +34,20 @@ if (
 for (const tool of TOOLS)
   if (inventory.assets.filter((asset) => asset.tool === tool).length !== 1)
     throw Error(`${tool}: unique fixed asset required`);
+// The inventory's sourceCommit names the fixed asset input; this names the tested source.
+const testSourceCommit = process.env.FORMICARIUM_PREFLIGHT_SOURCE_COMMIT ?? '';
+if (!/^[0-9a-f]{40}$/.test(testSourceCommit))
+  throw Error(
+    'FORMICARIUM_PREFLIGHT_SOURCE_COMMIT 40-hex tested source commit required',
+  );
+const host = {
+  os: `${type()} ${release()} ${arch()}`,
+  cpu: `${cpus()[0]?.model ?? 'unknown'} x${cpus().length}`,
+};
+const load = () =>
+  loadavg()
+    .map((value) => value.toFixed(2))
+    .join(' ');
 
 for (const tool of TOOLS)
   for (let index = 0; index <= 5; index++) {
@@ -43,6 +58,7 @@ for (const tool of TOOLS)
       if (!BROWSERS.includes(testInfo.project.name as Trial['browser']))
         throw Error('unknown browser project');
       const asset = inventory.assets.find((entry) => entry.tool === tool)!;
+      const loadBefore = load();
       const response = await page.goto('/');
       const tlsDetails = await response?.securityDetails();
       const certificateFingerprint =
@@ -187,6 +203,11 @@ for (const tool of TOOLS)
             stdout: result.stdout,
             stderr: result.stderr,
             environment: {
+              testSourceCommit,
+              os: host.os,
+              cpu: host.cpu,
+              loadBefore,
+              loadAfter: load(),
               node: process.version,
               playwright: PLAYWRIGHT_VERSION,
               browserVersion: browser.version(),

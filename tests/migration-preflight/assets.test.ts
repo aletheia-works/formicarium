@@ -194,7 +194,7 @@ test('digest, source metadata, mandatory inputs, build key and ELF bounds reject
     /build key/,
   );
 });
-test('unselected absolute, traversal, duplicate, link escape, loop and parent aliases reject', () => {
+test('unselected absolute, traversal, duplicate, link escape, loop and parent aliases reject', async () => {
   const good = { path: 'guest', bytes: elf() };
   for (const extra of [
     [{ path: '/escape' }],
@@ -207,20 +207,23 @@ test('unselected absolute, traversal, duplicate, link escape, loop and parent al
     ],
     [{ path: 'link', kind: '2', target: 'guest' }, { path: 'link/child' }],
   ])
-    assert.throws(() => extractTar(tar([good, ...extra]), 'guest'), AssetError);
+    await assert.rejects(
+      extractTar(tar([good, ...extra]), 'guest'),
+      AssetError,
+    );
 });
-test('truncation, checksum corruption, missing end blocks and unknown types reject', () => {
+test('truncation, checksum corruption, missing end blocks and unknown types reject', async () => {
   const archive = tar([{ path: 'guest', bytes: elf() }]);
-  assert.throws(
-    () => extractTar(archive.subarray(0, 600), 'guest'),
+  await assert.rejects(
+    extractTar(archive.subarray(0, 600), 'guest'),
     /truncated/,
   );
-  assert.throws(() => extractTar(archive.subarray(0, 1024), 'guest'), /end/);
+  await assert.rejects(extractTar(archive.subarray(0, 1024), 'guest'), /end/);
   const corrupt = new Uint8Array(archive);
   corrupt[0] ^= 1;
-  assert.throws(() => extractTar(corrupt, 'guest'), /checksum/);
-  assert.throws(
-    () => extractTar(tar([{ path: 'guest', kind: 'x' }]), 'guest'),
+  await assert.rejects(extractTar(corrupt, 'guest'), /checksum/);
+  await assert.rejects(
+    extractTar(tar([{ path: 'guest', kind: 'x' }]), 'guest'),
     /unsupported/,
   );
 });
@@ -251,7 +254,7 @@ test('all size boundaries are inclusive, plus one is rejected without huge fixtu
   );
   const archive = tar([{ path: 'guest', bytes: guest }]);
   assert.deepEqual(
-    extractTar(archive, 'guest', {
+    await extractTar(archive, 'guest', {
       ...ASSET_LIMITS,
       expanded: archive.length,
       entries: 1,
@@ -259,16 +262,15 @@ test('all size boundaries are inclusive, plus one is rejected without huge fixtu
     }),
     guest,
   );
-  assert.throws(
-    () =>
-      extractTar(archive, 'guest', {
-        ...ASSET_LIMITS,
-        expanded: archive.length - 1,
-      }),
+  await assert.rejects(
+    extractTar(archive, 'guest', {
+      ...ASSET_LIMITS,
+      expanded: archive.length - 1,
+    }),
     /limit/,
   );
-  assert.throws(
-    () => extractTar(archive, 'guest', { ...ASSET_LIMITS, path: 4 }),
+  await assert.rejects(
+    extractTar(archive, 'guest', { ...ASSET_LIMITS, path: 4 }),
     /limit/,
   );
 });
@@ -337,6 +339,31 @@ test('fetch deadline, delayed body and external cancellation classify distinctly
   await assert.rejects(
     pending,
     (error: unknown) => error instanceof AssetError && error.code === 'ABORTED',
+  );
+});
+test('a tar scan stops at its next entry boundary once the signal is cancelled', async () => {
+  const directories = Array.from({ length: 512 }, (_, index) => ({
+    path: `directory-${index}`,
+    kind: '5',
+  }));
+  const archive = tar([...directories, { path: 'guest', bytes: elf() }]);
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), 0);
+  await assert.rejects(
+    Promise.resolve().then(() =>
+      extractTar(archive, 'guest', ASSET_LIMITS, controller.signal),
+    ),
+    (error: unknown) =>
+      error instanceof DOMException && error.name === 'AbortError',
+  );
+  assert.deepEqual(
+    await extractTar(
+      archive,
+      'guest',
+      ASSET_LIMITS,
+      new AbortController().signal,
+    ),
+    elf(),
   );
 });
 test('canonical metadata preserves unknown fields and rejects invalid JSON identities', async () => {
