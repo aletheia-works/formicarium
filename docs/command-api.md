@@ -99,13 +99,3 @@ installの成功時のstdoutは `installed <tool>@<versionOrName> (sha256 <diges
 - bytesから表示への変換、制御文字の扱い、表示上限（1048576 bytes・10000行）
 
 command APIは `Progress` をinstallから変えずに中継し、`OutputChunk` をguestの実行から変えずに中継します。
-
-## 正式受入（U4とB1）の手順
-
-U4の正式受入とB1の正式な行（`b1.formal: true`）は、mainのcommitに対する手動のCI 1回と、その観測から作ります。基準（install 180秒、非downloadの中央値3000ms、probe 600秒、aube 840秒、1 worker、retry 0、配布JS 23件の行coverage 80%、wasm 1GB）は、既存のcodeと設定のまま使い、workflowでは変えません。
-1. 入力：`ci/migration-command/inputs.json` が、3つの入力の取得元・size・SHA256・置き場所を固定します。`aube.tar.gz` と `biome.elf` は、`docs/results/terrarium-migration-preflight-evidence/mirror-input.json` の公式のrelease URLです。`actual-site-v2.tar.gz` は、prereleaseのRelease（tag `migration-inputs-actual-site-v2`）の資産です。`node scripts/migration-command/acceptance-inputs.js restore ci/migration-command/inputs.json` が、すべてを照合してから置き、actual-siteを `.artifacts/migration-install/actual-site` に戻します。既存のfileは上書きしません（同じbytesなら使い、違えば止まります）。
-2. CI：`.github/workflows/migration-acceptance.yml` を、mainで手動実行（`workflow_dispatch`）します。権限は `contents: read` だけで、secretsは使いません。jobは、このcommitから候補を作り、job専用のlocalhost CAで信頼を用意し、`FORMICARIUM_COMMAND_LOCAL_ONLY=1` でU4の完了確認を1回流します。結果は2つのartifact（候補・報告と、生log・計測）に、保持期間7日で残ります。
-3. 観測：run完了の直後に、`mise run migration-command-observe <run-id> <40桁のcommit>` を実行します（tokenは環境変数 `GITHUB_TOKEN` か `GH_TOKEN` から読み、fileとlogには書きません）。runの結果・workflowのpath・event・branch・head・repository、commitの署名、jobの結果、artifactのdigestを確かめ、`.artifacts/migration-command/ci-<run-id>/` にRESTの応答・ZIP・`observed-ci-summary.json` を残します。
-4. 手元の正式な完了確認：同じ候補（tarballのSHA256が記録と一致するもの）で、`FORMICARIUM_COMMAND_CI_EVIDENCE` と `FORMICARIUM_COMMAND_CI_SHA256` に観測の記録とそのSHA256を渡して、`mise run migration-command-completion` を実行します。成功すると `status: 'verified-with-ci'`・`acceptancePassed: true`・`b1.formal: true` になります。
-
-CIのWebKitの結果は、Safari実機の合格ではありません。Safari実機は未検証です。

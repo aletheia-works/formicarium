@@ -1,6 +1,6 @@
 # terrarium からの移行：目的・要件・全体設計（2026-10-12〜）
 
-terrarium を廃止し、機能を formicarium と vivarium へ移す計画の記録。フェーズごとの手順と受入条件は [`../terrarium-migration-plan-summary.md`](../terrarium-migration-plan-summary.md) にある。ここでは、その要約にない要件の数値、作業単位の分け方、決定の理由、後から変えた点をまとめる。初期試行の結果は [`../results/terrarium-migration-preflight.md`](../results/terrarium-migration-preflight.md)。
+terrarium を廃止し、機能を formicarium と vivarium へ移す計画の記録。フェーズごとの手順と受入条件は、git の commit `c8ddd83c` の `docs/terrarium-migration-plan-summary.md` にある。ここでは、その要約にない要件の数値、作業単位の分け方、決定の理由、後から変えた点をまとめる。初期試行の結果は、同じ commit の `docs/results/terrarium-migration-preflight.md` にある。
 
 ## 目的と範囲
 

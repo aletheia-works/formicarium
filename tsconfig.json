@@ -23,8 +23,7 @@
     "scripts/**/*.ts",
     "integration/**/*.ts",
     "playwright.config.ts",
-    "tests/**/playwright.config.ts",
-    "tests/migration-command/browser-modules.d.ts"
+    "tests/**/playwright.config.ts"
   ],
   "exclude": ["tests/package/types-invalid.ts"]
 }

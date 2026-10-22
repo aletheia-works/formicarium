@@ -63,7 +63,7 @@
 - `dist/guests/pitchfork`（v2.29.0、コミット `cfdea79f1d52b8449c0b99b29a03d9e771cd8ec3`。GitHub API の `v2.29.0` と一致）。
 - `patches/pitchfork-2.29.0-musl-ioctl.patch`、`runtime/registry.mjs`、`scripts/session-info.mjs`、`scripts/pitchfork-probe-paths.sh`。
 - fixture と基準値、`tests/node/session.test.mjs`、`tests/node/pitchfork-basic.test.mjs`、`tests/browser/pitchfork-basic.spec.mjs`、`tests/shared/pitchfork-basic.mjs`。
-- 調査メモ `docs/terrarium-integration.md`。今の `docs/` にはない。その後の移管の計画は [`../terrarium-migration-plan-summary.md`](../terrarium-migration-plan-summary.md) にある。
+- 調査メモ `docs/terrarium-integration.md`。今の `docs/` にはない。その後の移管の計画は、git の commit `c8ddd83c` の `docs/terrarium-migration-plan-summary.md` にある。
 - 変更ファイルは 27 件。PR 番号は記録にない。
 
 ## 残った課題

@@ -275,12 +275,6 @@ jobs:
       - name: 'Run product regression tests on Node'
         run: 'node --test --test-concurrency=1 tests/node/build.test.js tests/node/runner.test.js tests/node/probe.test.js tests/node/session.test.js tests/node/aube-1645.test.js tests/node/pitchfork-basic.test.js'
         if: "matrix.suite == 'node'"
-      - name: 'Run the migration preflight and fixed guest build unit tests'
-        run: |-
-          bun run migration:preflight:unit
-          bun run migration:preflight:current-unit
-          bun run migration:guest-build:unit
-        if: "matrix.suite == 'node'"
       - name: 'Install only this latest Playwright browser'
         if: "matrix.suite != 'node'"
         env:

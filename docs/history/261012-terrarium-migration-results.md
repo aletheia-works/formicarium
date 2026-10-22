@@ -1,6 +1,6 @@
 # terrarium からの移行：各部分の設計・検証・運用（〜2026-10-22）
 
-terrarium の機能を formicarium と vivarium へ移し、terrarium を退役させた作業の、各部分（U1〜U9）の設計の要点、品質の目標と結果、配布と運用、残った課題をまとめる。計画の全体は [terrarium-migration-plan-summary.md](../terrarium-migration-plan-summary.md) にある。数値はすべて記録にあるもので、記録の日付は 2026-10-22（最後の確認の日）。
+terrarium の機能を formicarium と vivarium へ移し、terrarium を退役させた作業の、各部分（U1〜U9）の設計の要点、品質の目標と結果、配布と運用、残った課題をまとめる。計画の全体は、git の commit `c8ddd83c` の `docs/terrarium-migration-plan-summary.md` にある。数値はすべて記録にあるもので、記録の日付は 2026-10-22（最後の確認の日）。
 
 ## 各部分の設計の要点
 
@@ -11,7 +11,7 @@ terrarium の機能を formicarium と vivarium へ移し、terrarium を退役�
 - 何か：aube の公式 musl tar.gz と Biome の musl binary を、3ブラウザ（Chromium・Firefox・WebKit）× 2ツール × trial 0〜5 の36行で、取得 → 展開 → SHA256 → ELF 検証 → 登録 → 実行まで測る。vivarium の CI で Biome の baseline を1件ビルドし、同じ key の2回目でコンパイルを省けることも確かめる。
 - 主な決定：取得（fetch）と非ダウンロードの5工程を分け、単調時計で測る。上限は取得 120秒・build 4時間、DL 128MiB・展開 256MiB・ELF 128MiB、wasm 1GB、1 worker。HTTPS の同一 origin ミラーで COI・SAB・CSP を保つ。redirect は5 hop まで各 hop を検査する。
 - 修正（PR #68）：`extractTar` が 64 entry ごとに取消を確かめるようにし、trial の記録に OS・CPU・負荷・試験の source commit を足した。
-- 試行の記録は [results/terrarium-migration-preflight.md](../results/terrarium-migration-preflight.md)（ただし内容は修正の前の時点）。
+- 試行の記録は、git の commit `c8ddd83c` の `docs/results/terrarium-migration-preflight.md` と `docs/results/terrarium-migration-preflight-evidence/` にある（ただし内容は修正の前の時点）。
 
 ### U2 session・guest API
 
