@@ -1,7 +1,7 @@
 # 非機能要件と品質目標のまとめ
 
 formicarium の PoC（2026-10-05 完了）で定めた非機能要件と品質目標、その判定、測った値の要点をまとめる。
-要件の原文は `aidlc/spaces/default/intents/261003-blink-wasm-poc/inception/requirements-analysis/requirements.md`、
+要件の原文は commit `8096c7b4` の `aidlc/spaces/default/intents/261003-blink-wasm-poc/inception/requirements-analysis/requirements.md`、
 判定の詳細は同じ記録ディレクトリの `construction/build-and-test/build-and-test-summary.md` と `test-results.md` にある。
 
 **性能の合格基準はない。** 計測（FR6）は、JIT の開発を後回しにするかどうかを判断する材料として行うもので、

@@ -25,5 +25,5 @@ eventfd、epoll（level／edge-triggered、`EPOLLONESHOT`）、socketpair、pipe
 
 ## 参照
 
-`aidlc/spaces/default/intents/261003-blink-wasm-poc/construction/code-generation/code-generation-plan.md`（Step 5）、
+commit `8096c7b4` の `aidlc/spaces/default/intents/261003-blink-wasm-poc/construction/code-generation/code-generation-plan.md`（Step 5）、
 `docs/results/failures.md`（L-1）

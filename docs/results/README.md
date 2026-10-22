@@ -23,5 +23,5 @@
 - CheerpX の aube は i586 glibc ビルド、formicarium は x86-64 static-musl ビルド
 - formicarium の値は、コマンドごとに blink を起動し直す（ファイルシステムの中身は JS 側で引き継ぐ）。CheerpX は 1 つの VM の中で続けて実行する。
 - ネットワークの扱い（registry への接続の試み）が両者の時間にどう効いているかは、まだ確かめていない（未検証）。
-- CheerpX の値の出典：`aidlc/spaces/default/knowledge/documents/research/cheerpx-oss.md`（CheerpX 1.3.9, WebVM Debian image, localhost, page hidden, 4 page loads）。
+- CheerpX の値の出典：[`docs/research/cheerpx-oss.md`](../research/cheerpx-oss.md)（CheerpX 1.3.9, WebVM Debian image, localhost, page hidden, 4 page loads）。
 - JIT を後回しにするかどうかの閾値は、この結果を見てユーザーが決める（意図書「Success Metrics」）。

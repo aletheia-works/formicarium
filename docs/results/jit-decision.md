@@ -25,8 +25,8 @@
 | Node.js Worker                      | 0.60（0.55–1.3）  | 7.4（5.5–15.4） | 6.4（5.4–10.1） | 0.63（0.57–1.5）  | 約 15.3          |
 | CheerpX 1.3.9（背景資料）           | 0.3–0.7           | 1.8–5.7         | 1.3–3.6         | 0.17–0.65         | —                |
 | ネイティブ（x86-64 Linux コンテナ） | 0.01 以下         | 0.07            | 0.02–0.03       | 0.01 以下         | 約 0.1           |
-- CheerpX の値の出典：`aidlc/spaces/default/knowledge/documents/research/cheerpx-oss.md`（ドキュメント根拠）。CheerpX の install は `node --version` の起動（0.5–1.3 秒）を含み、ページは背面、aube は i586 glibc 版。条件は formicarium とそろっていない。
-- ネイティブの値：`aidlc/.../construction/build-and-test/jit/native-timing.sh` で 10 回（計測の分解能は 10ms）。記録は `aidlc/.../construction/build-and-test/jit/native.txt`。
+- CheerpX の値の出典：[`docs/research/cheerpx-oss.md`](../research/cheerpx-oss.md)（ドキュメント根拠）。CheerpX の install は `node --version` の起動（0.5–1.3 秒）を含み、ページは背面、aube は i586 glibc 版。条件は formicarium とそろっていない。
+- ネイティブの値：commit `8096c7b4` の `aidlc/spaces/default/intents/261003-blink-wasm-poc/construction/build-and-test/jit/native-timing.sh` で 10 回（計測の分解能は 10ms）。記録は同じ commit の `aidlc/spaces/default/intents/261003-blink-wasm-poc/construction/build-and-test/jit/native.txt`。
 
 ### 2.2 時間の内訳（Chromium）
 
@@ -68,7 +68,7 @@ JIT が解釈実行を k 倍速くし、起動の 0.4 秒は変わらないと�
 ### 後回しにする理由
 
 - **正しさの未解決事項が残っている**（`docs/results/failures.md`）：WebKit でまれに残る停止（26.9 秒の回）、`madvise(MADV_DONTNEED)` が何もしない実装であること（未検証の潜在的な不具合）、実機の Safari での確認（U-1）。JIT は正しさの問題を増やしやすく、先に土台を固める方が安全（推測）。
-- **コアの置き換え構想**：エミュレータのコアは、将来 paludarium（Rust 版 blink）に置き換える予定（`aidlc/spaces/default/memory/project.md`、ドキュメント根拠）。C 版 blink の fork に入れた JIT は、置き換えで捨てることになりうる。
+- **コアの置き換え構想**：エミュレータのコアは、将来 paludarium（Rust 版 blink）に置き換える予定（commit `8096c7b4` の `aidlc/spaces/default/memory/project.md`、ドキュメント根拠）。C 版 blink の fork に入れた JIT は、置き換えで捨てることになりうる。
 - **固定費の問題が別にある**：コマンドごとの起動 0.3〜0.5 秒は JIT では縮まない。体感の改善には、常駐化のような JIT 以外の手も効く。
 
 ### すぐ始める理由

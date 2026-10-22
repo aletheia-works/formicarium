@@ -51,7 +51,7 @@ producer は実 bytes から digest を計算し、ref の SHA-256 を directory
 
 ## 検証と U3/U4 への引渡し
 
-C1 の公開契約（AI-DLC の記録）は既定 root `/work` と `/root` を保持し、公開 API `setCwd` で作業 directory を変更する。`selected.cwd` が `/work/app` の場合も、`/work/outside` などの sibling fixture entry を削減しない。既定 `/work` を初期 cwd として `selected.entries` を session の seed に渡し、作成後に `await session.setCwd(selected.cwd)` とする。
+C1 の公開契約（[移行の各部分の記録](history/261012-terrarium-migration-results.md)）は既定 root `/work` と `/root` を保持し、公開 API `setCwd` で作業 directory を変更する。`selected.cwd` が `/work/app` の場合も、`/work/outside` などの sibling fixture entry を削減しない。既定 `/work` を初期 cwd として `selected.entries` を session の seed に渡し、作成後に `await session.setCwd(selected.cwd)` とする。
 
 node:test の manifest/fixtures/resolver/stage/integration を逐次実行し、TypeScript の C3 consumer とBiome check を検証する。Playwright consumer は一 worker、retry なしで Chromium/Firefox/WebKit を使う。synthetic schema/ELF の二 ref と、実 aube 二 release/最新 pitchfork の供給ケースを区別する。拒否ケースは runtime に渡さず guest 未実行を確認する。redirect は同じ loopback server の配布 base 外にある実在の 200 endpoint へ 302 を返し、target 到達 counter が増えないことも必須にする。到達不能な外部 host の失敗だけを redirect 拒否の根拠にしない。main の最新実資産 Node integration は8 pass/0 fail/0 skip、三 browser は計15 pass（一 worker、retry 0）。
 

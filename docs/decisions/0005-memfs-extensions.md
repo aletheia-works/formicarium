@@ -25,4 +25,4 @@ blink の VFS ではなく、Emscripten の MEMFS を拡張する。fork に `bl
 
 ## 参照
 
-`aidlc/spaces/default/intents/261003-blink-wasm-poc/construction/code-generation/code-summary.md`、`docs/architecture.md`
+commit `8096c7b4` の `aidlc/spaces/default/intents/261003-blink-wasm-poc/construction/code-generation/code-summary.md`、`docs/architecture.md`

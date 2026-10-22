@@ -1,5 +1,7 @@
 # terrarium廃止と機能移管：実行用要約
 
+> 2026-10-12 時点の計画。その後の決定（terrarium の互換名を残さず完全に削除する、最初の題材を変えた、配布先を GitHub Release に決めた など）と結果は [history/261012-terrarium-migration-plan.md](history/261012-terrarium-migration-plan.md) と [history/261012-terrarium-migration-results.md](history/261012-terrarium-migration-results.md) にある。
+
 2026-10-12。詳細原文：`/Users/mutoakio/.codex/attachments/fdf6a7c0-5d64-49d9-81f5-94aa4753f484/貼り付けたテキスト.txt`。原文の現状記述は再確認が必要。正式公開はGitHub・npmで0.2.1まで確認済み。
 
 ## 目的と境界

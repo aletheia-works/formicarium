@@ -30,5 +30,5 @@ jart/blink を `aletheia-works/blink` に fork し、`formicarium-wasm` ブラ�
 
 ## 参照
 
-`aidlc/spaces/default/intents/261003-blink-wasm-poc/inception/requirements-analysis/requirements-analysis-questions.md`（Q5〜Q8）、
-`aidlc/spaces/default/memory/project.md`、`blink.lock`
+commit `8096c7b4` の `aidlc/spaces/default/intents/261003-blink-wasm-poc/inception/requirements-analysis/requirements-analysis-questions.md`（Q5〜Q8）、
+commit `8096c7b4` の `aidlc/spaces/default/memory/project.md`、`blink.lock`

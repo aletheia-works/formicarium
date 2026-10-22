@@ -9,7 +9,7 @@ kernel, so that CLI bug reproductions can run as-is in a web page.
 
 Status: proof of concept complete (blink on wasm, 2026-10-05). The handover
 document is [`OUTCOMES.md`](OUTCOMES.md). Background research is in
-[`aidlc/spaces/default/knowledge/documents/research/cheerpx-oss.md`](aidlc/spaces/default/knowledge/documents/research/cheerpx-oss.md).
+[`docs/research/cheerpx-oss.md`](docs/research/cheerpx-oss.md).
 
 ## Local runtime package candidate
 
@@ -354,7 +354,7 @@ fixtures/             aube #1645 と pitchfork の入力、手順、native の�
 runtime/              コアに依存しない実行環境（Node.js・ブラウザ）。ゲストと手順の表は runtime/registry.js
 scripts/              ビルド・取得・基準値・計測・開発用サーバー
 tests/                node --test と Playwright のテスト
-docs/                 アーキテクチャの要約、設計上の決定（decisions/）、非機能要件のまとめ、ライセンスの確認、計測値、通らなかった項目と直したもの、JIT の判断材料
+docs/                 アーキテクチャの要約、設計上の決定（decisions/）、非機能要件のまとめ、ライセンスの確認、計測値、通らなかった項目と直したもの、JIT の判断材料、作業ごとの記録（history/）、調査（research/）
 patches/              fork に入れた修正の写し（レビュー用）
 aidlc/                AI-DLC の作業記録（要件、計画、レビュー、テストの証拠）
 ```

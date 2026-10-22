@@ -28,11 +28,11 @@ export const COMMANDS = {
 };
 
 /**
- * 背景資料（knowledge/documents/research/cheerpx-oss.md）にある CheerpX 1.3.9 上の値。
+ * 背景資料（docs/research/cheerpx-oss.md）にある CheerpX 1.3.9 上の値。
  * 単位は秒。4 回のページ読み込み、ページは背面。i586 glibc の aube に statx の回避策を入れたもの。
  */
 export const CHEERPX_REFERENCE = {
-  source: 'aidlc/spaces/default/knowledge/documents/research/cheerpx-oss.md',
+  source: 'docs/research/cheerpx-oss.md',
   environment:
     'CheerpX 1.3.9, WebVM Debian image, localhost, page hidden, 4 page loads',
   seconds: {

@@ -6,6 +6,16 @@
 - Correctness claims require observed commands/output, named test results, or specific log lines. Label claims 検証済み / ドキュメント根拠 / 推測; explicitly mark unverified claims 未検証.
 - For review feedback, turn the claim into a falsifiable sentence and verify it before replying. Replies must be at most five lines. Obtain the user's approval before posting a rebuttal; agreeing and fixing needs no extra approval.
 - Keep fixes within the requested scope. If verification cannot be run, mark it 未検証 and provide concrete verification commands.
+
+## Team practices
+
+These were affirmed by the user while the project ran under AI-DLC; the background of each piece of work is in `docs/history/`.
+- **Branches**: `main` is the integration branch. Work on short-lived bookmarks and merge them after review, keeping one change per piece of work so its history and reasoning stay together.
+- **Tests**: write tests after implementing each testable layer. For a bug fix, first watch a reproduction test fail, then fix it and see the same test pass. Keep line coverage at 80% or more on the first-party distributed JS and run CI before merging; count files that were never executed in the denominator, list every exclusion with its reason, and never move an exclusion to reach the threshold.
+- **Guests**: do not rebuild aube when its source has not changed; reuse `dist/guests` (an aube build takes over an hour). Rebuild the probe whenever it changes.
+- **Releases**: publish `@aletheia-works/formicarium` to npm and GitHub Releases only after the user approves the version, starting from the version tag. RCs go to the `next` dist-tag and stable versions to `latest`. If a release is defective, stop further publishing and point users to the last good version. Never create repositories, push or publish without the user's approval.
+- **Code style**: follow the existing ESM, camelCase, UPPER_SNAKE_CASE constants, PascalCase classes, purpose comments, and the split between Node, browser and shared code. Do not promote every internal export to the public API. Invalid input throws; a normal guest exit is an `exitCode`; a host or core failure throws with its cause.
+- **Scope**: do not mix unrelated improvements, renames or whole-file reformatting into a fix.
 - AI-DLC harness files are generated locally and ignored (`.claude/`, `.codex/`, `.agents/`). On a new clone, run `aidlc config --harness codex --yes`, then check `aidlc config runtime --harness codex --check` and `aidlc config trust --harness codex --check`. Follow `.codex/onboarding.md` for hook trust setup.
 
 ## Project state (2026-10-05)

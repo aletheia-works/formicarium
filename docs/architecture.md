@@ -8,7 +8,7 @@ formicarium は、改変していない x86-64 Linux のバイナリ（static-mu
 
 ドキュメント根拠：最新mainのauthoringはTypeScript（`.ts`）、formatter/linterはBiomeです。`npm ci` 後に `npm run build` がTypeScriptをコンパイルし、`scripts/emit.ts` が実行用 `.js` を配置します。`npm run check` と `npm run typecheck` が静的検証です。Nodeのテストはビルド後の `tests/node/*.test.js` を `node --test` で実行し、Playwrightは `tests/browser/*.spec.ts` と `playwright.config.ts` を使います。コア依存の境界はauthoring `runtime/core.ts`／配布 `runtime/core.js` です。npm候補U1の固定第一者配布JSは `runtime/contracts.js` を含む14ファイルです。
 
-以下のPoC結果と測定値は2026-10-05の履歴です。当時の `.mjs` パスやコマンドを現行の実行手順として使わず、現在は対応する `.ts` ソース／生成 `.js` を参照してください。新候補の検証記録は AI-DLC の intent の記録（`aidlc/`）に分離します。
+以下のPoC結果と測定値は2026-10-05の履歴です。当時の `.mjs` パスやコマンドを現行の実行手順として使わず、現在は対応する `.ts` ソース／生成 `.js` を参照してください。新候補の検証記録は作業ごとの記録（[`history/`](history/)）に分離します。
 
 ## 全体の構成
 
