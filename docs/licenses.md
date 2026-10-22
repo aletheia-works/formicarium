@@ -1,7 +1,7 @@
 # ライセンスの確認（blink の fork）
 
-要件の Assumptions「jart/blink の ISC ライセンスは、formicarium の Apache-2.0 と両立する」と、
-レビューの指摘 R-08（fork 元の限定）について、確認した内容を記録する。
+「jart/blink の ISC ライセンスは、formicarium の Apache-2.0 と両立する」という前提と、
+fork 元を限定することについて、確認した内容を記録する。
 
 ## 対象
 

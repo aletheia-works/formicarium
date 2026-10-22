@@ -1,4 +1,4 @@
-> Historical 0.1.0 release evidence. Normal stable publication now follows docs/automated-releases.md; mandatory RC adoption and candidate-bound manual publication inputs described below are not the current stable workflow.
+> Historical 0.1.0 release evidence. Normal stable publication now follows docs/automated-releases.md; mandatory RC adoption and candidate-bound manual publication inputs described below are not the current stable workflow. The AI-DLC unit names (U1–U4) and the fixed-24 coverage, removed in #77, are kept below as written at the time.
 
 # Release assurance
 

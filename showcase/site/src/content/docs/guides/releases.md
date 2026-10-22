@@ -18,11 +18,11 @@ provenance. An existing version is never replaced.
 started by hand on `main`. There is no daily run, so a new guest candidate is
 deployed by a manual run. Only these two runs distribute:
 1. `showcase.yml` builds and accepts a candidate in `distribute` mode, with the
-   package that B1 accepted (`showcase/b1-pack.json`). Until that Release
+   accepted package of the pack Release (`showcase/b1-pack.json`). Until that Release
    exists, distribution fails and nothing is deployed.
 2. This site is built once from the candidate, checked, and accepted in
    Chromium, Firefox and WebKit over HTTPS without server headers.
-3. The C10 evidence is assembled; every required row must have passed.
+3. The site evidence is assembled; every required row must have passed.
 4. The deploy job publishes the same accepted artifact to GitHub Pages, after a
    check that no newer run has already deployed.
 5. The deployed `site-identity.json` is read back until it names this run.

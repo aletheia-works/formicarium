@@ -17,8 +17,8 @@ WebAssembly として動かします。run ごとに新しい Worker を始め�
 file は Session に残って次の command に渡ります。guest は実行の前に SHA256 と
 `build-info.json` で検証します。
 
-**showcase。** `showcase.yml`（U7）が guest を解決・取得・build・受入して候補を
-作ります。このサイト（U8）はその候補を使うだけです。formicarium の pack は
+**showcase。** `showcase.yml` が guest を解決・取得・build・受入して候補を
+作ります。このサイトはその候補を使うだけです。formicarium の pack は
 `_formicarium/<version>/` に、guest と catalog はサイトの root に、demo の fixture は
 `demo-fixtures/` に、bytes のまま置きます。page が取得する index と catalog は、
 page に埋め込んだ SHA256 と照合します。

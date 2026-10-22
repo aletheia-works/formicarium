@@ -17,8 +17,8 @@ WebAssembly. Each run starts a fresh Worker; files written by a command stay in
 the Session and are passed to the next one. Guests are validated against their
 SHA256 and `build-info.json` before they run.
 
-**Showcase.** `showcase.yml` (U7) resolves, acquires, builds and accepts the
-guests and writes a candidate. This site (U8) only consumes that candidate:
+**Showcase.** `showcase.yml` resolves, acquires, builds and accepts the
+guests and writes a candidate. This site only consumes that candidate:
 the formicarium pack is copied byte for byte to `_formicarium/<version>/`, the
 guests and catalog to the site root, and the demo fixtures to
 `demo-fixtures/`. Every fetched index and catalog is checked against the SHA256

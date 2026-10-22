@@ -1,8 +1,8 @@
-# command API（U4 暫定候補）
+# command API
 
-1行の文字列を解釈し、既存のsession（U2）とinstall（U3）へ振り分けるlibrary APIです。root entryから `createCommandSession` と関連型（`CommandOptions`・`CommandResult`・`CommandSession`）を公開します。command sessionはcwd・FS・登録guestを複製せず、取得・展開・検証も再実装しません。状態はすべて渡したsessionが持ちます。
+1行の文字列を解釈し、既存のsessionとinstallへ振り分けるlibrary APIです。root entryから `createCommandSession` と関連型（`CommandOptions`・`CommandResult`・`CommandSession`）を公開します。command sessionはcwd・FS・登録guestを複製せず、取得・展開・検証も再実装しません。状態はすべて渡したsessionが持ちます。
 
-この文書の内容は実装と型定義に基づくドキュメント根拠です。U4の試験・coverage・B1統合受入・署名付きCIは、この文書の作成時点で未検証です。実機Safariも未検証で、WebKitの結果を実機Safariの合格とは扱いません。
+この文書の内容は実装と型定義に基づくドキュメント根拠です。単体試験は `tests/package/command-*.test.ts` にあり、通常のCI（`test:node-unit`）とリリース候補のパッケージcoverageで実行します。実機Safariは未検証で、WebKitの結果を実機Safariの合格とは扱いません。
 
 ## 使用例
 
@@ -91,7 +91,7 @@ installの成功時のstdoutは `installed <tool>@<versionOrName> (sha256 <diges
 
 `stdout` と `stderr` は、呼出しごとに新しい `Uint8Array` です。内部bufferやsessionのfileと共有しません。command APIは結果を切り詰めず、文字列へ変換せず、HTMLやcodeとして評価しません。
 
-次の条件は、command APIではなく埋め込むUI（U6・U8）の責任です。UI側の試験で確認します。
+次の条件は、command APIではなく埋め込むUIの責任です。UI側の試験で確認します。
 - loading・empty・errorの表示の区別
 - keyboardでの操作
 - 進捗の「不明」（`totalBytes: null`）と「0」の区別

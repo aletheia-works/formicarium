@@ -39,13 +39,13 @@ The default run deadline is 600000 ms and includes Worker startup. Supply `timeo
 
 Filesystem entries are copied at input and output. Persisted roots are cwd/home; executable and temporary system paths are excluded. Files sharing `inodeId` preserve hard links, symlinks remain links, and modes are preserved. Use `listEntries`, `readFile`, `remove`, `setCwd` and `reset` between runs. If the selected cwd was removed between runs, the next run recreates its missing directory ancestors with mode 0755 while preserving existing directory modes and rejecting file or symlink collisions. A successful run commits its snapshot after cleanup; timeout, abort or failed snapshot rolls it back. `dispose` is idempotent and permanently closes the session. Cleanup failure closes the session.
 
-Default assets resolve relative to the installed package. Explicit `assets` requires absolute loaderURL, wasmURL, buildInfoURL and workerURL. Loader/wasm SHA-256 digests and clean pinned core metadata are checked before initialization. The checked loader bytes are evaluated without rereading the original URL. Node uses a run-specific directory with mode 0700 and an exclusive loader copy with mode 0400; pthreads use that same copy. The host owns these files and browser Blob URLs, stops owned Workers before releasing them, and releases resources after normal completion, abort, timeout or disposal even when the root Worker is forcibly terminated. Missing or mixed assets reject with `ASSET_LOAD`; initialization failure is `CORE_INIT`. See `THIRD_PARTY_NOTICES.md` and `assets/build-info.json` for provenance. Local test observations are recorded in the U1 record (commit `8096c7b4`, summarised in `docs/history/261006-npm-terrarium-release.md`); real Safari and full product regression/CI remain separate verification obligations.
+Default assets resolve relative to the installed package. Explicit `assets` requires absolute loaderURL, wasmURL, buildInfoURL and workerURL. Loader/wasm SHA-256 digests and clean pinned core metadata are checked before initialization. The checked loader bytes are evaluated without rereading the original URL. Node uses a run-specific directory with mode 0700 and an exclusive loader copy with mode 0400; pthreads use that same copy. The host owns these files and browser Blob URLs, stops owned Workers before releasing them, and releases resources after normal completion, abort, timeout or disposal even when the root Worker is forcibly terminated. Missing or mixed assets reject with `ASSET_LOAD`; initialization failure is `CORE_INIT`. See `THIRD_PARTY_NOTICES.md` and `assets/build-info.json` for provenance. Local test observations from the first npm release are recorded at commit `8096c7b4` and summarised in `docs/history/261006-npm-terrarium-release.md`; real Safari and full product regression/CI remain separate verification obligations.
 
-## guest・install・command API（0.3.0 候補）
+## guest・install・command API
 
-root export に次の API を加えている。0.3.0 の候補で、公開はrelease-pleaseと個別の承認を経て行う。B1 の正式な受入（全 realm の coverage、正式 36 試行、署名付き CI）と実機 Safari は、この README の時点で未検証である。
+0.3.0 から、root export に次の API がある。実機 Safari では未検証である。
 
-### guest の検証と登録（U2）
+### guest の検証と登録
 
 ```js
 import { createSession } from '@aletheia-works/formicarium/node';
@@ -85,17 +85,17 @@ try {
 
 run・登録・FS 操作は session ごとに同じ排他を使い、競合は `BUSY` になる。`reset()` は実行を取り消して cleanup を待ち、登録・FS・cwd を初期状態へ戻す。`dispose()` は cleanup の後に終端となり、以後は `DISPOSED` になる。取消は `ABORTED`、guest の非ゼロ exit は従来どおり結果として返す。内部の予約 API は package exports に公開しない。
 
-### カタログからの install（U3）
+### カタログからの install
 
 `createInstaller(session, catalog)` は、呼出し元が用意した固定カタログを検証・copy する。`installer.install('tool')` 又は `installer.install('tool@version')` で HTTPS 上の ELF・tar.gz を取得・検証し、同じ session へ登録する。既定版はカタログの defaults だけから選ぶ。通信や登録の失敗で旧 guest を置き換えず、run・FS・別の install との競合は `BUSY` になる。公開型、カタログの必須情報、取消・進捗・エラーと例は [install API](docs/install-api.md) を参照。
 
-### 端末の command（U4）
+### 端末の command
 
 `createCommandSession(session, { catalog })` は 1 行の文字列を解釈し、`ls [path]`・`cat path`・`cd path`・`rm -rf path` を session の FS 操作へ、`install <selection>` を同じカタログの install へ、それ以外を登録済み guest の実行へ振り分ける。shell の構文（pipe・リダイレクト・変数展開・glob など）は展開せず `INVALID_INPUT` にする。各 command は session の予約を 1 回だけ使い、直接の API や別の command session との競合は `BUSY` になる。結果の stdout・stderr は原本の bytes で、表示への変換と表示の上限は UI 側の責任である。構文、予約名、取消と timeout、UI への受渡しの条件は [command API](docs/command-api.md) を参照。
 
-## showcase の最新版ゲスト（U7 暫定候補）
+## showcase の最新版ゲスト
 
-[`showcase/`](showcase/) は、aube・pitchfork・Biome の最新の安定版を解決・取得（公式の static musl 資産がない pitchfork は source build）・検証し、公開 export（`@aletheia-works/formicarium`、`/node`、`/browser`）だけを使って Node・Chromium・Firefox・WebKit で `--version` を受入して、showcase の候補（catalog と manifest）を作ります。本体の `runtime/`・`types/` からは参照せず、境界は機械検査します。専用の CI は [`.github/workflows/showcase.yml`](.github/workflows/showcase.yml) です。構成と手順は [showcase の README](showcase/README.md) を参照して下さい。受入（3ツール×Node・3ブラウザの12行）はCIで通っています（2026-10-20のmainではrun 39412286499）。`distribute` の実行はU8の最初の配布で確かめます。実機Safariは未検証です。
+[`showcase/`](showcase/) は、aube・pitchfork・Biome の最新の安定版を解決・取得（公式の static musl 資産がない pitchfork は source build）・検証し、公開 export（`@aletheia-works/formicarium`、`/node`、`/browser`）だけを使って Node・Chromium・Firefox・WebKit で `--version` を受入して、showcase の候補（catalog と manifest）を作ります。本体の `runtime/`・`types/` からは参照せず、境界は機械検査します。専用の CI は [`.github/workflows/showcase.yml`](.github/workflows/showcase.yml) です。構成と手順は [showcase の README](showcase/README.md) を参照して下さい。受入（3ツール×Node・3ブラウザの12行）はCIで通っています（2026-10-20のmainではrun 39412286499）。`distribute` の実行は、2026-10-20 の showcase site の最初の配布で確かめました（[showcase の README](showcase/README.md) の記録）。実機Safariは未検証です。
 
 ## この PoC でしていること
 
@@ -250,7 +250,7 @@ Bun 1.4.2 / bun.lock による依存管理、固定 Node、`ci.yml` の lint・�
 
 ## 将来の RC / stable 公開
 
-`publish.yml` は `v*` tag を入口とし、実行時に `X.Y.Z-rc.N`（N は正整数）または `X.Y.Z` の厳密な版、tag、source SHA、公開先、版ごとの人の承認を照合します。RC は `next`、stable は `latest` を使います。stable は同じ基底版の公開 RC の採用記録と差分検査も必要です。既存 `v0.1.0-rc.1` と `codex/release/rc1-inputs` は履歴の固定入力として保持します。上の U1 導入時の workflow 保持記述に対し、この U4 で `publish.yml` の将来版対応を追加しています。
+`publish.yml` は `v*` tag を入口とし、実行時に `X.Y.Z-rc.N`（N は正整数）または `X.Y.Z` の厳密な版、tag、source SHA、公開先、版ごとの人の承認を照合します。RC は `next`、stable は `latest` を使います。stable は同じ基底版の公開 RC の採用記録と差分検査も必要です。既存 `v0.1.0-rc.1` と `codex/release/rc1-inputs` は履歴の固定入力として保持します。
 
 readonly verify job は Bun latest と `bun.lock` で依存を導入し、TypeScript の公開前検査を直接実行します。公開候補は通常 CI と別に `candidate-verify.yml` の `candidate-required`、9 個の必須検査、固定 inventory の全 realm receipt と 80% coverage を要求します。GitHub API の run/attempt/source/workflow/producer、artifact digest、report bytes を独立照合し、skip・missing・非成功を拒否します。stable の公開 RC 採用記録と差分検査も維持します。
 
@@ -301,14 +301,14 @@ native の基準値とそろえるため、`AUBE_NO_UPDATE_CHECK=1` で止めて
 ## テスト
 
 ```bash
-node --test tests/node/build.test.js      # FR1：fork の固定とビルド（pitchfork が static な ELF であることも）
-node --test tests/node/runner.test.js     # FR2.1：Node.js のランナー、ゲストと手順の表、入口の検証
+node --test tests/node/build.test.js      # fork の固定とビルド（pitchfork が static な ELF であることも）
+node --test tests/node/runner.test.js     # Node.js のランナー、ゲストと手順の表、入口の検証
 node --test tests/node/session.test.js    # 手順の解釈（引数の分割、cat）。ビルド物なしで実行できる
-node --test tests/node/probe.test.js      # FR3・FR4・FR5（Node.js）
-node --test tests/node/aube-1645.test.js  # FR7.1（Node.js）
-node --test tests/node/measure.test.js    # FR6：計測結果の形式
+node --test tests/node/probe.test.js      # probe の全項目（Node.js）
+node --test tests/node/aube-1645.test.js  # aube #1645 の書き起こし（Node.js）
+node --test tests/node/measure.test.js    # 計測結果の形式
 node --test tests/node/pitchfork-basic.test.js   # pitchfork-basic（Node.js）
-npx playwright test tests/browser/probe.spec.js tests/browser/aube-1645.spec.js   # FR2.2・FR5.2・FR7.1
+npx playwright test tests/browser/probe.spec.js tests/browser/aube-1645.spec.js   # probe と aube #1645（Chromium・Firefox・WebKit）
 npx playwright test tests/browser/pitchfork-basic.spec.js   # pitchfork-basic（Chromium・Firefox・WebKit）
 ```
 
@@ -327,7 +327,7 @@ probe には、合格判定の 8 項目のほかに、引数で個別に指定�
 | `madvise-dontneed` | `madvise(MADV_DONTNEED)` の後、プライベートな匿名メモリがゼロで読める |
 
 2026-10-05 のクリーンビルドでの結果は、Node.js 41/41、ブラウザ 33/33、ブラウザの 3 回繰り返し 99/99。
-繰り返しの確認（NFR1）は次のとおり。
+繰り返しの確認は次のとおり。
 
 ```bash
 npx playwright test tests/browser/probe.spec.js tests/browser/aube-1645.spec.js --repeat-each=3
