@@ -74,7 +74,7 @@
     "format": "bun node_modules/@biomejs/biome/bin/biome format --write .",
     "test:unit": "bun test tests/package/errors.test.js tests/package/public.test.js tests/package/validation.test.js tests/package/state.test.js tests/package/protocol.test.js tests/package/lifecycle.test.js tests/package/guest-io.test.js",
     "install:frozen": "bun scripts/ci/tasks.ts install-frozen",
-    "test:light": "bun run test:unit && bun run test:tooling-bun && bun run test:node-unit && node --test --test-concurrency=1 tests/release/*.test.js .build/tests/tooling/publication-*.test.js",
+    "test:light": "bun run test:unit && bun run test:tooling-bun && bun run test:node-unit && node --test --test-concurrency=1 tests/release/*.test.js tests/ci/verification.test.js .build/tests/tooling/publication-*.test.js",
     "test:consumer": "bun run test:integration",
     "verify:candidate": "node scripts/ci/candidate.js",
     "test:e2e": "bun run build && bun node_modules/@playwright/test/cli.js test",

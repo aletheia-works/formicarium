@@ -278,7 +278,7 @@ test('payload inventory rejects extra unknown files and nonregular members', asy
   await symlink(resolve(root, 'known'), resolve(root, 'link'));
   await assert.rejects(validatePayloadInventory(root, ['known']), /nonregular/);
 });
-test('checked workflow remains read-only verification without publication credentials', async () => {
+test('checked workflow runs only by hand and holds only the read-only credential', async () => {
   const workflow = await readFile(
     new URL('../../.github/workflows/verify.yml', import.meta.url),
     'utf8',
@@ -291,8 +291,18 @@ test('checked workflow remains read-only verification without publication creden
     'pull_request_target',
     'NPM_TOKEN',
     'secrets.TOKEN',
+    'gh release create',
   ])
     assert.throws(() => validateWorkflow(`${workflow}\n${unsafe}`));
+  for (const trigger of ['push', 'pull_request', 'schedule'])
+    assert.throws(() =>
+      validateWorkflow(
+        workflow.replace('on:\n', `on:\n  ${trigger}:\n    branches: [main]\n`),
+      ),
+    );
+  assert.throws(() =>
+    validateWorkflow(workflow.replace('workflow_dispatch:', 'push:')),
+  );
 });
 
 test('bundle producer binds actual input bytes before validating the manifest', async () => {

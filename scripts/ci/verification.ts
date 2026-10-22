@@ -181,12 +181,19 @@ export function validateCoverage(
   if (report.candidateSha256 !== expected.tarballSha256)
     throw Error('package coverage measured another tarball');
 }
+/**
+ * verify.yml runs only by hand. Its one secret is the read-only GitHub token
+ * that the credential job checks with GET requests; nothing may publish.
+ */
 export function validateWorkflow(text: string) {
+  const secrets = text.match(/secrets\.[A-Za-z0-9_]+/g) ?? [];
   if (
     !text.includes('contents: read') ||
     !text.includes('persist-credentials: false') ||
-    !text.includes("branches: ['codex/verify/**']") ||
-    /pull_request_target|id-token: write|contents: write|packages: write|npm publish|NPM_TOKEN|gh release|secrets\./.test(
+    !/^on:\n {2}workflow_dispatch:\n/m.test(text) ||
+    /^ {2}(push|pull_request|schedule|workflow_run):/m.test(text) ||
+    secrets.some((name) => name !== 'secrets.TF_TOKEN_GITHUB') ||
+    /pull_request_target|id-token: write|contents: write|packages: write|npm publish|NPM_TOKEN|gh release/.test(
       text,
     )
   )
