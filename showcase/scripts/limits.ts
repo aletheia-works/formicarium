@@ -1,4 +1,4 @@
-/** C11 TransferPolicy. These values are contract inputs and are never relaxed. */
+/** TransferPolicy. These values are contract inputs and are never relaxed. */
 export const TRANSFER_POLICY = Object.freeze({
   fetchDeadlineMs: 120000,
   installDeadlineMs: 180000,
@@ -15,7 +15,7 @@ export const TRANSFER_POLICY = Object.freeze({
 export const MAX_REDIRECTS = 5;
 
 /**
- * The showcase job timeout for source builds (180 min) is shorter than the C11
+ * The showcase job timeout for source builds (180 min) is shorter than the
  * 4 h build limit, so the in-process deadline leaves 15 min for process-group
  * termination and staging removal before the job itself is cut.
  */

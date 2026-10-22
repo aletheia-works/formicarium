@@ -17,7 +17,7 @@ function checkString(value: string): void {
 }
 
 /**
- * C03 canonical JSON: recursive dictionary key order, array order kept, UTF-8,
+ * Canonical JSON: recursive dictionary key order, array order kept, UTF-8,
  * no whitespace, no trailing newline, only safe integers / strings / booleans /
  * null. Unknown additional fields stay part of the identity.
  */
@@ -133,7 +133,7 @@ export function parseUniqueJson(raw: string): unknown {
   }
 }
 
-/** C03/C07 buildKey: never includes timestamps or output digests. */
+/** buildKey: never includes timestamps or output digests. */
 export function buildKey(
   info: Pick<
     GuestBuildInfo,

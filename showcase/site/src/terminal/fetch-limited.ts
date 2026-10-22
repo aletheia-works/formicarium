@@ -1,4 +1,4 @@
-/** C11 fetchDeadlineMs and the page fetch bounds (NFR4.1, performance P2). */
+/** fetchDeadlineMs and the page fetch bounds. */
 export const FETCH_DEADLINE_MS = 120000;
 export const MAX_CATALOG_BYTES = 4194304;
 export const MAX_FIXTURE_INDEX_BYTES = 268435456;

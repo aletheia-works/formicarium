@@ -16,7 +16,7 @@ import { injectCsp } from '../../scripts/inject-csp.ts';
 import { tempDir, WORKFLOW, writeFiles } from './helpers.ts';
 
 const BASE = '/formicarium/';
-/** Spelled apart so U7's boundary scan does not read test data as imports. */
+/** Spelled apart so the showcase boundary scan does not read test data as imports. */
 const IMPORT = 'import';
 const doc = (body = '') =>
   `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="/formicarium/_astro/site.css"><link rel="canonical" href="https://aletheia-works.github.io/formicarium/"><script type="module" src="/formicarium/_astro/doc.js"></script></head><body><a href="https://github.com/aletheia-works/formicarium">GitHub</a>${body}</body></html>`;

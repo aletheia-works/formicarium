@@ -1,7 +1,7 @@
 import type { Progress } from '@aletheia-works/formicarium';
 import type { Locale } from './page-data.ts';
 
-/** What the status line shows (BR4.1, frontend-components StatusLine). */
+/** What the status line shows (StatusLine). */
 export type Status =
   | { kind: 'isolating' }
   | { kind: 'isolation-failed' }
@@ -39,7 +39,7 @@ const PHASES: Record<Locale, Record<Progress['phase'], string>> = {
   },
 };
 
-/** totalBytes null (unknown) and 0 are different (NFR7.3). */
+/** totalBytes null (unknown) and 0 are different. */
 export function progressText(
   progress: Progress | null,
   locale: Locale,
@@ -114,7 +114,7 @@ export function statusText(status: Status, locale: Locale): string {
   }
 }
 
-/** OmittedNotice text (BR3.8), outside the terminal. */
+/** OmittedNotice text, outside the terminal. */
 export function omittedText(
   bytes: number,
   lines: number,

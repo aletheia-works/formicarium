@@ -10,14 +10,14 @@ import type {
 import { expect } from '@playwright/test';
 import { SITE_ROOT } from '../../scripts/common.ts';
 
-/** performance-design P1: goto -> ready within 120 s (the test itself has 180 s). */
+/** goto -> ready within 120 s (the test itself has 180 s). */
 export const READY_MS = 120000;
 export const COVERAGE_DIR = join(SITE_ROOT, '.work', 'coverage', 'v8');
 const COLLECT_COVERAGE = process.env.SHOWCASE_SITE_COVERAGE === '1';
 
 /**
  * A fresh context per test (first visit registers the service worker). In CI
- * Firefox uses the profile that trusts the job CA, as in U7's acceptance.
+ * Firefox uses the profile that trusts the job CA, as in the showcase acceptance.
  */
 export async function openContext(
   browser: Browser,

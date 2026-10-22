@@ -3,7 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 const WORK = join(import.meta.dirname, '..', '.work');
 
-// U8 site acceptance (performance-design P1): 1 worker, no retry, 180 s per
+// Site acceptance: 1 worker, no retry, 180 s per
 // test; each test waits at most 120 s from goto until the terminal is ready.
 // One browser per run: the JSON report goes to accept/<browser>/results.json.
 export default defineConfig({

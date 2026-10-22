@@ -12,12 +12,12 @@ import {
 import { comparePaths } from '../src/model/model-error.ts';
 import { fail, SHOWCASE_DIR, writeText } from './common.ts';
 
-/** Site path of the demo fixture indexes; never named like the regression fixtures (BR3.2, NFR2.1(4)). */
+/** Site path of the demo fixture indexes; never named like the regression fixtures. */
 export const DEMO_FIXTURE_DIR = 'demo-fixtures';
 
 /**
  * Reads showcase/fixtures/<name>/ entirely (app/ and the directories beside
- * it, NFR7.4). Modes are normalised; an empty directory, a symbolic link or a
+ * it). Modes are normalised; an empty directory, a symbolic link or a
  * special file fails the build.
  */
 export async function readFixtureTree(root: string): Promise<FixtureEntry[]> {

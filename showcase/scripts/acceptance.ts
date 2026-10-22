@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { parseUniqueJson } from './build-key.ts';
 import { fail } from './errors.ts';
 
-/** C10 U8 profile: tool-*-version must exist once per environment. */
+/** Site acceptance profile: tool-*-version must exist once per environment. */
 export const ENVIRONMENTS = Object.freeze([
   'node',
   'chromium',

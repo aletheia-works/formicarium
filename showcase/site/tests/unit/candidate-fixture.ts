@@ -37,8 +37,8 @@ export interface CandidateOptions {
 }
 
 /**
- * Writes a showcase-candidate artifact shaped like U7's (manifest computed by
- * U7's own functions) plus a fixtures directory, and returns both paths.
+ * Writes a showcase-candidate artifact shaped like the showcase's (manifest computed
+ * by its own functions) plus a fixtures directory, and returns both paths.
  */
 export async function writeCandidate(
   root: string,

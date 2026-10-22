@@ -5,7 +5,7 @@ import { checkRelativePath } from '../src/model/model-error.ts';
 
 /** showcase/site/ (this file lives in showcase/site/scripts/). */
 export const SITE_ROOT = fileURLToPath(new URL('../', import.meta.url));
-/** showcase/ (U7) and the repository root. */
+/** showcase/ and the repository root. */
 export const SHOWCASE_DIR = resolve(SITE_ROOT, '..');
 export const REPOSITORY_DIR = resolve(SHOWCASE_DIR, '..');
 
@@ -48,7 +48,7 @@ export function fail(code: SiteCause, message: string, cause?: unknown): never {
 /** owner/repo; neither part may start with a dot (`..`, `.github`). */
 export const REPOSITORY_SLUG = /^[A-Za-z0-9][\w-]*\/[A-Za-z0-9_][\w.-]*$/;
 
-/** URLs in logs and summaries never carry a query or fragment (NFR8.6). */
+/** URLs in logs and summaries never carry a query or fragment. */
 export function withoutQuery(raw: string): string {
   try {
     const url = new URL(raw);

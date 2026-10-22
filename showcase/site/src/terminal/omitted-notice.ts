@@ -2,7 +2,7 @@ import type { Locale } from './page-data.ts';
 import { omittedText } from './status.ts';
 
 /**
- * OmittedNotice (BR3.8): a paragraph below the terminal, written with
+ * OmittedNotice: a paragraph below the terminal, written with
  * textContent only, shown once the display buffer has dropped something. It
  * never goes into the terminal output itself.
  */

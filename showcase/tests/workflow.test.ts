@@ -36,7 +36,7 @@ function jobs(): Map<string, string> {
 const steps = (job: string) =>
   job.split(/\n(?= {6}- )/).filter((step) => step.trimStart().startsWith('- '));
 
-test('triggers: PR and main push on showcase or public API paths, manual run, U8 call', () => {
+test('triggers: PR and main push on showcase or public API paths, manual run, showcase-site call', () => {
   const head = workflow.slice(0, workflow.indexOf('permissions:'));
   for (const path of [
     'showcase/**',

@@ -141,7 +141,7 @@ function logLines(log: unknown, manifest: CandidateManifest): CheckLine[] {
   return lines;
 }
 
-/** BR1.2: the seven items; verify logs (2) and (6) without judging them. */
+/** The candidate check: the seven items; verify logs (2) and (6) without judging them. */
 export async function verifyCandidate(
   input: VerifyInput,
 ): Promise<VerifyResult> {
@@ -271,7 +271,7 @@ if (import.meta.main)
     const bad = mismatches(result);
     await summary([
       `- candidateId: \`${result.manifest.candidateId}\` (${mode})`,
-      `- BR1.2 の照合：${bad.length === 0 ? 'すべて一致' : `${bad.length} 件の不一致`}`,
+      `- 候補の照合：${bad.length === 0 ? 'すべて一致' : `${bad.length} 件の不一致`}`,
     ]);
     if (bad.length)
       fail(

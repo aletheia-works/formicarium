@@ -76,7 +76,7 @@ const browserImport: ModuleImporter = (url) => import(/* @vite-ignore */ url);
 
 /**
  * Imports the public root and /browser entries from the staged copy; the
- * site's Vite bundle never contains formicarium itself (BR5.1).
+ * site's Vite bundle never contains formicarium itself.
  */
 export async function loadFormicarium(
   manifest: FormicariumManifest,

@@ -470,7 +470,7 @@ export async function prepareBuild(
   return plan;
 }
 
-/** C03 metadata of a source build; extra fields record the toolchain. */
+/** Guest metadata of a source build; extra fields record the toolchain. */
 export function sourceBuildInfo(
   plan: BuildPlan,
   elfSha256: string,

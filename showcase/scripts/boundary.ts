@@ -16,7 +16,7 @@ export interface Violation {
   reference: string;
 }
 
-/** The only packages showcase code may import (FR14 / NFR3.6). */
+/** The only packages showcase code may import. */
 export const PUBLIC_ENTRIES: readonly string[] = Object.freeze([
   '@aletheia-works/formicarium',
   '@aletheia-works/formicarium/node',
@@ -27,7 +27,7 @@ export const TEST_PACKAGES: readonly string[] = Object.freeze([
   '@playwright/test',
 ]);
 /**
- * U8 site (security-design S1): below showcase/site only, these packages, a
+ * Showcase site: below showcase/site only, these packages, a
  * `/` subpath of them, and Astro's `astro:` virtual modules.
  */
 export const SITE_PACKAGES: readonly string[] = Object.freeze([

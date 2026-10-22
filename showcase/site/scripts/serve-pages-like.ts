@@ -12,7 +12,7 @@ import { tlsFromEnvironment } from '../../scripts/tls.ts';
 import { fail, parseOptions, runCli, siteLayout } from './common.ts';
 
 /**
- * A static server shaped like GitHub Pages for the site acceptance (BR7.1):
+ * A static server shaped like GitHub Pages for the site acceptance:
  * the site below /formicarium/, index.html for directories, a redirect to the
  * trailing slash, 404.html for misses, and no COOP, COEP, CORP or CSP header
  * (isolation must come from coi-serviceworker, as on Pages).

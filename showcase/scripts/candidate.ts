@@ -38,7 +38,7 @@ export interface ResolvedTool {
   elfSha256: string;
   provenance: AcquiredTool['provenance'];
 }
-/** C09 ShowcaseCandidateManifest plus the additional fields of NFR Design §7/§10. */
+/** ShowcaseCandidateManifest plus the fields the site needs from the run. */
 export interface CandidateManifest {
   schemaVersion: 1;
   candidateId: string;

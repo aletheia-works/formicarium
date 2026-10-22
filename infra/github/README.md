@@ -17,13 +17,13 @@ branch to be up to date with main before merging.
 
 ## Required checks
 
-| Exact check name         | Coverage                                                                                          |
-| ------------------------ | ------------------------------------------------------------------------------------------------- |
-| `quality`                | Lint, types, package build and light/release tests                                                |
-| `commit-format`          | Trusted base commit format validator                                                              |
-| `ci-required`            | Quality, commit-format and every product build/regression matrix job                              |
-| `check / Commitlint`     | Organization reusable commitlint workflow                                                         |
-| `showcase-site-required` | U8 showcase site: Chromium/Firefox/WebKit acceptance, coverage and evidence (`showcase-site.yml`) |
+| Exact check name         | Coverage                                                                                       |
+| ------------------------ | ---------------------------------------------------------------------------------------------- |
+| `quality`                | Lint, types, package build and light/release tests                                             |
+| `commit-format`          | Trusted base commit format validator                                                           |
+| `ci-required`            | Quality, commit-format and every product build/regression matrix job                           |
+| `check / Commitlint`     | Organization reusable commitlint workflow                                                      |
+| `showcase-site-required` | showcase site: Chromium/Firefox/WebKit acceptance, coverage and evidence (`showcase-site.yml`) |
 
 All are bound to GitHub Actions app ID `15368` in the `main` ruleset. Product
 Node and Chromium/Firefox/WebKit checks are covered by `ci-required`, which runs

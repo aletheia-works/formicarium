@@ -12,7 +12,7 @@ export const siteRootFrom = (pageUrl: string, basePath: string) =>
   new URL(basePath.endsWith('/') ? basePath : `${basePath}/`, pageUrl);
 
 /**
- * Resolves every entry url against the site root (BR5.1): the same guest URL
+ * Resolves every entry url against the site root: the same guest URL
  * from /terminal/, /tools/<tool>/ and the /ja/ pages. Absolute URLs, other
  * origins and `..` segments are refused before the public API sees them.
  */

@@ -21,7 +21,7 @@ on:
   workflow_call:
     inputs:
       mode:
-        description: verify (default) or distribute (main U8 workflow only)
+        description: verify (default) or distribute (main showcase-site workflow only)
         type: string
         default: verify
     outputs:

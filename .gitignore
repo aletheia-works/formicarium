@@ -41,7 +41,7 @@ dist-ssr
 /showcase/node_modules/
 /showcase/.work/
 /showcase/.probe/
-# showcase site (U8): inputs, build outputs and files copied in at build time
+# showcase site: inputs, build outputs and files copied in at build time
 /showcase/site/.work/
 /showcase/site/.astro/
 /showcase/site/dist/

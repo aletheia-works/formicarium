@@ -56,7 +56,7 @@ test('every direct trigger without a mode input stays verify', () => {
   );
 });
 
-test('distribute is accepted only from main U8 started by push or workflow_dispatch', () => {
+test('distribute is accepted only from main showcase-site started by push or workflow_dispatch', () => {
   assert.equal(acceptMode(context({}), trusted), 'distribute');
   assert.equal(
     acceptMode(context({ eventName: 'workflow_dispatch' }), trusted),

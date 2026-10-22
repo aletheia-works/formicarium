@@ -167,7 +167,7 @@ test('distribute fails closed without a B1 Release', async () => {
   });
 });
 
-test('distribute refuses a pack or C06 evidence that does not match', async () => {
+test('distribute refuses a pack or acceptance evidence that does not match', async () => {
   const fixedEvidence = (text: string) => ({
     ...b1,
     evidenceSha256: sha(text),
@@ -217,7 +217,7 @@ test('distribute refuses a pack or C06 evidence that does not match', async () =
   });
 });
 
-test('distribute accepts the B1 pack and takes formicariumSourceCommit from C06', async () => {
+test('distribute accepts the B1 pack and takes formicariumSourceCommit from the evidence', async () => {
   await withLayout(async (layout) => {
     const text = evidence();
     const record = await packDistribute({

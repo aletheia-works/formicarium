@@ -9,7 +9,7 @@ import {
   writeJsonFile,
 } from './common.ts';
 
-/** The workflow file and job whose success counts as a deployment (S6). */
+/** The workflow file and job whose success counts as a deployment. */
 export const SITE_WORKFLOW = 'showcase-site.yml';
 export const DEPLOY_JOB = 'deploy';
 const MAX_RUNS = 100;

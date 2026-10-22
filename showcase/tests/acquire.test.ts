@@ -162,7 +162,7 @@ async function resolvedAube(assetBytes: Uint8Array) {
   return { resolution, routes };
 }
 
-test('an official tar.gz asset yields the configured entry and C03 metadata', async () => {
+test('an official tar.gz asset yields the configured entry and guest metadata', async () => {
   const { resolution, routes } = await resolvedAube(aubeTar);
   const result = await acquireOfficial(aube, resolution, {
     validate: validateGuest,

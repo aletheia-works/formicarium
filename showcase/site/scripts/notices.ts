@@ -160,7 +160,7 @@ export interface NoticesInput {
   candidateSiteDir: string;
 }
 
-/** THIRD_PARTY_NOTICES.md of the site (NFR8.3, S14). */
+/** THIRD_PARTY_NOTICES.md of the site. */
 export async function buildNotices(
   input: NoticesInput,
 ): Promise<{ text: string; packages: PackageNotice[] }> {

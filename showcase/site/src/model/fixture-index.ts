@@ -7,12 +7,12 @@ import {
   SHA256_HEX,
 } from './model-error.ts';
 
-/** C11 bounds for the demo fixture index (maxArchiveEntries, maxPathBytes). */
+/** Bounds for the demo fixture index (maxArchiveEntries, maxPathBytes). */
 export const FIXTURE_LIMITS = Object.freeze({
   maxEntries: 4096,
   maxPathBytes: 4096,
 });
-/** Normalised modes (NFR7.4): directories and executables 0755, files 0644. */
+/** Normalised modes: directories and executables 0755, files 0644. */
 export const DIR_MODE = 0o755;
 export const FILE_MODE = 0o644;
 export const EXECUTABLE_MODE = 0o755;

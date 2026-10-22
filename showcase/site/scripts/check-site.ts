@@ -13,7 +13,7 @@ import {
 } from './inject-csp.ts';
 import { NOTICES_FILE } from './notices.ts';
 
-/** GitHub Pages site limit (BR5.4, NFR6.4): the site must stay below 1 GB. */
+/** GitHub Pages site limit: the site must stay below 1 GB. */
 export const MAX_SITE_BYTES = 1073741824;
 /** coi-serviceworker 0.1.7 (npm, MIT): the only copy at the site root. */
 export const COI_FILE = 'coi-serviceworker.js';
@@ -97,7 +97,7 @@ export function htmlSubresources(html: string): { tag: string; url: string }[] {
 
 export const isExternal = (url: string) => EXTERNAL.test(url.trim());
 
-/** `x/index.html` and `ja/x/index.html` must both exist (BR2.2). */
+/** `x/index.html` and `ja/x/index.html` must both exist. */
 export function missingTranslations(htmlFiles: readonly string[]): string[] {
   const pages = new Set(htmlFiles.filter((path) => path !== '404.html'));
   const problems: string[] = [];
@@ -163,7 +163,7 @@ async function reachesTerminal(
   return false;
 }
 
-/** Problems of a documentation page or /tools/ (BR4.3, P5). */
+/** Problems of a documentation page or /tools/. */
 async function documentProblems(
   input: SiteCheckInput,
   page: string,
@@ -228,7 +228,7 @@ export const sizeProblems = (bytes: number) =>
     ? [`site is ${bytes} bytes (limit below ${MAX_SITE_BYTES})`]
     : [];
 
-/** check-site (S3 step 11): pages, sub-resources, CSP, dotfiles, size, COI, maps. */
+/** check-site: pages, sub-resources, CSP, dotfiles, size, COI, maps. */
 export async function checkSite(
   input: SiteCheckInput,
 ): Promise<SiteCheckResult> {

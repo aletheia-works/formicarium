@@ -34,7 +34,7 @@ import {
 
 export type Stage = 'pre' | 'deployed';
 export const BROWSERS = ['chromium', 'firefox', 'webkit'] as const;
-/** Playwright tests behind each browser row (performance-design P1: 16 per browser). */
+/** Playwright tests behind each browser row (16 per browser). */
 export const ACCEPT_ROWS: Readonly<
   Record<string, { tag: string; count: number }[]>
 > = Object.freeze({
@@ -379,7 +379,7 @@ export async function draftChecks(
   return drafts;
 }
 
-/** C10 SiteEvidenceIdentity of this run: candidate, staged pack, built site. */
+/** SiteEvidenceIdentity of this run: candidate, staged pack, built site. */
 export async function evidenceIdentity(
   read: Reader,
   sourceCommit: string,
@@ -403,7 +403,7 @@ export async function evidenceIdentity(
   };
 }
 
-/** Writes each check record, then the complete C10 evidence; refuses incomplete rows. */
+/** Writes each check record, then the complete site evidence; refuses incomplete rows. */
 export async function assembleEvidence(options: {
   layout: SiteLayout;
   stage: Stage;
@@ -437,7 +437,7 @@ export async function assembleEvidence(options: {
   }
   const body: Omit<AcceptanceEvidence, 'evidenceId'> = {
     schemaVersion: 1,
-    unit: 'u8-showcase-site',
+    unit: 'showcase-site',
     sourceCommit: options.sourceCommit,
     recordedAt: options.recordedAt ?? new Date().toISOString(),
     identity,

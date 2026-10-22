@@ -80,7 +80,7 @@ export async function fixtureToEntries(
   return entries;
 }
 
-/** The empty terminal: only /work and /work/app (BR3.3). */
+/** The empty terminal: only /work and /work/app. */
 export const emptyEntries = (): FsEntry[] => [
   { path: WORK_ROOT, type: 'dir', mode: 0o755 },
   { path: WORK_CWD, type: 'dir', mode: 0o755 },

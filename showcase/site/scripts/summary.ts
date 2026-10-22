@@ -33,7 +33,7 @@ export function jobResults(needsJson: string): JobResult[] {
 
 /**
  * The run summary only reports: the site deploys when its sources change, so
- * an old deployment is not a failure (the NFR8.9 two-day check was dropped
+ * an old deployment is not a failure (the two-day check was dropped
  * with the daily schedule).
  */
 export function summarize(input: {

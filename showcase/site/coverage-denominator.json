@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "threshold": 80,
-  "note": "security-design S2 の分母。名前を変えたら code-summary に対応を書き、file を増減するときは理由を示して人の承認を受ける。未実行・未計測の file は 0% として残し、report に無ければ失敗にする。",
+  "note": "サイトの行 coverage の分母。file を増減するときは理由を示して人の承認を受ける。未実行・未計測の file は 0% として残し、report に無ければ失敗にする。",
   "files": [
     "src/terminal/terminal-host.ts",
     "src/terminal/output.ts",
@@ -45,23 +45,23 @@
     },
     {
       "path": "src/model/model-error.ts",
-      "reason": "計画 Step 3 の data model（共通の検証）。S2 の一覧に無い。人の承認待ち"
+      "reason": "data model（共通の検証）。人の承認待ち"
     },
     {
       "path": "src/model/fixture-index.ts",
-      "reason": "計画 Step 3 の data model。人の承認待ち"
+      "reason": "data model。人の承認待ち"
     },
     {
       "path": "src/model/site-identity.ts",
-      "reason": "計画 Step 3 の data model。人の承認待ち"
+      "reason": "data model。人の承認待ち"
     },
     {
       "path": "src/model/inventory.ts",
-      "reason": "計画 Step 3 の data model。人の承認待ち"
+      "reason": "data model。人の承認待ち"
     },
     {
       "path": "src/model/evidence.ts",
-      "reason": "計画 Step 3 の data model（C10）。人の承認待ち"
+      "reason": "data model（サイトの証拠）。人の承認待ち"
     },
     {
       "path": "src/site-data.ts",
@@ -73,7 +73,7 @@
     },
     {
       "path": "scripts/build-site.ts",
-      "reason": "計画 Step 18 の build の組立て。人の承認待ち"
+      "reason": "build の組立て。人の承認待ち"
     }
   ],
   "excluded": [

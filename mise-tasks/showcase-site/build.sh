@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #MISE alias="showcase-site-build"
-#MISE description="U8 showcase site: check the candidate, stage the pack, install, assemble (usage: --mode verify|distribute)"
+#MISE description="showcase site: check the candidate, stage the pack, install, assemble (usage: --mode verify|distribute)"
 set -euo pipefail
 export ASTRO_TELEMETRY_DISABLED=1
 bun run showcase-site:prepare "$@"

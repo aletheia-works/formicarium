@@ -110,7 +110,7 @@ export const npmIntegrity: NpmLookup = (version) => {
 };
 
 const step = (context: BuildContext, name: string) => context.steps.push(name);
-/** The site's own copy (types, notices) and U7's (its scripts' types). */
+/** The site's own copy (types, notices) and the showcase's (its scripts' types). */
 const packageDirs = (context: BuildContext) =>
   context.packages ?? {
     site: join(SITE_ROOT, 'node_modules', '@aletheia-works', 'formicarium'),
@@ -123,7 +123,7 @@ const packageDirs = (context: BuildContext) =>
     ),
   };
 
-/** Step 3–4: BR1.2 check, then the pack is checked, extracted and copied. */
+/** The candidate check, then the pack is checked, extracted and copied. */
 export async function prepare(context: BuildContext): Promise<void> {
   const { layout } = context;
   step(context, 'verify-candidate');
@@ -168,7 +168,7 @@ export async function prepare(context: BuildContext): Promise<void> {
     destination: packages.site,
   });
   context.formicarium = staged.manifest;
-  // U7's scripts resolve the package types from showcase/node_modules.
+  // The showcase scripts resolve the package types from showcase/node_modules.
   await stageFormicarium({
     packDir: layout.pack,
     publicDir: join(layout.build, 'unused'),

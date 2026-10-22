@@ -42,7 +42,7 @@ export const PACKAGE_FILES: Record<string, string> = {
 const sha = (bytes: Uint8Array) =>
   createHash('sha256').update(bytes).digest('hex');
 
-/** Writes `<root>/pack/{pack.json,<tarball>}` like U7's pack.ts verify. */
+/** Writes `<root>/pack/{pack.json,<tarball>}` like the showcase pack.ts verify. */
 export async function writePack(
   root: string,
   files: Record<string, string> = PACKAGE_FILES,

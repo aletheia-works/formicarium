@@ -164,7 +164,7 @@ export async function stageFormicarium(options: {
   publicDir?: string;
   destination?: string;
 }): Promise<{ record: PackRecord; manifest: FormicariumManifest }> {
-  // U7's installPack reads the tarball from <work>/pack/.
+  // The showcase installPack reads the tarball from <work>/pack/.
   if (basename(options.packDir) !== 'pack')
     fail('config-invalid', 'the pack directory must be named pack');
   const record = (await readJson(

@@ -73,7 +73,7 @@ export const withoutQuery = (url: URL) => `${url.origin}${url.pathname}`;
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 
 /**
- * C11 transfer: each redirect hop is inspected (max 5), credentials are
+ * Transfer: each redirect hop is inspected (max 5), credentials are
  * omitted, the deadline covers DNS, redirects and the whole body, and the
  * body is limited by the streamed total, not by Content-Length.
  */
@@ -191,7 +191,7 @@ export async function builderInventory(
   return files;
 }
 
-/** C03 metadata for an official asset that ships no build-info of its own. */
+/** Guest metadata for an official asset that ships no build-info of its own. */
 export function officialBuildInfo(
   resolution: ToolResolution,
   hash: string,
@@ -253,7 +253,7 @@ export interface AcquireOptions {
   fetchImpl?: FetchLike;
 }
 
-/** Official static musl asset: published SHA256 and size, then C11 extraction. */
+/** Official static musl asset: published SHA256 and size, then archive extraction. */
 export async function acquireOfficial(
   config: ToolConfig,
   resolution: ToolResolution,

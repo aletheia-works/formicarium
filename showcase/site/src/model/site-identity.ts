@@ -8,7 +8,7 @@ import {
 } from './model-error.ts';
 
 /**
- * site-identity.json (NFR8.8): only the run, the source commit and the
+ * site-identity.json: only the run, the source commit and the
  * candidate. It is part of the site inventory and holds no inventory digest.
  */
 export interface SiteIdentity {

@@ -9,14 +9,14 @@ import {
 
 export type EnvironmentId = 'node' | 'chromium' | 'firefox' | 'webkit' | 'host';
 export type CheckStatus = 'passed' | 'failed' | 'unverified';
-/** C10 CheckRow: logSha256 is the SHA256 of the check record file. */
+/** CheckRow: logSha256 is the SHA256 of the check record file. */
 export interface CheckRow {
   name: string;
   environment: EnvironmentId;
   status: CheckStatus;
   logSha256: string;
 }
-/** C10 SiteEvidenceIdentity. */
+/** SiteEvidenceIdentity. */
 export interface SiteEvidenceIdentity {
   sourceCommit: string;
   formicariumSourceCommit: string;
@@ -36,11 +36,11 @@ export interface CheckRecord {
   sources: { path: string; sha256: string }[];
   facts: Record<string, unknown>;
 }
-/** C10 AcceptanceEvidence for unit u8-showcase-site. */
+/** AcceptanceEvidence for unit showcase-site. */
 export interface AcceptanceEvidence {
   schemaVersion: 1;
   evidenceId: string;
-  unit: 'u8-showcase-site';
+  unit: 'showcase-site';
   sourceCommit: string;
   recordedAt: string;
   identity: SiteEvidenceIdentity;
@@ -54,7 +54,7 @@ const ALL: readonly EnvironmentId[] = ['node', ...BROWSERS];
 const ENVIRONMENTS: readonly EnvironmentId[] = [...ALL, 'host'];
 const STATUSES: readonly CheckStatus[] = ['passed', 'failed', 'unverified'];
 
-/** C06/C10 U8 profile: the 27 required (name, environment) rows. */
+/** Site acceptance profile: the 27 required (name, environment) rows. */
 export const REQUIRED_ROWS: readonly {
   name: string;
   environment: EnvironmentId;
@@ -158,7 +158,7 @@ export function evidenceIdOf(
 const OFFSET_TIME =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 
-/** Full C10 check; `deployed` evidence must carry deployedIdentity. */
+/** Full evidence check; `deployed` evidence must carry deployedIdentity. */
 export function validateEvidence(
   value: unknown,
   options: { deployed: boolean },
@@ -180,8 +180,8 @@ export function validateEvidence(
     ['deployedIdentity'],
   );
   if (value.schemaVersion !== 1) reject(CODE, 'schemaVersion must be 1');
-  if (value.unit !== 'u8-showcase-site')
-    reject(CODE, 'unit must be u8-showcase-site');
+  if (value.unit !== 'showcase-site')
+    reject(CODE, 'unit must be showcase-site');
   if (
     typeof value.sourceCommit !== 'string' ||
     !COMMIT_HEX.test(value.sourceCommit)

@@ -25,7 +25,7 @@ resource "github_repository" "this" {
     ignore_changes = [pages]
   }
 }
-# U8 showcase site: Pages is built and deployed by showcase-site.yml.
+# Showcase site: Pages is built and deployed by showcase-site.yml.
 resource "github_repository_pages" "this" {
   repository = github_repository.this.name
   build_type = "workflow"
@@ -35,7 +35,7 @@ import {
   id = var.repository_name
 }
 
-# U8 showcase site: only protected branches (main) deploy to Pages. The
+# Showcase site: only protected branches (main) deploy to Pages. The
 # environment GitHub may create when Pages is enabled is updated in place (the
 # API call is a PUT).
 resource "github_repository_environment" "github_pages" {

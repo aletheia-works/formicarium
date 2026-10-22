@@ -18,12 +18,12 @@ import {
 
 /**
  * Inventory of the final site bytes: every regular file, dotfiles included;
- * a symbolic link or special file fails (U7 fileInventory).
+ * a symbolic link or special file fails (showcase fileInventory).
  */
 export async function computeInventory(
   siteDir: string,
 ): Promise<SiteInventory> {
-  // U7's fileInventory compares resolved paths: give it an absolute root.
+  // The showcase fileInventory compares resolved paths: give it an absolute root.
   return siteInventory(await fileInventory(resolve(siteDir)));
 }
 

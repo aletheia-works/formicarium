@@ -16,7 +16,7 @@ import { type WorkLayout, workLayout, writeOnce } from './paths.ts';
 export const sitePath = (tool: string, version: string, file: string) =>
   `guests/${tool}/${version}/${file}`;
 
-/** C04 GuestCatalog whose defaults are the versions resolved in this run. */
+/** GuestCatalog whose defaults are the versions resolved in this run. */
 export function buildCatalog(
   records: readonly AcquiredTool[],
   limit: number = TRANSFER_POLICY.maxCatalogBytes,

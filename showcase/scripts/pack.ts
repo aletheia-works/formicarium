@@ -126,7 +126,7 @@ async function releaseAsset(
   }
 }
 
-/** C06 ApiAcceptance must name this pack and hold only passed checks. */
+/** The ApiAcceptance evidence must name this pack and hold only passed checks. */
 export function checkEvidence(evidence: unknown, pack: B1Pack): string {
   const value = evidence as Record<string, unknown> | null;
   if (
@@ -142,11 +142,11 @@ export function checkEvidence(evidence: unknown, pack: B1Pack): string {
       (check) => (check as { status?: unknown } | null)?.status !== 'passed',
     )
   )
-    fail('b1-pack-mismatch', 'C06 evidence does not accept this pack');
+    fail('b1-pack-mismatch', 'acceptance evidence does not accept this pack');
   return value.sourceCommit as string;
 }
 
-/** distribute: only the B1-accepted pack, checked against C06 packSha256. */
+/** distribute: only the B1-accepted pack, checked against the evidence packSha256. */
 export async function packDistribute(options: {
   b1: B1Pack | null;
   repository: string;
@@ -173,14 +173,21 @@ export async function packDistribute(options: {
     options.fetchImpl,
   );
   if (sha256(evidenceBytes) !== b1.evidenceSha256)
-    fail('b1-pack-mismatch', 'C06 evidence SHA256 differs from b1-pack.json');
+    fail(
+      'b1-pack-mismatch',
+      'acceptance evidence SHA256 differs from b1-pack.json',
+    );
   let evidence: unknown;
   try {
     evidence = parseUniqueJson(
       new TextDecoder('utf-8', { fatal: true }).decode(evidenceBytes),
     );
   } catch (error) {
-    return fail('b1-pack-mismatch', 'C06 evidence is not unique JSON', error);
+    return fail(
+      'b1-pack-mismatch',
+      'acceptance evidence is not unique JSON',
+      error,
+    );
   }
   const formicariumSourceCommit = checkEvidence(evidence, b1);
   await writeOnce(join(layout.pack, b1.packAsset), pack);

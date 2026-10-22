@@ -1,5 +1,5 @@
 // The embedding guide shows this file as it is; the build type-checks it
-// against the types of the candidate's pack (BR2.4, S18).
+// against the types of the candidate's pack.
 import {
   createCommandSession,
   decodeUtf8,

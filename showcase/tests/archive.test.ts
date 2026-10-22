@@ -27,7 +27,7 @@ const throwsCause = (run: () => unknown, code: string) =>
 const rejectsCause = (promise: Promise<unknown>, code: string) =>
   assert.rejects(promise, (error) => causeOf(error) === code);
 
-test('default archive limits are the C11 values', () => {
+test('default archive limits are the TransferPolicy values', () => {
   assert.deepEqual(ASSET_ARCHIVE_LIMITS, {
     maxExpandedBytes: TRANSFER_POLICY.maxExpandedBytes,
     maxArchiveEntries: 4096,

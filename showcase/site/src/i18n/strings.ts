@@ -1,7 +1,7 @@
 import type { Locale } from '../terminal/page-data.ts';
 
 /**
- * UI strings of the Astro pages (en and ja must have the same keys, BR2.2).
+ * UI strings of the Astro pages (en and ja must have the same keys).
  * Tool names, versions, commands and file names are not translated.
  */
 export const STRINGS = {
@@ -131,7 +131,7 @@ function keyPaths(value: unknown, prefix = ''): string[] {
 
 /**
  * Problems of the string tables: en/ja key sets differ, or the tools named
- * there differ from the candidate's tools (BR2.3). Empty means usable.
+ * there differ from the candidate's tools. Empty means usable.
  */
 export function checkStrings(
   tools: readonly string[],

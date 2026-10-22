@@ -111,7 +111,7 @@ test('playwrightSpecs walks nested suites and needs every test expected', () => 
   assert.deepEqual(playwrightSpecs(null), []);
 });
 
-test('complete logs give the 27-row C10 evidence without deployedIdentity', async () => {
+test('complete logs give the 27-row site evidence without deployedIdentity', async () => {
   const { layout, manifest } = await work();
   const { evidence, directory } = await assembleEvidence({
     layout,

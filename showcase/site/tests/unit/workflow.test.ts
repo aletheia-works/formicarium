@@ -205,7 +205,7 @@ test('triggers: manual, every PR, and push on the site paths; no schedule', () =
     'showcase/scripts/**',
   ])
     assert.equal(head.split(`- ${path}\n`).length - 1, 1, path);
-  // On a PR the changes job matches the same three paths and the U7 inputs
+  // On a PR the changes job matches the same three paths and the showcase inputs
   // the site build reads (tools.json, fixtures, b1-pack.json).
   assert.ok(
     table

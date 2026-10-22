@@ -335,7 +335,7 @@ export function selectEntry(
   return new Uint8Array(entry.bytes);
 }
 
-/** C11 extraction of one entry from a release tar.gz. */
+/** Bounded extraction of one entry from a release tar.gz. */
 export async function extractEntry(
   compressed: Uint8Array,
   selection: string,

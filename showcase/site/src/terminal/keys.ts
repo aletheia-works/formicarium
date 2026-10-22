@@ -1,6 +1,6 @@
 import { escapeEnd, utf8Length } from './buffer.ts';
 
-/** C11 maxCommandBytes: one line is at most 65536 UTF-8 bytes (BR3.4). */
+/** maxCommandBytes: one line is at most 65536 UTF-8 bytes. */
 export const MAX_LINE_BYTES = 65536;
 
 export type EditorAction =

@@ -20,7 +20,7 @@ export interface SiteData {
   catalog: EmbeddedFile;
   tools: SiteTool[];
   formicarium: FormicariumManifest;
-  /** npm check (S18): true only when npm has this version with this integrity. */
+  /** npm check: true only when npm has this version with this integrity. */
   npm: { version: string; published: boolean; integrity: string };
 }
 

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 // The site unit tests run as TypeScript through Node's type stripping, like
-// the U7 showcase tests: no compile step, no second test framework.
+// the showcase tests: no compile step, no second test framework.
 test('node runs the site TypeScript tests directly', () => {
   const [major, minor] = process.versions.node.split('.').map(Number);
   assert.ok(

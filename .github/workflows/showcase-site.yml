@@ -52,7 +52,7 @@ jobs:
           count=$(wc -l < "$files")
           echo "files: $count"
           # The API lists at most 3000 files; a longer PR builds the site.
-          # The site also reads U7's tools.json, fixtures and b1-pack.json, so a
+          # The site also reads the showcase's tools.json, fixtures and b1-pack.json, so a
           # PR changing them verifies the site too (push still deploys only on
           # the site paths; deploy those inputs by hand).
           if [ "$count" -ge 3000 ] || grep -qE '^(showcase/site/|showcase/scripts/|showcase/fixtures/|showcase/tools\.json$|showcase/b1-pack\.json$|\.github/workflows/showcase-site\.yml$)' "$files"; then
@@ -172,7 +172,7 @@ jobs:
           path: showcase/site/.work/inputs/resolve/pack
       - name: Install the repository tools (Biome, TypeScript)
         run: node scripts/ci/tasks.ts install-frozen
-      - name: Check the candidate (BR1.2) and stage the pack
+      - name: Check the candidate and stage the pack
         env:
           SHOWCASE_CANDIDATE_ID: ${{ needs.candidate.outputs.candidate-id }}
           SHOWCASE_DISTRIBUTABLE: ${{ needs.candidate.outputs.distributable }}
@@ -182,7 +182,7 @@ jobs:
         run: bun install --frozen-lockfile --ignore-scripts
       - name: Lint
         run: node node_modules/@biomejs/biome/bin/biome check showcase/site biome.json
-      - name: Public import boundary (U7 rules with the site rules)
+      - name: Public import boundary (showcase rules with the site rules)
         run: node showcase/scripts/boundary.ts | tee showcase/site/.work/logs/boundary.txt
       - name: Type check (tsc and astro check)
         working-directory: showcase/site
@@ -540,7 +540,7 @@ jobs:
         with:
           name: showcase-site-coverage
           path: showcase/site/.work/coverage/report
-      - name: Assemble the C10 evidence (no deployedIdentity)
+      - name: Assemble the site evidence (no deployedIdentity)
         env:
           SHOWCASE_SOURCE_COMMIT: ${{ github.sha }}
         run: node showcase/site/scripts/evidence.ts --stage pre

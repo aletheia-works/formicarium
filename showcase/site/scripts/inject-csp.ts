@@ -7,8 +7,8 @@ import { fail } from './common.ts';
 export { TERMINAL_ATTRIBUTE };
 
 /**
- * security-design S9: same origin, blob and wasm only; no external origin.
- * blob: stays because the existing COI page policy (U7 accept-server) needs it.
+ * Same origin, blob and wasm only; no external origin.
+ * blob: stays because the existing COI page policy (showcase accept-server) needs it.
  */
 export function terminalPolicy(hashes: readonly string[]): string {
   return [

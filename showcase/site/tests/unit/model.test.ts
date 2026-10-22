@@ -249,7 +249,7 @@ const allPassed = (): CheckRow[] =>
 function evidence(extra: Partial<AcceptanceEvidence> = {}): AcceptanceEvidence {
   const body = {
     schemaVersion: 1 as const,
-    unit: 'u8-showcase-site' as const,
+    unit: 'showcase-site' as const,
     sourceCommit: COMMIT,
     recordedAt: '2026-10-19T21:00:00+09:00',
     identity,
@@ -262,7 +262,7 @@ function evidence(extra: Partial<AcceptanceEvidence> = {}): AcceptanceEvidence {
   return { ...body, evidenceId: evidenceIdOf(body) };
 }
 
-test('evidence: the U8 profile has 27 required rows and a complete set passes', () => {
+test('evidence: the site profile has 27 required rows and a complete set passes', () => {
   assert.equal(REQUIRED_ROWS.length, 27);
   assert.equal(requireRows(allPassed()).length, 27);
   assert.ok(validateEvidence(evidence(), { deployed: false }));

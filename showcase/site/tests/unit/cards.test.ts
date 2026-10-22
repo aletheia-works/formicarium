@@ -51,7 +51,7 @@ test('card text is escaped by Astro, never inserted as HTML', async () => {
   assert.match(html, /data-testid="tools-empty-terminal"/);
 });
 
-test('a candidate tool without site strings fails the build (BR2.3)', async () => {
+test('a candidate tool without site strings fails the build', async () => {
   const data = testSiteData();
   data.tools.push({
     tool: 'deno',

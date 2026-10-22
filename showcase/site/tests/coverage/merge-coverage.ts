@@ -12,7 +12,7 @@ import {
 } from '../../scripts/common.ts';
 
 /**
- * Line coverage of the fixed denominator (security-design S2): node:test's
+ * Line coverage of the fixed denominator: node:test's
  * lcov plus Chromium's V8 coverage of the built bundles, mapped back to the
  * TypeScript lines through the hidden source maps. A denominator file that
  * neither source measured fails as missing; it is never dropped.

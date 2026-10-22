@@ -2,7 +2,7 @@
   "name": "@aletheia-works/formicarium-showcase-site",
   "version": "0.0.0",
   "private": true,
-  "description": "formicarium の showcase の site（Astro と Starlight、en・ja）。U7 の受入済み候補だけを配る",
+  "description": "formicarium の showcase の site（Astro と Starlight、en・ja）。showcase の受入済み候補だけを配る",
   "license": "Apache-2.0",
   "type": "module",
   "engines": {

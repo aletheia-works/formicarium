@@ -13,11 +13,11 @@ export interface InventoryFile {
   sha256: string;
   bytes: number;
 }
-/** Every file of the built site (dotfiles included), path order (C10). */
+/** Every file of the built site (dotfiles included), path order. */
 export interface SiteInventory {
   schemaVersion: 1;
   files: InventoryFile[];
-  /** canonicalSha256(files): C10 siteInventorySha256. */
+  /** canonicalSha256(files): siteInventorySha256. */
   sha256: string;
 }
 

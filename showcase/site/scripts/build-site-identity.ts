@@ -8,7 +8,7 @@ import { fail, writeText } from './common.ts';
 
 export const IDENTITY_FILE = 'site-identity.json';
 
-/** Run number, source commit and candidate of this build (NFR8.8, S19). */
+/** Run number, source commit and candidate of this build. */
 export function identityFromEnvironment(
   env: NodeJS.ProcessEnv,
   candidateId: string,

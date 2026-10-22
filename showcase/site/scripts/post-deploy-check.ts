@@ -9,7 +9,7 @@ import {
 import { IDENTITY_FILE } from './build-site-identity.ts';
 import { fail, runCli, siteLayout, summary, withoutQuery } from './common.ts';
 
-/** NFR8.10: every 30 s, for at most 10 minutes. */
+/** Every 30 s, for at most 10 minutes. */
 export const POLL_INTERVAL_MS = 30000;
 export const POLL_TIMEOUT_MS = 600000;
 

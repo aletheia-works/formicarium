@@ -14,7 +14,7 @@ export const plainText = (text: string) =>
     .join('');
 
 /**
- * Output of one command (BR3.6): guest output arrives only through onOutput
+ * Output of one command: guest output arrives only through onOutput
  * and its result bytes are not written again; builtin and install results
  * are written once from their stdout/stderr; empty writes nothing. Anything
  * after `cancel()` (or for an old generation) is dropped.

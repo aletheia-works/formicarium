@@ -1,5 +1,5 @@
 /**
- * Display buffer of the terminal (BR3.8, P3, contract "Transcript"): at most
+ * Display buffer of the terminal ("Transcript"): at most
  * 1048576 UTF-8 bytes or 10000 lines, whichever is reached first. The oldest
  * part is dropped; CommandResult bytes are never touched.
  */

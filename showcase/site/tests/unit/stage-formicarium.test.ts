@@ -36,7 +36,7 @@ test('the module graph follows the public entries only', async () => {
 test('a bare import or an import leaving the package fails the stage', async () => {
   const root = await tempDir('graph');
   await writeFiles(root, {
-    // Spelled apart so U7's boundary scan does not read test data as imports.
+    // Spelled apart so the showcase boundary scan does not read test data as imports.
     'a.js': `${'imp'}ort x from 'left-pad';\n`,
     'b.js': "import '../../x.js';\n",
   });

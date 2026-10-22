@@ -18,7 +18,7 @@ export interface ModeContext {
 
 /**
  * In a called workflow the github context belongs to the caller, so
- * distribute is accepted only when main's trusted U8 workflow, started by a
+ * distribute is accepted only when main's trusted showcase-site workflow, started by a
  * push or workflow_dispatch on main, asked for it. Every direct trigger
  * of showcase.yml (pull_request, push, workflow_dispatch) has no mode input
  * and stays verify.

@@ -94,7 +94,7 @@ export function nextCwd(cwd: string, line: string): string | null {
 
 /**
  * One terminal of a page: isolation, loading, the automatic install of a tool
- * page, one command at a time, Ctrl-C, display limits and dispose (BR3, BR4).
+ * page, one command at a time, Ctrl-C, display limits and dispose.
  */
 export class TerminalHost {
   state: HostState = 'isolating';
@@ -202,8 +202,8 @@ export class TerminalHost {
         siteRoot,
         fetch: fetchOptions,
       });
-      // The persistence root is /work (app/ and the directories beside it,
-      // NFR7.4); the shell then starts in /work/app.
+      // The persistence root is /work (app/ and the directories beside it);
+      // the shell then starts in /work/app.
       const session = await loaded.browser.createSession({
         assets: loaded.assets,
         cwd: WORK_ROOT,
@@ -387,12 +387,12 @@ export class TerminalHost {
   }
 }
 
-/** Tab and Shift+Tab move the page focus instead of reaching xterm (BR4.2). */
+/** Tab and Shift+Tab move the page focus instead of reaching xterm. */
 export const passKey = (event: { key: string }) => event.key !== 'Tab';
 
 /**
  * pagehide disposes the terminal; a page restored from the back-forward cache
- * holds a disposed terminal, so it is loaded again (BR3.7).
+ * holds a disposed terminal, so it is loaded again.
  */
 export function attachPageEvents(
   target: Pick<EventTarget, 'addEventListener'>,
@@ -450,7 +450,7 @@ export async function startTerminalPage(
     fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
     fontSize: 13,
     theme: { background: '#0d1117' },
-    // OSC 8 links never open (NFR7.1); no link addon is loaded either.
+    // OSC 8 links never open; no link addon is loaded either.
     linkHandler: { activate: () => undefined },
   });
   const fit = new FitAddon();
