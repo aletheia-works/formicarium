@@ -6,16 +6,13 @@ import { constants } from 'node:fs';
 import {
   lstat,
   mkdir,
-  mkdtemp,
   open,
   readdir,
   readFile,
-  rm,
-  stat,
   writeFile,
 } from 'node:fs/promises';
 import { createServer } from 'node:net';
-import { homedir, tmpdir } from 'node:os';
+import { homedir } from 'node:os';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
@@ -151,7 +148,6 @@ async function main() {
   let base = '';
   const diagnosticDeadline = Date.now() + 120_000;
   let diagnosticActive = diagnostic;
-  let moduleCache: string | undefined;
   let driverPid: number | undefined;
   let sessionOutcome: unknown = null;
   let sessionCreationTimeout = false;
@@ -795,19 +791,6 @@ async function main() {
     assert(handle, 'dedicated Safari window handle empty');
     if (diagnostic) {
       type Rect = { x: number; y: number; width: number; height: number };
-      type NativeWindow = {
-        id: number;
-        pid: number;
-        owner: string;
-        bounds: Rect;
-        level: number;
-        onscreen: boolean;
-      };
-      type NativeInfo = {
-        permission: boolean;
-        metadataAvailable: boolean;
-        windows: NativeWindow[];
-      };
       async function childOperation(
         name: string,
         executable: string,
@@ -903,86 +886,12 @@ async function main() {
         'Safari',
       ]);
       await capture('after-activation');
-      moduleCache = await mkdtemp(
-        path.join(tmpdir(), 'formicarium-safari-swift-'),
-      );
-      const helper = path.join(
-        root,
-        'aidlc/spaces/default/intents/261006-npm-terrarium-release/construction/u1-runtime-package/code-generation/verification/safari-visibility-diagnostic-v1/window-info.swift',
-      );
-      const nativeRaw = await childOperation('window-info', '/usr/bin/swift', [
-        '-module-cache-path',
-        moduleCache,
-        helper,
-      ]);
-      await persist('native-window-info.json', nativeRaw);
-      const native = JSON.parse(nativeRaw) as NativeInfo;
-      const rect = stages[2].rect;
-      const rectKeys: (keyof Rect)[] = ['x', 'y', 'width', 'height'];
-      for (const key of rectKeys)
-        assert(Number.isFinite(rect[key]), 'invalid dedicated window rect');
-      assert(rect.width > 0 && rect.height > 0, 'empty dedicated window rect');
-      const matches = native.windows.filter(
-        (window) =>
-          window.owner === 'Safari' &&
-          window.level === 0 &&
-          window.onscreen === true &&
-          rectKeys.every((key) => window.bounds[key] === rect[key]),
-      );
-      const skip =
-        native.permission !== true
-          ? 'existing screen capture permission unavailable'
-          : native.metadataAvailable !== true
-            ? 'window metadata unavailable'
-            : matches.length !== 1
-              ? `rect-matching Safari window count ${matches.length}; dedicated identity ambiguous or absent`
-              : null;
-      await json('native-capture-decision.json', {
-        rect,
-        matches,
-        permission: native.permission,
-        skip,
-        collectionOnly: true,
-        acceptance: false,
-      });
-      if (!skip) {
-        const target = matches[0];
-        assert(
-          Number.isSafeInteger(target.id) &&
-            target.id > 0 &&
-            Number.isSafeInteger(target.pid) &&
-            target.pid > 0,
-        );
-        const temporary = path.join(out, 'native-capture-temporary.png');
-        await childOperation('native-capture', '/usr/sbin/screencapture', [
-          '-x',
-          '-t',
-          'png',
-          '-l',
-          String(target.id),
-          temporary,
-        ]);
-        try {
-          const size = (await stat(temporary)).size;
-          assert(
-            size <= CAP - used - 1024 * 1024,
-            'native screenshot exceeds evidence cap',
-          );
-          const png = await readFile(temporary);
-          await rm(temporary);
-          assert.equal(png.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
-          await persist('native-window.png', png);
-        } finally {
-          await rm(temporary, { force: true });
-        }
-      }
       if (Date.now() > diagnosticDeadline)
         throw new Error('visibility diagnosis 120s deadline');
       results.push({
         collectionOnly: true,
         acceptance: false,
         stages,
-        nativeCaptureSkipped: skip,
       });
     } else {
       await webdriver('POST', `/session/${session}/window`, { handle });
@@ -1343,7 +1252,6 @@ async function main() {
         });
       }
     }
-    if (moduleCache) await rm(moduleCache, { recursive: true, force: true });
     const after = await identity();
     await json('identity-after.json', after);
     try {
