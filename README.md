@@ -236,11 +236,12 @@ bun node_modules/@playwright/test/cli.js install chromium firefox webkit
 
 ## 保守 workflow
 
-共通の保守は vivarium と同じ GitHub Actions の構成を使います。
+共通の保守は vivarium と同じ GitHub Actions の構成を使います。`dependabot-auto-merge.yml`、`labeler.yml`、`assign.yml`、`dependency-review.yml`、`claude-review.yml`、`commitlint.yml` は aletheia-works/.github の共有 workflow を呼び出します。
 - `dependabot-auto-merge.yml`: `dependabot/fetch-metadata` で更新内容を読み、major 以外の更新は `gh pr merge --auto --squash` で予約します。main の required checks が成功し、branch protection の条件を満たしてから GitHub が統合します。major 更新は自動統合しません。
 - `lint-autofix.yml` / `lint-autofix-apply.yml`: 権限なしで Biome の修正 patch を作り、別 job が許可された既存ファイルの差分だけを確認して適用します。head が変わっていれば適用しません。適用先は同じ repository の PR に限ります。
 - `labeler.yml` / `.github/labeler.yml`: `actions/labeler` によるファイル分類と、既存 repository と同じ Conventional Commits の type label を使います。
-- `assign.yml`、`dependency-review.yml`、`commitlint.yml`: 担当者の設定、依存更新のレビュー、共有 commitlint workflow を既存 repository と同じ構成で使います。
+- `assign.yml`、`dependency-review.yml`、`commitlint.yml`: 担当者とマイルストーンの設定、依存更新のレビュー、Conventional Commits の検査です。
+- `claude-review.yml`: 許可された作成者の PR を Claude Code がレビューします。`docs/decisions/`、`docs/history/` と AGENTS.md に照らして差分を確かめます。
 
 Bun 1.4.2 / bun.lock による依存管理、固定 Node、`ci.yml` の lint・型検査・build・軽量試験、候補回帰・coverage・公開前検査は formicarium 固有の検証として維持します。
 整形の適用には既存の repository secret `TF_TOKEN_GITHUB` を使います。Dependabot の auto-merge は `GITHUB_TOKEN` を使います。
