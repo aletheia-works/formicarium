@@ -277,7 +277,11 @@ jobs:
           certutil -A -d "sql:$profile" -n formicarium-showcase-job-ca -t 'C,,' -i "$SHOWCASE_TLS_CA"
           [[ -f "$profile/cert9.db" && ! -L "$profile/cert9.db" ]]
           printf 'SHOWCASE_FIREFOX_PROFILE=%s\n' "$profile" >> "$GITHUB_ENV"
-      - run: node node_modules/@playwright/test/cli.js install --with-deps "$BROWSER"
+      - name: Install Playwright browser
+        uses: aletheia-works/.github/actions/install-playwright@237aeceec82d1ac86155fae871a80d4c1b436845 # v1.2.0
+        with:
+          browsers: ${{ env.BROWSER }}
+          command: node node_modules/@playwright/test/cli.js
       - name: Site acceptance (16 tests, 1 worker, no retry, 180 s each)
         env:
           SHOWCASE_ACCEPT_RESULTS: ${{ github.workspace }}/showcase/site/.work/accept/chromium/results.json
@@ -357,7 +361,11 @@ jobs:
           certutil -A -d "sql:$profile" -n formicarium-showcase-job-ca -t 'C,,' -i "$SHOWCASE_TLS_CA"
           [[ -f "$profile/cert9.db" && ! -L "$profile/cert9.db" ]]
           printf 'SHOWCASE_FIREFOX_PROFILE=%s\n' "$profile" >> "$GITHUB_ENV"
-      - run: node node_modules/@playwright/test/cli.js install --with-deps "$BROWSER"
+      - name: Install Playwright browser
+        uses: aletheia-works/.github/actions/install-playwright@237aeceec82d1ac86155fae871a80d4c1b436845 # v1.2.0
+        with:
+          browsers: ${{ env.BROWSER }}
+          command: node node_modules/@playwright/test/cli.js
       - name: Site acceptance (16 tests, 1 worker, no retry, 180 s each)
         env:
           SHOWCASE_ACCEPT_RESULTS: ${{ github.workspace }}/showcase/site/.work/accept/firefox/results.json
@@ -436,7 +444,11 @@ jobs:
           certutil -A -d "sql:$profile" -n formicarium-showcase-job-ca -t 'C,,' -i "$SHOWCASE_TLS_CA"
           [[ -f "$profile/cert9.db" && ! -L "$profile/cert9.db" ]]
           printf 'SHOWCASE_FIREFOX_PROFILE=%s\n' "$profile" >> "$GITHUB_ENV"
-      - run: node node_modules/@playwright/test/cli.js install --with-deps "$BROWSER"
+      - name: Install Playwright browser
+        uses: aletheia-works/.github/actions/install-playwright@237aeceec82d1ac86155fae871a80d4c1b436845 # v1.2.0
+        with:
+          browsers: ${{ env.BROWSER }}
+          command: node node_modules/@playwright/test/cli.js
       - name: Site acceptance (16 tests, 1 worker, no retry, 180 s each)
         env:
           SHOWCASE_ACCEPT_RESULTS: ${{ github.workspace }}/showcase/site/.work/accept/webkit/results.json

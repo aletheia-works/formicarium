@@ -277,9 +277,10 @@ jobs:
         if: "matrix.suite == 'node'"
       - name: 'Install only this latest Playwright browser'
         if: "matrix.suite != 'node'"
-        env:
-          BROWSER: '${{ matrix.suite }}'
-        run: 'bunx --bun --no-install playwright install --with-deps "$BROWSER"'
+        uses: 'aletheia-works/.github/actions/install-playwright@237aeceec82d1ac86155fae871a80d4c1b436845' # v1.2.0
+        with:
+          browsers: '${{ matrix.suite }}'
+          command: 'bunx --bun --no-install playwright'
       - name: 'Run this browser suite with one worker and no retries'
         if: "matrix.suite != 'node'"
         env:

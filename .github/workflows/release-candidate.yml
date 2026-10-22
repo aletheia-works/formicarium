@@ -82,7 +82,11 @@ jobs:
           mv .artifacts/release-candidate/aletheia-works-formicarium-*.tgz .artifacts/release-candidate/candidate.tgz
       - name: Bind fresh candidate bytes and current source to the fixtures
         run: bun scripts/ci/release-candidate.ts prepare-inputs
-      - run: bun node_modules/@playwright/test/cli.js install --with-deps chromium firefox webkit
+      - name: Install Playwright browsers
+        uses: aletheia-works/.github/actions/install-playwright@237aeceec82d1ac86155fae871a80d4c1b436845 # v1.2.0
+        with:
+          browsers: chromium firefox webkit
+          command: bun node_modules/@playwright/test/cli.js
       - name: Run regression and fixed-inventory coverage
         env:
           FORMICARIUM_CI_BUN: ${{ steps.bun.outputs.bun-path }}
