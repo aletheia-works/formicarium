@@ -597,8 +597,12 @@ jobs:
           mkdir -p showcase/site/dist
           tar -xf showcase/site/.work/pages/artifact.tar -C showcase/site/dist
           node showcase/site/scripts/inventory.ts --site showcase/site/dist --expect showcase/site/.work/build/site-inventory.json --log showcase/site/.work/logs/inventory-deploy.json
+      - name: Record when the deploy starts
+        run: echo "DEPLOY_STARTED_MS=$(date +%s%3N)" >> "$GITHUB_ENV"
       - id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+      - name: Record the deploy time (GitHub Pages times out after 10 minutes)
+        run: echo "- deploy took $(( $(date +%s%3N) - DEPLOY_STARTED_MS )) ms" >> "$GITHUB_STEP_SUMMARY"
       - name: Evidence of the deployed site (deployedIdentity)
         env:
           SHOWCASE_SOURCE_COMMIT: ${{ github.sha }}

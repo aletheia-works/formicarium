@@ -64,6 +64,8 @@ test('a complete site passes and reports its size and guests', async () => {
   const result = await check(await site());
   assert.deepEqual(result.problems, []);
   assert.equal(result.files, 16);
+  assert.equal(result.largest?.path, 'coi-serviceworker.js');
+  assert.ok(result.largest!.bytes > 0);
   assert.deepEqual(result.guests, [
     { path: 'guests/aube/2.7.2/aube', bytes: 3 },
   ]);

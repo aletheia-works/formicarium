@@ -387,7 +387,7 @@ export async function assemble(
       `- candidateId: \`${data.candidateId}\``,
       `- siteInventorySha256: \`${inventory.sha256}\``,
       ...data.tools.map((tool) => `- ${tool.tool} ${tool.version}`),
-      `- site: ${checked.bytes} bytes, ${checked.files} files; guests: ${checked.guests.map((guest) => `${guest.path} ${guest.bytes}`).join(', ')}`,
+      `- site: ${checked.bytes} bytes, ${checked.files} files; largest file: ${checked.largest ? `${checked.largest.path} ${checked.largest.bytes}` : 'none'}; guests: ${checked.guests.map((guest) => `${guest.path} ${guest.bytes}`).join(', ')}`,
       `- npm: formicarium ${data.npm.version} ${data.npm.published ? 'published with this integrity' : 'not published with this integrity'}`,
     ],
     context.env,

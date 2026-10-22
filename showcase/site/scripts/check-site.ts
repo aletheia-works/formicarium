@@ -134,6 +134,8 @@ export interface SiteCheckResult {
   problems: string[];
   bytes: number;
   files: number;
+  /** The largest file (Pages states no per-file limit; recorded per build). */
+  largest: { path: string; bytes: number } | null;
   guests: { path: string; bytes: number }[];
 }
 
@@ -279,6 +281,13 @@ export async function checkSite(
     problems,
     bytes,
     files: files.length,
+    largest: files.reduce<{ path: string; bytes: number } | null>(
+      (largest, file) =>
+        !largest || file.bytes > largest.bytes
+          ? { path: file.path, bytes: file.bytes }
+          : largest,
+      null,
+    ),
     guests: files
       .filter((file) => file.path.startsWith('guests/'))
       .map((file) => ({ path: file.path, bytes: file.bytes })),
