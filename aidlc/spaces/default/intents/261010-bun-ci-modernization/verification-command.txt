@@ -1,1 +1,0 @@
-mise run install-frozen && mise run check && mise run typecheck && mise run build && mise run test-light

@@ -1,9 +1,0 @@
-Node.js Worker  n=10 bench 671-1129 total med 15.3s spearman(bench,total)=0.36
-chromium        n=10 bench 709-812 total med 12.0s spearman(bench,total)=0.25
-firefox         n=10 bench 739-818 total med 13.4s spearman(bench,total)=0.01
-webkit          n=10 bench 807-945 total med 19.8s spearman(bench,total)=-0.31
-all n=40 spearman=0.60
-Node.js Worker  normalized total med 14.1s range 10.9-23.6 raw range 12.1-24.3
-chromium        normalized total med 12.4s range 11.4-13.0 raw range 11.8-12.1
-firefox         normalized total med 13.8s range 12.4-17.3 raw range 13.1-17.3
-webkit          normalized total med 18.4s range 15.8-37.9 raw range 18.1-39.7

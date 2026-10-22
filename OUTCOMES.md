@@ -10,7 +10,7 @@ formicarium の PoC（ワークフロー `261003-blink-wasm-poc`）の引き継�
 
 ### 目的と結論
 
-- **目的**：CheerpX のような「カーネルを起動せずに、改変していない x86 Linux バイナリをブラウザで動かす」仕組みを、オープンソースで作れるかを確かめる。jart/blink（x86-64 Linux のユーザーモードエミュレータ）を Emscripten で wasm にし（インタプリタのみ、JIT なし）、Node.js の Worker と COOP/COEP 付きのブラウザページで動かす（`aidlc/.../inception/requirements-analysis/requirements.md`）。
+- **目的**：CheerpX のような「カーネルを起動せずに、改変していない x86 Linux バイナリをブラウザで動かす」仕組みを、オープンソースで作れるかを確かめる。jart/blink（x86-64 Linux のユーザーモードエミュレータ）を Emscripten で wasm にし（インタプリタのみ、JIT なし）、Node.js の Worker と COOP/COEP 付きのブラウザページで動かす（commit `8096c7b4` の `aidlc/spaces/default/intents/261003-blink-wasm-poc/inception/requirements-analysis/requirements.md`）。
 - **結論**：**実現できた。** 合格条件の Rust probe（tokio のタイマー、`UnixStream::pair`、rayon、Mutex/Condvar、ファイルの作成・hard link・symlink・flock）は、Node.js・Chromium・Firefox・WebKit のすべてで全項目合格した。aube #1645 の再現も、すべての環境で native と同じ出力になった。
 - **JIT の判断**：JIT 開発は後回しにすると決めた（2026-10-05、ユーザーの判断）。コアは将来 paludarium（Rust 版 blink）に置き換える構想なので、そちらで取り組む（`docs/results/jit-decision.md`）。
 
@@ -91,7 +91,6 @@ formicarium/
     licenses.md           blink（ISC）を Apache-2.0 から使うことの確認
     results/              計測値（README.md、aube-timings.json）、failures.md、jit-decision.md
   patches/                fork に入れた修正の写し（レビュー用）
-  aidlc/                  AI-DLC の記録（要件、計画、レビュー、監査ログ、証拠）
   .vendor/  dist/         取得物とビルド物（.gitignore で除外）
 ```
 
@@ -121,7 +120,7 @@ npx playwright test tests/browser/probe.spec.mjs tests/browser/aube-1645.spec.mj
 ## 4. Build and Deploy
 
 - **ビルド**：上の Setup Guide のとおり。`dist/blink/build-info.json` の `blinkCommit` が `blink.lock` と一致し、`blinkSourceDirty` が `false` であることを `build.test.mjs` が確かめる。
-- **最終の検証結果**（2026-10-05、クリーンビルド。証拠は `aidlc/.../construction/build-and-test/madvise/clean-*.txt`）
+- **最終の検証結果**（2026-10-05、クリーンビルド。証拠は commit `8096c7b4` の `aidlc/spaces/default/intents/261003-blink-wasm-poc/construction/build-and-test/madvise/clean-*.txt`）
 
 | 実行                                     | 結果           |
 | ---------------------------------------- | -------------- |
@@ -131,7 +130,7 @@ npx playwright test tests/browser/probe.spec.mjs tests/browser/aube-1645.spec.mj
 | Node.js の probe と aube の 3 回繰り返し | 18/18 × 3 合格 |
 - **計測**：`node scripts/measure-aube.mjs --trials 10`。ほかの重い処理を止めて実行する。
 - **デプロイ**：この範囲（`poc`）には含まれない。IaC もない。ブラウザ版は静的ファイルと service worker だけで動く設計なので、GitHub Pages のような静的ホスティングに置ける想定（未検証）。
-- **fork を直すとき**：`.vendor/blink-src` で jj を使って修正し、`BLINK_SRC=.vendor/blink-src` でビルドして試す。公開するときは新しいコミットとして push し、`blink.lock` を更新してクリーンビルドする。公開済みのコミットに変更が混ざらないよう注意する（`aidlc/.../construction/build-and-test/build-instructions.md`）。
+- **fork を直すとき**：`.vendor/blink-src` で jj を使って修正し、`BLINK_SRC=.vendor/blink-src` でビルドして試す。公開するときは新しいコミットとして push し、`blink.lock` を更新してクリーンビルドする。公開済みのコミットに変更が混ざらないよう注意する（commit `8096c7b4` の `aidlc/spaces/default/intents/261003-blink-wasm-poc/construction/build-and-test/build-instructions.md`）。
 
 ## 5. Architecture Decisions
 
@@ -139,7 +138,7 @@ npx playwright test tests/browser/probe.spec.mjs tests/browser/aube-1645.spec.mj
 
 | 決定                                                         | 検討した代わりの案              | 選んだ理由                                                                                                           |
 | ------------------------------------------------------------ | ------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| jart/blink の fork を使う（Rust 版は別リポジトリで並行開発） | 最初から Rust 版を作る          | まず既存の blink で実現性を確かめるため（`aidlc/spaces/default/memory/project.md`）                                  |
+| jart/blink の fork を使う（Rust 版は別リポジトリで並行開発） | 最初から Rust 版を作る          | まず既存の blink で実現性を確かめるため（[ADR 0001](docs/decisions/0001-blink-fork.md)）                             |
 | fork 元は jart/blink に限る                                  | webix、portabox、lanmower/blink | 後者にはマルウェア混入の履歴がある                                                                                   |
 | インタプリタのみ（JIT なし）                                 | JIT も作る                      | PoC の範囲を絞るため。JIT は計測の後に判断（→ 後回しに決定）                                                         |
 | blink のビルドはコンテナで行う                               | Windows のローカルの emsdk      | `emconfigure ./configure` が WinError 193 で止まり、GNU make もないため                                              |
@@ -154,27 +153,19 @@ npx playwright test tests/browser/probe.spec.mjs tests/browser/aube-1645.spec.mj
 
 ## 6. What to Commit vs Archive
 
-このプロジェクトでは、AGENTS.md の方針で `aidlc/` の記録（状態、監査ログ、証拠を含む）もリポジトリにコミットしている。下の表は、そのうえでの扱いの提案。
+作業の記録（要件、計画、レビュー、監査ログ、証拠）は、2026-10-22 にリポジトリから外した。要点は [`docs/history/`](docs/history/) にまとめ、元の記録は commit `8096c7b4` の `aidlc/` に残っている。
 
-| Artifact                                                               | Action                                                                                     | Destination            |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ---------------------- |
-| `docs/results/`（計測、failures、jit-decision）                        | Already committed                                                                          | —                      |
-| 設計上の決定（ADR、12 件）                                             | 作成済み（2026-10-05）                                                                     | `docs/decisions/`      |
-| アーキテクチャの要約（1 ページ）                                       | 作成済み（2026-10-05）                                                                     | `docs/architecture.md` |
-| 品質目標の判定表                                                       | 作成済み（2026-10-05）                                                                     | `docs/nfr-summary.md`  |
-| `<record>/audit/*.md`                                                  | 現状はコミット済み（AGENTS.md の方針）。アプリのリポジトリから外すなら、記録の保管先へ移す | 記録の保管先           |
-| `<record>/construction/**/` の診断ログ（`loopback1-*`、`ab-l3/` など） | 証拠としてコミット済み。容量が気になれば保管先へ移す                                       | 記録の保管先           |
-| 各ステージの質問ファイル                                               | 判断の根拠として残してよい                                                                 | —                      |
-| `<record>/aidlc-state.md`                                              | ワークフローは完了済み。残してよい                                                         | —                      |
-| アプリケーションのコード                                               | `blink-wasm-poc` ブックマークにコミット済み（push は未実施）                               | —                      |
+| Artifact                                        | Action                                                       | Destination            |
+| ----------------------------------------------- | ------------------------------------------------------------ | ---------------------- |
+| `docs/results/`（計測、failures、jit-decision） | Already committed                                            | —                      |
+| 設計上の決定（ADR、12 件）                      | 作成済み（2026-10-05）                                       | `docs/decisions/`      |
+| アーキテクチャの要約（1 ページ）                | 作成済み（2026-10-05）                                       | `docs/architecture.md` |
+| 品質目標の判定表                                | 作成済み（2026-10-05）                                       | `docs/nfr-summary.md`  |
+| アプリケーションのコード                        | `blink-wasm-poc` ブックマークにコミット済み（push は未実施） | —                      |
 
 ## 7. Workflow Footprint
 
-- Stages: 7 approved, 0 failed, 0 pending
-- Memory entries captured: 14
-  (4 interpretations, 5 deviations, 4 trade-offs, 1 open questions)
-- Learnings captured: 3 from orchestrator, 0 from user additions
-- 自動チェック（sensors）：31 回すべて合格
+PoC は 7 段階で進め、すべて承認された。進め方の記録は 6 節の commit に残っている。
 
 ## 8. Known Limitations and What to Tackle Next
 

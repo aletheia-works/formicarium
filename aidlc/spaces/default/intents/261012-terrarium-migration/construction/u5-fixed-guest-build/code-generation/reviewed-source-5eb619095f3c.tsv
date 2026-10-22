@@ -1,7 +1,0 @@
-manifest	5069449119dd5ee7d28b6bd6d422a677c8b40ad492f2ca9d8a19ca974bab823c	-
-	mise-tasks/migration/guest-build-unit.sh	100755	94c68178d95fe4a468152c83bda956da526cd0ed5805bbae781e5ea4f34e6ccc
-	mise-tasks/migration/guest-build-verify.sh	100755	66b7f403373bf5163ef8c5bfb6738c9bd86bf7b829f601a7e8272bea2dbcf5be
-	package.json	100644	a08ce0e4902fb9cf253938830f16c0ebb0cd1acd9f27a8b9b4d8be5f9c7c6f9c
-	scripts/migration-guest-build/assets.ts	100644	5baa2875db70ef5f6ed0960c5cf0af429f4691b15b89d9b7cfa5c92f9ffdbe79
-	scripts/migration-guest-build/verify.ts	100644	df8ec835f7569d59717d93ddb54478cdd7dedaf2ecdf61d88fb8cc86afa03941
-	tests/migration-guest-build/verify.test.ts	100644	e543eef7ccef14b95a86aa692dd929c1f5ebbf6371e887d711ae7ac4fcdbbcaf

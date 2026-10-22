@@ -39,7 +39,7 @@ The default run deadline is 600000 ms and includes Worker startup. Supply `timeo
 
 Filesystem entries are copied at input and output. Persisted roots are cwd/home; executable and temporary system paths are excluded. Files sharing `inodeId` preserve hard links, symlinks remain links, and modes are preserved. Use `listEntries`, `readFile`, `remove`, `setCwd` and `reset` between runs. If the selected cwd was removed between runs, the next run recreates its missing directory ancestors with mode 0755 while preserving existing directory modes and rejecting file or symlink collisions. A successful run commits its snapshot after cleanup; timeout, abort or failed snapshot rolls it back. `dispose` is idempotent and permanently closes the session. Cleanup failure closes the session.
 
-Default assets resolve relative to the installed package. Explicit `assets` requires absolute loaderURL, wasmURL, buildInfoURL and workerURL. Loader/wasm SHA-256 digests and clean pinned core metadata are checked before initialization. The checked loader bytes are evaluated without rereading the original URL. Node uses a run-specific directory with mode 0700 and an exclusive loader copy with mode 0400; pthreads use that same copy. The host owns these files and browser Blob URLs, stops owned Workers before releasing them, and releases resources after normal completion, abort, timeout or disposal even when the root Worker is forcibly terminated. Missing or mixed assets reject with `ASSET_LOAD`; initialization failure is `CORE_INIT`. See `THIRD_PARTY_NOTICES.md` and `assets/build-info.json` for provenance. Local test observations are recorded in the active AI-DLC U1 record; real Safari and full product regression/CI remain separate verification obligations.
+Default assets resolve relative to the installed package. Explicit `assets` requires absolute loaderURL, wasmURL, buildInfoURL and workerURL. Loader/wasm SHA-256 digests and clean pinned core metadata are checked before initialization. The checked loader bytes are evaluated without rereading the original URL. Node uses a run-specific directory with mode 0700 and an exclusive loader copy with mode 0400; pthreads use that same copy. The host owns these files and browser Blob URLs, stops owned Workers before releasing them, and releases resources after normal completion, abort, timeout or disposal even when the root Worker is forcibly terminated. Missing or mixed assets reject with `ASSET_LOAD`; initialization failure is `CORE_INIT`. See `THIRD_PARTY_NOTICES.md` and `assets/build-info.json` for provenance. Local test observations are recorded in the U1 record (commit `8096c7b4`, summarised in `docs/history/261006-npm-terrarium-release.md`); real Safari and full product regression/CI remain separate verification obligations.
 
 ## guest・install・command API（0.3.0 候補）
 
@@ -356,7 +356,6 @@ scripts/              ビルド・取得・基準値・計測・開発用サー�
 tests/                node --test と Playwright のテスト
 docs/                 アーキテクチャの要約、設計上の決定（decisions/）、非機能要件のまとめ、ライセンスの確認、計測値、通らなかった項目と直したもの、JIT の判断材料、作業ごとの記録（history/）、調査（research/）
 patches/              fork に入れた修正の写し（レビュー用）
-aidlc/                AI-DLC の作業記録（要件、計画、レビュー、テストの証拠）
 ```
 
 ## 既知の制約

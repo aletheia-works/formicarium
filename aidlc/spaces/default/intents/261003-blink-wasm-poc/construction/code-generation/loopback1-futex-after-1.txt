@@ -1,3 +1,0 @@
-futex mismatch broadcasts=45 rc=-1 errno=110 elapsed_ms=2033
-futex no-wake rc=-1 errno=110 elapsed_ms=120
-PASS futex-deadline

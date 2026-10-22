@@ -60,10 +60,9 @@ jobs:
                whose generator was not rerun.
 
             2. Contradictions with what the repository already states.
-               Hold the diff against AGENTS.md, the rules and decisions
-               in aidlc/spaces/default/memory/ (project.md first), the
-               design notes in aidlc/spaces/default/knowledge/aidlc-shared/,
-               and the README.md nearest the changed code. Read the
+               Hold the diff against AGENTS.md, the decisions in
+               docs/decisions/, the background in docs/history/, and the
+               README.md nearest the changed code. Read the
                rules; do not work from a list of the ones somebody
                remembered. Quote the sentence the change breaks. Either
                side may be the wrong one — say which.

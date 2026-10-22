@@ -1,2 +1,0 @@
-TRACEABILITY: 17/17 OK entries with existing targets (not a behavior verdict)
-TIMINGS: 4 environments x 3 trials, valid metadata, all recorded exit codes 0 (existing data only)

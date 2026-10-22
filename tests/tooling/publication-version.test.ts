@@ -54,7 +54,6 @@ async function bundle(t: TestContext, version = '0.1.0-rc.1') {
     GITHUB_REPOSITORY: identity.repository,
     GITHUB_REF: `refs/tags/${identity.tag}`,
     GITHUB_SHA: identity.sourceCommit,
-    AIDLC_RELEASE_OPERATION: 'publish',
     ACTIONS_ID_TOKEN_REQUEST_URL: 'https://fixture.invalid/oidc',
     NODE_AUTH_TOKEN: undefined,
     NPM_TOKEN: undefined,

@@ -18,7 +18,6 @@
       "!.claude",
       "!.codex",
       "!.agents",
-      "!aidlc",
       "!fixtures",
       "!assets",
       "!.artifacts",

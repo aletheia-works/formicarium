@@ -1,5 +1,0 @@
-trial=1 hello_step=178 hello_page=770 version_step=346 version_page=745 exits=0,0
-trial=2 hello_step=128 hello_page=322 version_step=314 version_page=751 exits=0,0
-trial=3 hello_step=130 hello_page=306 version_step=296 version_page=680 exits=0,0
-trial=4 hello_step=124 hello_page=304 version_step=301 version_page=675 exits=0,0
-trial=5 hello_step=121 hello_page=367 version_step=308 version_page=683 exits=0,0

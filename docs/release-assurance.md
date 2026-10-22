@@ -39,7 +39,7 @@ publisher観測artifactはkind=npm-settings-observation、package、repository/w
 
 U3の現在のローカルv9接続はpitchfork v2.30.1でbridge6・owner-copy45が成功している。正式ownerの旧承認はv2.30.0のまま。U3 v3 coverageは固定24、1450/1801行=80.51%、skip0。U4でseal1705files、source/site/tgz、46receipts、U1同packの1253realm import、元レポートbytesと再集計を読み取り再照合した履歴importであり、新しいU4測定ではない。U1の実機Safari5ケースは成功済みだが、U3候補の実機Safariは未検証。Trusted Publisher実設定、公開済みRCの実受入れ、npm公開は未実施で公開判定はblockedを維持する。
 
-検証済み（保存済みmain観測）：[遠隔CI run38011644576](https://github.com/Marukome0743/formicarium/actions/runs/38011644576)はsource `c75bc285f0320e2f3cb234569fa9cc4bc4588a9d`で全必須9check、436試験とnative2件が成功し、fail0/skip0、acceptance=true。fresh固定24 coverageは1450/1801行=80.51%、46receipt。同packとexecutionIdentityへの結合、原ログ・ZIP・抽出物のSHA照合はAI-DLCの記録（`aidlc/`）に保存している。これはそのsourceの成功記録であり、今回のcollector修正を遠隔で再実行した結果ではない。工程承認、Trusted Publisher、公開済みRC導入、実公開は別の未完条件である。
+検証済み（保存済みmain観測）：[遠隔CI run38011644576](https://github.com/Marukome0743/formicarium/actions/runs/38011644576)はsource `c75bc285f0320e2f3cb234569fa9cc4bc4588a9d`で全必須9check、436試験とnative2件が成功し、fail0/skip0、acceptance=true。fresh固定24 coverageは1450/1801行=80.51%、46receipt。同packとexecutionIdentityへの結合、原ログ・ZIP・抽出物のSHA照合は作業の記録（commit `8096c7b4` の `aidlc/`）に保存している。これはそのsourceの成功記録であり、今回のcollector修正を遠隔で再実行した結果ではない。工程承認、Trusted Publisher、公開済みRC導入、実公開は別の未完条件である。
 
 検証済み：C6の4新規否定回帰はRed後に修正し、整形後正式build/emitとrelease26件が成功。現在U3v3の原report/inventoryをread-onlyでvalidateEvidenceへ渡す正常受入れも確認した。固定24のうち23measured、npm.ts未実行0を分母に保持する。実envelope保存と公開判定は行っていない（evidenceSaved=false）。sourceCommitは観測jj baseで、working-treeの第一者SHAを別に結合し、公開可能commitとは主張しない。
 

@@ -4,7 +4,6 @@
 actionlint = "latest"
 shellcheck = "latest"
 ripgrep = "latest"
-"github:awslabs/aidlc-workflows" = { version = "latest", matching_regex = "^aidlc-(darwin|linux|windows)-", bin = "aidlc", additional_asset_patterns = ["aidlc-runtime-{{ version }}.tar.gz"] }
 node = "latest"
 bun = "latest"
 rust = { version = "stable", targets = "x86_64-unknown-linux-musl" }
