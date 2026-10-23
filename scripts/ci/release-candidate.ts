@@ -248,16 +248,20 @@ export async function prepareInputs(
     `${out}/candidate.json`,
     JSON.stringify(publication, null, 2),
   );
-  const inputs = files
-    .filter((row) => !retired.some((prefix) => row.path.startsWith(prefix)))
+  // The installed package is this run's candidate, whose files differ from
+  // the fixture's older package, so its rows come from the public directory.
+  const packageRows = publication.files.map(({ path }) => ({
+    path: `${manifest.packageRoot}/${path}`,
+    source: resolve(out, 'public', path),
+  }));
+  const fixtureRows = files
+    .filter(
+      (row) =>
+        !retired.some((prefix) => row.path.startsWith(prefix)) &&
+        !row.path.startsWith(`${manifest.packageRoot}/`),
+    )
     .map((row) => {
       let source = resolve(seed, 'payload', row.path);
-      if (row.path.startsWith(`${manifest.packageRoot}/`))
-        source = resolve(
-          out,
-          'public',
-          row.path.slice(manifest.packageRoot.length + 1),
-        );
       if (row.path === manifest.tarball) source = `${out}/candidate.tgz`;
       if (row.path === manifest.packageManifest)
         source = `${out}/package-manifest.json`;
@@ -265,7 +269,7 @@ export async function prepareInputs(
     });
   const sourcePaths = await candidateSourcePaths(root);
   await createBundle(
-    { manifest, sourcePaths, inputs },
+    { manifest, sourcePaths, inputs: [...fixtureRows, ...packageRows] },
     resolve(root, '.ci-inputs'),
     root,
   );
