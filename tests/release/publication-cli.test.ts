@@ -54,15 +54,15 @@ test('gate rejects packed and pack-external source digest changes', async (t) =>
     /first-party source/,
   );
 });
-test('gate independently rejects core name, version and build-info digest', async (t) => {
-  for (const mode of ['core', 'version', 'digest']) {
+test('gate independently rejects another core and a build-info digest mismatch', async (t) => {
+  for (const mode of ['core', 'digest']) {
     const f = await bundle(t);
     if (mode === 'digest')
       f.request.candidate.core.buildInfoSha256 = 'e'.repeat(64);
     else {
       const bytes = JSON.stringify({
         ...f.core,
-        ...(mode === 'core' ? { core: 'blink' } : { version: '9.9.9' }),
+        core: 'blink',
       });
       await writeFile(
         join(f.root, 'package', 'assets/paludarium/build-info.json'),

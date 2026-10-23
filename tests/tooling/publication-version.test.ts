@@ -69,7 +69,7 @@ async function bundle(t: TestContext, version = '0.1.0-rc.1') {
   };
   setEnvironment(env);
   t.after(() => setEnvironment(previous));
-  const core = { core: 'paludarium', version: '0.3.0' };
+  const core = { core: 'paludarium', version: '0.4.0' };
   const files: { path: string; sha256: string }[] = [];
   for (const path of PACKAGE_FILES) {
     const manifest = {
@@ -120,7 +120,7 @@ async function bundle(t: TestContext, version = '0.1.0-rc.1') {
   f.c.sourceCommit = identity.sourceCommit;
   f.c.tarballSha256 = digest;
   f.c.core = {
-    sourceCommit: core.version,
+    sourceCommit: 'c'.repeat(40),
     dirty: false,
     buildInfoSha256: files.find(
       (row) => row.path === 'assets/paludarium/build-info.json',

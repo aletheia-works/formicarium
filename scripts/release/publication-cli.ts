@@ -92,9 +92,10 @@ export async function gatePublication(
   ]);
   const buildInfo = JSON.parse(buildInfoBytes.toString());
   requireCondition(
+    // The recorded digest binds the exact build information; the core's
+    // version lives inside it, not in the evidence's source commit.
     sha256(buildInfoBytes) === request.candidate.core.buildInfoSha256 &&
-      buildInfo.core === 'paludarium' &&
-      buildInfo.version === request.candidate.core.sourceCommit,
+      buildInfo.core === 'paludarium',
     'request core provenance differs',
   );
   const context = {
