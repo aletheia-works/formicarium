@@ -329,7 +329,7 @@ for(const data of pending)if(data.type!=='coverage-bootstrap')self.dispatchEvent
     JSON.stringify(generation),
     { flag: 'wx' },
   );
-  for (const suite of ['package', 'session', 'install']) {
+  for (const suite of ['package']) {
     await writeFile(
       resolve(out, `coverage-playwright-node-${suite}.mjs`),
       `import {closeSync,mkdirSync,openSync,writeFileSync,writeSync} from 'node:fs';
@@ -405,7 +405,7 @@ export async function readPlaywrightNodeRealms(
   out: string,
   expectedSuites: string[],
 ) {
-  const allowed = ['package', 'session', 'install', 'command'];
+  const allowed = ['package'];
   if (
     !expectedSuites.length ||
     new Set(expectedSuites).size !== expectedSuites.length ||
@@ -604,15 +604,11 @@ export async function reportCoverage({
   out,
   browserResults,
   candidatePath,
-  session,
-  runnerSuites = session ? ['package', 'session'] : ['package'],
   extraNodeWorkers = 0,
 }: {
   out: string;
   browserResults: string;
   candidatePath: string;
-  session?: { nodeWorkers: number; browserCases: Record<string, number> };
-  runnerSuites?: string[];
   /** Planned Workers of suites run in the same Node process beyond the inventory. */
   extraNodeWorkers?: number;
 }) {
@@ -668,7 +664,7 @@ export async function reportCoverage({
       (_, index) => `node-worker-${index + 1}`,
     ),
   ];
-  const runnerRealms = await readPlaywrightNodeRealms(out, runnerSuites);
+  const runnerRealms = await readPlaywrightNodeRealms(out, ['package']);
   realms.push(...runnerRealms);
   expected.push(...runnerRealms.map((realm) => realm.name));
   if (
@@ -676,30 +672,6 @@ export async function reportCoverage({
     inventory.node.workers + extraNodeWorkers + inventory.node.host
   )
     throw new Error('Node planned Worker realms were not all retained');
-  if (session) {
-    const rows = JSON.parse(
-      await readFile(resolve(out, 'coverage-session-node.json'), 'utf8'),
-    ) as { name: string; counts: number[] }[];
-    if (rows.length !== session.nodeWorkers + 1)
-      throw Error('session planned Node Worker realms were not all retained');
-    for (const row of rows)
-      realms.push({
-        name: `session:${row.name}`,
-        buffer: Int32Array.from(row.counts).buffer,
-      });
-    expected.push(
-      'session:node-host',
-      ...Array.from(
-        { length: session.nodeWorkers },
-        (_, index) => `session:node-worker-${index + 1}`,
-      ),
-    );
-    for (const [title, workers] of Object.entries(session.browserCases)) {
-      if (Object.hasOwn(inventory.browserCases, title))
-        throw Error('session coverage case duplicates package case');
-      inventory.browserCases[title] = workers;
-    }
-  }
   const files: string[] = [];
   async function scan(directory: string): Promise<void> {
     for (const entry of await readdir(directory, { withFileTypes: true })) {

@@ -219,10 +219,6 @@ test('generated Playwright configuration initializes a real Node importer and pr
     );
     await rm(join(directory, `${killed.pid}.begin.json`));
     await assert.rejects(
-      readPlaywrightNodeRealms(out, ['package', 'session']),
-      /Playwright/,
-    );
-    await assert.rejects(
       readPlaywrightNodeRealms(out, ['unknown']),
       /Playwright/,
     );
