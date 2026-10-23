@@ -81,7 +81,7 @@ async function archiveFixture(t: TestContext) {
   await writeFile(
     oldManifest,
     JSON.stringify({
-      core: { package: '@aletheia-works/paludarium-wasm', version: '0.3.0' },
+      core: { package: '@aletheia-works/paludarium-wasm', version: '0.4.0' },
       files,
       tarball: { sha256: sha256(await readFile(oldTar)) },
     }),
