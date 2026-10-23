@@ -29,11 +29,12 @@ export async function verifyPackage({
   if (JSON.stringify(actual) !== JSON.stringify([...PACKAGE_FILES].sort()))
     throw new Error('archive inventory differs from fixed package files');
   for (const entry of candidate.files) {
-    const bytes = execFileSync('tar', [
-      '-xOzf',
-      tarball,
-      `package/${entry.path}`,
-    ]);
+    // The core's wasm alone is several MB, above the default 1 MB buffer.
+    const bytes = execFileSync(
+      'tar',
+      ['-xOzf', tarball, `package/${entry.path}`],
+      { maxBuffer: 64 * 1024 * 1024 },
+    );
     if (sha256(bytes) !== entry.sha256)
       throw new Error(`archive digest differs: ${entry.path}`);
   }

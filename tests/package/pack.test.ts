@@ -17,7 +17,9 @@ const candidate = JSON.parse(
   ),
 );
 const read = (path: string) =>
-  execFileSync('tar', ['-xOzf', candidate.tarball.path, `package/${path}`]);
+  execFileSync('tar', ['-xOzf', candidate.tarball.path, `package/${path}`], {
+    maxBuffer: 64 * 1024 * 1024,
+  });
 test('candidate binds one real tgz by SHA256', async () => {
   assert.equal(
     sha256(await readFile(candidate.tarball.path)),

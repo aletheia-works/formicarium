@@ -16,6 +16,11 @@ import { homedir } from 'node:os';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
+import {
+  CORE_FILES,
+  CORE_PACKAGE,
+  validateCoreBuildInfo,
+} from '../../runtime/core.js';
 import { lookupSession } from '../../runtime/registry.js';
 import {
   normalizeTranscript,
@@ -62,11 +67,20 @@ type Snapshot = {
 };
 
 async function identity() {
+  const info = validateCoreBuildInfo(
+    JSON.parse(
+      await readFile(
+        path.join(root, 'dist/paludarium/build-info.json'),
+        'utf8',
+      ),
+    ),
+  );
+  const pinned = JSON.parse(
+    await readFile(path.join(root, 'package.json'), 'utf8'),
+  ).devDependencies[CORE_PACKAGE] as string;
   const files = [
-    'blink.lock',
-    'dist/blink/blink.mjs',
-    'dist/blink/blink.wasm',
-    'dist/blink/build-info.json',
+    'dist/paludarium/build-info.json',
+    ...CORE_FILES.map((name) => `dist/paludarium/${name}`),
     'dist/guests/hello',
     'dist/guests/exit3',
     ...Object.keys(hashes),
@@ -76,23 +90,16 @@ async function identity() {
     digests[file] = createHash('sha256')
       .update(await readFile(path.join(root, file)))
       .digest('hex');
-  const lock = await readFile(path.join(root, 'blink.lock'), 'utf8');
-  const info = JSON.parse(
-    await readFile(path.join(root, 'dist/blink/build-info.json'), 'utf8'),
-  ) as {
-    blinkCommit: string;
-    blinkSourceDirty: boolean;
-    configure: string;
-    link: string;
-  };
-  return { digests, info, lock };
+  return { digests, info, pinned };
 }
 function checkIdentity(value: Awaited<ReturnType<typeof identity>>) {
-  assert.match(value.info.blinkCommit, /^[a-f0-9]{40}$/);
-  assert.equal(/^commit=(\w+)$/m.exec(value.lock)?.[1], value.info.blinkCommit);
-  assert.equal(value.info.blinkSourceDirty, false);
-  assert.match(value.info.configure, /--disable-jit/);
-  assert.match(value.info.link, /(?:^|\s)-sMAXIMUM_MEMORY=1GB(?:\s|$)/);
+  assert.equal(value.info.version, value.pinned);
+  for (const name of CORE_FILES)
+    assert.equal(
+      value.digests[`dist/paludarium/${name}`],
+      value.info.files[name],
+      name,
+    );
   for (const [file, expected] of Object.entries(hashes))
     assert.equal(value.digests[file], expected, file);
 }

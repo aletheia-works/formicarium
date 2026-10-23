@@ -2,7 +2,7 @@
   "name": "@aletheia-works/formicarium",
   "version": "0.3.0",
   "private": true,
-  "description": "blink（x86-64 Linux ユーザーモードエミュレータ）を wasm 上で動かす PoC",
+  "description": "paludarium（x86-64 Linux ユーザーモードエミュレータ）を wasm 上で動かして Linux の CLI を実行する",
   "license": "Apache-2.0",
   "type": "module",
   "packageManager": "bun@1.4.3",
