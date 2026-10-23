@@ -60,7 +60,7 @@ Node実体パスは主セッションでmiseから解決した絶対パスを使
 最初の実行はpurge設定を上書きしない。第2実行だけ診断controlとしてpurgeを
 無効化する。どちらも同じELF、600秒上限で逐次実行し、phase/exit/timeoutを保存。
 製品に環境設定を追加する指示ではない。
-必要なら既存の`--core-flag -s --core-flag -e`でsyscall traceを採取する。
+blink時代の`--core-flag`によるsyscall traceは、paludariumへの移行で使えなくなった。
 
 ## 適用限界
 
