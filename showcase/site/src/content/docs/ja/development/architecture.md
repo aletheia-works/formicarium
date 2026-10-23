@@ -48,16 +48,20 @@ Session がその写しを取り込むのは、実行が成功したときだけ
 
 ## コア
 
-今のコアは [jart/blink](https://github.com/jart/blink) の fork
-（[aletheia-works/blink](https://github.com/aletheia-works/blink) の `formicarium-wasm` ブランチ。`blink.lock` で固定）を、
-Emscripten でインタプリタのみの WebAssembly にしたものです
-（[ADR 0002](/formicarium/ja/development/decisions/0002-interpreter-only-jit-deferred/)）。
-ゲストのスレッドは Emscripten の pthread で動くので、ブラウザでは `SharedArrayBuffer`、つまり cross-origin isolation が必要です。
-このコアに固有の決定は、リポジトリの
-[`docs/decisions/`](https://github.com/aletheia-works/formicarium/tree/main/docs/decisions) にあります。
+コアは [paludarium](https://github.com/aletheia-works/paludarium) です。jart/blink に相当するものを Rust で一から書いたもので、
+`@aletheia-works/paludarium-wasm` として公開され、`package.json` で版を固定しています。`bun run build` はその
+ファイル（launcher の `index.mjs`、補助のモジュール、`paludarium.wasm`、`LICENSE`）を `dist/paludarium/` に写し、
+版と全ファイルの SHA-256 を `build-info.json` に書きます。パッケージには同じファイルを `assets/paludarium/` として入れます。
 
-コアは [paludarium](https://github.com/aletheia-works/paludarium)（Rust で作り直した blink。`@aletheia-works/paludarium-wasm`
-として公開）に置き換えます。そのとき変わるのは、`runtime/core.ts` と、コアを読み込む Worker だけです。
+`runtime/core.ts` はすべての SHA-256 を照合してから、`createPaludarium({ wasmUrl })` でコアを起動します。
+返ってくる launcher は、entry の一覧からファイルシステムを作り、引数・環境変数・作業ディレクトリを渡してプログラムを動かし、
+ゲストが終わるまで stdin・stdout・stderr を流します。Node.js では照合した bytes を実行ごとの専用ディレクトリから読み込みます。
+ブラウザでは照合の後に資産の URL からコアを読み込み、コアは loader の隣にある module Worker を自分で立てます。
+コアは共有の WebAssembly メモリを使うので、ブラウザでは `SharedArrayBuffer`、つまり cross-origin isolation が必要です。
+formicarium での JIT の作業は後回しのままです（[ADR 0002](/formicarium/ja/development/decisions/0002-interpreter-only-jit-deferred/)）。
+
+以前のコア（Emscripten でビルドした blink の fork）はもう使いません。それに固有の決定は、履歴としてリポジトリの
+[`docs/decisions/`](https://github.com/aletheia-works/formicarium/tree/main/docs/decisions) に残っています。
 
 ## 制限
 

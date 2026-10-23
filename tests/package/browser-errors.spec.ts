@@ -15,38 +15,6 @@ test.afterAll(async () => {
 test.beforeEach(async ({ page }) => {
   await page.goto(server.url);
 });
-test('current child-control unsupported major is EXECUTION rather than ignored', async ({
-  page,
-}) => {
-  const code = await page.evaluate(
-    async (guest) => {
-      const { createSession } = await import('/runtime/web/api.js');
-      const url = `${location.origin}/tests/package/fixtures/broker-request-worker.js`;
-      const session = await createSession({
-        assets: {
-          loaderURL: url,
-          wasmURL: url,
-          buildInfoURL: url,
-          workerURL: url,
-        },
-      });
-      try {
-        await session.run({
-          guest: Uint8Array.from(guest),
-          args: ['invalid-version'],
-          timeoutMs: 5000,
-        });
-      } catch (caught) {
-        const error = caught as ExecutionError;
-        return error.code;
-      } finally {
-        await session.dispose();
-      }
-    },
-    [...elfHeader()],
-  );
-  expect(code).toBe('EXECUTION');
-});
 test('browser missing Worker asset is ASSET_LOAD before guest starts', async ({
   page,
 }) => {

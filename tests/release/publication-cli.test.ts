@@ -54,21 +54,22 @@ test('gate rejects packed and pack-external source digest changes', async (t) =>
     /first-party source/,
   );
 });
-test('gate independently rejects core commit dirty status and build-info digest', async (t) => {
-  for (const mode of ['commit', 'dirty', 'digest']) {
+test('gate independently rejects core name, version and build-info digest', async (t) => {
+  for (const mode of ['core', 'version', 'digest']) {
     const f = await bundle(t);
     if (mode === 'digest')
       f.request.candidate.core.buildInfoSha256 = 'e'.repeat(64);
     else {
       const bytes = JSON.stringify({
         ...f.core,
-        ...(mode === 'dirty'
-          ? { blinkSourceDirty: true }
-          : { blinkCommit: 'd'.repeat(40) }),
+        ...(mode === 'core' ? { core: 'blink' } : { version: '9.9.9' }),
       });
-      await writeFile(join(f.root, 'package', 'assets/build-info.json'), bytes);
+      await writeFile(
+        join(f.root, 'package', 'assets/paludarium/build-info.json'),
+        bytes,
+      );
       f.candidate.files.find(
-        (row) => row.path === 'assets/build-info.json',
+        (row) => row.path === 'assets/paludarium/build-info.json',
       )!.sha256 = sha256(bytes);
       f.request.candidate.core.buildInfoSha256 = sha256(bytes);
       f.pack();

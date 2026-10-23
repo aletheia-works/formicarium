@@ -44,15 +44,11 @@ for (const mode of ['normal', 'abort', 'timeout'])
         const view = new Int32Array(counters);
         const Original = Worker;
         globalThis.Worker = class extends Original {
+          // The package Worker; the core starts its own Workers inside it.
           constructor(target: string | URL, options?: WorkerOptions) {
-            const child = options?.name === 'em-pthread';
-            if (child) Atomics.add(view, 0, 1);
-            super(
-              child ? '/__observer/nested-child.mjs' : '/__observer/parent.mjs',
-              options,
-            );
+            super('/__observer/parent.mjs', options);
             super.postMessage({
-              type: child ? 'observer-child-bootstrap' : 'observer-bootstrap',
+              type: 'observer-bootstrap',
               counters,
               target: String(target),
             });

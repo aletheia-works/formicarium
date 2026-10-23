@@ -30,6 +30,9 @@ const { createCoverageMap } = coverageLibrary;
 import instrumentLibrary from 'istanbul-lib-instrument';
 
 const { createInstrumenter } = instrumentLibrary;
+
+/** The core's own Workers are third-party code; they run unwrapped and uncounted. */
+const CORE_WORKER = String(/\/(coordinator|execution)\.mjs$/);
 const babelGenerator = createRequire(
   import.meta.resolve('istanbul-lib-instrument'),
 )('@babel/generator') as { default: (node: babel.Node) => { code: string } };
@@ -306,6 +309,7 @@ self.addEventListener('message',async function bootstrap(event){if(event.data.ty
 globalThis.__coverageCounters=new Int32Array(event.data.buffer);${bridge}
 const NativeWorker=globalThis.Worker;
 globalThis.Worker=class extends NativeWorker {constructor(target,options){
+if(${CORE_WORKER}.test(new URL(target,location.href).pathname)){super(target,options);return;}
 const buffer=new SharedArrayBuffer(${workerSize});
 super('/coverage-browser-worker.mjs',options);
 this.addEventListener('message',event=>{if(event.data?.type==='coverage-descendant'){event.stopImmediatePropagation();self.postMessage(event.data);}});
@@ -544,9 +548,13 @@ export async function prepareCoverage({
   await cp(resolve(root, 'dist/guests'), resolve(out, 'dist/guests'), {
     recursive: true,
   });
-  await cp(resolve(source, 'assets'), resolve(out, 'dist/blink'), {
-    recursive: true,
-  });
+  await cp(
+    resolve(source, 'assets/paludarium'),
+    resolve(out, 'dist/paludarium'),
+    {
+      recursive: true,
+    },
+  );
   await cp(
     resolve(root, 'scripts/playwright-build-config.js'),
     resolve(out, 'scripts/playwright-build-config.js'),
@@ -561,19 +569,18 @@ import {writeFileSync} from 'node:fs';
 const realms=[{name:'node-host',buffer:new SharedArrayBuffer(${size})}];
 globalThis.__coverageCounters=new Int32Array(realms[0].buffer);${result.bridge}
 const threads=createRequire(import.meta.url)('node:worker_threads');const Original=threads.Worker;
-threads.Worker=class extends Original{constructor(target,options={}){if(options.workerData==='em-pthread'){super(target,{...options,execArgv:[]});return;}const realm={name:'node-worker-'+realms.length,buffer:new SharedArrayBuffer(${size})};realms.push(realm);super(new URL('./coverage-node-worker.mjs',import.meta.url),{...options,execArgv:[],workerData:{target:String(target),buffer:realm.buffer}});}};syncBuiltinESMExports();
+threads.Worker=class extends Original{constructor(target,options={}){if(${CORE_WORKER}.test(String(target))){super(target,{...options,execArgv:[]});return;}const realm={name:'node-worker-'+realms.length,buffer:new SharedArrayBuffer(${size})};realms.push(realm);super(new URL('./coverage-node-worker.mjs',import.meta.url),{...options,execArgv:[],workerData:{target:String(target),buffer:realm.buffer}});}};syncBuiltinESMExports();
 process.on('exit',()=>writeFileSync(new URL('./coverage-node.json',import.meta.url),JSON.stringify(realms.map(realm=>({name:realm.name,counts:[...new Int32Array(realm.buffer)]})))));`;
   await writeFile(resolve(out, 'coverage-node-preload.mjs'), nodePreload);
   const browserInit = `const realms=[{name:'browser-host',buffer:new (typeof SharedArrayBuffer==='function'?SharedArrayBuffer:ArrayBuffer)(${size})}];
 globalThis.__coverageRealms=realms;globalThis.__coverageCounters=new Int32Array(realms[0].buffer);${result.bridge}
-const Original=globalThis.Worker;if(Original)globalThis.Worker=class extends Original{constructor(target,options){if(new URL(target,location.href).pathname.endsWith('/assets/blink.mjs')){super(target,options);return;}const realm={name:'browser-worker-'+realms.length,buffer:new SharedArrayBuffer(${size})};realms.push(realm);super('/coverage-browser-worker.mjs',options);
+const Original=globalThis.Worker;if(Original)globalThis.Worker=class extends Original{constructor(target,options){if(${CORE_WORKER}.test(new URL(target,location.href).pathname)){super(target,options);return;}const realm={name:'browser-worker-'+realms.length,buffer:new SharedArrayBuffer(${size})};realms.push(realm);super('/coverage-browser-worker.mjs',options);
 this.addEventListener('message',event=>{if(event.data?.type==='coverage-descendant'){event.stopImmediatePropagation();realms.push({name:'browser-worker-'+realms.length,buffer:event.data.buffer});}});
 super.postMessage({type:'coverage-bootstrap',target:String(new URL(target,location.href)),buffer:realm.buffer});}};`;
   await writeFile(resolve(out, 'coverage-browser-init.js'), browserInit);
   for (const spec of [
     'browser-api.spec.js',
     'browser-worker.spec.js',
-    'browser-broker.spec.js',
     'consumer.spec.js',
   ]) {
     const path = resolve(out, 'tests/package', spec);
@@ -740,8 +747,7 @@ export async function reportCoverage({
       lines: result.map.fileCoverageFor(file.path).getLineCoverage(),
     })),
     exclusions: {
-      generatedBlink:
-        'third-party generated loader/wasm; separately verified by digest and real consumers',
+      core: 'third-party paludarium core files; separately verified by digest and real consumers',
       types: 'declarations; strict type fixtures',
       guests: 'external ELF/native oracle',
       development: 'scripts/tests; outside fixed product inventory',

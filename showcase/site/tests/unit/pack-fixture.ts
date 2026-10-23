@@ -16,9 +16,11 @@ export const PACKAGE_FILES: Record<string, string> = {
         types: './types/browser.d.ts',
         import: './runtime/web/api.js',
       },
-      './assets/blink.mjs': './assets/blink.mjs',
-      './assets/blink.wasm': './assets/blink.wasm',
-      './assets/build-info.json': './assets/build-info.json',
+      './assets/paludarium/index.mjs': './assets/paludarium/index.mjs',
+      './assets/paludarium/paludarium.wasm':
+        './assets/paludarium/paludarium.wasm',
+      './assets/paludarium/build-info.json':
+        './assets/paludarium/build-info.json',
     },
   }),
   'runtime/public.js':
@@ -31,9 +33,13 @@ export const PACKAGE_FILES: Record<string, string> = {
   'runtime/web/package-worker.bundle.js': 'self.onmessage = () => {};\n',
   'runtime/node/api.js':
     "import { core } from '../core.js';\nexport { core };\n",
-  'assets/blink.mjs': 'export default 1;\n',
-  'assets/blink.wasm': '\0asm',
-  'assets/build-info.json': '{}',
+  'assets/paludarium/index.mjs': "import './coordinator.mjs';\n",
+  'assets/paludarium/coordinator.mjs': 'export {};\n',
+  'assets/paludarium/paludarium.wasm': '\0asm',
+  'assets/paludarium/build-info.json': JSON.stringify({
+    files: { 'index.mjs': 'a', 'coordinator.mjs': 'b', 'paludarium.wasm': 'c' },
+  }),
+  'assets/paludarium/LICENSE': 'Apache-2.0\n',
   'types/index.d.ts': 'export {};\n',
   LICENSE: 'Apache-2.0\n',
   'THIRD_PARTY_NOTICES.md': '# notices\n',

@@ -1,6 +1,6 @@
-// Node.js の Worker 上の blink でゲストを実行し、stdout・終了コードを受け取れること。
+// Node.js の Worker 上の paludarium でゲストを実行し、stdout・終了コードを受け取れること。
 // ゲストと手順の表（runtime/registry.js）と、その入口の検証。
-// 前提：bash mise-tasks/build/blink-wasm.sh と bash mise-tasks/build/guests.sh probe を実行済み
+// 前提：bun run build と bash mise-tasks/build/guests.sh probe を実行済み
 //       （表と入口の検証のテストは、ビルド物なしで実行できる）。
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
@@ -30,7 +30,10 @@ function run(args: string[]) {
 describe('Node.js ランナー（runtime/node/run.js）', () => {
   it('hello ゲストは終了コード 0 と期待どおりの stdout を返す', () => {
     assert.equal(
-      missingArtifacts(['dist/blink/blink.mjs', 'dist/guests/hello']),
+      missingArtifacts([
+        'dist/paludarium/build-info.json',
+        'dist/guests/hello',
+      ]),
       null,
     );
     const result = run(['dist/guests/hello', 'one', 'two words']);
@@ -43,7 +46,10 @@ describe('Node.js ランナー（runtime/node/run.js）', () => {
 
   it('終了コード 3 のゲストの終了コードと stderr が伝わる', () => {
     assert.equal(
-      missingArtifacts(['dist/blink/blink.mjs', 'dist/guests/exit3']),
+      missingArtifacts([
+        'dist/paludarium/build-info.json',
+        'dist/guests/exit3',
+      ]),
       null,
     );
     const result = run(['dist/guests/exit3']);
@@ -76,23 +82,7 @@ describe('Node.js ランナー（runtime/node/run.js）', () => {
 });
 
 describe('ブラウザ用の手順の定義（web/sessions.js）', () => {
-  it('診断フラグ -s をゲストと手順へ伝達する', () => {
-    assert.deepEqual(
-      parseRunRequest(new URLSearchParams('guest=probe&core-flag=-s')),
-      { kind: 'guest', name: 'probe', args: [], coreFlags: ['-s'] },
-    );
-    assert.deepEqual(
-      parseRunRequest(new URLSearchParams('session=aube-1645&core-flag=-s')),
-      { kind: 'session', name: 'aube-1645', coreFlags: ['-s'] },
-    );
-  });
-  it('未許可の診断フラグを拒否する', () => {
-    assert.throws(
-      () => parseRunRequest(new URLSearchParams('guest=hello&core-flag=-x')),
-      /unsupported diagnostic flag/,
-    );
-  });
-  it('通常のリクエストに診断フラグを追加しない', () => {
+  it('ゲストと引数をそのまま返す', () => {
     assert.deepEqual(
       parseRunRequest(new URLSearchParams('guest=hello&arg=one')),
       { kind: 'guest', name: 'hello', args: ['one'] },

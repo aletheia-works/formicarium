@@ -53,14 +53,7 @@ if (parentPort) {
       resources,
     });
   });
-  const uncaught = (error: unknown) => {
-    if (
-      (error instanceof Error && error.name === 'ExitStatus') ||
-      error === 'unwind'
-    ) {
-      process.exitCode = 0;
-      return;
-    }
+  const uncaught = () => {
     if (request)
       parentPort?.postMessage(
         workerErrorMessage(request, 'EXECUTION', { stdout: [], stderr: [] }),

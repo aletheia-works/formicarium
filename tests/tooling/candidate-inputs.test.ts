@@ -12,9 +12,6 @@ async function fixture() {
   const prefix = '.artifacts/ci-candidate/';
   const bytes = Buffer.from('test fixture only, not an executable release');
   const paths = [
-    'assets/blink.wasm',
-    'assets/blink.mjs',
-    'assets/build-info.json',
     'dist/guests/probe',
     'dist/guests/aube',
     'dist/guests/pitchfork',
@@ -43,7 +40,6 @@ async function fixture() {
         tarball: `${prefix}package.tgz`,
         packageManifest: `${prefix}package.json`,
         packageRoot: `${prefix}package`,
-        coreCommit: 'b'.repeat(40),
         guests: { aube: 'v2.7.0', pitchfork: 'v2.30.1' },
       },
       sourcePaths: ['source.ts'],
@@ -70,7 +66,7 @@ test('candidate preflight accepts complete pinned fixture inventory without exec
 test('candidate preflight rejects a missing required asset', async () => {
   const { options, cleanup } = await fixture();
   try {
-    await rm(resolve(options.inputRoot, 'payload/assets/blink.wasm'));
+    await rm(resolve(options.inputRoot, 'payload/dist/guests/probe'));
     await assert.rejects(
       validateCandidateInputs(options),
       /unknown or missing/,
@@ -83,7 +79,7 @@ test('candidate preflight rejects changed payload bytes', async () => {
   const { options, cleanup } = await fixture();
   try {
     await writeFile(
-      resolve(options.inputRoot, 'payload/assets/blink.wasm'),
+      resolve(options.inputRoot, 'payload/dist/guests/probe'),
       'changed',
     );
     await assert.rejects(validateCandidateInputs(options), /bytes differ/);
@@ -116,7 +112,7 @@ test('candidate preflight rejects unknown payload members', async () => {
   const { options, cleanup } = await fixture();
   try {
     await writeFile(
-      resolve(options.inputRoot, 'payload/assets/unknown'),
+      resolve(options.inputRoot, 'payload/dist/guests/unknown'),
       'unknown',
     );
     await assert.rejects(
@@ -130,7 +126,7 @@ test('candidate preflight rejects unknown payload members', async () => {
 test('candidate preflight rejects symlink payloads even when the target is owned', async () => {
   const { options, cleanup } = await fixture();
   try {
-    const path = resolve(options.inputRoot, 'payload/assets/blink.wasm');
+    const path = resolve(options.inputRoot, 'payload/dist/guests/probe');
     const bytes = await readFile(path);
     const target = resolve(options.root, 'owned-symlink-target');
     await writeFile(target, bytes);

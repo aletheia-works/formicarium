@@ -1,155 +1,222 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  createOutputCollector,
-  populateFs,
-  removeTree,
-  snapshotFs,
+  fromCoreSnapshot,
+  runGuest,
+  runSession,
+  toCoreEntries,
 } from '../../runtime/guest-io.js';
 import { entryAt } from '../shared/assertions.js';
-import { fileEntry, memoryFs } from './fixtures.js';
+import { fakeLauncher, fileEntry } from './fixtures.js';
 
-test('snapshot preserves same-inode hardlinks instead of expanding independent files', () => {
-  const FS = memoryFs();
-  FS.mkdir('/work');
-  FS.writeFile('/work/a', Uint8Array.of(1));
-  FS.link('/work/a', '/work/b');
-  const snapshot = snapshotFs(FS, '/work');
-  const a = entryAt(snapshot, '/work/a', 'file');
-  const b = entryAt(snapshot, '/work/b', 'file');
-  assert.equal(typeof a.inodeId, 'string');
-  assert.ok(a.inodeId.length > 0);
-  assert.equal(a.inodeId, b.inodeId);
-});
-test('snapshot lstat preserves symlink and mode without following target', () => {
-  const FS = memoryFs();
-  FS.mkdir('/work', 0o700);
-  FS.symlink('./missing', '/work/link');
-  assert.deepEqual(snapshotFs(FS, '/work'), [
-    { path: '/work', type: 'dir' as const, mode: 0o700 },
-    { path: '/work/link', type: 'symlink' as const, target: './missing' },
-  ]);
-  assert.deepEqual(snapshotFs(FS, '/absent'), []);
-});
-test('output collector preserves separate byte streams and flushes tails and size boundary', () => {
-  const chunks: Uint8Array[] = [];
-  const output = createOutputCollector({
-    onStdout: (bytes) => chunks.push(bytes),
-  });
-  for (let index = 0; index < 4096; index++) output.stdout.byte(255);
-  output.stderr.byte(128);
-  output.stdout.byte(0);
-  output.stdout.byte(null);
-  assert.equal(chunks.length, 1);
-  assert.equal(chunks[0].length, 4096);
-  assert.equal(output.stdout.bytes().length, 4097);
-  assert.deepEqual(output.stderr.bytes(), Uint8Array.of(128));
-});
-test('recursive remove deletes directory children but never follows symlink target', () => {
-  const FS = memoryFs();
-  populateFs(FS, [
-    fileEntry('/work/dir/input'),
-    fileEntry('/work/target'),
-    { path: '/work/link', type: 'symlink' as const, target: './target' },
-  ]);
-  removeTree(FS, '/work/dir');
-  removeTree(FS, '/work/link');
-  removeTree(FS, '/absent');
-  assert.equal(FS.analyzePath('/work/dir').exists, false);
-  assert.equal(FS.readFile('/work/target')[0], 1);
-});
-test('legacy entries without inodeId remain compatible independent files', () => {
-  const FS = memoryFs();
-  populateFs(FS, [
-    { path: '/work/a', data: 'one' },
-    { path: '/work/b', data: 'two' },
-  ]);
-  assert.notEqual(FS.lstat('/work/a').ino, FS.lstat('/work/b').ino);
-  assert.equal(new TextDecoder().decode(FS.readFile('/work/a')), 'one');
-});
-test('restore materializes a shared inode once and recreates hardlinks', () => {
-  const FS = memoryFs();
+const S_IFDIR = 0o040000;
+const S_IFREG = 0o100000;
+const S_IFLNK = 0o120000;
+const text = (bytes: Uint8Array | undefined) => new TextDecoder().decode(bytes);
+
+test('core entries keep modes, link shared inodes and add missing parents', () => {
   const file = fileEntry('/work/a');
-  populateFs(FS, [file, { ...file, path: '/work/b' }]);
-  assert.equal(FS.lstat('/work/a').ino, FS.lstat('/work/b').ino);
-  FS.writeFile('/work/a', Uint8Array.of(9));
-  assert.equal(FS.readFile('/work/b')[0], 9);
-});
-test('restore applies explicit directory mode last regardless of entry ordering', () => {
-  const FS = memoryFs();
-  populateFs(FS, [
-    fileEntry('/work/dir/input'),
-    { path: '/work/dir', type: 'dir' as const, mode: 0o700 },
-  ]);
-  assert.equal(FS.lstat('/work/dir').mode & 0o7777, 0o700);
-});
-test('snapshot refuses unknown special files rather than silently omitting them', () => {
-  const FS = memoryFs();
-  FS.mkdir('/work');
-  FS.nodes.set('/work/fifo', { mode: 0o10644, ino: 100 });
-  assert.throws(() => snapshotFs(FS, '/work'), /snapshot|special/i);
-});
-
-test('removed nested cwd recreates every missing ancestor before chdir', async () => {
-  const { runGuest } = await import('../../runtime/guest-io.js');
-  const { blinkCore } = await import('../../runtime/core.js');
-  const FS = memoryFs();
-  const result = await runGuest({
-    core: blinkCore,
-    guestPath: '/guest/program',
-    entries: [fileEntry('/guest/program')],
-    cwd: '/work/project/sub',
-    snapshotRoots: ['/work'],
-    createModule: async (options) => {
-      const module = { FS, ENV: {} };
-      for (const hook of options.preRun) hook(module);
-      options.onExit(0);
-      return module;
-    },
-  });
-  assert.equal(result.exitCode, 0);
-  assert.equal(FS.cwd, '/work/project/sub');
-  for (const path of ['/work', '/work/project', '/work/project/sub'])
-    assert.equal(FS.lstat(path).mode & 0o777, 0o755);
-});
-
-test('cwd ancestor recreation preserves explicit modes and refuses file or symlink collisions', async () => {
-  const { runGuest } = await import('../../runtime/guest-io.js');
-  const { blinkCore } = await import('../../runtime/core.js');
-  const execute = (
-    entries: import('../../runtime/contracts.js').LegacyEntry[],
-  ) => {
-    const FS = memoryFs();
-    return runGuest({
-      core: blinkCore,
-      guestPath: '/guest/program',
-      entries: [fileEntry('/guest/program'), ...entries],
-      cwd: '/work/project/sub',
-      snapshotRoots: ['/work'],
-      createModule: async (options) => {
-        const module = { FS, ENV: {} };
-        for (const hook of options.preRun) hook(module);
-        options.onExit(0);
-        return module;
-      },
-    });
-  };
-  const result = await execute([
-    { path: '/work', type: 'dir', mode: 0o700 },
-    { path: '/work/project', type: 'dir', mode: 0o710 },
-  ]);
-  assert.equal(entryAt(result.snapshot, '/work', 'dir').mode, 0o700);
-  assert.equal(entryAt(result.snapshot, '/work/project', 'dir').mode, 0o710);
-  assert.equal(
-    entryAt(result.snapshot, '/work/project/sub', 'dir').mode,
-    0o755,
+  const rows = toCoreEntries(
+    [
+      file,
+      { ...file, path: '/work/b' },
+      { path: '/work/c', data: 'other' },
+      { path: '/work/dir', type: 'dir', mode: 0o700 },
+      { path: '/work/link', type: 'symlink', target: './missing' },
+    ],
+    ['/work/project/sub'],
   );
-  await assert.rejects(execute([fileEntry('/work/project')]), /non-directory/);
-  await assert.rejects(
-    execute([
-      { path: '/work/target', type: 'dir', mode: 0o755 },
-      { path: '/work/project', type: 'symlink', target: 'target' },
-    ]),
+  const at = (path: string) => rows.find((row) => row.path === path);
+  assert.deepEqual(
+    rows.map((row) => row.path),
+    [
+      '/work',
+      '/work/a',
+      '/work/b',
+      '/work/c',
+      '/work/dir',
+      '/work/link',
+      '/work/project',
+      '/work/project/sub',
+    ],
+  );
+  assert.equal(at('/work')?.mode, S_IFDIR | 0o755);
+  assert.equal(at('/work/dir')?.mode, S_IFDIR | 0o700);
+  assert.equal(at('/work/a')?.mode, S_IFREG | 0o644);
+  assert.equal(at('/work/a')?.inode, at('/work/b')?.inode);
+  assert.equal(at('/work/c')?.inode, undefined);
+  assert.equal(at('/work/link')?.mode, S_IFLNK | 0o777);
+  assert.equal(text(at('/work/link')?.content), './missing');
+});
+
+test('core entries refuse invalid paths and file or symlink parents', () => {
+  assert.throws(() => toCoreEntries([{ path: 'relative' }]), /absolute/);
+  assert.throws(() => toCoreEntries([{ path: '/work/../x' }]), /\.\./);
+  assert.throws(
+    () => toCoreEntries([fileEntry('/work/project')], ['/work/project/sub']),
     /non-directory/,
+  );
+  assert.throws(
+    () =>
+      toCoreEntries([
+        { path: '/work/project', type: 'symlink', target: 'target' },
+        fileEntry('/work/project/input'),
+      ]),
+    /non-directory/,
+  );
+});
+
+test('snapshot keeps entries in the roots, hard links and symlinks', () => {
+  const entries = fromCoreSnapshot(
+    [
+      { path: '/root', mode: S_IFDIR | 0o700 },
+      { path: '/tmp/x', mode: S_IFREG | 0o644, content: Uint8Array.of(1) },
+      { path: '/work', mode: S_IFDIR | 0o755 },
+      {
+        path: '/work/a',
+        mode: S_IFREG | 0o600,
+        content: Uint8Array.of(7),
+        inode: 9n,
+      },
+      {
+        path: '/work/b',
+        mode: S_IFREG | 0o600,
+        content: Uint8Array.of(7),
+        inode: 9n,
+      },
+      {
+        path: '/work/link',
+        mode: S_IFLNK | 0o777,
+        content: new TextEncoder().encode('a'),
+      },
+    ],
+    ['/work'],
+  );
+  assert.deepEqual(
+    entries.map((entry) => entry.path),
+    ['/work', '/work/a', '/work/b', '/work/link'],
+  );
+  const a = entryAt(entries, '/work/a', 'file');
+  assert.equal(a.mode, 0o600);
+  assert.equal(a.inodeId, entryAt(entries, '/work/b', 'file').inodeId);
+  assert.equal(entryAt(entries, '/work/link', 'symlink').target, 'a');
+});
+
+test('snapshot refuses special files rather than silently omitting them', () => {
+  assert.throws(
+    () => fromCoreSnapshot([{ path: '/work/fifo', mode: 0o010644 }], ['/work']),
+    /special/,
+  );
+});
+
+test('a guest run places the guest, passes argv0 and env, and streams output', async () => {
+  const launcher = fakeLauncher(() => ({
+    stdout: [Uint8Array.of(1), Uint8Array.of(2)],
+    stderr: [Uint8Array.of(3)],
+    exit: { kind: 'exited', code: 3 },
+  }));
+  const seen: number[] = [];
+  const result = await runGuest({
+    launcher,
+    guestPath: '/guest/program',
+    args: ['--flag'],
+    entries: [fileEntry('/guest/program', Uint8Array.of(0x7f), 0o755)],
+    env: { HOME: '/home/user' },
+    cwd: '/work/project/sub',
+    onStdout: (bytes) => seen.push(...bytes),
+  });
+  assert.equal(result.exitCode, 3);
+  assert.deepEqual(result.stdout, Uint8Array.of(1, 2));
+  assert.deepEqual(result.stderr, Uint8Array.of(3));
+  assert.deepEqual(seen, [1, 2]);
+  assert.equal(result.snapshot, undefined);
+  const [run] = launcher.runs;
+  assert.equal(run?.program, '/guest/program');
+  assert.deepEqual(run?.args, ['/guest/program', '--flag']);
+  assert.deepEqual(run?.env, { HOME: '/home/user', PATH: '/usr/bin:/bin' });
+  assert.equal(run?.files.get('/work/project/sub')?.mode, S_IFDIR | 0o755);
+  assert.equal(run?.files.get('/guest/program')?.mode, S_IFREG | 0o755);
+  assert.equal(launcher.state.disposedFilesystems, 1);
+});
+
+test('a signalled guest exits with 128 plus the signal and a core failure throws', async () => {
+  const signalled = await runGuest({
+    launcher: fakeLauncher(() => ({ exit: { kind: 'signaled', signal: 9 } })),
+    guestPath: '/guest/program',
+  });
+  assert.equal(signalled.exitCode, 137);
+  const failing = fakeLauncher(() => ({ fail: new Error('trap') }));
+  await assert.rejects(
+    runGuest({ launcher: failing, guestPath: '/guest/program' }),
+    { name: 'GuestRunError', message: /core failed/ },
+  );
+  assert.equal(failing.state.disposedFilesystems, 1);
+  await assert.rejects(
+    runGuest({ launcher: undefined as never, guestPath: '/guest/program' }),
+    /launcher/,
+  );
+  await assert.rejects(
+    runGuest({ launcher: failing, guestPath: 'program' }),
+    /absolute/,
+  );
+});
+
+test('a snapshot failure is reported with the SNAPSHOT code', async () => {
+  const launcher = fakeLauncher(({ files }) => {
+    files.set('/work/fifo', { path: '/work/fifo', mode: 0o010644 });
+    return {};
+  });
+  await assert.rejects(
+    runGuest({
+      launcher,
+      guestPath: '/guest/program',
+      snapshotRoots: ['/work'],
+    }),
+    { code: 'SNAPSHOT' },
+  );
+});
+
+test('a session carries persisted roots between steps and runs host steps without the core', async () => {
+  const scratchCarried: boolean[] = [];
+  const launcher = fakeLauncher(({ args, files }) => {
+    scratchCarried.push(files.has('/tmp/scratch'));
+    if (args[1] === 'write')
+      files.set('/work/out', {
+        path: '/work/out',
+        mode: S_IFREG | 0o644,
+        content: new TextEncoder().encode('kept'),
+      });
+    files.set('/tmp/scratch', { path: '/tmp/scratch', mode: S_IFREG | 0o644 });
+    return {};
+  });
+  const results = await runSession({
+    launcher,
+    guestPath: '/guest/program',
+    guestEntry: fileEntry('/guest/program', Uint8Array.of(0x7f), 0o755),
+    steps: [
+      { args: ['write'] },
+      { catFile: '/work/out' },
+      { args: ['read'] },
+      { removeTree: '/work/out' },
+      { args: ['read'] },
+    ],
+  });
+  assert.deepEqual(
+    results.map((result) => result.exitCode),
+    [0, 0, 0, 0, 0],
+  );
+  assert.equal(text(results[1]?.stdout), 'kept');
+  assert.equal(launcher.runs.length, 3);
+  assert.equal(text(launcher.runs[1]?.files.get('/work/out')?.content), 'kept');
+  assert.deepEqual(scratchCarried, [false, false, false]);
+  assert.equal(launcher.runs[2]?.files.has('/work/out'), false);
+  await assert.rejects(
+    runSession({
+      launcher,
+      guestPath: '/guest/program',
+      guestEntry: fileEntry('/guest/program'),
+      steps: [{ removeTree: '/work' }],
+    }),
+    /removeTree must be inside/,
   );
 });

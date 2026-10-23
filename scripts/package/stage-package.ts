@@ -10,6 +10,11 @@ import {
 import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { errorCode } from '../../runtime/contracts.js';
+import {
+  CORE_FILES,
+  CORE_PACKAGE,
+  validateCoreBuildInfo,
+} from '../../runtime/core.js';
 import { WORKER_BUNDLE } from './worker-bundle.js';
 
 export const FIRST_PARTY_JS = Object.freeze([
@@ -44,9 +49,9 @@ export const PACKAGE_FILES = Object.freeze([
   'types/index.d.ts',
   'types/node.d.ts',
   'types/browser.d.ts',
-  'assets/blink.mjs',
-  'assets/blink.wasm',
-  'assets/build-info.json',
+  ...CORE_FILES.map((name) => `assets/paludarium/${name}`),
+  'assets/paludarium/build-info.json',
+  'assets/paludarium/LICENSE',
   'LICENSE',
   'THIRD_PARTY_NOTICES.md',
   'README.md',
@@ -75,26 +80,29 @@ export async function stagePackage({
   } catch (error) {
     if (errorCode(error) !== 'ENOENT') throw error;
   }
-  const lock = await readFile(resolve(root, 'blink.lock'), 'utf8');
-  const commit = /^commit=([0-9a-f]{40})$/m.exec(lock)?.[1];
-  const buildInfoBytes = await readFile(
-    resolve(root, 'dist/blink/build-info.json'),
-  );
-  const buildInfo = JSON.parse(buildInfoBytes.toString('utf8'));
-  if (
-    !commit ||
-    buildInfo.blinkCommit !== commit ||
-    buildInfo.blinkSourceDirty !== false
-  ) {
-    throw new Error('core provenance must match blink.lock with dirty=false');
-  }
+  // The core is the exact version pinned in package.json, copied by the build
+  // with the digests the runtime checks before loading it.
   const manifest = JSON.parse(
     await readFile(resolve(root, 'package.json'), 'utf8'),
   );
+  const buildInfo = validateCoreBuildInfo(
+    JSON.parse(
+      await readFile(resolve(root, 'dist/paludarium/build-info.json'), 'utf8'),
+    ),
+  );
+  if (buildInfo.version !== manifest.devDependencies?.[CORE_PACKAGE])
+    throw new Error('core version must match the pinned devDependency');
+  for (const [name, digest] of Object.entries(buildInfo.files))
+    if (
+      sha256(await readFile(resolve(root, 'dist/paludarium', name))) !== digest
+    )
+      throw new Error(`core file differs from its build information: ${name}`);
   const sources = new Map(
     PACKAGE_FILES.map((path) => [
       path,
-      path.startsWith('assets/') ? `dist/blink/${path.slice(7)}` : path,
+      path.startsWith('assets/paludarium/')
+        ? `dist/paludarium/${path.slice(18)}`
+        : path,
     ]),
   );
   // Validate every source before creating a partial candidate.
@@ -112,25 +120,6 @@ export async function stagePackage({
       void devDependencies;
       void scripts;
       await writeFile(target, `${JSON.stringify(packageManifest, null, 2)}\n`);
-    } else if (path === 'assets/build-info.json') {
-      await writeFile(
-        target,
-        `${JSON.stringify(
-          {
-            ...buildInfo,
-            assetDigests: {
-              loaderSha256: sha256(
-                await readFile(resolve(root, 'dist/blink/blink.mjs')),
-              ),
-              wasmSha256: sha256(
-                await readFile(resolve(root, 'dist/blink/blink.wasm')),
-              ),
-            },
-          },
-          null,
-          2,
-        )}\n`,
-      );
     } else await copyFile(resolve(root, source), target);
     files.push({ path, sha256: sha256(await readFile(target)) });
   }
@@ -138,8 +127,7 @@ export async function stagePackage({
     schemaVersion: 1,
     package: manifest.name,
     version: manifest.version,
-    blinkCommit: commit,
-    blinkSourceDirty: false,
+    core: { package: CORE_PACKAGE, version: buildInfo.version },
     files,
     firstPartyJS: files.filter(({ path }) => FIRST_PARTY_JS.includes(path)),
     stagedDirectory: destination,

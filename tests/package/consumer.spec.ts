@@ -173,7 +173,7 @@ for (const kind of ['timeout', 'abort'])
       entries: 0,
     });
   });
-test('real browser pthread guest exits normally before next fresh run', async ({
+test('real browser thread guest exits normally before next fresh run', async ({
   page,
 }) => {
   const result = await page.evaluate(async (bytes) => {
@@ -198,169 +198,88 @@ test('real browser pthread guest exits normally before next fresh run', async ({
   expect(result.next).toBe(0);
 });
 
-test('installed real loader mutation never executes unverified original URL bytes', async ({
+test('installed changed loader is refused before the core is imported', async ({
   page,
 }) => {
-  const original = await readFile(resolve(packageRoot, 'assets/blink.mjs'));
-  let reads = 0;
-  const wrapper = `
-    import { loadPackageCore, createCoreResourceOwner, bootstrapVerifiedBrowserCore } from '/runtime/core.js';
-    import { runGuest } from '/runtime/guest-io.js';
-    delete Atomics.waitAsync;
-    self.onmessage = async ({data}) => {
-      if (self.name === 'em-pthread') { self.onmessage = null; try { await bootstrapVerifiedBrowserCore(data.descriptor); } catch(caught) {const error = caught; self.postMessage({type:'mutation-child-error',error:String(error)}); } return; }
-      const resources = createCoreResourceOwner({environment:'browser',bootstrapURL:new URL('/mutation-worker.mjs',location.href).href});
-      let descriptor;
-      const NativeWorker = globalThis.Worker;
-      const children = [];
-      globalThis.Worker = class extends NativeWorker {
-        constructor(url,options) {
-          super(url,options); children.push(this);
-          this.addEventListener('error',event => self.postMessage({error:'child: '+event.message}));
-          this.addEventListener('message',event => {if(event.data?.type === 'mutation-child-error') self.postMessage({error:event.data.error});});
-          this.postMessage({type:'core-bootstrap',descriptor});
-        }
-      };
-      let adapter;
-      try {
-        adapter = await loadPackageCore({assets: data.assets, resources:{allocate:async bytes => descriptor = await resources.allocate(bytes)}, readBytes: async url => {
-          const response = await fetch(url); if (!response.ok) throw new Error('asset');
-          return new Uint8Array(await response.arrayBuffer());
-        }});
-        const result = await runGuest({createModule: adapter.createModule, core: adapter.core, guestPath:'/guest/program', entries:[{path:'/guest/program',type:'file',data:new Uint8Array(data.guest),mode:493}], args:[], env:{}, cwd:'/work', snapshotRoots:['/work']});
-        self.postMessage({code:result.exitCode,text:new TextDecoder().decode(result.stdout),marker:globalThis.__unverifiedLoaderMarker ?? 0});
-      } catch (caught) { const error = caught; self.postMessage({error:String(error),code:error.code}); }
-      finally { adapter?.core.cleanup(); for (const child of children) child.terminate(); globalThis.Worker = NativeWorker; await resources.dispose(); }
-    };
-  `;
-  const mutationServer = await serveDirectory(packageRoot, {
-    extraFiles: {
-      '/mutation-worker.mjs': wrapper,
-      '/mutation/blink.mjs': () =>
-        ++reads === 1
-          ? original
-          : Buffer.concat([
-              Buffer.from(
-                'globalThis.__unverifiedLoaderMarker = (globalThis.__unverifiedLoaderMarker ?? 0) + 1;\n',
-              ),
-              original,
-            ]),
-    },
-  });
+  // The loader's directory holds the real core files; only index.mjs changes.
+  const core = resolve(packageRoot, 'assets/paludarium');
+  const extraFiles: Record<string, Uint8Array> = {};
+  for (const name of [
+    'coordinator.mjs',
+    'execution.mjs',
+    'worker-support.mjs',
+    'jit-support.mjs',
+    'filesystem-snapshot.mjs',
+  ])
+    extraFiles[`/mutation/${name}`] = await readFile(resolve(core, name));
+  extraFiles['/mutation/index.mjs'] = Buffer.concat([
+    Buffer.from(
+      'globalThis.__unverifiedLoaderMarker = (globalThis.__unverifiedLoaderMarker ?? 0) + 1;\n',
+    ),
+    await readFile(resolve(core, 'index.mjs')),
+  ]);
+  const mutationServer = await serveDirectory(packageRoot, { extraFiles });
   try {
     await page.goto(mutationServer.url);
-    const result = await page.evaluate(async (guest) => {
-      const worker = new Worker('/mutation-worker.mjs', { type: 'module' });
-      let timer: ReturnType<typeof setTimeout> | undefined;
+    const result = await page.evaluate(async (bytes) => {
+      const { createSession } = await import('/runtime/web/api.js');
+      const at = (path: string) => new URL(path, location.href).href;
+      const session = await createSession({
+        assets: {
+          loaderURL: at('/mutation/index.mjs'),
+          wasmURL: at('/assets/paludarium/paludarium.wasm'),
+          buildInfoURL: at('/assets/paludarium/build-info.json'),
+          workerURL: at('/runtime/web/package-worker.bundle.js'),
+        },
+      });
       try {
-        return await new Promise<{
-          code: number;
-          text: string;
-          marker: number;
-        }>((resolve, reject) => {
-          timer = setTimeout(
-            () => reject(new Error('mutation harness did not settle in 30s')),
-            30000,
-          );
-          worker.onmessage = ({ data }) => resolve(data);
-          worker.onerror = (event) => reject(new Error(event.message));
-          worker.postMessage({
-            guest,
-            assets: {
-              loaderURL: new URL('/mutation/blink.mjs', location.href).href,
-              wasmURL: new URL('/assets/blink.wasm', location.href).href,
-              buildInfoURL: new URL('/assets/build-info.json', location.href)
-                .href,
-              workerURL: new URL('/mutation-worker.mjs', location.href).href,
-            },
-          });
-        });
+        await session.run({ guest: new Uint8Array(bytes) });
+        return { code: 'completed' };
+      } catch (caught) {
+        return { code: (caught as ExecutionError).code };
       } finally {
-        clearTimeout(timer);
-        worker.terminate();
+        await session.dispose();
       }
     }, guest);
-    expect(result.code).toBe(0);
-    expect(result.text).toBe('fixture-ok\n');
-    expect(
-      result.marker,
-      'changed original URL marker executed despite digest verification',
-    ).toBe(0);
+    expect(result.code).toBe('ASSET_LOAD');
   } finally {
     await mutationServer.close();
   }
 });
 
-for (const allowBlob of [true, false])
-  test(`verified browser loader obeys explicit CSP blob permission ${allowBlob}`, async ({
-    page,
-  }) => {
-    const cspServer = await serveDirectory(packageRoot, {
-      csp: `script-src 'self' ${allowBlob ? 'blob:' : ''} 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self'`,
-    });
-    try {
-      await page.goto(cspServer.url);
-      const result = await page.evaluate(async (bytes) => {
-        const created: string[] = [];
-        const revoked: string[] = [];
-        const create = URL.createObjectURL;
-        const revoke = URL.revokeObjectURL;
-        URL.createObjectURL = function (...args) {
-          const url = create.apply(this, args);
-          created.push(url);
-          return url;
-        };
-        URL.revokeObjectURL = function (url) {
-          revoked.push(url);
-          return revoke.call(this, url);
-        };
-        const { createSession } = await import('/runtime/web/api.js');
-        const session = await createSession();
-        let result: { exit?: number; text?: string; error?: string };
-        try {
-          const run = await session.run({ guest: new Uint8Array(bytes) });
-          result = {
-            exit: run.exitCode,
-            text: new TextDecoder().decode(run.stdout),
-          };
-        } catch (caught) {
-          const error = caught as ExecutionError;
-          result = { error: error.code };
-        } finally {
-          await session.dispose();
-          URL.createObjectURL = create;
-          URL.revokeObjectURL = revoke;
-        }
-        return { ...result, created, revoked };
-      }, guest);
-      if (allowBlob) {
-        expect(result.exit).toBe(0);
-        expect(result.text).toBe('fixture-ok\n');
-      } else expect(result.error).toBe('ASSET_LOAD');
-      expect(result.created).toHaveLength(1);
-      expect(result.revoked).toEqual(result.created);
-    } finally {
-      await cspServer.close();
-    }
-  });
-
-test('host releases every verified Blob after normal abort timeout and disposal', async ({
+test('verified browser core runs under a CSP without blob: permissions', async ({
   page,
 }) => {
-  const result = await page.evaluate(async (bytes) => {
-    const created: string[] = [];
-    const revoked: string[] = [];
-    const create = URL.createObjectURL;
-    const revoke = URL.revokeObjectURL;
-    URL.createObjectURL = function (...args) {
-      const url = create.apply(this, args);
-      created.push(url);
-      return url;
-    };
-    URL.revokeObjectURL = function (url) {
-      revoked.push(url);
-      return revoke.call(this, url);
-    };
+  const cspServer = await serveDirectory(packageRoot, {
+    csp: "script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self'",
+  });
+  try {
+    await page.goto(cspServer.url);
+    const result = await page.evaluate(async (bytes) => {
+      const { createSession } = await import('/runtime/web/api.js');
+      const session = await createSession();
+      try {
+        const run = await session.run({ guest: new Uint8Array(bytes) });
+        return {
+          exit: run.exitCode,
+          text: new TextDecoder().decode(run.stdout),
+        };
+      } catch (caught) {
+        return { error: (caught as ExecutionError).code };
+      } finally {
+        await session.dispose();
+      }
+    }, guest);
+    expect(result).toEqual({ exit: 0, text: 'fixture-ok\n' });
+  } finally {
+    await cspServer.close();
+  }
+});
+
+test('browser runs settle after normal, abort, timeout and disposal', async ({
+  page,
+}) => {
+  const codes = await page.evaluate(async (bytes) => {
     const { createSession } = await import('/runtime/web/api.js');
     const session = await createSession();
     const codes = [];
@@ -407,14 +326,10 @@ test('host releases every verified Blob after normal abort timeout and disposal'
       }
     } finally {
       await session.dispose();
-      URL.createObjectURL = create;
-      URL.revokeObjectURL = revoke;
     }
-    return { codes, created, revoked };
+    return codes;
   }, guest);
-  expect(result.codes).toEqual([0, 'ABORTED', 'TIMEOUT', 0, 'ABORTED']);
-  expect(result.created).toHaveLength(5);
-  expect(result.revoked).toEqual(result.created);
+  expect(codes).toEqual([0, 'ABORTED', 'TIMEOUT', 0, 'ABORTED']);
 });
 
 test('public removed nested cwd is recreated by real guest run', async ({

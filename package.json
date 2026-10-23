@@ -51,9 +51,9 @@
       "types": "./types/browser.d.ts",
       "import": "./runtime/web/api.js"
     },
-    "./assets/blink.mjs": "./assets/blink.mjs",
-    "./assets/blink.wasm": "./assets/blink.wasm",
-    "./assets/build-info.json": "./assets/build-info.json"
+    "./assets/paludarium/index.mjs": "./assets/paludarium/index.mjs",
+    "./assets/paludarium/paludarium.wasm": "./assets/paludarium/paludarium.wasm",
+    "./assets/paludarium/build-info.json": "./assets/paludarium/build-info.json"
   },
   "engines": {
     "node": ">=24"
@@ -98,6 +98,7 @@
     "showcase-site:coverage": "node showcase/site/tests/coverage/merge-coverage.ts"
   },
   "devDependencies": {
+    "@aletheia-works/paludarium-wasm": "0.3.0",
     "@biomejs/biome": "^2.6.2",
     "@playwright/test": "1.64.1",
     "@types/istanbul-lib-coverage": "^2.0.6",

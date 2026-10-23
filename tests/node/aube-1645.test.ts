@@ -1,6 +1,6 @@
-// Node.js：aube #1645 の手順を Node.js の Worker 上の blink で実行し、書き起こしが
+// Node.js：aube #1645 の手順を Node.js の Worker 上の paludarium で実行し、書き起こしが
 // native の基準値 fixtures/baseline/aube-1645.native.txt と一致すること。
-// 前提：bash mise-tasks/build/blink-wasm.sh、bash mise-tasks/build/guests.sh aube、
+// 前提：bun run build、bash mise-tasks/build/guests.sh aube、
 //       bash mise-tasks/build/native-baseline.sh を実行済み。
 // fixtures はテストの中で仮想ファイルシステムに写すだけで、書き換えない。
 import assert from 'node:assert/strict';
@@ -49,7 +49,7 @@ describe('aube #1645（Node.js の Worker）', () => {
   }, async () => {
     assert.equal(
       missingArtifacts([
-        'dist/blink/blink.mjs',
+        'dist/paludarium/build-info.json',
         'dist/guests/aube',
         'fixtures/baseline/aube-1645.native.txt',
       ]),

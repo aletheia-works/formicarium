@@ -8,12 +8,12 @@ description: エミュレータ・公開 API・showcase のつながり。
 showcase の page（Astro と Starlight、xterm.js）
   -> 公開 API：createSession（/browser）、createCommandSession（root）
      -> Session：file・cwd、一度に1つの run
-        -> run ごとの Web Worker：WebAssembly に compile した blink
+        -> run ごとの Web Worker：WebAssembly に compile した paludarium
            -> static な x86-64 Linux の ELF の guest
 ```
 
-**エミュレータ。** formicarium は user mode の x86-64 Linux エミュレータの blink を
-WebAssembly として動かします。run ごとに新しい Worker を始め、command が書いた
+**エミュレータ。** formicarium は Rust で書いた user mode の x86-64 Linux エミュレータの
+paludarium を WebAssembly として動かします。run ごとに新しい Worker を始め、command が書いた
 file は Session に残って次の command に渡ります。guest は実行の前に SHA256 と
 `build-info.json` で検証します。
 

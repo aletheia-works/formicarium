@@ -29,10 +29,10 @@ export function testSiteData(overrides: Partial<SiteData> = {}): SiteData {
       root: 'runtime/public.js',
       browser: 'runtime/web/api.js',
       assets: {
-        loader: 'assets/blink.mjs',
-        wasm: 'assets/blink.wasm',
+        loader: 'assets/paludarium/index.mjs',
+        wasm: 'assets/paludarium/paludarium.wasm',
         worker: 'runtime/web/package-worker.bundle.js',
-        buildInfo: 'assets/build-info.json',
+        buildInfo: 'assets/paludarium/build-info.json',
       },
       files: [{ path: 'runtime/public.js', sha256: SHA, bytes: 1 }],
     },

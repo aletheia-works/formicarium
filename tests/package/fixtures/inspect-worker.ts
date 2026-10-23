@@ -1,6 +1,5 @@
 import { readBrowserAsset } from '../../../runtime/web/package-worker.js';
 
-self.postMessage({ type: 'inspection', waitAsync: typeof Atomics.waitAsync });
 self.addEventListener('message', async ({ data }) => {
   if (data.type !== 'probe-fetch') return;
   try {

@@ -74,19 +74,21 @@ test('the checked pack is copied byte for byte below _formicarium/<version>/', a
   assert.equal(record.mode, 'verify');
   assert.equal(manifest.base, '_formicarium/0.3.0/');
   assert.deepEqual(manifest.assets, {
-    loader: 'assets/blink.mjs',
-    wasm: 'assets/blink.wasm',
+    loader: 'assets/paludarium/index.mjs',
+    wasm: 'assets/paludarium/paludarium.wasm',
     worker: 'runtime/web/package-worker.bundle.js',
-    buildInfo: 'assets/build-info.json',
+    buildInfo: 'assets/paludarium/build-info.json',
   });
   assert.deepEqual(
     manifest.files.map((file) => file.path),
     [
       'LICENSE',
       'THIRD_PARTY_NOTICES.md',
-      'assets/blink.mjs',
-      'assets/blink.wasm',
-      'assets/build-info.json',
+      'assets/paludarium/LICENSE',
+      'assets/paludarium/build-info.json',
+      'assets/paludarium/coordinator.mjs',
+      'assets/paludarium/index.mjs',
+      'assets/paludarium/paludarium.wasm',
       'runtime/core.js',
       'runtime/errors.js',
       'runtime/public.js',

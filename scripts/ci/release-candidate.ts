@@ -188,7 +188,12 @@ export async function prepareInputs(
   // the guest-distribution resolver; the fresh inputs leave them out.
   const old = JSON.parse(
     await readFile(`${seed}/manifest.json`, 'utf8'),
-  ) as InputManifest & { site: string; terrarium: string; owner: unknown };
+  ) as InputManifest & {
+    site: string;
+    terrarium: string;
+    owner: unknown;
+    coreCommit: string;
+  };
   await validatePayloadInventory(
     `${seed}/payload`,
     old.files.map((row) => row.path),
@@ -206,13 +211,26 @@ export async function prepareInputs(
   const original = JSON.parse(
     await readFile(`${out}/private.manifest.json`, 'utf8'),
   );
-  const { files, sourceFiles, site, terrarium, owner, ...manifest } = old;
+  const {
+    files,
+    sourceFiles,
+    site,
+    terrarium,
+    owner,
+    coreCommit,
+    ...manifest
+  } = old;
   void sourceFiles;
   void owner;
+  void coreCommit;
+  // The core now ships inside the package, so the blink build inputs retire.
   const retired = [
     `${site}/`,
     `${terrarium}/`,
     '.artifacts/ci-candidate/inputs/resolver/',
+    '.artifacts/ci-candidate/core-source.bundle',
+    'assets/',
+    'dist/blink/',
   ];
   manifest.sourceCommit = expected.commit;
   const candidate = {
@@ -243,9 +261,6 @@ export async function prepareInputs(
       if (row.path === manifest.tarball) source = `${out}/candidate.tgz`;
       if (row.path === manifest.packageManifest)
         source = `${out}/package-manifest.json`;
-      if (row.path.startsWith('dist/blink/')) source = resolve(root, row.path);
-      if (row.path.startsWith('assets/'))
-        source = resolve(root, 'dist/blink', row.path.slice(7));
       return { path: row.path, source };
     });
   const sourcePaths = await candidateSourcePaths(root);

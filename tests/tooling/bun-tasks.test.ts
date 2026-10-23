@@ -110,6 +110,6 @@ test('dependency install scripts are disabled rather than trusting Bun defaults'
 test('CI file-task execution and cache references point to real files', async () => {
   const workflow = await readFile(resolve('.github/workflows/ci.yml'), 'utf8');
   const paths = [...new Set(workflow.match(/mise-tasks\/[a-zA-Z0-9_./-]+/g))];
-  assert.ok(paths.length >= 4);
+  assert.ok(paths.length >= 2);
   for (const path of paths) await access(resolve(path));
 });

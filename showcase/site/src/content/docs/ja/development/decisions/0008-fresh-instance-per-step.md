@@ -15,18 +15,19 @@ aube #1645 の再現は 4 手順（`aube install`、`rm -rf node_modules`、`aub
 ## 決定
 
 command ごとに、新しいコアのインスタンスで動かします。作業ディレクトリと home ディレクトリは、手順の後に
-JavaScript の側で写し取り（`snapshotFs`）、次のインスタンスに置き直します（`populateFs`）。手順を進めるのは
+JavaScript の側で写し取り、次のインスタンスに置き直します（paludarium に移してからは `fromCoreSnapshot` と `toCoreEntries`、
+blink では `snapshotFs` と `populateFs`）。手順を進めるのは
 `runtime/guest-io.ts` の `runSession` で、`rm -rf` は JavaScript の側で行います。パッケージの Session も、
 実行ごとに新しい Worker を立てる同じ形です。
 
 ## 結果
 
 - 実装が単純で、手順ごとの状態がきれいに分かれます。
-- command ごとに 0.3〜0.5 秒の起動の固定費がかかり、JIT では縮みません。
+- command ごとに起動の固定費（blink のコアでは 0.3〜0.5 秒）がかかり、JIT では縮みません。
 - WebKit はインスタンスごとに wasm メモリの上限まで確保し、ページの処理が終わるまで手放しません。
   ゲストのメモリの上限を 1 GB にしているのはこのためです。
 
 ## 退けた案
 
 - **1 つのインスタンスで shell を動かし、command を続けて実行する**：ゲストの shell とプロセスの生成（`fork` と `exec`）が
-  要るが、この blink の fork ではプロセスの `fork` を無効にしている。
+  要るが、当時のコアだった blink の fork ではプロセスの `fork` を無効にしていた。

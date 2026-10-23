@@ -50,16 +50,12 @@ export const SESSIONS = Object.freeze(
 
 /** URL のパラメータを検証して、実行する内容を返す。不正なら Error を投げる。 */
 export function parseRunRequest(searchParams: URLSearchParams) {
-  const flags = searchParams.getAll('core-flag');
-  if (flags.some((flag) => flag !== '-s'))
-    throw new Error('unsupported diagnostic flag');
-  const diagnostic = flags.length ? { coreFlags: flags } : {};
   const session = searchParams.get('session');
   if (session !== null) {
     if (!NAME.test(session) || !Object.hasOwn(SESSIONS, session)) {
       throw new Error(`unknown session: ${session}`);
     }
-    return { kind: 'session' as const, name: session, ...diagnostic };
+    return { kind: 'session' as const, name: session };
   }
   const guest = searchParams.get('guest') ?? 'probe';
   if (!NAME.test(guest) || !Object.hasOwn(GUESTS, guest)) {
@@ -67,5 +63,5 @@ export function parseRunRequest(searchParams: URLSearchParams) {
   }
   const args = searchParams.getAll('arg');
   if (args.some((a) => a.length > 4096)) throw new Error('argument too long');
-  return { kind: 'guest' as const, name: guest, args, ...diagnostic };
+  return { kind: 'guest' as const, name: guest, args };
 }

@@ -91,7 +91,6 @@ test('generated Playwright configuration initializes a real Node importer and pr
     for (const spec of [
       'browser-api.spec.js',
       'browser-worker.spec.js',
-      'browser-broker.spec.js',
       'consumer.spec.js',
     ])
       await put(
@@ -269,7 +268,6 @@ async function preparePlaywrightNodeFixture(scratch: string) {
   for (const spec of [
     'browser-api.spec.js',
     'browser-worker.spec.js',
-    'browser-broker.spec.js',
     'consumer.spec.js',
   ])
     await put(

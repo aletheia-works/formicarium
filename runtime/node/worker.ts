@@ -2,15 +2,23 @@
 // メッセージ：{type:'stdout'|'stderr', chunk} を逐次、最後に {type:'done', results} か
 // {type:'error', message}。
 import { lstatSync, readdirSync, readFileSync, readlinkSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import { pathToFileURL } from 'node:url';
 import { parentPort, workerData } from 'node:worker_threads';
-import type { HostOptions, LegacyEntry } from '../contracts.js';
-import { blinkCore } from '../core.js';
+import type {
+  CoreLauncher,
+  HostOptions,
+  HostResult,
+  LegacyEntry,
+} from '../contracts.js';
+import {
+  coreAssets,
+  createCoreResourceOwner,
+  loadPackageCore,
+} from '../core.js';
 import { GUEST_DIR, runGuest, runSession } from '../guest-io.js';
-
-const cores = { [blinkCore.name]: blinkCore };
 
 /** ホストのディレクトリ（またはファイル）を、仮想ファイルシステムのエントリに変換する。 */
 function readHostTree(hostPath: string, guestPath: string) {
@@ -41,29 +49,48 @@ function post(type: 'stdout' | 'stderr', chunk: Uint8Array) {
   parentPort?.postMessage({ type, chunk: Uint8Array.from(chunk) });
 }
 
+type WorkerData = HostOptions & {
+  coreDirectory: string;
+  guestHostPath: string;
+  copyIn: { host: string; guest: string }[];
+};
+
 async function main() {
-  const {
-    loaderPath,
-    coreName,
-    guestHostPath,
-    args,
-    copyIn,
-    env,
-    cwd,
-    steps,
-    persist,
-    coreFlags,
-  } = workerData as HostOptions & {
-    loaderPath: string;
-    coreName: string;
-    guestHostPath: string;
-    copyIn: { host: string; guest: string }[];
-  };
-  const core = cores[coreName];
-  if (!core) throw new Error(`unknown core: ${coreName}`);
-  const { default: createModule } = await import(
-    pathToFileURL(loaderPath).href
-  );
+  const data = workerData as WorkerData;
+  // パッケージと同じく、照合したコアのファイルを専用の一時ディレクトリに置いてから読み込む
+  const resources = createCoreResourceOwner();
+  try {
+    const { launcher, cleanup } = await loadPackageCore({
+      assets: coreAssets(
+        pathToFileURL(`${data.coreDirectory}/`),
+        import.meta.url,
+      ),
+      readBytes: async (url) => new Uint8Array(await readFile(new URL(url))),
+      resources,
+    });
+    try {
+      parentPort?.postMessage({
+        type: 'done',
+        results: (await runAll(launcher, data)).map((r) => ({
+          step: r.step,
+          exitCode: r.exitCode,
+          stdout: r.stdout,
+          stderr: r.stderr,
+          elapsedMs: r.elapsedMs,
+        })),
+      });
+    } finally {
+      await cleanup();
+    }
+  } finally {
+    await resources.dispose();
+  }
+}
+
+async function runAll(
+  launcher: CoreLauncher,
+  { guestHostPath, args, copyIn, env, cwd, steps, persist }: WorkerData,
+): Promise<HostResult['results']> {
   const guestPath = `${GUEST_DIR}/${path.basename(guestHostPath)}`;
   const guestEntry: LegacyEntry = {
     path: guestPath,
@@ -73,58 +100,34 @@ async function main() {
   };
   const entries = copyIn.flatMap((c) => readHostTree(c.host, c.guest));
   const common = {
-    createModule,
-    core,
+    launcher,
     guestPath,
     env,
     cwd,
-    coreFlags,
     onStdout: (chunk: Uint8Array) => post('stdout', chunk),
     onStderr: (chunk: Uint8Array) => post('stderr', chunk),
   };
-  let results: import('../contracts.js').HostResult['results'];
-  if (steps) {
-    results = await runSession({
+  if (steps)
+    return await runSession({
       ...common,
       guestEntry,
       steps,
       entries,
       persist,
     });
-  } else {
-    const started = performance.now();
-    const result = await runGuest({
-      ...common,
-      args,
-      entries: [guestEntry, ...entries],
-    });
-    results = [
-      { ...result, step: { args }, elapsedMs: performance.now() - started },
-    ];
-  }
-  parentPort?.postMessage({
-    type: 'done',
-    results: results.map((r) => ({
-      step: r.step,
-      exitCode: r.exitCode,
-      stdout: r.stdout,
-      stderr: r.stderr,
-      elapsedMs: r.elapsedMs,
-    })),
+  const started = performance.now();
+  const result = await runGuest({
+    ...common,
+    args,
+    entries: [guestEntry, ...entries],
   });
+  return [
+    { ...result, step: { args }, elapsedMs: performance.now() - started },
+  ];
 }
 
-// Emscripten は終了時に ExitStatus を throw する（Node では process.exitCode も設定する）。
-// 終了コードは onExit で受け取っているので、これは無視して結果の送信を続ける。
-// それ以外の例外は、ページ側に伝えてから終わる。
+// 想定外の例外は、ホスト側に伝えてから終わる。
 function onUncaught(error: unknown) {
-  if (
-    (error instanceof Error && error.name === 'ExitStatus') ||
-    error === 'unwind'
-  ) {
-    process.exitCode = 0;
-    return;
-  }
   parentPort?.postMessage({
     type: 'error',
     message: `uncaught exception in worker: ${error instanceof Error ? error.stack : String(error)}`,

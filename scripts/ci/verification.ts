@@ -31,7 +31,6 @@ export interface InputManifest {
   tarball: string;
   packageManifest: string;
   packageRoot: string;
-  coreCommit: string;
   guests: { aube: string; pitchfork: string };
 }
 export interface CheckResult {
@@ -76,12 +75,8 @@ export function validateManifestContents(
     !/^[a-f0-9]{40}$/.test(input.sourceCommit)
   )
     throw Error('candidate source commit differs');
-  if (
-    !/^[a-f0-9]{40}$/.test(input.coreCommit) ||
-    input.guests.aube !== 'v2.7.0' ||
-    input.guests.pitchfork !== 'v2.30.1'
-  )
-    throw Error('core or guest version differs');
+  if (input.guests.aube !== 'v2.7.0' || input.guests.pitchfork !== 'v2.30.1')
+    throw Error('guest version differs');
   for (const key of ['tarball', 'packageManifest', 'packageRoot'] as const)
     safePath(input[key]);
   for (const rows of [input.files, input.sourceFiles]) {
@@ -103,9 +98,6 @@ export function validateManifestContents(
   for (const required of [
     input.tarball,
     input.packageManifest,
-    'assets/blink.wasm',
-    'assets/blink.mjs',
-    'assets/build-info.json',
     'dist/guests/probe',
     'dist/guests/aube',
     'dist/guests/pitchfork',

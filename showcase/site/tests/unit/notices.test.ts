@@ -105,7 +105,7 @@ async function inputs() {
   const root = await tempDir('notices');
   await writeFiles(root, {
     'formicarium/LICENSE': 'Apache License 2.0\n',
-    'formicarium/THIRD_PARTY_NOTICES.md': '# blink ISC\n',
+    'formicarium/THIRD_PARTY_NOTICES.md': '# paludarium Apache-2.0\n',
     'candidate/site/NOTICES.md': '# Showcase guest notices\n',
     'candidate/site/licenses/aube-LICENSE': 'MIT aube\n',
     'node_modules/@xterm/xterm/package.json':
@@ -129,7 +129,7 @@ test('THIRD_PARTY_NOTICES holds formicarium, the guests and every site package',
   );
   for (const expected of [
     'Apache License 2.0',
-    '# blink ISC',
+    '# paludarium Apache-2.0',
     '# Showcase guest notices',
     'MIT aube',
     'MIT xterm',

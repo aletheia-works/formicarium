@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // usage: node runtime/node/run.js [options] <guest> [args...]
 //
-// Node.js の Worker 上のコア（blink）で、x86-64 Linux のゲストを実行する。
+// Node.js の Worker 上のコア（paludarium）で、x86-64 Linux のゲストを実行する。
 // stdout・stderr はそのまま流し、ゲストの終了コードを自分の終了コードにする。
 // ゲストが見つからないときは、エラーメッセージを出して終了コード 127 で終わる。
 //
@@ -10,7 +10,6 @@
 //   --cwd <dir>               仮想 FS 上の作業ディレクトリ（既定 /work）
 //   --env <KEY=VALUE>         環境変数（複数可）
 //   --timeout <seconds>       これを過ぎたら止めて終了コード 124 で終わる
-//   --core-flag <flag>        コア自身へのフラグ（診断用。例：--core-flag -s で blink のシステムコール記録）
 import process from 'node:process';
 import type { HostOptions } from '../contracts.js';
 import { errorText } from '../contracts.js';
@@ -24,7 +23,7 @@ const EXIT_INTERNAL = 70;
 function usage(message?: string) {
   if (message) process.stderr.write(`run.js: ${message}\n`);
   process.stderr.write(
-    'usage: node runtime/node/run.js [--copy-in host:guest] [--cwd dir] [--env K=V] [--timeout s] [--core-flag f] <guest> [args...]\n',
+    'usage: node runtime/node/run.js [--copy-in host:guest] [--cwd dir] [--env K=V] [--timeout s] <guest> [args...]\n',
   );
   return EXIT_USAGE;
 }
@@ -34,7 +33,6 @@ function parseArgs(argv: string[]) {
   const options: Omit<HostOptions, 'guest'> = {
     copyIn: [],
     env: {},
-    coreFlags: [],
   };
   let i = 0;
   for (; i < argv.length; ++i) {
@@ -68,11 +66,6 @@ function parseArgs(argv: string[]) {
         options.env![value.slice(0, eq)] = value.slice(eq + 1);
         break;
       }
-      case '--core-flag':
-        if (!value.startsWith('-'))
-          throw new Error(`--core-flag takes a flag such as -s, got ${value}`);
-        options.coreFlags?.push(value);
-        break;
       case '--timeout': {
         const seconds = Number(value);
         if (!Number.isFinite(seconds) || seconds <= 0)

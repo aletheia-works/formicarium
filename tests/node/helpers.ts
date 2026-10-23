@@ -48,16 +48,6 @@ export function runScript(
   };
 }
 
-/** blink.lock の値を読む。 */
-export function readLock(text: string) {
-  const values: Record<string, string> = {};
-  for (const line of text.split(/\r?\n/)) {
-    const m = /^([a-z_]+)=(.*)$/.exec(line);
-    if (m) values[m[1]!] = m[2]?.trim();
-  }
-  return values;
-}
-
 /** 必要なビルド物がなければ、理由つきでテストを飛ばすための文字列を返す（あれば null）。 */
 export function missingArtifacts(paths: string[]) {
   const missing = paths.filter((p) => !existsSync(path.join(root, p)));

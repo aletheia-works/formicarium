@@ -88,7 +88,7 @@ test('only node:* and the verified loader URL imports of core remain dynamic', a
     edges.literal.every((specifier) => specifier.startsWith('node:')),
     edges.literal.join(),
   );
-  // Runtime URLs (the verified blink loader) are data, not package modules.
+  // Runtime URLs (the verified core loader) are data, not package modules.
   const core = moduleEdges(await read('runtime/core.js'));
   assert.equal(core.computed, 2);
   assert.equal(edges.computed, core.computed);
@@ -202,13 +202,13 @@ async function workerURLs(assets: 'default' | 'module') {
         };
         try {
           const { createSession } = await import('/runtime/web/api.js');
-          const base = `${location.origin}/assets/`;
+          const base = `${location.origin}/assets/paludarium/`;
           const session = await createSession(
             assets === 'module'
               ? {
                   assets: {
-                    loaderURL: `${base}blink.mjs`,
-                    wasmURL: `${base}blink.wasm`,
+                    loaderURL: `${base}index.mjs`,
+                    wasmURL: `${base}paludarium.wasm`,
                     buildInfoURL: `${base}build-info.json`,
                     workerURL: `${location.origin}/runtime/web/package-worker.js`,
                   },

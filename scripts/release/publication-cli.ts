@@ -88,13 +88,13 @@ export async function gatePublication(
   const buildInfoBytes = execFileSync('tar', [
     '-xOzf',
     join(root, 'candidate.tgz'),
-    'package/assets/build-info.json',
+    'package/assets/paludarium/build-info.json',
   ]);
   const buildInfo = JSON.parse(buildInfoBytes.toString());
   requireCondition(
     sha256(buildInfoBytes) === request.candidate.core.buildInfoSha256 &&
-      buildInfo.blinkSourceDirty === false &&
-      buildInfo.blinkCommit === request.candidate.core.sourceCommit,
+      buildInfo.core === 'paludarium' &&
+      buildInfo.version === request.candidate.core.sourceCommit,
     'request core provenance differs',
   );
   const context = {

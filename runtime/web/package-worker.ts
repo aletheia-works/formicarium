@@ -1,13 +1,7 @@
-import type { ControlChannel, RunRequest } from '../contracts.js';
-import {
-  bootstrapVerifiedBrowserCore,
-  createCoreResourceClient,
-} from '../core.js';
+import type { RunRequest } from '../contracts.js';
+import { loadPackageCore } from '../core.js';
 import { identity, workerErrorMessage } from '../protocol.js';
 import { executeWorkerRequest } from '../worker-execution.js';
-
-// Keep this before any dynamic core loader import (ADR 0009).
-delete (Atomics as { waitAsync?: typeof Atomics.waitAsync }).waitAsync;
 
 export async function readBrowserAsset(url: string | URL) {
   const response = await fetch(url);
@@ -16,17 +10,40 @@ export async function readBrowserAsset(url: string | URL) {
 }
 
 let request: RunRequest | undefined;
+let core: { cleanup(): Promise<void> } | undefined;
+// The core's Workers, started from this Worker. A browser ends the Workers of
+// a terminated Worker only later, so the host asks for a stop first.
+const coreWorkers = new Set<Worker>();
+
+/** Stops the core and ends its Workers, then tells the host. */
+async function stop() {
+  try {
+    await core?.cleanup();
+  } catch {
+    // The Workers below are ended either way.
+  }
+  for (const worker of coreWorkers) worker.terminate();
+  coreWorkers.clear();
+  self.postMessage({ type: 'stopped' });
+}
+
 if (typeof self !== 'undefined') {
+  if (typeof Worker === 'function') {
+    const NativeWorker = Worker;
+    globalThis.Worker = class extends NativeWorker {
+      constructor(url: string | URL, options?: WorkerOptions) {
+        super(url, options);
+        coreWorkers.add(this);
+      }
+    };
+  }
   self.addEventListener('message', ({ data }) => {
-    if (request) return;
-    request = data;
-    if (self.name === 'em-pthread') {
-      if (data?.type !== 'core-bootstrap') return;
-      void bootstrapVerifiedBrowserCore(data.descriptor).catch(() =>
-        self.postMessage({ type: 'bootstrap-error' }),
-      );
+    if (data?.type === 'stop') {
+      void stop();
       return;
     }
+    if (request) return;
+    request = data;
     if (data?.type !== 'run' || data.protocolVersion !== 1) {
       self.postMessage({
         ...identity(data ?? {}),
@@ -38,45 +55,26 @@ if (typeof self !== 'undefined') {
       });
       return;
     }
-    const childWorkers: ControlChannel = {
-      post(message, transfer = []) {
-        self.postMessage({ ...identity(data), ...message }, transfer);
-      },
-      subscribe(listener) {
-        const callback = (event: MessageEvent) => {
-          const message = event.data;
-          if (
-            message?.protocolVersion === data.protocolVersion &&
-            message.sessionId === data.sessionId &&
-            message.runId === data.runId &&
-            message.generation === data.generation &&
-            typeof message.type === 'string' &&
-            (message.type.startsWith('child-') ||
-              message.type.startsWith('resource-'))
-          )
-            listener(message, event.ports);
-        };
-        self.addEventListener('message', callback);
-        return () => self.removeEventListener('message', callback);
-      },
-    };
-    const resources = createCoreResourceClient(childWorkers);
     void executeWorkerRequest(data, {
       post: (message) => self.postMessage(message),
       readBytes: readBrowserAsset,
-      childWorkers,
-      resources,
+      loadCore: async (options) => {
+        const loaded = await loadPackageCore(options);
+        // The run and a stop request share one cleanup.
+        let cleaned: Promise<void> | undefined;
+        core = {
+          ...loaded,
+          cleanup: () => {
+            cleaned ??= loaded.cleanup();
+            return cleaned;
+          },
+        };
+        return core as typeof loaded;
+      },
     });
   });
   self.addEventListener('error', (event) => {
-    if (
-      event.error?.name === 'ExitStatus' ||
-      event.error === 'unwind' ||
-      /ExitStatus|unwind/.test(String(event.message))
-    ) {
-      event.preventDefault();
-      return;
-    }
+    event.preventDefault();
     if (request)
       self.postMessage(
         workerErrorMessage(request, 'EXECUTION', { stdout: [], stderr: [] }),

@@ -1,6 +1,5 @@
 import type {
   FsEntry,
-  ModuleOptions,
   OutputChunk,
   RunRequest,
   RunResult,
@@ -16,9 +15,14 @@ interface TestMessage {
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { blinkCore } from '../../runtime/core.js';
 import { executeWorkerRequest } from '../../runtime/worker-execution.js';
-import { elfHeader, fileEntry, memoryFs } from './fixtures.js';
+import {
+  elfHeader,
+  type FakeBehaviour,
+  type FakeRun,
+  fakeLauncher,
+  fileEntry,
+} from './fixtures.js';
 
 const request = (): RunRequest => ({
   type: 'run',
@@ -42,25 +46,19 @@ const request = (): RunRequest => ({
 });
 function adapter({
   exitCode = 0,
-  run = () => {},
-  cleanup = () => {},
+  run = () => ({}),
+  cleanup = async () => {},
 }: {
   exitCode?: number;
-  run?: (
-    module: { FS: ReturnType<typeof memoryFs>; ENV: Record<string, string> },
-    options: ModuleOptions,
-  ) => void;
-  cleanup?: () => void;
+  run?: (run: FakeRun) => FakeBehaviour;
+  cleanup?: () => Promise<void>;
 } = {}) {
   return async () => ({
-    core: { ...blinkCore, cleanup },
-    createModule(options: ModuleOptions) {
-      const module = { FS: memoryFs(), ENV: {} };
-      for (const preRun of options.preRun) preRun(module);
-      run(module, options);
-      options.onExit(exitCode);
-      return Promise.resolve(module);
-    },
+    launcher: fakeLauncher((guest) => ({
+      exit: { kind: 'exited', code: exitCode },
+      ...run(guest),
+    })),
+    cleanup,
   });
 }
 test('Worker execution sends normal nonzero result and complete preRun snapshot', async () => {
@@ -70,7 +68,7 @@ test('Worker execution sends normal nonzero result and complete preRun snapshot'
     post: (message) => messages.push(message as TestMessage),
     loadCore: adapter({
       exitCode: 3,
-      cleanup() {
+      async cleanup() {
         cleaned++;
       },
     }),
@@ -85,12 +83,10 @@ test('output messages flush all bytes in one run-wide sequence before done', asy
   await executeWorkerRequest(request(), {
     post: (message) => messages.push(message as TestMessage),
     loadCore: adapter({
-      run(module, options) {
-        module.FS.stdout(255);
-        module.FS.stdout(10);
-        module.FS.stderr(128);
-        options.print('text');
-      },
+      run: () => ({
+        stdout: [Uint8Array.of(255), Uint8Array.of(10, 116, 101, 120, 116, 10)],
+        stderr: [Uint8Array.of(128)],
+      }),
     }),
   });
   const outputs = messages.filter(({ type }) => type === 'output');
@@ -116,16 +112,13 @@ test('asset failure does not start guest and diagnostics contain no arbitrary st
   assert.equal(messages[0].code, 'ASSET_LOAD');
   assert.equal(JSON.stringify(messages).includes('secret'), false);
 });
-test('factory initialization failure remains CORE_INIT through generic guest wrapper', async () => {
+test('core initialization failure remains CORE_INIT', async () => {
   const messages: TestMessage[] = [];
   await executeWorkerRequest(request(), {
     post: (message) => messages.push(message as TestMessage),
-    loadCore: async () => ({
-      core: blinkCore,
-      createModule: async () => {
-        throw Object.assign(new Error('secret'), { code: 'CORE_INIT' });
-      },
-    }),
+    loadCore: async () => {
+      throw Object.assign(new Error('secret'), { code: 'CORE_INIT' });
+    },
   });
   assert.equal(messages[0].code, 'CORE_INIT');
 });
@@ -134,8 +127,9 @@ test('special-file snapshot is rejected rather than posted as done', async () =>
   await executeWorkerRequest(request(), {
     post: (message) => messages.push(message as TestMessage),
     loadCore: adapter({
-      run(module) {
-        module.FS.nodes.set('/work/socket', { mode: 0o140600, ino: 100 });
+      run: ({ files }) => {
+        files.set('/work/socket', { path: '/work/socket', mode: 0o140600 });
+        return {};
       },
     }),
   });
@@ -148,7 +142,7 @@ test('cleanup failure rejects candidate and separate runs use independent cores'
   const loadCore = async () => {
     starts++;
     return await adapter({
-      cleanup() {
+      async cleanup() {
         throw new Error('secret');
       },
     })();

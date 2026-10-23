@@ -15,15 +15,15 @@ const manifest = (): FormicariumManifest => ({
   root: 'runtime/public.js',
   browser: 'runtime/web/api.js',
   assets: {
-    loader: 'assets/blink.mjs',
-    wasm: 'assets/blink.wasm',
+    loader: 'assets/paludarium/index.mjs',
+    wasm: 'assets/paludarium/paludarium.wasm',
     worker: 'runtime/web/package-worker.bundle.js',
-    buildInfo: 'assets/build-info.json',
+    buildInfo: 'assets/paludarium/build-info.json',
   },
   files: [
-    'assets/blink.mjs',
-    'assets/blink.wasm',
-    'assets/build-info.json',
+    'assets/paludarium/index.mjs',
+    'assets/paludarium/paludarium.wasm',
+    'assets/paludarium/build-info.json',
     'runtime/public.js',
     'runtime/web/api.js',
     'runtime/web/package-worker.bundle.js',
@@ -33,13 +33,13 @@ const manifest = (): FormicariumManifest => ({
 test('the four public Assets URLs point into the same-origin _formicarium copy', () => {
   assert.deepEqual(packageAssets(manifest(), ROOT), {
     loaderURL:
-      'https://aletheia-works.github.io/formicarium/_formicarium/0.3.0/assets/blink.mjs',
+      'https://aletheia-works.github.io/formicarium/_formicarium/0.3.0/assets/paludarium/index.mjs',
     wasmURL:
-      'https://aletheia-works.github.io/formicarium/_formicarium/0.3.0/assets/blink.wasm',
+      'https://aletheia-works.github.io/formicarium/_formicarium/0.3.0/assets/paludarium/paludarium.wasm',
     workerURL:
       'https://aletheia-works.github.io/formicarium/_formicarium/0.3.0/runtime/web/package-worker.bundle.js',
     buildInfoURL:
-      'https://aletheia-works.github.io/formicarium/_formicarium/0.3.0/assets/build-info.json',
+      'https://aletheia-works.github.io/formicarium/_formicarium/0.3.0/assets/paludarium/build-info.json',
   });
 });
 
@@ -77,7 +77,10 @@ test('the entries are imported from their staged URLs', async () => {
     'https://aletheia-works.github.io/formicarium/_formicarium/0.3.0/runtime/web/api.js',
   ]);
   assert.equal(typeof loaded.root.createCommandSession, 'function');
-  assert.equal(loaded.assets.wasmURL.toString().endsWith('blink.wasm'), true);
+  assert.equal(
+    loaded.assets.wasmURL.toString().endsWith('paludarium.wasm'),
+    true,
+  );
 });
 
 test('a failed import is reported as ASSET_LOAD without the import error text', async () => {

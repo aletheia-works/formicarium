@@ -15,13 +15,17 @@ showcase の端末は `@aletheia-works/formicarium` の公開 export だけを�
 
 ## 条件
 
-- **同じ origin。** Worker（`runtime/web/package-worker.bundle.js`）、loader
-  （`assets/blink.mjs`）、wasm、`build-info.json` を page と同じ origin から配り、
-  その絶対 URL を `assets` に渡します。
+- **同じ origin。** Worker（`runtime/web/package-worker.bundle.js`）と
+  `assets/paludarium/` のコア（loader の `index.mjs`、その隣のモジュール、
+  `paludarium.wasm`、`build-info.json`）を page と同じ origin から配ります。
+  Worker・loader・wasm・ビルド情報の絶対 URL を `assets` に渡し、ほかのモジュールは
+  loader の隣から読み込みます。
 - **クロスオリジン分離。** COOP `same-origin` と COEP `require-corp` を送るか、
   静的な hosting では coi-serviceworker などの service worker を使います。
-- **CSP。** loader は Blob の module として動くので、`script-src` と
-  `worker-src` に `blob:` を、WebAssembly に `'wasm-unsafe-eval'` を許します。
+- **CSP。** 同じ origin の script と Worker、WebAssembly の compile を許します。
+  たとえば `script-src 'self' 'wasm-unsafe-eval'; worker-src 'self';
+  connect-src 'self'` です。`blob:` は要りません。コアは SHA-256 を照合した後に
+  資産の URL から読み込むので、信頼できる origin から配ります。
 - **guest。** 同じ origin の guest の file と、その SHA256 と `build-info.json`
   を書いた catalog（`GuestCatalog`）を使います。`install <tool>` はすべての bytes
   を確かめてから guest を登録します。

@@ -1,123 +1,108 @@
-// blink の fork を固定したコミットで取得し、wasm にビルドできること。
+// paludarium のコアが、固定した版から照合用の digest つきで dist/paludarium に写され、
+// wasm の memory の上限が 1 GB であること。
 // pitchfork：dist/guests/pitchfork が
 // static な x86-64 の ELF で、取得したコミットと UI の node が記録され、ローカルパッチがないこと。
-// 前提：bash mise-tasks/build/blink-wasm.sh と bash mise-tasks/build/guests.sh pitchfork を実行済み
+// 前提：bun run build と bash mise-tasks/build/guests.sh pitchfork を実行済み
 //       （README の「テスト」を参照）。
 import assert from 'node:assert/strict';
 import { Buffer } from 'node:buffer';
-import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { after, describe, it } from 'node:test';
+import { describe, it } from 'node:test';
 
-import {
-  missingArtifacts,
-  PT_INTERP,
-  readElfInfo,
-  readLock,
-  root,
-  runScript,
-} from './helpers.js';
+import { missingArtifacts, PT_INTERP, readElfInfo, root } from './helpers.js';
 
-const lock = readLock(readFileSync(path.join(root, 'blink.lock'), 'utf8'));
-const scratch = mkdtempSync(path.join(tmpdir(), 'formicarium-build-test-'));
-after(() => rmSync(scratch, { recursive: true, force: true }));
+const CORE = path.join(root, 'dist/paludarium');
+/** 1 GiB（64 KiB のページで 16384）。WebKit が上限まで確保するのを抑える（ADR 0010）。 */
+const MEMORY_PAGES_1GB = 16384;
 
-describe('blink の wasm ビルド', () => {
-  it('dist/blink に blink.mjs と wasm が生成されている', () => {
-    assert.equal(
-      missingArtifacts(['dist/blink/blink.mjs', 'dist/blink/blink.wasm']),
-      null,
+/** wasm が import する memory の上限（ページ数）。import がなければ null。 */
+function importedMemoryMaximum(wasm: Uint8Array) {
+  let offset = 8;
+  const leb = () => {
+    let value = 0;
+    let shift = 0;
+    let byte: number;
+    do {
+      byte = wasm[offset++]!;
+      value += (byte & 0x7f) * 2 ** shift;
+      shift += 7;
+    } while (byte & 0x80);
+    return value;
+  };
+  const skipName = () => {
+    const length = leb();
+    offset += length;
+  };
+  while (offset < wasm.length) {
+    const id = wasm[offset++];
+    const size = leb();
+    const end = offset + size;
+    if (id === 2) {
+      for (let count = leb(); count > 0; count--) {
+        skipName();
+        skipName();
+        const kind = wasm[offset++];
+        if (kind === 0) leb();
+        else if (kind === 1) {
+          offset++;
+          const flags = wasm[offset++]!;
+          leb();
+          if (flags & 1) leb();
+        } else if (kind === 2) {
+          const flags = wasm[offset++]!;
+          leb();
+          return flags & 1 ? leb() : Number.POSITIVE_INFINITY;
+        } else if (kind === 3) offset += 2;
+        else if (kind === 4) {
+          offset++;
+          leb();
+        } else throw new Error(`unknown import kind ${kind}`);
+      }
+    }
+    offset = end;
+  }
+  return null;
+}
+
+describe('paludarium のコア', () => {
+  const info = () =>
+    JSON.parse(readFileSync(path.join(CORE, 'build-info.json'), 'utf8'));
+
+  it('dist/paludarium は package.json で固定した版から、照合用の digest つきで写されている', () => {
+    assert.equal(missingArtifacts(['dist/paludarium/build-info.json']), null);
+    const pkg = JSON.parse(
+      readFileSync(path.join(root, 'package.json'), 'utf8'),
     );
-    const wasm = readFileSync(path.join(root, 'dist/blink/blink.wasm'));
+    const pinned = pkg.devDependencies['@aletheia-works/paludarium-wasm'];
+    assert.match(pinned, /^\d+\.\d+\.\d+$/);
+    const build = info();
+    assert.equal(build.core, 'paludarium');
+    assert.equal(build.version, pinned);
+    for (const [name, digest] of Object.entries(build.files))
+      assert.equal(
+        createHash('sha256')
+          .update(readFileSync(path.join(CORE, name)))
+          .digest('hex'),
+        digest,
+        name,
+      );
+  });
+
+  it('wasm の memory は共有で、上限は 1 GB', () => {
+    const wasm = readFileSync(path.join(CORE, 'paludarium.wasm'));
     // wasm のマジックナンバー "\0asm" とバージョン 1
     assert.deepEqual(
       [...wasm.subarray(0, 8)],
       [0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00],
     );
-    const loader = readFileSync(
-      path.join(root, 'dist/blink/blink.mjs'),
-      'utf8',
+    assert.equal(importedMemoryMaximum(wasm), MEMORY_PAGES_1GB);
+    const loader = readFileSync(path.join(CORE, 'index.mjs'), 'utf8');
+    assert.match(
+      loader,
+      new RegExp(`maximum: ${MEMORY_PAGES_1GB}, shared: true`),
     );
-    assert.match(loader, /export default createBlink/);
-  });
-
-  it('ビルド物は blink.lock のコミットから、JIT なしで作られている', () => {
-    const info = JSON.parse(
-      readFileSync(path.join(root, 'dist/blink/build-info.json'), 'utf8'),
-    );
-    assert.match(lock.commit, /^[0-9a-f]{40}$/);
-    assert.equal(info.blinkCommit, lock.commit);
-    assert.equal(info.blinkSourceDirty, false);
-    assert.match(info.configure, /--disable-jit/);
-    assert.match(info.link, /-sPROXY_TO_PTHREAD/);
-    // WebKit が上限まで確保するのを抑えるため 1GB（ADR 0010）
-    assert.match(info.link, /-sMAXIMUM_MEMORY=1GB/);
-    assert.doesNotMatch(info.link, /-sMAXIMUM_MEMORY=4GB/);
-  });
-});
-
-describe('fork の取得', () => {
-  it('取得物（.vendor/blink）の HEAD は blink.lock のコミットと一致し、upstream との差分を一覧できる', () => {
-    const head = execFileSync(
-      'git',
-      ['-C', path.join(root, '.vendor/blink'), 'rev-parse', 'HEAD'],
-      {
-        encoding: 'utf8',
-      },
-    ).trim();
-    assert.equal(head, lock.commit);
-    const changed = execFileSync(
-      'git',
-      [
-        '-C',
-        path.join(root, '.vendor/blink'),
-        'diff',
-        '--name-only',
-        lock.upstream_commit,
-        lock.commit,
-      ],
-      { encoding: 'utf8' },
-    );
-    assert.match(changed, /blink\/emufd\.c/);
-  });
-
-  it('コミットの書式が不正なロックではエラーで止まる', () => {
-    const badLock = path.join(scratch, 'bad-format.lock');
-    writeFileSync(
-      badLock,
-      readFileSync(path.join(root, 'blink.lock'), 'utf8').replace(
-        /^commit=.*$/m,
-        'commit=main',
-      ),
-    );
-    const result = runScript('mise-tasks/build/fetch-blink.sh', {
-      env: {
-        BLINK_LOCK: badLock,
-        BLINK_DEST: path.join(scratch, 'blink-bad-format'),
-      },
-    });
-    assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /40 桁の 16 進数/);
-  });
-
-  it('fork に存在しないコミットを指すロックではエラーで止まる', () => {
-    const missingLock = path.join(scratch, 'missing-commit.lock');
-    writeFileSync(
-      missingLock,
-      readFileSync(path.join(root, 'blink.lock'), 'utf8').replace(
-        /^commit=.*$/m,
-        `commit=${'0'.repeat(40)}`,
-      ),
-    );
-    const dest = path.join(scratch, 'blink-missing-commit');
-    const result = runScript('mise-tasks/build/fetch-blink.sh', {
-      env: { BLINK_LOCK: missingLock, BLINK_DEST: dest },
-    });
-    assert.notEqual(result.status, 0);
-    assert.doesNotMatch(result.stdout, /に取得しました/);
   });
 });
 

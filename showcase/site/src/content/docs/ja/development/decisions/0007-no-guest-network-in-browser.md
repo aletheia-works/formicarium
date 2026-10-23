@@ -13,6 +13,10 @@ Emscripten は、ゲストの TCP と UDP の socket を WebSocket で中継し�
 失敗しました。aube は `--version` や `install` のたびに、registry へ更新の確認をしに行きます。
 CheerpX の計測も、ネットワークなしで行われていました。
 
+この背景は、Emscripten でビルドした以前の blink のコアについてのものです。コアを paludarium に移してからも決定はそのままで、
+formicarium はゲストにネットワークを渡さず、aube も同じ環境変数と native の基準値で動かします。
+下の `EAFNOSUPPORT` は blink で確かめた結果です。
+
 ## 決定
 
 `socket()` は `EAFNOSUPPORT` を返します。aube は `AUBE_NO_UPDATE_CHECK=1` で実行し（`runtime/registry.ts` の

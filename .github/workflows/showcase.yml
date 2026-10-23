@@ -74,7 +74,6 @@ jobs:
         run: |
           node scripts/ci/tasks.ts install-frozen
           node scripts/ci/tasks.ts build
-          node scripts/migration-session/ci-core.js ci/migration-session/inputs.bundle.json
       - name: Prepare the package for the accepted mode
         env:
           SHOWCASE_SOURCE_COMMIT: ${{ github.sha }}

@@ -1,11 +1,11 @@
 import type {
+  CoreLauncher,
   CoreLoadOptions,
-  ModuleFactory,
   RunRequest,
   Streams,
 } from './contracts.js';
 import { errorCode } from './contracts.js';
-import { type blinkCore, loadPackageCore } from './core.js';
+import { loadPackageCore } from './core.js';
 import { runGuest } from './guest-io.js';
 import { identity, workerErrorMessage } from './protocol.js';
 
@@ -17,15 +17,14 @@ export async function executeWorkerRequest(
     readBytes = async () => {
       throw new Error('Asset reader is unavailable');
     },
-    childWorkers,
     resources,
     loadCore = loadPackageCore,
     clock = () => performance.now(),
   }: Partial<Omit<CoreLoadOptions, 'assets'>> & {
     post(message: object): void;
     loadCore?: (options: CoreLoadOptions) => Promise<{
-      core: typeof blinkCore & { cleanup?(): void };
-      createModule: ModuleFactory;
+      launcher: CoreLauncher;
+      cleanup?(): Promise<void>;
     }>;
     clock?: () => number;
   },
@@ -51,13 +50,11 @@ export async function executeWorkerRequest(
     adapter = await loadCore({
       assets: request.assets,
       readBytes,
-      childWorkers,
       resources,
     });
     const started = clock();
     const result = await runGuest({
-      createModule: adapter.createModule,
-      core: adapter.core,
+      launcher: adapter.launcher,
       guestPath: '/guest/program',
       entries: [
         ...request.entries,
@@ -77,7 +74,7 @@ export async function executeWorkerRequest(
     });
     if (!Array.isArray(result.snapshot))
       throw Object.assign(new Error('Missing snapshot'), { code: 'SNAPSHOT' });
-    await adapter.core.cleanup?.();
+    await adapter.cleanup?.();
     post({
       ...identity(request),
       type: 'done',
@@ -93,7 +90,7 @@ export async function executeWorkerRequest(
   } catch (error) {
     let failure = error;
     try {
-      await adapter?.core.cleanup?.();
+      await adapter?.cleanup?.();
     } catch {
       failure = { code: 'EXECUTION' };
     }

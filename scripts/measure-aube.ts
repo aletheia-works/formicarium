@@ -4,7 +4,7 @@ import type { ChildProcess } from 'node:child_process';
 //                                      [--out .artifacts/measure/aube-timings.json]
 //
 // aube の 4 コマンド（--version、初回 install、frozen install、list）を、Node.js の Worker
-// と各ブラウザの blink 上で実行して時間を測り、JSON に記録する。
+// と各ブラウザの paludarium 上で実行して時間を測り、JSON に記録する。
 // あわせて同じディレクトリの README.md に、CheerpX 1.3.9 の値と並べた表を書く。
 //
 // install・frozen install・list は fixtures/sessions/aube-1645.txt の手順で測る
@@ -256,7 +256,7 @@ async function main() {
   }
 
   const info = JSON.parse(
-    readFileSync(path.join(root, 'dist/blink/build-info.json'), 'utf8'),
+    readFileSync(path.join(root, 'dist/paludarium/build-info.json'), 'utf8'),
   );
   let aubeCommit = 'unknown';
   try {
@@ -275,7 +275,7 @@ async function main() {
       version: runs.find((r) => r.toolVersion)?.toolVersion ?? 'unknown',
       commit: aubeCommit,
     },
-    core: { name: 'blink', commit: info.blinkCommit, emcc: info.emcc },
+    core: { name: info.core, version: info.version },
     host: {
       os: `${os.type()} ${os.release()} ${os.arch()}`,
       cpu: `${os.cpus()[0]?.model} x${os.cpus().length}`,

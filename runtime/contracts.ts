@@ -16,65 +16,54 @@ export interface LegacyEntry {
   data?: Uint8Array | string;
   target?: string;
 }
-export interface FileSystem {
-  analyzePath(path: string, dontResolveLastLink?: boolean): { exists: boolean };
-  isDir(mode: number): boolean;
-  lstat(path: string): { mode: number; ino: number };
-  mkdir(path: string, mode?: number): void;
-  writeFile(path: string, bytes: Uint8Array | string): void;
-  readFile(path: string): Uint8Array;
-  chmod(path: string, mode: number): void;
-  symlink(target: string, path: string): void;
-  readlink(path: string): string;
-  link(source: string, target: string): void;
-  readdir(path: string): string[];
-  init(
-    input: () => null,
-    stdout: (byte: number) => void,
-    stderr: (byte: number) => void,
-  ): void;
-  chdir(path: string): void;
-  rmdir(path: string): void;
-  unlink(path: string): void;
+/** One entry of a core filesystem, in the shape paludarium's snapshot() uses. */
+export interface CoreEntry {
+  path: string;
+  /** Type bits and permissions, as in st_mode. */
+  mode: number;
+  /** Regular file bytes or symlink target bytes; empty for directories. */
+  content?: Uint8Array;
+  /** Entries that share an inode are hard links to one file. */
+  inode?: bigint | number;
 }
-export interface CoreModule {
-  FS: FileSystem;
-  ENV: Record<string, string>;
+export interface CoreFileSystem {
+  snapshot(): Promise<CoreEntry[]>;
+  dispose(): Promise<void>;
 }
-export interface ModuleOptions {
-  arguments: string[];
-  noInitialRun: boolean;
-  preRun: ((module: CoreModule) => void)[];
-  onExit(code: number): void;
-  quit(code: number, error?: Error): void;
-  onAbort(reason: unknown): void;
-  print(line: string): void;
-  printErr(line: string): void;
+export type CoreExit =
+  | { kind: 'exited'; code: number }
+  | { kind: 'signaled'; signal: number };
+export interface CoreGuest {
+  stdin: WritableStream<Uint8Array>;
+  stdout: ReadableStream<Uint8Array>;
+  stderr: ReadableStream<Uint8Array>;
+  exited: Promise<CoreExit>;
+  kill(): void;
 }
-export type ModuleFactory = (options: ModuleOptions) => Promise<CoreModule>;
-export interface CoreDescriptor {
-  name?: string;
-  loaderPath?: string;
-  buildInfoPath?: string;
-  argv(
-    guestPath: string,
-    args: readonly string[],
-    coreFlags?: readonly string[],
-  ): string[];
-  captureModule?(module: CoreModule): CoreModule;
-  // biome-ignore lint/suspicious/noConfusingVoidType: cleanup supports synchronous and asynchronous callbacks with optional success results.
-  cleanup?(): void | boolean | Promise<void | boolean>;
+/** The part of the core's launcher that the runtime uses. */
+export interface CoreLauncher {
+  createFileSystem(options: {
+    files?: Record<string, Uint8Array>;
+    fileModes?: Record<string, number>;
+    entries?: readonly CoreEntry[];
+  }): Promise<CoreFileSystem>;
+  run(options: {
+    program: string;
+    args: string[];
+    env: Record<string, string>;
+    cwd: string;
+    filesystem: CoreFileSystem;
+  }): CoreGuest;
+  dispose(): Promise<void>;
 }
 export interface GuestOptions {
-  createModule: ModuleFactory;
-  core: CoreDescriptor;
+  launcher: CoreLauncher;
   guestPath: string;
   args?: readonly string[];
   entries?: readonly LegacyEntry[];
   env?: Readonly<Record<string, string>>;
   cwd?: string;
   snapshotRoots?: readonly string[];
-  coreFlags?: readonly string[];
   onStdout?: ByteSink;
   onStderr?: ByteSink;
 }
@@ -123,20 +112,18 @@ export type SpawnWorker = (
   request: RunRequest,
   handlers: WorkerHandlers,
 ) => WorkerHandle;
+/** Verified core files written where the core can import them (Node.js). */
 export interface ResourceDescriptor {
   resourceId: number;
+  /** URL of the core's entry module. */
   moduleURL: string;
-  bootstrapURL: string;
+  /** URL of the core's wasm binary. */
+  wasmURL: string;
 }
 export interface ResourceAllocator {
-  allocate(bytes: Uint8Array): Promise<ResourceDescriptor>;
+  allocate(files: Record<string, Uint8Array>): Promise<ResourceDescriptor>;
 }
 export type ControlMessage =
-  | {
-      type: 'child-message' | 'child-error';
-      childId: number;
-      payload?: unknown;
-    }
   | {
       type: 'resource-ready';
       resourceRequestId: number;
@@ -157,12 +144,10 @@ export interface HostOptions {
   env?: Record<string, string>;
   cwd?: string;
   steps?: SessionStep[];
-  coreFlags?: string[];
   persist?: string[];
   onStdout?: ByteSink;
   onStderr?: ByteSink;
   timeoutMs?: number;
-  core?: CoreDescriptor & { name: string; loaderPath: string };
 }
 export interface HostResult {
   results: (GuestResult & { step: SessionStep; elapsedMs: number })[];
@@ -170,9 +155,9 @@ export interface HostResult {
 export interface CoreLoadOptions {
   assets: Assets;
   readBytes(url: string | URL): Promise<Uint8Array>;
-  childWorkers?: ControlChannel;
+  /** Present in Node.js: writes the verified files where they can be imported. */
   resources?: ResourceAllocator;
-  importModule?: (url: string) => Promise<{ default: unknown }>;
+  importModule?: (url: string) => Promise<Record<string, unknown>>;
 }
 
 export function errorCode(error: unknown): string | undefined {

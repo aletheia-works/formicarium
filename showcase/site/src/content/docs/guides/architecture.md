@@ -8,12 +8,12 @@ description: How the emulator, the public API and the showcase fit together.
 showcase page (Astro + Starlight, xterm.js)
   -> public API: createSession (/browser), createCommandSession (root)
      -> Session: files, cwd and one run at a time
-        -> Web Worker per run: blink compiled to WebAssembly
+        -> Web Worker per run: paludarium compiled to WebAssembly
            -> static x86-64 Linux ELF guest
 ```
 
-**Emulator.** formicarium runs blink, a user-mode x86-64 Linux emulator, as
-WebAssembly. Each run starts a fresh Worker; files written by a command stay in
+**Emulator.** formicarium runs paludarium, a user-mode x86-64 Linux emulator
+written in Rust, as WebAssembly. Each run starts a fresh Worker; files written by a command stay in
 the Session and are passed to the next one. Guests are validated against their
 SHA256 and `build-info.json` before they run.
 

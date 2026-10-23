@@ -144,7 +144,7 @@ test('required CI passes each needed job and refuses a skipped needed or a run u
   assert.notEqual(run({ CANDIDATE_REQUIRED: '' }), 0);
 });
 
-test('release candidate workflow consumes same-run wasm and exports no writer permissions', async () => {
+test('release candidate workflow builds the pinned core itself and exports no writer permissions', async () => {
   const { readFile } = await import('node:fs/promises');
   const { parse } = await import('yaml');
   const workflow = parse(
@@ -159,15 +159,11 @@ test('release candidate workflow consumes same-run wasm and exports no writer pe
     with?: Record<string, string>;
     env?: Record<string, string>;
   }[];
-  const download = steps.find((s) =>
-    s.uses?.startsWith('actions/download-artifact@'),
-  )!;
-  assert.equal(
-    download.with?.name,
-    'product-build-wasm-${{ inputs.source-sha }}-${{ github.run_id }}-${{ github.run_attempt }}',
+  // The core comes from the pinned npm package through this run's own build.
+  assert.ok(
+    steps.every((s) => !s.uses?.startsWith('actions/download-artifact@')),
   );
-  assert.equal(download.with?.['run-id'], undefined);
-  assert.equal(download.with?.['github-token'], undefined);
+  assert.ok(steps.some((s) => s.run === 'bun scripts/ci/tasks.ts build'));
   assert.ok(
     steps.some((s) => s.run?.includes('release-candidate.ts prepare-inputs')),
   );

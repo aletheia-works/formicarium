@@ -126,7 +126,7 @@ test('CPU-bound real guest abort rolls back and immediately permits next run', a
   assert.deepEqual(await session.listEntries(), []);
   assert.equal((await session.run({ guest })).exitCode, 0);
 });
-test('real guest pthread normal exit permits another fresh Worker run', async (t) => {
+test('real guest thread normal exit permits another fresh Worker run', async (t) => {
   const session = await createSession();
   t.after(() => session.dispose());
   const result = await session.run({ guest, args: ['thread-exit'] });
@@ -149,18 +149,17 @@ test('installed real loader mutation never executes unverified original URL byte
   );
   const fixture = await mutatedLoaderFixture(
     directory,
-    resolve(installed, 'assets'),
+    resolve(installed, 'assets/paludarium'),
   );
   const adapter = await loadPackageCore(fixture);
   t.after(async () => {
-    adapter.core.cleanup();
+    await adapter.cleanup();
     await fixture.dispose();
     delete (globalThis as unknown as Record<string, unknown>)[fixture.marker];
     await rm(directory, { recursive: true, force: true });
   });
   const result = await runGuest({
-    createModule: adapter.createModule,
-    core: adapter.core,
+    launcher: adapter.launcher,
     guestPath: '/guest/program',
     entries: [
       {
@@ -170,9 +169,6 @@ test('installed real loader mutation never executes unverified original URL byte
         mode: 0o755,
       },
     ],
-    args: [],
-    env: {},
-    cwd: '/work',
     snapshotRoots: ['/work'],
   });
   assert.equal(result.exitCode, 0);
@@ -201,7 +197,9 @@ async function withCleanupOracle(
   );
   const hadTmpdir = Object.hasOwn(process.env, 'TMPDIR');
   const previousTmpdir = process.env.TMPDIR;
-  const expectedLoader = await readFile(resolve(installed, 'assets/blink.mjs'));
+  const expectedLoader = await readFile(
+    resolve(installed, 'assets/paludarium/index.mjs'),
+  );
   process.env.TMPDIR = directory;
   try {
     return await callback({
@@ -221,7 +219,7 @@ async function withCleanupOracle(
           'the active run must own one real loader directory',
         );
         const ownerPath = join(directory, directories[0]);
-        const loaderPath = join(ownerPath, 'blink.mjs');
+        const loaderPath = join(ownerPath, 'index.mjs');
         assert.equal(statSync(ownerPath).mode & 0o777, 0o700);
         assert.equal(statSync(loaderPath).mode & 0o777, 0o400);
         assert.equal(
@@ -411,12 +409,17 @@ test('cleanup oracle ignores deletion by an unrelated temporary resource owner',
   const { createCoreResourceOwner } = await import(
     pathToFileURL(resolve(installed, 'runtime/core.js')).href
   );
-  const unrelated = createCoreResourceOwner({ environment: 'node' });
-  const loader = new Uint8Array(
-    await readFile(resolve(installed, 'assets/blink.mjs')),
+  const { CORE_FILES } = await import(
+    pathToFileURL(resolve(installed, 'runtime/core.js')).href
   );
+  const unrelated = createCoreResourceOwner();
+  const core: Record<string, Uint8Array> = {};
+  for (const name of CORE_FILES as string[])
+    core[name] = new Uint8Array(
+      await readFile(resolve(installed, 'assets/paludarium', name)),
+    );
   try {
-    const descriptor = await unrelated.allocate(loader);
+    const descriptor = await unrelated.allocate(core);
     await withCleanupOracle(async (oracle) => {
       assert.equal(
         descriptor.moduleURL.startsWith(
@@ -427,9 +430,9 @@ test('cleanup oracle ignores deletion by an unrelated temporary resource owner',
       await oracle.assertEmpty(); // A real other-owner resource exists outside our root.
       await unrelated.dispose();
       await oracle.assertEmpty(); // Its deletion has no influence.
-      const leaked = createCoreResourceOwner({ environment: 'node' });
+      const leaked = createCoreResourceOwner();
       try {
-        await leaked.allocate(loader);
+        await leaked.allocate(core);
         oracle.observeLoader();
         await assert.rejects(
           oracle.assertEmpty(),

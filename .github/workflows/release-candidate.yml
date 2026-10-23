@@ -55,11 +55,6 @@ jobs:
       - run: bun scripts/ci/tasks.ts install-frozen --cacheless
       - run: bun add --dev --no-save --ignore-scripts @playwright/test@latest @biomejs/biome@latest typescript@latest
       - run: bun scripts/ci/tasks.ts build
-      - name: Use the wasm built by this PR and run attempt
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
-        with:
-          name: product-build-wasm-${{ inputs.source-sha }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: dist
       - name: Download reviewed external guest and consumer fixtures
         env:
           FORMICARIUM_MODERNIZATION_INPUT_URL: https://raw.githubusercontent.com/aletheia-works/formicarium/e206962ed3d7a7738b46d03c1106db392141381d/verification-inputs/candidate-0.2.0.tar.gz

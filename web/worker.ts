@@ -1,9 +1,9 @@
-import type { LegacyEntry, ModuleFactory } from '../runtime/contracts.js';
+import type { CoreLauncher, LegacyEntry } from '../runtime/contracts.js';
 import { errorText } from '../runtime/contracts.js';
-// ブラウザの Worker。コア（blink）を読み込み、ゲストを実行して結果をページに返す。
-// コアの pthread は、この Worker からさらに Worker として起動される。
+// ブラウザの Worker。コア（paludarium）を読み込み、ゲストを実行して結果をページに返す。
+// コアは自分の Worker を、この Worker からさらに起動する。
 // メッセージ：{type:'stdout'|'stderr', text} を逐次、最後に {type:'done', ...} か {type:'error', message}。
-import { defaultCore } from '../runtime/core.js';
+import { coreAssets, loadPackageCore } from '../runtime/core.js';
 import {
   GUEST_DIR,
   GuestRunError,
@@ -16,12 +16,6 @@ import {
   toSessionSteps,
 } from '../runtime/session.js';
 import { GUEST_ENV, GUESTS, SESSIONS } from './sessions.js';
-
-// Emscripten は Atomics.waitAsync があると、このスレッドへの代行依頼（ファイル操作など）を
-// waitAsync で待つ。WebKit ではその通知が取りこぼされ、ゲスト全体が数十秒〜無期限に止まる
-// ことを観測した（aube #1645、loop-back 1 の診断）。コアを読み込む前に無効にして、
-// postMessage で起こす経路を使わせる。
-delete (Atomics as { waitAsync?: typeof Atomics.waitAsync }).waitAsync;
 
 const decoder = { stdout: new TextDecoder(), stderr: new TextDecoder() };
 
@@ -44,29 +38,28 @@ async function fetchText(relative: string) {
   return new TextDecoder().decode(await fetchBytes(relative));
 }
 
-async function loadCore() {
-  const url = new URL(`../${defaultCore.loaderPath}`, import.meta.url);
-  const { default: createModule } = await import(url.href);
-  return createModule;
+/** bun run build が dist/paludarium に写したコアを、照合してから起動する。 */
+function loadCore() {
+  return loadPackageCore({
+    assets: coreAssets(
+      new URL('../dist/paludarium/', import.meta.url),
+      import.meta.url,
+    ),
+    readBytes: (url) => fetchBytes(String(url)),
+  });
 }
 
 async function runGuestRequest(
-  createModule: ModuleFactory,
-  {
-    name,
-    args,
-    coreFlags = [],
-  }: { name: string; args: string[]; coreFlags?: string[] },
+  launcher: CoreLauncher,
+  { name, args }: { name: string; args: string[] },
 ) {
   const guestPath = `${GUEST_DIR}/${name}`;
   const data = await fetchBytes(GUESTS[name]!);
   const started = performance.now();
   const result = await runGuest({
-    createModule,
-    core: defaultCore,
+    launcher,
     guestPath,
     args,
-    coreFlags: coreFlags.includes('-s') ? [...coreFlags, '-e'] : coreFlags,
     env: GUEST_ENV[name] ?? {},
     entries: [{ path: guestPath, type: 'file', data, mode: 0o755 }],
     onStdout: (c) => post('stdout', c),
@@ -85,8 +78,8 @@ async function runGuestRequest(
 }
 
 async function runSessionRequest(
-  createModule: ModuleFactory,
-  { name, coreFlags = [] }: { name: string; coreFlags?: string[] },
+  launcher: CoreLauncher,
+  { name }: { name: string },
 ) {
   const session = SESSIONS[name]!;
   // ゲスト名は手順ごとに違う（aube、pitchfork）。表の guest をそのままコマンド名として渡す。
@@ -110,15 +103,13 @@ async function runSessionRequest(
     });
   }
   const results = await runSession({
-    createModule,
-    core: defaultCore,
+    launcher,
     guestPath,
     guestEntry,
     steps: toSessionSteps(commands, session.cwd),
     entries,
     env: GUEST_ENV[session.guest] ?? {},
     cwd: session.cwd,
-    coreFlags: coreFlags.includes('-s') ? [...coreFlags, '-e'] : coreFlags,
     persist: session.persist,
     onStdout: (c) => post('stdout', c),
     onStderr: (c) => post('stderr', c),
@@ -136,12 +127,16 @@ async function runSessionRequest(
 
 self.onmessage = async ({ data: request }) => {
   try {
-    const createModule = await loadCore();
-    const outcome =
-      request.kind === 'session'
-        ? await runSessionRequest(createModule, request)
-        : await runGuestRequest(createModule, request);
-    self.postMessage({ type: 'done', ...outcome });
+    const { launcher, cleanup } = await loadCore();
+    try {
+      const outcome =
+        request.kind === 'session'
+          ? await runSessionRequest(launcher, request)
+          : await runGuestRequest(launcher, request);
+      self.postMessage({ type: 'done', ...outcome });
+    } finally {
+      await cleanup();
+    }
   } catch (error) {
     // コアの stderr の最後を添えて、原因を追えるようにする
     const stderr =
@@ -151,14 +146,3 @@ self.onmessage = async ({ data: request }) => {
     self.postMessage({ type: 'error', message: errorText(error), stderr });
   }
 };
-
-// Emscripten は終了時に ExitStatus を throw する。結果は onExit で受け取っているので、
-// それ以外のエラーだけをページに伝える。
-self.addEventListener('error', (event) => {
-  if (
-    event.error?.name === 'ExitStatus' ||
-    /ExitStatus|unwind/.test(String(event.message))
-  ) {
-    event.preventDefault();
-  }
-});

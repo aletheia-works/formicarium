@@ -55,18 +55,28 @@ are development tools and are not part of the package.
 
 ## The core
 
-The current core is a fork of [jart/blink](https://github.com/jart/blink)
-([aletheia-works/blink](https://github.com/aletheia-works/blink), branch
-`formicarium-wasm`, pinned in `blink.lock`), compiled to WebAssembly with
-Emscripten as an interpreter only ([ADR 0002](/formicarium/development/decisions/0002-interpreter-only-jit-deferred/)).
-Guest threads run on Emscripten pthreads, so browsers need `SharedArrayBuffer`
-and therefore cross-origin isolation. The decisions specific to this core are
-in the repository's
-[`docs/decisions/`](https://github.com/aletheia-works/formicarium/tree/main/docs/decisions).
+The core is [paludarium](https://github.com/aletheia-works/paludarium), a
+from-scratch Rust counterpart of jart/blink published as
+`@aletheia-works/paludarium-wasm` and pinned to an exact version in
+`package.json`. `bun run build` copies its files (the `index.mjs` launcher, its
+helper modules, `paludarium.wasm` and `LICENSE`) into `dist/paludarium/` and
+writes `build-info.json` with the version and the SHA-256 of every file; the
+package ships the same files under `assets/paludarium/`.
 
-The core will be replaced by [paludarium](https://github.com/aletheia-works/paludarium),
-a Rust reimplementation of blink published as `@aletheia-works/paludarium-wasm`.
-Only `runtime/core.ts` and the Worker that loads the core change with it.
+`runtime/core.ts` verifies every digest, then starts the core with
+`createPaludarium({ wasmUrl })`. The launcher it returns creates a filesystem
+from entries, runs a program with arguments, environment and working directory,
+and streams stdin, stdout and stderr until the guest exits. Node.js loads the
+verified bytes from a private run-specific directory; browsers load the core
+from the asset URLs after the check, and the core starts its own module Workers
+next to its loader. The core uses shared WebAssembly memory, so browsers need
+`SharedArrayBuffer` and therefore cross-origin isolation. JIT work in
+formicarium stays deferred ([ADR 0002](/formicarium/development/decisions/0002-interpreter-only-jit-deferred/)).
+
+The previous core, a fork of blink built with Emscripten, is gone; its
+decisions remain in the repository's
+[`docs/decisions/`](https://github.com/aletheia-works/formicarium/tree/main/docs/decisions)
+as history.
 
 ## Limits
 

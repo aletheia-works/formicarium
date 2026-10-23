@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import { CORE_FILES, CORE_PACKAGE } from '../../runtime/core.js';
 import {
   FIRST_PARTY_JS,
   PACKAGE_FILES,
@@ -34,7 +35,7 @@ test('real tarball inventory is exactly the fixed public files', () => {
     .map((path) => path.slice(8));
   assert.deepEqual(paths.sort(), [...PACKAGE_FILES].sort());
   assert.equal(FIRST_PARTY_JS.length, 23);
-  assert.equal(PACKAGE_FILES.length, 34);
+  assert.equal(PACKAGE_FILES.length, 40);
 });
 test('real tarball every file matches staged manifest digest', () => {
   assert.deepEqual(
@@ -50,9 +51,9 @@ test('package exports six exact entries and no development tools/dependencies', 
     '.',
     './node',
     './browser',
-    './assets/blink.mjs',
-    './assets/blink.wasm',
-    './assets/build-info.json',
+    './assets/paludarium/index.mjs',
+    './assets/paludarium/paludarium.wasm',
+    './assets/paludarium/build-info.json',
   ]);
   assert.equal(pkg.name, '@aletheia-works/formicarium');
   assert.equal(pkg.private, true);
@@ -60,19 +61,23 @@ test('package exports six exact entries and no development tools/dependencies', 
   assert.equal(pkg.scripts, undefined);
   assert.equal(pkg.devDependencies, undefined);
 });
-test('assets identify pinned clean core and exact loader/wasm bytes', async () => {
-  const info = JSON.parse(read('assets/build-info.json').toString('utf8'));
-  const lock = await readFile(
-    new URL('../../blink.lock', import.meta.url),
-    'utf8',
+test('assets identify the pinned core version and the exact bytes of every core file', async () => {
+  const info = JSON.parse(
+    read('assets/paludarium/build-info.json').toString('utf8'),
   );
-  assert.equal(info.blinkCommit, /^commit=(\w+)$/m.exec(lock)?.[1]);
-  assert.equal(info.blinkSourceDirty, false);
-  assert.equal(
-    info.assetDigests.loaderSha256,
-    sha256(read('assets/blink.mjs')),
+  const pkg = JSON.parse(
+    await readFile(new URL('../../package.json', import.meta.url), 'utf8'),
   );
-  assert.equal(info.assetDigests.wasmSha256, sha256(read('assets/blink.wasm')));
+  assert.equal(info.core, 'paludarium');
+  assert.equal(info.version, pkg.devDependencies[CORE_PACKAGE]);
+  assert.deepEqual(Object.keys(info.files).sort(), [...CORE_FILES].sort());
+  for (const name of CORE_FILES)
+    assert.equal(
+      info.files[name],
+      sha256(read(`assets/paludarium/${name}`)),
+      name,
+    );
+  assert.ok(read('assets/paludarium/LICENSE').length > 100);
 });
 test('license/notices/types/readme are nonempty and guests stay external', () => {
   for (const path of [

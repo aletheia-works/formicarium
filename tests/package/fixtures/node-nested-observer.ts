@@ -1,4 +1,4 @@
-// Test-only wrapper: observe real pthread Worker activity without changing tgz bytes.
+// Test-only wrapper: observe the core's real Worker activity without changing tgz bytes.
 import { createRequire, syncBuiltinESMExports } from 'node:module';
 import { parentPort } from 'node:worker_threads';
 

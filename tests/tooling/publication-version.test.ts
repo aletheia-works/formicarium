@@ -69,7 +69,7 @@ async function bundle(t: TestContext, version = '0.1.0-rc.1') {
   };
   setEnvironment(env);
   t.after(() => setEnvironment(previous));
-  const core = { blinkCommit: 'c'.repeat(40), blinkSourceDirty: false };
+  const core = { core: 'paludarium', version: '0.3.0' };
   const files: { path: string; sha256: string }[] = [];
   for (const path of PACKAGE_FILES) {
     const manifest = {
@@ -82,9 +82,9 @@ async function bundle(t: TestContext, version = '0.1.0-rc.1') {
           '.',
           './node',
           './browser',
-          './assets/blink.mjs',
-          './assets/blink.wasm',
-          './assets/build-info.json',
+          './assets/paludarium/index.mjs',
+          './assets/paludarium/paludarium.wasm',
+          './assets/paludarium/build-info.json',
         ].map((key) => [key, './fixture.js']),
       ),
       repository: {
@@ -99,7 +99,7 @@ async function bundle(t: TestContext, version = '0.1.0-rc.1') {
     const bytes =
       path === 'package.json'
         ? JSON.stringify(manifest)
-        : path === 'assets/build-info.json'
+        : path === 'assets/paludarium/build-info.json'
           ? JSON.stringify(core)
           : `fixture-only archive ${path}`;
     await mkdir(dirname(join(root, 'package', path)), { recursive: true });
@@ -120,10 +120,11 @@ async function bundle(t: TestContext, version = '0.1.0-rc.1') {
   f.c.sourceCommit = identity.sourceCommit;
   f.c.tarballSha256 = digest;
   f.c.core = {
-    sourceCommit: core.blinkCommit,
+    sourceCommit: core.version,
     dirty: false,
-    buildInfoSha256: files.find((row) => row.path === 'assets/build-info.json')!
-      .sha256,
+    buildInfoSha256: files.find(
+      (row) => row.path === 'assets/paludarium/build-info.json',
+    )!.sha256,
   };
   f.c.firstPartyJs = await Promise.all(
     f.c.firstPartyJs.map(async (row) => {

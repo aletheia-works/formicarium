@@ -1,21 +1,17 @@
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import type { IncomingMessage } from 'node:http';
-import type { AddressInfo } from 'node:net';
-import type { TestContext } from 'node:test';
-import type { FsEntry } from '../../types/index.js';
-
-interface FsNode {
-  mode: number;
-  ino: number;
-  data?: Uint8Array;
-  target?: string;
-}
-
-import { createHash } from 'node:crypto';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import type { TestContext } from 'node:test';
+import type {
+  CoreEntry,
+  CoreExit,
+  CoreLauncher,
+} from '../../runtime/contracts.js';
+import { coreAssets } from '../../runtime/core.js';
+import type { FsEntry } from '../../types/index.js';
 
 /** Minimal ELF header for boundary tests; it is deliberately not executable. */
 export function elfHeader({ interpreter = false } = {}) {
@@ -49,127 +45,90 @@ export async function isolatedDirectory(test: TestContext) {
   return directory;
 }
 
-/** Small FS oracle: links share nodes, lstat never follows symlinks. */
-export function memoryFs() {
-  let inode = 1;
-  const nodes = new Map<string, FsNode>([
-    ['/', { mode: 0o40755, ino: inode++ }],
-  ]);
-  const find = (path: string) => {
-    const node = nodes.get(path);
-    if (!node) throw Object.assign(new Error('not found'), { code: 'ENOENT' });
-    return node;
-  };
-  return {
-    nodes,
-    cwd: '/',
-    stdout: (_byte: number): void => {},
-    stderr: (_byte: number): void => {},
-    analyzePath(path: string) {
-      return { exists: nodes.has(path), object: nodes.get(path) };
-    },
-    isDir(mode: number) {
-      return (mode & 0o170000) === 0o40000;
-    },
-    mkdir(path: string, mode = 0o755) {
-      const parent = path.slice(0, path.lastIndexOf('/')) || '/';
-      const node = find(parent);
-      if ((node.mode & 0o170000) !== 0o40000)
-        throw Object.assign(new Error('parent is not a directory'), {
-          code: 'ENOTDIR',
-        });
-      if (nodes.has(path))
-        throw Object.assign(new Error('already exists'), { code: 'EEXIST' });
-      nodes.set(path, { mode: 0o40000 | mode, ino: inode++ });
-    },
-    writeFile(path: string, data: Uint8Array | string) {
-      const node: FsNode = nodes.get(path) ?? { mode: 0o100644, ino: inode++ };
-      node.data =
-        typeof data === 'string'
-          ? new TextEncoder().encode(data)
-          : new Uint8Array(data);
-      nodes.set(path, node);
-    },
-    readFile(path: string) {
-      return new Uint8Array(find(path).data!);
-    },
-    chmod(path: string, mode: number) {
-      const node = find(path);
-      node.mode = (node.mode & 0o170000) | mode;
-    },
-    symlink(target: string, path: string) {
-      nodes.set(path, { mode: 0o120777, ino: inode++, target });
-    },
-    readlink(path: string) {
-      return find(path).target!;
-    },
-    link(source: string, target: string) {
-      nodes.set(target, find(source));
-    },
-    lstat(path: string) {
-      const node = find(path);
-      return { mode: node.mode, ino: node.ino };
-    },
-    readdir(path: string) {
-      const prefix = path === '/' ? '/' : `${path}/`;
-      return [
-        '.',
-        '..',
-        ...[...nodes.keys()]
-          .filter(
-            (name) =>
-              name !== path &&
-              name.startsWith(prefix) &&
-              !name.slice(prefix.length).includes('/'),
-          )
-          .map((name) => name.slice(prefix.length)),
-      ];
-    },
-    init(
-      _input: () => null,
-      stdout: (byte: number) => void,
-      stderr: (byte: number) => void,
-    ) {
-      this.stdout = stdout;
-      this.stderr = stderr;
-    },
-    chdir(path: string) {
-      find(path);
-      this.cwd = path;
-    },
-    unlink(path: string) {
-      find(path);
-      nodes.delete(path);
-    },
-    rmdir(path: string) {
-      find(path);
-      nodes.delete(path);
-    },
-  };
+/** What one guest run did inside the fake core. */
+export interface FakeBehaviour {
+  stdout?: Uint8Array[];
+  stderr?: Uint8Array[];
+  exit?: CoreExit;
+  /** Throws from exited, as a core failure would. */
+  fail?: unknown;
+}
+export interface FakeRun {
+  program: string;
+  args: string[];
+  env: Record<string, string>;
+  cwd: string;
+  /** The filesystem by path; changes show in its snapshot. */
+  files: Map<string, CoreEntry>;
 }
 
-export async function developmentAssets(test: TestContext) {
-  const directory = await isolatedDirectory(test);
-  const base = new URL('../../dist/blink/', import.meta.url);
-  const loader = await readFile(new URL('blink.mjs', base));
-  const wasm = await readFile(new URL('blink.wasm', base));
-  const buildInfo = JSON.parse(
-    await readFile(new URL('build-info.json', base), 'utf8'),
+const streamOf = (chunks: Uint8Array[] = []) =>
+  new ReadableStream<Uint8Array>({
+    start(controller) {
+      for (const chunk of chunks) controller.enqueue(chunk);
+      controller.close();
+    },
+  });
+
+/** In-memory stand-in for the paludarium launcher. */
+export function fakeLauncher(
+  behave: (run: FakeRun) => FakeBehaviour = () => ({}),
+) {
+  const runs: FakeRun[] = [];
+  const state = { filesystems: 0, disposedFilesystems: 0, disposed: 0 };
+  const launcher: CoreLauncher & { runs: FakeRun[]; state: typeof state } = {
+    runs,
+    state,
+    async createFileSystem({ entries = [] }) {
+      state.filesystems++;
+      const files = new Map(entries.map((entry) => [entry.path, entry]));
+      return Object.assign(
+        {
+          async snapshot() {
+            return [...files.values()];
+          },
+          async dispose() {
+            state.disposedFilesystems++;
+          },
+        },
+        { files },
+      );
+    },
+    run({ program, args, env, cwd, filesystem }) {
+      const run = {
+        program,
+        args,
+        env,
+        cwd,
+        files: (filesystem as unknown as { files: Map<string, CoreEntry> })
+          .files,
+      };
+      runs.push(run);
+      const behaviour = behave(run);
+      return {
+        stdin: new WritableStream<Uint8Array>(),
+        stdout: streamOf(behaviour.stdout),
+        stderr: streamOf(behaviour.stderr),
+        exited:
+          'fail' in behaviour
+            ? Promise.reject(behaviour.fail)
+            : Promise.resolve(behaviour.exit ?? { kind: 'exited', code: 0 }),
+        kill() {},
+      };
+    },
+    async dispose() {
+      state.disposed++;
+    },
+  };
+  return launcher;
+}
+
+/** The core that bun run build copies to dist/paludarium, as package assets. */
+export async function developmentAssets(_test?: TestContext) {
+  return coreAssets(
+    new URL('../../dist/paludarium/', import.meta.url),
+    new URL('../../runtime/node/package-worker.js', import.meta.url),
   );
-  const hash = (bytes: Uint8Array) =>
-    createHash('sha256').update(bytes).digest('hex');
-  buildInfo.assetDigests = {
-    loaderSha256: hash(loader),
-    wasmSha256: hash(wasm),
-  };
-  const infoPath = join(directory, 'build-info.json');
-  await writeFile(infoPath, JSON.stringify(buildInfo));
-  return {
-    loaderURL: new URL('blink.mjs', base),
-    wasmURL: new URL('blink.wasm', base),
-    buildInfoURL: pathToFileURL(infoPath),
-    workerURL: new URL('../../runtime/node/package-worker.js', import.meta.url),
-  };
 }
 
 /** Explicit localhost server; each test owns its port and isolation headers. */

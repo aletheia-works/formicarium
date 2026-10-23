@@ -24,10 +24,10 @@ export async function toolVersion(
       { path: '/work/app', type: 'dir', mode: 0o755 },
     ],
     assets: {
-      loaderURL: new URL('assets/blink.mjs', packageBase),
-      wasmURL: new URL('assets/blink.wasm', packageBase),
+      loaderURL: new URL('assets/paludarium/index.mjs', packageBase),
+      wasmURL: new URL('assets/paludarium/paludarium.wasm', packageBase),
       workerURL: new URL('runtime/web/package-worker.bundle.js', packageBase),
-      buildInfoURL: new URL('assets/build-info.json', packageBase),
+      buildInfoURL: new URL('assets/paludarium/build-info.json', packageBase),
     },
   });
   try {

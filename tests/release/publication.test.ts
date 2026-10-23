@@ -52,9 +52,9 @@ async function archiveFixture(t: TestContext) {
         '.',
         './node',
         './browser',
-        './assets/blink.mjs',
-        './assets/blink.wasm',
-        './assets/build-info.json',
+        './assets/paludarium/index.mjs',
+        './assets/paludarium/paludarium.wasm',
+        './assets/paludarium/build-info.json',
       ].map((key) => [key, './fixture.js']),
     ),
   };
@@ -81,7 +81,7 @@ async function archiveFixture(t: TestContext) {
   await writeFile(
     oldManifest,
     JSON.stringify({
-      blinkSourceDirty: false,
+      core: { package: '@aletheia-works/paludarium-wasm', version: '0.3.0' },
       files,
       tarball: { sha256: sha256(await readFile(oldTar)) },
     }),

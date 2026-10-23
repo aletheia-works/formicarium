@@ -3,13 +3,13 @@ import { cp, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { CORE_PACKAGE } from '../../runtime/core.js';
 import {
   prepareCoverage as preparePackageCoverage,
   reportCoverage as reportPackageCoverage,
 } from '../package/coverage.js';
 import { FIRST_PARTY_JS } from '../release/inventory.js';
 import { validatePayloadInventory } from './bundle.js';
-import { bootstrapCoreSource } from './core-source.js';
 import {
   type CheckResult,
   createFreshResultsDirectory,
@@ -122,7 +122,7 @@ export async function runVerification(
   await verifyPins(resolve(inputRoot, 'payload'), manifest.files);
   for (const row of manifest.files) {
     if (
-      !/^(assets\/|dist\/(guests|blink)\/|fixtures\/|\.artifacts\/(ci-candidate|u1-fixture)\/)/.test(
+      !/^(dist\/guests\/|fixtures\/|\.artifacts\/(ci-candidate|u1-fixture)\/)/.test(
         row.path,
       )
     )
@@ -180,8 +180,7 @@ export async function runVerification(
   if (
     candidate.tarball.sha256 !==
       hash(await readFile(resolve(root, manifest.tarball))) ||
-    candidate.blinkCommit !== manifest.coreCommit ||
-    candidate.blinkSourceDirty !== false
+    candidate.core?.package !== CORE_PACKAGE
   )
     throw Error('package/core manifest differs');
   for (const row of candidate.files)
@@ -190,14 +189,6 @@ export async function runVerification(
       row.sha256
     )
       throw Error(`installed package differs: ${row.path}`);
-  const coreInfo = JSON.parse(
-    await readFile(resolve(root, 'assets/build-info.json'), 'utf8'),
-  );
-  if (
-    coreInfo.blinkCommit !== manifest.coreCommit ||
-    coreInfo.blinkSourceDirty !== false
-  )
-    throw Error('asset core provenance differs');
   for (const name of ['aube', 'pitchfork'] as const) {
     const info = JSON.parse(
       await readFile(
@@ -235,11 +226,6 @@ export async function runVerification(
       ),
     ]),
   );
-  await bootstrapCoreSource(root, manifest, command);
-  await command('core-source-provenance', [
-    'bash',
-    'mise-tasks/build/fetch-blink.sh',
-  ]);
   results.push(
     await command('node-regression', [
       node,

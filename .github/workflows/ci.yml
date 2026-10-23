@@ -105,12 +105,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - component: 'wasm'
-            image: 'emscripten/emsdk:latest'
-            output: 'dist/blink/'
-            source: 'blink.lock'
-            lock: 'mise-tasks/build/fetch-blink.sh'
-            script: 'mise-tasks/build/blink-wasm.sh'
           - component: 'probe'
             image: 'rust:alpine'
             output: 'dist/guests/'
@@ -125,7 +119,6 @@ jobs:
             script: 'mise-tasks/build/guests.sh'
     env:
       FORMICARIUM_CONTAINER: 'docker'
-      FORMICARIUM_EMSDK_IMAGE: 'emscripten/emsdk:latest'
       AUBE_REF: 'v2.7.0'
       PITCHFORK_REF: 'v2.30.1'
     steps:
@@ -156,38 +149,13 @@ jobs:
             digest=$(docker image inspect --format '{{.Id}}' rust:alpine node:current-alpine | sha256sum | cut -d ' ' -f 1)
             printf 'ui-digest=%s\n' "$digest" >> "$GITHUB_OUTPUT"
           fi
-      - name: 'Cache wasm or probe by compiler and build inputs'
-        if: "matrix.component != 'guests'"
+      - name: 'Cache probe by compiler and build inputs'
+        if: "matrix.component == 'probe'"
         id: 'product-cache'
         uses: 'actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9' # v6.1.0
         with:
           path: '${{ matrix.output }}'
           key: "product-${{ matrix.component }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.build-image.outputs.digest }}-${{ hashFiles(matrix.source, matrix.lock, matrix.script, 'scripts/lib/container.sh', 'scripts/lib/node.sh') }}"
-      - name: 'Fetch fixed core source input'
-        env:
-          FORMICARIUM_MODERNIZATION_INPUT_URL: 'https://raw.githubusercontent.com/aletheia-works/formicarium/674a7f0a1b1736a2df61a994ab2dac29dddb8ace/modernization-inputs.tar.gz'
-          FORMICARIUM_MODERNIZATION_INPUT_SHA256: '0b074f0ebc170fbabed0fbe1d8bfad9628247a4131f78223db8c343412c38730'
-        run: 'python3 scripts/ci/install-modernization-inputs.py'
-        if: "matrix.component == 'wasm' && steps.product-cache.outputs.cache-hit != 'true'"
-      - name: 'Prepare locked core source'
-        run: |-
-          mkdir -p .artifacts/ci-candidate
-          cp .ci-inputs/payload/.artifacts/ci-candidate/core-source.bundle .artifacts/ci-candidate/
-          bun run - <<'JS'
-          import { readFileSync } from 'node:fs';
-          import { spawnSync } from 'node:child_process';
-          import { bootstrapCoreSource } from './scripts/ci/core-source.js';
-          const manifest = JSON.parse(readFileSync('.ci-inputs/manifest.json', 'utf8'));
-          await bootstrapCoreSource(process.cwd(), manifest, async (id, args) => {
-            const result = spawnSync(args[0], args.slice(1), { stdio: 'inherit' });
-            if (result.error) throw result.error;
-            if (result.status !== 0) throw new Error(`${id} failed: ${result.status}`);
-          });
-          JS
-        if: "matrix.component == 'wasm' && steps.product-cache.outputs.cache-hit != 'true'"
-      - name: 'Build wasm from the locked source'
-        if: "matrix.component == 'wasm' && steps.product-cache.outputs.cache-hit != 'true'"
-        run: 'bash mise-tasks/build/blink-wasm.sh'
       - name: 'Build static Linux probe guests'
         if: "matrix.component == 'probe' && steps.product-cache.outputs.cache-hit != 'true'"
         run: 'bash mise-tasks/build/guests.sh probe'
@@ -287,31 +255,6 @@ jobs:
           bun --version
           bun node_modules/@playwright/test/cli.js --version
           cat /etc/os-release
-      - name: 'Fetch fixed core source input'
-        env:
-          FORMICARIUM_MODERNIZATION_INPUT_URL: 'https://raw.githubusercontent.com/aletheia-works/formicarium/674a7f0a1b1736a2df61a994ab2dac29dddb8ace/modernization-inputs.tar.gz'
-          FORMICARIUM_MODERNIZATION_INPUT_SHA256: '0b074f0ebc170fbabed0fbe1d8bfad9628247a4131f78223db8c343412c38730'
-        run: 'python3 scripts/ci/install-modernization-inputs.py'
-        if: "matrix.suite == 'node'"
-      - name: 'Prepare locked core source'
-        run: |-
-          mkdir -p .artifacts/ci-candidate
-          cp .ci-inputs/payload/.artifacts/ci-candidate/core-source.bundle .artifacts/ci-candidate/
-          bun run - <<'JS'
-          import { readFileSync } from 'node:fs';
-          import { spawnSync } from 'node:child_process';
-          import { bootstrapCoreSource } from './scripts/ci/core-source.js';
-          const manifest = JSON.parse(readFileSync('.ci-inputs/manifest.json', 'utf8'));
-          await bootstrapCoreSource(process.cwd(), manifest, async (id, args) => {
-            const result = spawnSync(args[0], args.slice(1), { stdio: 'inherit' });
-            if (result.error) throw result.error;
-            if (result.status !== 0) throw new Error(`${id} failed: ${result.status}`);
-          });
-          JS
-        if: "matrix.suite == 'node'"
-      - name: 'Checkout the locked core for Node source checks'
-        if: "matrix.suite == 'node'"
-        run: 'bash mise-tasks/build/fetch-blink.sh'
       - name: 'Run product regression tests on Node'
         run: 'node --test --test-concurrency=1 tests/node/build.test.js tests/node/runner.test.js tests/node/probe.test.js tests/node/session.test.js tests/node/aube-1645.test.js tests/node/pitchfork-basic.test.js'
         if: "matrix.suite == 'node'"
@@ -366,7 +309,7 @@ jobs:
           retention-days: 7
           if-no-files-found: 'error'
   release-candidate:
-    needs: [changes, product-build]
+    needs: [changes]
     if: needs.changes.outputs.candidate == 'true'
     uses: ./.github/workflows/release-candidate.yml
     with:

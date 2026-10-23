@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import { blinkCore } from '../../runtime/core.js';
 import { createSession } from '../../runtime/node/api.js';
 import * as api from '../../runtime/public.js';
 import type { OutputChunk, Progress, Session } from '../../types/index.js';
@@ -295,24 +294,7 @@ test('Progress and OutputChunk are relayed through the public command API', asyn
     ['x'],
   );
 });
-test('the core argv always sends blink logs to /dev/null first, and diagnostic -L flags come after it', () => {
-  assert.deepEqual(blinkCore.argv('/g', ['a', 'b c']), [
-    '-L',
-    '/dev/null',
-    '/g',
-    'a',
-    'b c',
-  ]);
-  assert.deepEqual(blinkCore.argv('/g', [], ['-s', '-L', '/work/trace.log']), [
-    '-L',
-    '/dev/null',
-    '-s',
-    '-L',
-    '/work/trace.log',
-    '/g',
-  ]);
-});
-test('a real guest run through the command leaves no blink.log in the cwd or anywhere in the Session FS', async (t) => {
+test('a real guest run through the command leaves no core files in the Session FS', async (t) => {
   const session = await createSession({
     assets: await developmentAssets(t),
     entries: [
@@ -332,12 +314,6 @@ test('a real guest run through the command leaves no blink.log in the cwd or any
   const run = await session.run({ guest, args: ['--version'] });
   assert.equal(run.exitCode, 0, text(run.stderr));
   assert.match(text(run.stdout), /^\d+\.\d+\.\d+/);
-  const paths = (await session.listEntries()).map((entry) => entry.path);
-  assert.equal(
-    paths.some((path) => path.endsWith('/blink.log')),
-    false,
-    paths.join('\n'),
-  );
   assert.deepEqual(
     (await session.listEntries('/work')).map((entry) => entry.path),
     ['/work/note.txt'],

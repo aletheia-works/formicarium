@@ -39,8 +39,9 @@ concurrent load. Preserve timeout, worker, retry, output, and memory limits.
 For documentation or GitHub configuration changes, check syntax, referenced
 paths, and the final diff; a full emulator rebuild is unnecessary.
 
-Core-specific changes belong in the blink fork and must remain isolated behind
-`runtime/core.ts`. See the ADRs and README.md for the core contribution process.
+Core-specific changes belong in paludarium
+(https://github.com/aletheia-works/paludarium); formicarium pins its npm
+package and keeps every core detail behind `runtime/core.ts` (ADR 0003).
 
 ## Pull requests
 

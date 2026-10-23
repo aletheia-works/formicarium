@@ -13,10 +13,14 @@ description: エミュレータのコアに固有のことは runtime/core.ts �
 
 ## 決定
 
-コアは、WebAssembly のモジュール 1 つと、それを読み込む loader として扱います（今は、ES モジュールの既定の export が
+コアは、WebAssembly のモジュール 1 つと、それを読み込む loader として扱います（決めた時点では、ES モジュールの既定の export が
 factory になる Emscripten の `MODULARIZE` 形式）。ビルドしたものの場所や command line の組み立て方など、
 コアに固有のことは `runtime/core.ts` の記述子だけに置きます。ゲストの入出力と、Node.js・ブラウザのランタイムは、
 コアが提供するファイルシステムのインターフェースだけに依存します。
+
+コアを paludarium に移してからは、loader はパッケージの `index.mjs` で、その `createPaludarium({ wasmUrl })` が
+launcher（`createFileSystem`、`run`、`dispose`）を返します。コアに固有のこと（コアのファイルの一覧、SHA-256 の照合、起動）は、
+今も `runtime/core.ts` だけにあります。
 
 ## 結果
 

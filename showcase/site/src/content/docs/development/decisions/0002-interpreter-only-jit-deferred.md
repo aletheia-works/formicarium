@@ -22,6 +22,10 @@ Build the core as an interpreter only (`--disable-jit`). Defer the JIT, and do
 not develop it in the C fork of blink. For now the threshold is "good enough to
 reproduce a report": the four aube #1645 steps finish in 12 to 20 seconds.
 
+Since the switch to paludarium, the blink fork and its `--disable-jit` build
+are no longer the core. The deferral still holds: formicarium does not enable
+or develop a JIT of its own.
+
 ## Consequences
 
 - Correctness can come first.

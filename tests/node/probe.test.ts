@@ -1,6 +1,6 @@
-// Node.js：probe の全項目が、Node.js の Worker 上の blink で PASS すること。
-// 項目ごとに 1 回ずつ blink を起動して確かめる（どの項目が通らないかを個別に示すため）。
-// 前提：bash mise-tasks/build/blink-wasm.sh と bash mise-tasks/build/guests.sh probe を実行済み。
+// Node.js：probe の全項目が、Node.js の Worker 上の paludarium で PASS すること。
+// 項目ごとに 1 回ずつコアを起動して確かめる（どの項目が通らないかを個別に示すため）。
+// 前提：bun run build と bash mise-tasks/build/guests.sh probe を実行済み。
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { describe, it } from 'node:test';
@@ -88,7 +88,10 @@ describe('probe（Node.js の Worker）', () => {
   });
   it('ビルド物がそろっている', () => {
     assert.equal(
-      missingArtifacts(['dist/blink/blink.mjs', 'dist/guests/probe']),
+      missingArtifacts([
+        'dist/paludarium/build-info.json',
+        'dist/guests/probe',
+      ]),
       null,
     );
   });

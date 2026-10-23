@@ -18,7 +18,7 @@ give the reason in the new record.
 | [0008](/formicarium/development/decisions/0008-fresh-instance-per-step/)       | A fresh core instance for each step                    | Accepted |
 | [0011](/formicarium/development/decisions/0011-host-baseline-in-measurements/) | Record a host speed baseline with each measurement     | Accepted |
 
-Decisions specific to the current blink core (0001, 0004, 0005, 0006, 0009,
-0010 and 0012) stay in the repository's
+Decisions specific to the former blink core (0001, 0004, 0005, 0006, 0009,
+0010 and 0012) remain in the repository's
 [`docs/decisions/`](https://github.com/aletheia-works/formicarium/tree/main/docs/decisions)
-until the core moves to paludarium.
+as history; they do not apply to the current paludarium core.

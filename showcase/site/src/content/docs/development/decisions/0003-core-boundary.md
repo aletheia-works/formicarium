@@ -14,11 +14,16 @@ should not be rebuilt each time the core changes.
 
 ## Decision
 
-Treat the core as one WebAssembly module with its loader (today an Emscripten
-`MODULARIZE` module whose default export is a factory). Keep everything specific
-to the core, such as where its build lives and how its command line is formed,
-in the descriptor in `runtime/core.ts`. Guest I/O and the Node.js and browser
+Treat the core as one WebAssembly module with its loader (when decided, an
+Emscripten `MODULARIZE` module whose default export is a factory). Keep
+everything specific to the core, such as where its build lives and how its
+command line is formed, in the descriptor in `runtime/core.ts`. Guest I/O and the Node.js and browser
 runtimes depend only on the filesystem interface the core exposes.
+
+Since the switch to paludarium, the loader is the package's `index.mjs`, whose
+`createPaludarium({ wasmUrl })` returns a launcher (`createFileSystem`, `run`
+and `dispose`). `runtime/core.ts` still holds everything specific to it: the
+list of core files, the digest check and the start-up.
 
 ## Consequences
 

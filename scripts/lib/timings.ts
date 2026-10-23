@@ -12,7 +12,7 @@ export interface TimingDocument {
   schemaVersion: number;
   generatedAt: string;
   runs: TimingRun[];
-  core?: { name?: string; commit?: string; emcc?: string };
+  core?: { name?: string; version?: string; commit?: string; emcc?: string };
   tool?: { version?: string; commit?: string };
   host?: { os?: string; cpu?: string; node?: string };
 }
@@ -188,7 +188,9 @@ export function renderResultsMarkdown(doc: TimingDocument) {
   lines.push('');
   lines.push(`- 生成日時：${doc.generatedAt}`);
   lines.push(
-    `- コア：${doc.core?.name ?? '?'}（commit ${doc.core?.commit ?? '?'}、${doc.core?.emcc ?? ''}）`,
+    doc.core?.version
+      ? `- コア：${doc.core.name ?? '?'} ${doc.core.version}`
+      : `- コア：${doc.core?.name ?? '?'}（commit ${doc.core?.commit ?? '?'}、${doc.core?.emcc ?? ''}）`,
   );
   lines.push(
     `- aube：${doc.tool?.version ?? '?'}（commit ${doc.tool?.commit ?? '?'}、x86-64 static-musl）`,
@@ -242,7 +244,7 @@ export function renderResultsMarkdown(doc: TimingDocument) {
   lines.push('');
   for (const note of c.notes) lines.push(`- ${note}`);
   lines.push(
-    '- formicarium の値は、コマンドごとに blink を起動し直す（ファイルシステムの中身は JS 側で引き継ぐ）。CheerpX は 1 つの VM の中で続けて実行する。',
+    '- formicarium の値は、コマンドごとに新しいファイルシステムでゲストを起動し直す（ファイルシステムの中身は JS 側で引き継ぐ）。CheerpX は 1 つの VM の中で続けて実行する。',
   );
   lines.push(
     '- ネットワークの扱い（registry への接続の試み）が両者の時間にどう効いているかは、まだ確かめていない（未検証）。',

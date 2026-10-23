@@ -11,10 +11,10 @@ import { fileURLToPath } from 'node:url';
 import { Worker } from 'node:worker_threads';
 import type { HostOptions, HostResult } from '../contracts.js';
 
-import { defaultCore } from '../core.js';
-
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const projectRoot = path.resolve(here, '..', '..');
+/** 開発用のコア（bun run build が node_modules の paludarium から写す） */
+export const coreDirectory = path.join(projectRoot, 'dist', 'paludarium');
 
 /** ゲストが見つからないときの終了コード（シェルと同じ） */
 export const EXIT_NOT_FOUND = 127;
@@ -37,11 +37,9 @@ export class GuestNotFoundError extends Error {
  * @param {Record<string,string>} [options.env]
  * @param {string} [options.cwd] 仮想ファイルシステム上の作業ディレクトリ
  * @param {Array<{args?: string[], removeTree?: string, catFile?: string}>} [options.steps]
- * @param {string[]} [options.coreFlags] コア自身へのフラグ（診断用）
  * @param {string[]} [options.persist] steps の間で中身を引き継ぐディレクトリ（既定は cwd と HOME）
  * @param {(chunk: Uint8Array) => void} [options.onStdout]
  * @param {(chunk: Uint8Array) => void} [options.onStderr]
- * @param {object} [options.core] コアの記述子（既定は runtime/core.js の defaultCore）
  * @param {number} [options.timeoutMs] これを過ぎたら Worker を止めてエラーにする
  */
 export async function runInWorker(options: HostOptions): Promise<HostResult> {
@@ -53,23 +51,18 @@ export async function runInWorker(options: HostOptions): Promise<HostResult> {
     cwd,
     steps,
     persist,
-    coreFlags = [],
     onStdout,
     onStderr,
     timeoutMs,
   } = options;
-  const core = options.core ?? defaultCore;
   if (typeof guest !== 'string' || guest.length === 0)
     throw new TypeError('guest must be a path');
   const guestHostPath = path.resolve(guest);
   if (!existsSync(guestHostPath) || !statSync(guestHostPath).isFile()) {
     throw new GuestNotFoundError(guest);
   }
-  const loaderPath = path.resolve(projectRoot, core.loaderPath);
-  if (!existsSync(loaderPath)) {
-    throw new Error(
-      `core loader not found: ${loaderPath} (run: bash scripts/build-blink-wasm.sh)`,
-    );
+  if (!existsSync(path.join(coreDirectory, 'build-info.json'))) {
+    throw new Error(`core not found: ${coreDirectory} (run: bun run build)`);
   }
   for (const item of copyIn) {
     if (!existsSync(item.host))
@@ -78,8 +71,7 @@ export async function runInWorker(options: HostOptions): Promise<HostResult> {
 
   const worker = new Worker(new URL('./worker.js', import.meta.url), {
     workerData: {
-      loaderPath,
-      coreName: core.name,
+      coreDirectory,
       guestHostPath,
       args,
       copyIn: copyIn.map((c) => ({
@@ -90,7 +82,6 @@ export async function runInWorker(options: HostOptions): Promise<HostResult> {
       cwd,
       steps,
       persist,
-      coreFlags,
     },
   });
   return await new Promise((resolve, reject) => {

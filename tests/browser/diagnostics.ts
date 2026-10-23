@@ -64,9 +64,7 @@ export const test = base.extend<{ diagnostics: undefined }>({
 export function probeUrl(args: string[] = []) {
   const query = new URLSearchParams({ guest: 'probe' });
   for (const arg of args) query.append('arg', arg);
-  if (process.env.FORMICARIUM_DIAGNOSTIC === '1') {
-    query.append('core-flag', '-s');
+  if (process.env.FORMICARIUM_DIAGNOSTIC === '1')
     query.append('arg', '--diagnostic');
-  }
   return `/web/index.html?${query}`;
 }

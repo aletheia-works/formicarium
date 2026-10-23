@@ -28,7 +28,7 @@ body:
     id: environment
     attributes:
       label: Environment
-      description: OS, Node.js or browser version, blink commit, and build information.
+      description: OS, Node.js or browser version, paludarium version, and build information.
     validations:
       required: true
   - type: checkboxes

@@ -8,7 +8,7 @@ const port = Number(process.env.FORMICARIUM_PORT ?? 8787);
 export default defineConfig({
   testDir: 'tests/browser',
   testMatch: '**/*.spec.ts',
-  // blink のインタプリタは遅いので、1 件あたりの上限を長めに取る。
+  // コアのインタプリタは遅いので、1 件あたりの上限を長めに取る。
   timeout: 15 * 60 * 1000,
   expect: { timeout: 10 * 60 * 1000 },
   // 計測と判定の再現性のため、ブラウザは 1 つずつ順に動かす。

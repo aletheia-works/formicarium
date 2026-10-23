@@ -3,9 +3,9 @@
 # github_repository_pages depends on this resource.
 resource "github_repository" "this" {
   name                        = var.repository_name
-  description                 = "Run unmodified x86-64 Linux CLI binaries in the browser and Node.js — the blink emulator on WebAssembly, no kernel to boot."
+  description                 = "Run unmodified x86-64 Linux CLI binaries in the browser and Node.js — the paludarium emulator on WebAssembly, no kernel to boot."
   homepage_url                = "https://aletheia-works.github.io/formicarium/"
-  topics                      = ["blink", "browser", "bug-reproduction", "cli", "developer-tools", "emulator", "linux", "nodejs", "webassembly", "x86-64"]
+  topics                      = ["browser", "bug-reproduction", "cli", "developer-tools", "emulator", "linux", "nodejs", "webassembly", "x86-64"]
   visibility                  = "public"
   has_issues                  = true
   has_discussions             = false

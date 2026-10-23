@@ -25,10 +25,7 @@ function spawnNodeWorker(
   } catch {
     throw failure('ASSET_LOAD', 'Package Worker could not be created');
   }
-  const resources = createCoreResourceOwner({
-    environment: 'node',
-    bootstrapURL: request.assets.workerURL,
-  });
+  const resources = createCoreResourceOwner();
   let terminated = false;
   let allocation = false;
   const message = (value: unknown) => {
@@ -54,13 +51,14 @@ function spawnNodeWorker(
       typeof value.resourceRequestId !== 'number' ||
       !Number.isSafeInteger(value.resourceRequestId) ||
       value.resourceRequestId < 1 ||
-      !(value.bytes instanceof Uint8Array)
+      !value.files ||
+      typeof value.files !== 'object'
     ) {
       handlers.error(failure('EXECUTION', 'Resource control failed'));
       return;
     }
     allocation = true;
-    void resources.allocate(value.bytes).then(
+    void resources.allocate(value.files as Record<string, Uint8Array>).then(
       (descriptor) => {
         if (!terminated)
           worker.postMessage({

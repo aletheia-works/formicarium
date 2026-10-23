@@ -146,10 +146,15 @@ describe('cat のステップの実行（runSession）', () => {
   const guestPath = '/guest/pitchfork';
   const common = {
     // cat と rm -rf のステップはコアを起動しない。呼ばれたら失敗させる。
-    createModule: () => {
-      throw new Error('createModule must not be called for cat steps');
+    launcher: {
+      createFileSystem: () => {
+        throw new Error('the core must not be called for cat steps');
+      },
+      run: () => {
+        throw new Error('the core must not be called for cat steps');
+      },
+      dispose: async () => {},
     },
-    core: { argv: () => [] },
     guestPath,
     guestEntry: {
       path: guestPath,

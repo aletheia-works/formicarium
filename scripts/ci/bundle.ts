@@ -36,7 +36,7 @@ export async function createBundle(
   for (const row of plan.inputs) {
     safePath(row.path);
     if (
-      !/^(assets\/|dist\/(guests|blink)\/|fixtures\/|\.artifacts\/(ci-candidate|u1-fixture)\/)/.test(
+      !/^(dist\/guests\/|fixtures\/|\.artifacts\/(ci-candidate|u1-fixture)\/)/.test(
         row.path,
       ) ||
       /\.env|id_rsa|id_ed25519|credentials/i.test(row.path)

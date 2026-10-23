@@ -15,13 +15,17 @@ The showcase terminals use only the public exports of
 
 ## Requirements
 
-- **Same origin.** The Worker (`runtime/web/package-worker.bundle.js`), the
-  loader (`assets/blink.mjs`), the wasm and `build-info.json` must be served
-  from your page's origin. Pass their absolute URLs as `assets`.
+- **Same origin.** The Worker (`runtime/web/package-worker.bundle.js`) and the
+  core under `assets/paludarium/` (the loader `index.mjs`, the modules next to
+  it, `paludarium.wasm` and `build-info.json`) must be served from your page's
+  origin. Pass the absolute URLs of the Worker, loader, wasm and build
+  information as `assets`; the other modules are read next to the loader.
 - **Cross-origin isolation.** Serve COOP `same-origin` and COEP `require-corp`,
   or use a service worker such as coi-serviceworker on static hosting.
-- **CSP.** The loader runs as a Blob module: allow `blob:` in `script-src` and
-  `worker-src`, and `'wasm-unsafe-eval'` for WebAssembly.
+- **CSP.** Allow same-origin scripts and Workers and WebAssembly compilation,
+  for example `script-src 'self' 'wasm-unsafe-eval'; worker-src 'self';
+  connect-src 'self'`. `blob:` is not needed. The core is loaded from the asset
+  URLs after its digests are checked, so serve them from an origin you trust.
 - **Guests.** Use a catalog (`GuestCatalog`) whose entries name same-origin
   guest files with their SHA256 and `build-info.json`. `install <tool>` checks
   every byte before it registers a guest.

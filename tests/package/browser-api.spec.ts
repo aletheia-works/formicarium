@@ -297,6 +297,9 @@ test('CPU-bound browser Worker timeout releases BUSY reservation after terminati
       ),
     ).toEqual({ settled: false, busy: 'BUSY' });
     await page.clock.runFor(1);
+    // A CPU-bound Worker cannot answer the stop request, so it is terminated
+    // after the 500 ms grace.
+    await page.clock.runFor(500);
     expect(
       await page.evaluate(() =>
         (

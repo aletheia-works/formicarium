@@ -1,7 +1,7 @@
-// Node.js：pitchfork-basic の 8 コマンドを Node.js の Worker 上の blink で順に実行し、
+// Node.js：pitchfork-basic の 8 コマンドを Node.js の Worker 上の paludarium で順に実行し、
 // 書き起こしが native の基準値 fixtures/baseline/pitchfork-basic.native.txt と一致すること、
 // 手順の間で状態が引き継がれること。設定は runtime/registry.js の表から読む。
-// 前提：bash mise-tasks/build/blink-wasm.sh、bash mise-tasks/build/guests.sh pitchfork、
+// 前提：bun run build、bash mise-tasks/build/guests.sh pitchfork、
 //       bash mise-tasks/build/native-baseline.sh pitchfork-basic を実行済み。
 // fixtures はテストの中で仮想ファイルシステムに写すだけで、書き換えない。
 import assert from 'node:assert/strict';
@@ -31,7 +31,7 @@ const guest = GUESTS[session.guest as keyof typeof GUESTS];
 
 async function runPitchforkBasic() {
   const missing = missingArtifacts([
-    'dist/blink/blink.mjs',
+    'dist/paludarium/build-info.json',
     guest.path,
     session.baseline,
   ]);

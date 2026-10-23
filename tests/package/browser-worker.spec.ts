@@ -31,7 +31,6 @@ async function workerMessage(
   return page.evaluate(
     ({ request, inspect, type }) =>
       new Promise<{
-        waitAsync?: string;
         code?: string;
         runId?: string;
         bytes: number[];
@@ -64,15 +63,6 @@ async function workerMessage(
   );
 }
 
-test('actual browser package Worker removes Atomics.waitAsync before core import', async ({
-  page,
-}) => {
-  const message = await workerMessage(page, null, {
-    inspect: true,
-    type: 'inspection',
-  });
-  expect(message.waitAsync).toBe('undefined');
-});
 test('actual browser Worker rejects unsupported protocol major', async ({
   page,
 }) => {

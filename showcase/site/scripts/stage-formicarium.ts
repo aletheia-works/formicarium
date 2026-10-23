@@ -127,19 +127,36 @@ export async function formicariumFiles(packageRoot: string): Promise<{
   const root = exportTarget(pkg, '.');
   const browser = exportTarget(pkg, './browser');
   const assets = {
-    loader: exportTarget(pkg, './assets/blink.mjs'),
-    wasm: exportTarget(pkg, './assets/blink.wasm'),
+    loader: exportTarget(pkg, './assets/paludarium/index.mjs'),
+    wasm: exportTarget(pkg, './assets/paludarium/paludarium.wasm'),
     worker: WORKER_FILE,
-    buildInfo: exportTarget(pkg, './assets/build-info.json'),
+    buildInfo: exportTarget(pkg, './assets/paludarium/build-info.json'),
   };
+  // The core loads its sibling modules from the loader's directory; its build
+  // information names every one of them.
+  const coreDir = posix.dirname(assets.loader);
+  const buildInfo = (await readJson(join(packageRoot, assets.buildInfo))) as {
+    files?: unknown;
+  };
+  if (
+    typeof buildInfo.files !== 'object' ||
+    buildInfo.files === null ||
+    Array.isArray(buildInfo.files)
+  )
+    fail('pack-invalid', 'core build information has no file list');
+  const coreFiles = Object.keys(buildInfo.files).map((name) =>
+    checkRelativePath('inventory-invalid', posix.join(coreDir, name), 4096),
+  );
   const modules = await moduleGraph(packageRoot, [root, browser]);
   const paths = [
     ...new Set([
       ...modules,
+      ...coreFiles,
       assets.loader,
       assets.wasm,
       assets.worker,
       assets.buildInfo,
+      posix.join(coreDir, 'LICENSE'),
       ...LICENSE_FILES,
     ]),
   ].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));

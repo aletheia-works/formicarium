@@ -14,6 +14,11 @@ Node.js it failed asking for the `ws` module. aube checks its registry for
 updates on `--version` and `install`. The CheerpX measurements were also taken
 without a network.
 
+This context describes the earlier blink core built with Emscripten. Since the
+switch to paludarium, the decision is kept: formicarium gives guests no
+network, and aube still runs with the same environment and native baseline. The
+`EAFNOSUPPORT` result below was observed with blink.
+
 ## Decision
 
 `socket()` returns `EAFNOSUPPORT`. aube runs with `AUBE_NO_UPDATE_CHECK=1`

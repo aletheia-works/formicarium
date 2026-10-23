@@ -161,7 +161,7 @@ export async function preparePublication({
   const originalSha = sha256(await readFile(archive));
   requireCondition(
     original.tarball?.sha256 === originalSha &&
-      original.blinkSourceDirty === false,
+      original.core?.package === '@aletheia-works/paludarium-wasm',
     'original candidate binding differs',
   );
   const inventory = members(archive);

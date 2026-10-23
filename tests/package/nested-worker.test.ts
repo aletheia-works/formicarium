@@ -39,14 +39,14 @@ const guest = new Uint8Array(
 );
 const pause = (ms: number) => new Promise((done) => setTimeout(done, ms));
 const assets = {
-  loaderURL: new URL('assets/blink.mjs', base),
-  wasmURL: new URL('assets/blink.wasm', base),
-  buildInfoURL: new URL('assets/build-info.json', base),
+  loaderURL: new URL('assets/paludarium/index.mjs', base),
+  wasmURL: new URL('assets/paludarium/paludarium.wasm', base),
+  buildInfoURL: new URL('assets/paludarium/build-info.json', base),
   workerURL: new URL('./fixtures/node-nested-observer.js', import.meta.url),
 };
 
 for (const mode of ['normal', 'abort', 'timeout'])
-  test(`real nested pthread ${mode} termination stops observed descendant heartbeat`, async (t) => {
+  test(`real nested core Worker ${mode} termination stops observed descendant heartbeat`, async (t) => {
     bridge = undefined;
     const session = await createSession({ assets });
     t.after(() => session.dispose());

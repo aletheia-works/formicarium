@@ -31,13 +31,13 @@ try {
 
 `guestBytes` is a caller-provided static ELF64 little-endian x86-64 Linux executable. Guests are distributed separately. Node requires version 24 or later. The browser entry is `@aletheia-works/formicarium/browser`; serve its Worker and assets on the same origin with `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`. Browsers require Worker, SharedArrayBuffer and cross-origin isolation. No service worker setup is included.
 
-The browser evaluates the verified loader bytes as a Blob module. Its Content Security Policy must explicitly allow `blob:` in `script-src` and WebAssembly compilation (for example, `script-src 'self' blob: 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self'`). Root and pthread Workers start from same-origin HTTP module URLs; arbitrary Blob Worker URLs are rejected. A policy that blocks the verified module rejects the run with `ASSET_LOAD`.
+The browser loads the core (the paludarium WebAssembly core and its launcher modules) from the asset URLs after checking their digests, and the core starts its own module Workers next to its loader. The Content Security Policy must allow same-origin scripts and Workers and WebAssembly compilation (for example, `script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self'`); `blob:` is not needed. The root Worker starts from a same-origin HTTP module URL; arbitrary Blob Worker URLs are rejected.
 
 The default run deadline is 600000 ms and includes Worker startup. Supply `timeoutMs` or an AbortSignal explicitly when needed. Each run creates a fresh Worker. A session accepts one active run; concurrent operations reject with `BUSY`. Nonzero guest exits resolve with byte stdout/stderr. Failures reject with `ExecutionError`, a stable code and copied partial byte output. `decodeUtf8` uses replacement decoding; preserve raw bytes when fidelity matters. `onOutput` receives ordered copied chunks; callback exceptions fail the run.
 
 Filesystem entries are copied at input and output. Persisted roots are cwd/home; executable and temporary system paths are excluded. Files sharing `inodeId` preserve hard links, symlinks remain links, and modes are preserved. Use `listEntries`, `readFile`, `remove`, `setCwd` and `reset` between runs. If the selected cwd was removed between runs, the next run recreates its missing directory ancestors with mode 0755 while preserving existing directory modes and rejecting file or symlink collisions. A successful run commits its snapshot after cleanup; timeout, abort or failed snapshot rolls it back. `dispose` is idempotent and permanently closes the session. Cleanup failure closes the session.
 
-Default assets resolve relative to the installed package. Explicit `assets` requires absolute loaderURL, wasmURL, buildInfoURL and workerURL. Loader/wasm SHA-256 digests and clean pinned core metadata are checked before initialization. The checked loader bytes are evaluated without rereading the original URL. Node uses a run-specific directory with mode 0700 and an exclusive loader copy with mode 0400; pthreads use that same copy. The host owns these files and browser Blob URLs, stops owned Workers before releasing them, and releases resources after normal completion, abort, timeout or disposal even when the root Worker is forcibly terminated. Missing or mixed assets reject with `ASSET_LOAD`; initialization failure is `CORE_INIT`. See `THIRD_PARTY_NOTICES.md` and `assets/build-info.json` for provenance. Real Safari remains unverified.
+Default assets resolve relative to the installed package (`assets/paludarium/`). Explicit `assets` requires absolute loaderURL, wasmURL, buildInfoURL and workerURL; the core's other modules are read next to loaderURL, which must name `index.mjs`. The pinned core version and the SHA-256 digest of every core file are checked before initialization. Node.js writes the checked bytes to a run-specific directory with mode 0700 (files with mode 0400) and loads the core from there without rereading the original files. Browsers load the core from the asset URLs after the check, so a server that changes the files between the check and the load is not detected; serve the assets from an origin you trust. The host stops owned Workers and releases these files after normal completion, abort, timeout or disposal even when the root Worker is forcibly terminated. Missing or changed assets reject with `ASSET_LOAD`; initialization failure is `CORE_INIT`. See `THIRD_PARTY_NOTICES.md` and `assets/paludarium/build-info.json` for provenance. Real Safari remains unverified.
 
 ## guest・install・command API
 
@@ -113,40 +113,33 @@ Node.js の Worker と、COOP/COEP 付きのブラウザページ（Chromium・F
   ネイティブの約 75 倍かかる。CheerpX 1.3.9 と比べると、install は CheerpX の上限と同程度、frozen install は 1.5〜4 倍遅い。
 - JIT の開発は後回しにした。コアを paludarium に置き換えるときに取り組む（[ADR 0002](https://aletheia-works.github.io/formicarium/ja/development/decisions/0002-interpreter-only-jit-deferred/)）。
 
-### 将来の構想：コアの置き換え
+### コアの構成
 
-エミュレータのコアは、別リポジトリ **paludarium**（Rust 版 blink）に置き換える予定。そのため formicarium は、
-コアを「wasm モジュール 1 つ＋起動用の JS（Emscripten の MODULARIZE 形式）」として扱い、ブラウザ側と統合部分を
-コアから分けている。
+エミュレータのコアは **paludarium**（Rust で書き直した blink 相当、別リポジトリ）の npm パッケージ
+`@aletheia-works/paludarium-wasm` で、`package.json` の devDependencies に版を固定している。`bun run build` が
+その全ファイルを `dist/paludarium/` に写し、各ファイルの SHA-256 を `build-info.json` に記録する。配布パッケージには
+同じものを `assets/paludarium/` として入れる。
 
-| 層                    | 場所                                           | コアへの依存                                                       |
-| --------------------- | ---------------------------------------------- | ------------------------------------------------------------------ |
-| コアの記述子          | `runtime/core.js`                              | ここだけがコアを知る（ビルド物の場所、コマンドラインの組み立て方） |
-| 入出力の共通部        | `runtime/guest-io.js`、`runtime/session.js`    | なし（Emscripten の FS API だけを使う）                            |
-| Node.js の実行環境    | `runtime/node/`                                | なし                                                               |
-| 配布用ブラウザAPI     | `runtime/web/`                                 | なし                                                               |
-| 検証用Web UI          | `web/`、`scripts/serve.js`                     | なし                                                               |
-| コア（blink の fork） | `blink.lock` → `.vendor/blink` → `dist/blink/` | —                                                                  |
-
-置き換えるときは、`runtime/core.ts` に paludarium の記述子を足し、`dist/` にそのビルド物を置く。
+| 層                 | 場所                                                                                 | コアへの依存                                       |
+| ------------------ | ------------------------------------------------------------------------------------ | -------------------------------------------------- |
+| コアの読み込み     | `runtime/core.js`                                                                    | ここだけがコアを知る（ファイルの一覧、照合、起動） |
+| 入出力の共通部     | `runtime/guest-io.js`、`runtime/session.js`                                          | なし（起動したコアの launcher だけを使う）         |
+| Node.js の実行環境 | `runtime/node/`                                                                      | なし                                               |
+| 配布用ブラウザAPI  | `runtime/web/`                                                                       | なし                                               |
+| 検証用Web UI       | `web/`、`scripts/serve.js`                                                           | なし                                               |
+| コア（paludarium） | `package.json` → `node_modules/@aletheia-works/paludarium-wasm` → `dist/paludarium/` | —                                                  |
 
 ## 前提ツール
 
-| ツール                     | 用途                                                       | 入手                                                                                                                                                          |
-| -------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Bun latest                 | 開発依存の固定導入、開発task                               | `mise.toml`（`mise install`）                                                                                                                                 |
-| Node.js latest             | ランナー、consumer、Worker、テスト、計測                   | `mise.toml`（`mise install`）。公開packageの対応範囲はNode >=24                                                                                               |
-| Docker Desktop または wslc | blink の wasm ビルド、ゲストのビルド、native の基準値      | wslc（`C:\Program Files\WSL\wslc.exe`）を優先し、動かなければ docker を使う。`FORMICARIUM_CONTAINER` で指定もできる                                           |
-| emsdk                      | ローカルでの Emscripten（`FORMICARIUM_BUILD=host` のとき） | `~/AppData/Local/emsdk`（Windows）または `~/emsdk`。`git clone https://github.com/emscripten-core/emsdk && ./emsdk install latest && ./emsdk activate latest` |
-| Git、Git Bash              | スクリプトの実行（Windows）                                | —                                                                                                                                                             |
-| Playwright のブラウザ      | ブラウザのテストと計測                                     | `mise run install-frozen` → `bun node_modules/@playwright/test/cli.js install chromium firefox webkit`                                                        |
+| ツール                     | 用途                                     | 入手                                                                                                                |
+| -------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Bun latest                 | 開発依存の固定導入、開発task             | `mise.toml`（`mise install`）                                                                                       |
+| Node.js latest             | ランナー、consumer、Worker、テスト、計測 | `mise.toml`（`mise install`）。公開packageの対応範囲はNode >=24                                                     |
+| Docker Desktop または wslc | ゲストのビルド、native の基準値          | wslc（`C:\Program Files\WSL\wslc.exe`）を優先し、動かなければ docker を使う。`FORMICARIUM_CONTAINER` で指定もできる |
+| Git、Git Bash              | スクリプトの実行（Windows）              | —                                                                                                                   |
+| Playwright のブラウザ      | ブラウザのテストと計測                   | `mise run install-frozen` → `bun node_modules/@playwright/test/cli.js install chromium firefox webkit`              |
 
 Windows では、mise のツールは非対話シェルの PATH に載らない。`~/AppData/Local/mise/installs/<tool>/<version>/` の実体を直接呼ぶ。
-
-blink の wasm ビルドは、既定ではコンテナ（`emscripten/emsdk:<ローカルの emsdk と同じ版>`）で行う。blink の
-`configure` と `Makefile` は POSIX の sh と GNU make を前提にしていて、Windows の emsdk からはそのまま動かせないため
-（`emconfigure ./configure` が `WinError 193` で止まる）。sh と GNU make がある Linux や macOS では
-`FORMICARIUM_BUILD=host` でローカルの emsdk を使える。
 
 ## ビルド
 
@@ -193,16 +186,13 @@ Windows では POSIX permission bits の検査だけを skip する。同じ検�
 
 ```bash
 mise run install-frozen
-mise run build                   # TypeScript を JavaScript にコンパイルする
-mise run build-blink-wasm   # blink.lock のコミットを取得し、dist/blink/blink.mjs と blink.wasm を作る
+mise run build                   # TypeScript を JavaScript にコンパイルし、コアを dist/paludarium/ に写す
 mise run build-guests       # dist/guests/ に probe・hello・exit3・aube（v2.6.1）・pitchfork（v2.30.1）を作る（aube は 1 時間以上かかる）
 mise run native-baseline    # fixtures/baseline/aube-1645.native.txt（native の基準値）を作る
 mise run native-baseline pitchfork-basic --check-reproducible   # pitchfork の基準値（2 回作って一致を確かめる）
 bun node_modules/@playwright/test/cli.js install chromium firefox webkit
 ```
 
-`mise run fetch-blink` は `blink.lock` のコミットだけを `.vendor/blink` に取得する。fork と upstream の差分は
-`git -C .vendor/blink diff <upstream_commit> <commit>`（値は `blink.lock`）で一覧できる。
 - probe だけを作り直すときは `mise run build-guests probe`（1 分ほど）。aube は入力が変わらない限り作り直さなくてよい。
 - pitchfork だけを作るときは `mise run build-guests pitchfork`（初回は 35 分ほど）。公式リポジトリ（jdx/pitchfork）の
   タグ `v2.30.1` を取得し、コミットを `dist/guests/pitchfork.commit` に記録する（`PITCHFORK_REF` で変えられる）。
@@ -215,20 +205,8 @@ bun node_modules/@playwright/test/cli.js install chromium firefox webkit
   `build-guests.sh` の対象・fixture・基準値・テストを足す。
 - `mise run native-baseline [<手順>] [--check-reproducible]` は、表の手順（既定は `aube-1645`）の基準値を作る。
   手順の設定は `bun scripts/session-info.js <手順>` で表から読む（シェル補助はBunを優先し、必要時はNodeを使う）。
-- wasm メモリの上限は 1 GB（`-sMAXIMUM_MEMORY=1GB`）。WebKit がインスタンスごとに上限までメモリを確保するため、
-  4 GB から下げた。1 GB を超えるメモリを使うゲストは動かない。
-- `dist/blink/build-info.json` の `blinkSourceDirty` が `true` のビルド（未公開の修正を含む）では、
-  `tests/node/build.test.js` の 1 件が意図どおり失敗する。
-
-### fork を直すとき
-
-1. `.vendor/blink-src`（fork のコピー）で修正する。この PoC では jj で管理している。
-2. `BLINK_SRC=.vendor/blink-src mise run build-blink-wasm` でビルドして試す（通常の取得経路は `checkout --force` と
-   clean を呼ぶので、ローカルの修正には使わない）。
-3. 修正を新しいコミットにして `formicarium-wasm` に push し、`blink.lock` の `commit=` を更新する。
-   公開済みのコミットに変更が混ざらないように注意する（jj は作業中の変更を今のコミットに取り込むため、先に `jj new` しておく）。
-4. `mise run fetch-blink` と `mise run build-blink-wasm` でクリーンビルドし、全テストを実行する。
-5. レビュー用に、差分の写しを `patches/` に置く。
+- コアの wasm メモリの上限は 1 GB（16384 ページ）。WebKit がインスタンスごとに上限までメモリを確保するため、
+  この上限を `tests/node/build.test.js` で固定している。1 GB を超えるメモリを使うゲストは動かない。
 
 ## 保守 workflow
 
@@ -278,14 +256,8 @@ bun scripts/serve.js --port 8787
 ページは `crossOriginIsolated` を表示し、結果を `<pre id="output" data-testid="output">` と `data-exit-code` 属性に出す。
 ヘッダーを設定できない配信先（GitHub Pages など）では、`web/coi-sw.js`（service worker）が COOP/COEP を付ける。
 
-診断用に `--core-flag -s`（blink のシステムコール記録）と `--core-flag -e`（ログを stderr に出す）を渡せる。
-ブラウザでは URL に `&core-flag=-s` を付ける（`-e` は自動で付く）。
-
 Git Bash では、`--copy-in fixtures/...:/work` の `/work` が Windows のパスに書き換えられてしまう。
 `MSYS_NO_PATHCONV=1 node runtime/node/run.js ...` のように、変換を止めて実行する。
-
-ブラウザの実行用 Worker（`web/worker.js`）は、コアを読み込む前に `Atomics.waitAsync` を無効にしている。
-WebKit で Emscripten の代行依頼の通知が取りこぼされ、ゲスト全体が止まることがあったため（ADR 0009）。
 
 aube は `--version` や `install` のたびに registry へ更新の確認をしに行く。ブラウザにはネットワークがなく、条件を
 native の基準値とそろえるため、`AUBE_NO_UPDATE_CHECK=1` で止めて実行する（`runtime/registry.js` の `GUESTS.aube.env`）。
@@ -361,26 +333,25 @@ patches/              fork に入れた修正の写し（レビュー用）
 - 計測の条件が CheerpX とそろっていない（背面での計測をしていない。計測はこのノート PC 1 台だけ）。
 - WebKit は、まれに同じ処理が全体に遅くなる（不具合による停止ではなく、マシンの状態の影響と見ている）。
 - ファイルをコピーしたプライベートなページに `MADV_DONTNEED` をかけても、ファイルの内容には戻らない。
-- 手順ごとに blink を起動し直すので、1 コマンドあたり 0.3〜0.5 秒の固定費がかかる。
+- 手順ごとに新しいファイルシステムでゲストを起動し直す（引き継ぐのは作業ディレクトリと HOME の中身だけ）。
 - wslc はこのマシンで動かず、Docker で代用している。
 
 ## License
 
-Apache License 2.0（blink の fork は ISC。[コアのライセンス](https://aletheia-works.github.io/formicarium/ja/development/licenses/) を参照）
+Apache License 2.0（コアの paludarium も Apache License 2.0。[コアのライセンス](https://aletheia-works.github.io/formicarium/ja/development/licenses/) を参照）
 
 ### PR product tests
 
 `ci.yml` runs on pull requests and pushes to `main`. In addition to lint,
-TypeScript checks and lightweight tests, `product-tests` builds the locked blink
-wasm core and probe/aube/pitchfork Linux guests from source, checks reproducible
+TypeScript checks and lightweight tests, `product-tests` takes the paludarium
+core from the pinned npm package, builds probe/aube/pitchfork Linux guests from source, checks reproducible
 native transcripts against the committed baselines, then runs Node regressions
 and Chromium, Firefox and WebKit sequentially (one worker, no retries).
 `ci-required` requires the product job to succeed. Compiled products, build metadata and Playwright
 failure diagnostics are retained for seven days. Jobs use read-only permissions
 and do not receive repository secrets.
 
-The temporary digest-pinned input archive supplies only the unavailable locked
-core source bundle to PR tests; its prebuilt products are not reused. Extended
+Extended
 cross-repository consumer and coverage checks remain in `candidate-verify.yml`.
 That workflow uses the current run’s latest Playwright in the disposable
 terrarium coverage workspace without changing the reviewed input snapshot.
@@ -390,9 +361,8 @@ are refreshed with `bun add --dev --no-save --ignore-scripts @playwright/test@la
 so tests use the latest release while preserving the committed dependency lock.
 Bun runs dependency installation, build, lint, type checks, the development server, general unit/tooling tests and browser tooling. Explicit
 Node tests retain Node to verify the published Node consumer and Worker behavior.
-The wasm compiler image is `emscripten/emsdk:latest` in PR product tests.
 
-Product builds use three parallel jobs: wasm, probe, and aube/pitchfork. Aube
+Product builds use two parallel jobs: probe and aube/pitchfork. Aube
 and pitchfork stay together because the pitchfork UI depends on aube and the
 builds share Cargo downloads. Each component is cached by resolved Docker image
 IDs and its build inputs; pitchfork also includes the actual aube bytes. CI
@@ -408,7 +378,7 @@ Artifacts include source SHA, run ID and attempt to keep reruns isolated.
 `mise tasks ls`で一覧を確認し、`mise run build-guests probe`のように引数を渡せる。
 固定依存の導入は `mise run install-frozen`（キャッシュなしは `--cacheless`）。
 通常の確認は `mise run check`、`mise run typecheck`、`mise run build`、`mise run test-light`。
-- `mise-tasks/`: 開発タスク、wasm・ゲストのビルド、ソース取得、native基準値作成、書き込み先調査。
+- `mise-tasks/`: 開発タスク、ゲストのビルド、native基準値作成、書き込み先調査。
 - `scripts/lib/`と`scripts/emscripten-env.sh`: 複数タスクから読み込むコンテナ・環境設定。単独実行するタスクにはしない。
 - `scripts/ci/`: 候補入力の検証・証拠収集。`tasks.ts`はキャッシュなし導入の引数検証と既存CIの入口に限定し、通常のmiseタスクはBunへ直接渡す。
 - `scripts/package/`・`scripts/release/`: テストから使う検証・配布ロジック。YAMLへ複製せず、引き続き単体試験する。
