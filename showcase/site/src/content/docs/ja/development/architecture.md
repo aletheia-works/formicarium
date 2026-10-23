@@ -60,8 +60,7 @@ Session がその写しを取り込むのは、実行が成功したときだけ
 コアは共有の WebAssembly メモリを使うので、ブラウザでは `SharedArrayBuffer`、つまり cross-origin isolation が必要です。
 formicarium での JIT の作業は後回しのままです（[ADR 0002](/formicarium/ja/development/decisions/0002-interpreter-only-jit-deferred/)）。
 
-以前のコア（Emscripten でビルドした blink の fork）はもう使いません。それに固有の決定は、履歴としてリポジトリの
-[`docs/decisions/`](https://github.com/aletheia-works/formicarium/tree/main/docs/decisions) に残っています。
+以前のコア（Emscripten でビルドした blink の fork）はもう使いません。そのビルド用のファイルと固有の決定は、git の履歴にだけ残っています。
 
 ## 制限
 

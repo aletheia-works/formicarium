@@ -14,7 +14,7 @@ import { describe, it } from 'node:test';
 import { missingArtifacts, PT_INTERP, readElfInfo, root } from './helpers.js';
 
 const CORE = path.join(root, 'dist/paludarium');
-/** 1 GiB（64 KiB のページで 16384）。WebKit が上限まで確保するのを抑える（ADR 0010）。 */
+/** 1 GiB（64 KiB のページで 16384）。WebKit が上限まで確保するのを抑える（ADR 0010、サイトの開発の節）。 */
 const MEMORY_PAGES_1GB = 16384;
 
 /** wasm が import する memory の上限（ページ数）。import がなければ null。 */

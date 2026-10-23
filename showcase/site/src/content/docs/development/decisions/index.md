@@ -16,9 +16,8 @@ give the reason in the new record.
 | [0003](/formicarium/development/decisions/0003-core-boundary/)                 | Handle the core only as one wasm module and its loader | Accepted |
 | [0007](/formicarium/development/decisions/0007-no-guest-network-in-browser/)   | No guest network in the browser                        | Accepted |
 | [0008](/formicarium/development/decisions/0008-fresh-instance-per-step/)       | A fresh core instance for each step                    | Accepted |
+| [0010](/formicarium/development/decisions/0010-wasm-memory-1gb/)               | Cap the wasm memory at 1 GB                            | Accepted |
 | [0011](/formicarium/development/decisions/0011-host-baseline-in-measurements/) | Record a host speed baseline with each measurement     | Accepted |
 
-Decisions specific to the former blink core (0001, 0004, 0005, 0006, 0009,
-0010 and 0012) remain in the repository's
-[`docs/decisions/`](https://github.com/aletheia-works/formicarium/tree/main/docs/decisions)
-as history; they do not apply to the current paludarium core.
+The decisions specific to the former blink core (0001, 0004, 0005, 0006, 0009
+and 0012) were removed with it; they remain in the git history.

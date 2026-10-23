@@ -25,7 +25,6 @@ RULES = (
             "mise.toml",
             "tsconfig.json",
             "tsconfig.tests.json",
-            "blink.lock",
             "scripts/ci/",
             "scripts/package/",
             "tests/package/",
@@ -65,15 +64,13 @@ RULES = (
             "mise-tasks/build/",
         ),
     ),
-    # Core and guest builds, their inputs and the native baselines.
+    # Guest builds, their inputs and the native baselines.
     (
         {"product"},
         (
             "guest/",
-            "patches/",
             "fixtures/",
             "scripts/lib/",
-            "scripts/emscripten-env.sh",
         ),
     ),
     # Files the package ships, lint settings, and the other scripts and tests.
@@ -89,16 +86,14 @@ RULES = (
             "tests/",
         ),
     ),
-    # Documentation, infrastructure, the showcase (its workflows filter their
+    # Infrastructure, the showcase (its workflows filter their
     # own paths), bot settings and local development tasks. Polyglot lint runs
     # Biome over all of them on every pull request.
     (
         NONE,
         (
-            "docs/",
             "infra/",
             "showcase/",
-            "ci/",
             ".github/",
             "mise-tasks/",
             "*.md",
@@ -131,8 +126,6 @@ def needed(paths):
 
 def self_test():
     cases = {
-        "docs/architecture.md": NONE,
-        "docs/history/261003-blink-wasm-poc.md": NONE,
         "AGENTS.md": NONE,
         "CONTRIBUTING.md": NONE,
         "README.md": {"quality"},
@@ -147,13 +140,11 @@ def self_test():
         ".github/release-please-config.json": {"quality"},
         ".github/release-please-manifest.json": {"quality"},
         "showcase/scripts/pack.ts": NONE,
-        "ci/migration-session/inputs.bundle.json": NONE,
         "mise-tasks/showcase/unit.sh": NONE,
         ".github/workflows/ci.yml": ALL,
         "scripts/ci-changes.py": ALL,
         "package.json": ALL,
         "bun.lock": ALL,
-        "blink.lock": ALL,
         "scripts/ci/run.ts": ALL,
         "scripts/package/coverage.ts": ALL,
         "tests/package/core.test.ts": ALL,

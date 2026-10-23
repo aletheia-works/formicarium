@@ -1,8 +1,0 @@
-# formicarium が使う blink の fork とコミット（FR1.1）。
-# scripts/fetch-blink.sh がこのコミットを .vendor/blink に取得する。
-# upstream との差分は `git -C .vendor/blink diff <upstream_commit> <commit>` で一覧できる。
-url=https://github.com/aletheia-works/blink.git
-branch=formicarium-wasm
-commit=a882fb2f3df14115b7e46f6812fb296eef5934d7
-upstream_url=https://github.com/jart/blink.git
-upstream_commit=f006a4fc6f9b8de9272504fdff0dbbe5ce5dc580

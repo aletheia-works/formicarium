@@ -53,6 +53,7 @@ test('every page exists in English and Japanese', () => {
       'decisions/0003-core-boundary',
       'decisions/0007-no-guest-network-in-browser',
       'decisions/0008-fresh-instance-per-step',
+      'decisions/0010-wasm-memory-1gb',
       'decisions/0011-host-baseline-in-measurements',
     ].map((name) => `development/${name}/index.html`),
   ];

@@ -13,7 +13,6 @@ export async function candidateSourcePaths(root: string) {
     'package.json',
     'bun.lock',
     'mise.toml',
-    'blink.lock',
     'README.md',
     'LICENSE',
     'THIRD_PARTY_NOTICES.md',

@@ -14,8 +14,7 @@ sidebar: { label: 一覧, order: 0 }
 | [0003](/formicarium/ja/development/decisions/0003-core-boundary/)                 | コアは wasm モジュール 1 つと loader としてだけ扱う | 採用 |
 | [0007](/formicarium/ja/development/decisions/0007-no-guest-network-in-browser/)   | ブラウザでは、ゲストのネットワークを使わない        | 採用 |
 | [0008](/formicarium/ja/development/decisions/0008-fresh-instance-per-step/)       | 手順ごとに新しいコアのインスタンスを作る            | 採用 |
+| [0010](/formicarium/ja/development/decisions/0010-wasm-memory-1gb/)               | wasm メモリの上限を 1 GB にする                     | 採用 |
 | [0011](/formicarium/ja/development/decisions/0011-host-baseline-in-measurements/) | 計測にホストの速さの基準値を添える                  | 採用 |
 
-以前の blink のコアに固有の決定（0001、0004、0005、0006、0009、0010、0012）は、履歴としてリポジトリの
-[`docs/decisions/`](https://github.com/aletheia-works/formicarium/tree/main/docs/decisions) に残っています。
-今の paludarium のコアには当てはまりません。
+以前の blink のコアに固有の決定（0001、0004、0005、0006、0009、0012）は、コアと一緒に削除しました。git の履歴に残っています。

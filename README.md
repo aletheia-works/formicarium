@@ -169,7 +169,7 @@ commit形式は信頼済みbaseの`scripts/ci/commit-format.ts`で検査する�
 
 すべてプロジェクトのルートで実行する。
 
-実装・開発スクリプト・テスト・Playwright 設定は TypeScript で管理する。`mise run build` は型チェック後、生成した `.js` をソースと同じディレクトリに配置する。生成物は jj に記録しない。生成された blink loader は元の形式を維持する。`coi-sw.ts` は classic service worker として登録するため、ビルドでは型だけを除去し ESM の export を加えない。
+実装・開発スクリプト・テスト・Playwright 設定は TypeScript で管理する。`mise run build` は型チェック後、生成した `.js` をソースと同じディレクトリに配置する。生成物は jj に記録しない。`coi-sw.ts` は classic service worker として登録するため、ビルドでは型だけを除去し ESM の export を加えない。
 
 ```bash
 mise run install-frozen
@@ -215,7 +215,7 @@ bun node_modules/@playwright/test/cli.js install chromium firefox webkit
 - `lint-autofix.yml` / `lint-autofix-apply.yml`: 権限なしで Biome の修正 patch を作り、別 job が許可された既存ファイルの差分だけを確認して適用します。head が変わっていれば適用しません。適用先は同じ repository の PR に限ります。
 - `labeler.yml` / `.github/labeler.yml`: `actions/labeler` によるファイル分類と、既存 repository と同じ Conventional Commits の type label を使います。
 - `assign.yml`、`dependency-review.yml`、`commitlint.yml`: 担当者とマイルストーンの設定、依存更新のレビュー、Conventional Commits の検査です。
-- `claude-review.yml`: 許可された作成者の PR を Claude Code がレビューします。サイトの開発の節、`docs/decisions/`、AGENTS.md に照らして差分を確かめます。
+- `claude-review.yml`: 許可された作成者の PR を Claude Code がレビューします。サイトの開発の節と AGENTS.md に照らして差分を確かめます。
 
 Bun 1.4.2 / bun.lock による依存管理、固定 Node、`ci.yml` の lint・型検査・build・軽量試験、候補回帰・coverage・公開前検査は formicarium 固有の検証として維持します。
 整形の適用には既存の repository secret `TF_TOKEN_GITHUB` を使います。Dependabot の auto-merge は `GITHUB_TOKEN` を使います。
@@ -316,15 +316,12 @@ node scripts/measure-aube.js --trials 10   # .artifacts/measure/aube-timings.jso
 ## ディレクトリ
 
 ```
-blink.lock            fork の URL とコミット
 guest/probe/          static-musl x86-64 のゲスト（probe・hello・exit3）
 fixtures/             aube #1645 と pitchfork の入力、手順、native の基準値
 runtime/              コアに依存しない実行環境（Node.js・ブラウザ）。ゲストと手順の表は runtime/registry.js
 scripts/              ビルド・取得・基準値・計測・開発用サーバー
 tests/                node --test と Playwright のテスト
-docs/decisions/       今の blink のコアに固有の設計上の決定（コアを paludarium に移すまで）
 showcase/site/src/content/docs/development/  開発の節（ランタイムの構成、API、公開、ライセンス、設計上の決定。英語と ja/）
-patches/              fork に入れた修正の写し（レビュー用）
 ```
 
 ## 既知の制約
@@ -379,7 +376,7 @@ Artifacts include source SHA, run ID and attempt to keep reruns isolated.
 固定依存の導入は `mise run install-frozen`（キャッシュなしは `--cacheless`）。
 通常の確認は `mise run check`、`mise run typecheck`、`mise run build`、`mise run test-light`。
 - `mise-tasks/`: 開発タスク、ゲストのビルド、native基準値作成、書き込み先調査。
-- `scripts/lib/`と`scripts/emscripten-env.sh`: 複数タスクから読み込むコンテナ・環境設定。単独実行するタスクにはしない。
+- `scripts/lib/`: 複数タスクから読み込むコンテナ・環境設定。単独実行するタスクにはしない。
 - `scripts/ci/`: 候補入力の検証・証拠収集。`tasks.ts`はキャッシュなし導入の引数検証と既存CIの入口に限定し、通常のmiseタスクはBunへ直接渡す。
 - `scripts/package/`・`scripts/release/`: テストから使う検証・配布ロジック。YAMLへ複製せず、引き続き単体試験する。
 - `.github/workflows/`: PRイベント、matrix、キャッシュ、artifact、保守自動化の制御。製品ビルドはローカルと同じ `mise-tasks/` の実装を実行する。

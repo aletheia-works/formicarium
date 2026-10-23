@@ -74,9 +74,7 @@ next to its loader. The core uses shared WebAssembly memory, so browsers need
 formicarium stays deferred ([ADR 0002](/formicarium/development/decisions/0002-interpreter-only-jit-deferred/)).
 
 The previous core, a fork of blink built with Emscripten, is gone; its
-decisions remain in the repository's
-[`docs/decisions/`](https://github.com/aletheia-works/formicarium/tree/main/docs/decisions)
-as history.
+build files and the decisions specific to it remain only in the git history.
 
 ## Limits
 
