@@ -1,5 +1,7 @@
 # Outcomes Pack
 
+> The handover of the blink-on-wasm PoC as of 2026-10-05, kept as written. File names here are from that time (`.mjs`); the sources are now TypeScript (`runtime/core.ts` and so on) built to `.js`. See `AGENTS.md` for the current commands and project state.
+
 **Scope**: poc
 **Stages delivered**: 7 approved / 7 total
 **Duration**: 2096 min
