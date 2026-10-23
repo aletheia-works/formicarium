@@ -22,7 +22,3 @@ aube #1645 の 4 手順で、WebKit のコミットは約 14 GB に達した。C
 
 - **4 GB のまま**：WebKit の確保が積み上がる。
 - **手順の間でインスタンスを解放させる**：解放の時期は JavaScriptCore のガベージコレクションに依存し、制御できない。
-
-## 参照
-
-`docs/results/failures.md`（WebKit でまれに遅くなる件の調査、wasm メモリの上限を 1 GB にした）

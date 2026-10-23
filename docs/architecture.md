@@ -1,14 +1,13 @@
 # アーキテクチャ（1 ページの要約）
 
 formicarium は、改変していない x86-64 Linux のバイナリ（static-musl）を、カーネルを起動せずにブラウザと Node.js で動かす。
-エミュレータのコアは jart/blink の fork を wasm にしたもの（インタプリタのみ）。詳しい経緯は [`OUTCOMES.md`](../OUTCOMES.md)、
-不具合と修正の記録は [`results/failures.md`](results/failures.md) にある。2026-10-05 時点の内容。
+エミュレータのコアは jart/blink の fork を wasm にしたもの（インタプリタのみ）。
 
 ## 現行ツールチェーン（2026-10-08追記）
 
 ドキュメント根拠：最新mainのauthoringはTypeScript（`.ts`）、formatter/linterはBiomeです。`npm ci` 後に `npm run build` がTypeScriptをコンパイルし、`scripts/emit.ts` が実行用 `.js` を配置します。`npm run check` と `npm run typecheck` が静的検証です。Nodeのテストはビルド後の `tests/node/*.test.js` を `node --test` で実行し、Playwrightは `tests/browser/*.spec.ts` と `playwright.config.ts` を使います。コア依存の境界はauthoring `runtime/core.ts`／配布 `runtime/core.js` です。配布する第一者JSは `scripts/release/inventory.ts` の `FIRST_PARTY_JS`（23ファイル）で、リリース候補のCIはその行coverageが80%以上であることを確かめます。
 
-以下のPoC結果と測定値は2026-10-05の履歴です。当時の `.mjs` パスやコマンドを現行の実行手順として使わず、現在は対応する `.ts` ソース／生成 `.js` を参照してください。新候補の検証記録は作業ごとの記録（[`history/`](history/)）に分離します。
+以下のPoC結果と測定値は2026-10-05時点のものです。当時の `.mjs` パスは、今は対応する `.ts` ソース／生成 `.js` です。
 
 ## 全体の構成
 
@@ -71,9 +70,9 @@ paludarium（Rust 版 blink）に置き換えるときは、`runtime/core.ts` �
 4. 手順の間では、作業ディレクトリと HOME の中身を写し取り（`snapshotFs`）、次のインスタンスに置き直す（`populateFs`）。
 5. 終わったら、native と同じ形式の書き起こしをページに返す。
 
-## 主な設計判断（理由の詳細は OUTCOMES.md の 5 節）
+## 主な設計判断（理由は [`decisions/`](decisions/) の ADR）
 
-- **インタプリタのみ**：JIT は後回し（[`results/jit-decision.md`](results/jit-decision.md)）。install の 9 割以上が解釈実行で、ネイティブの約 75 倍かかる。
+- **インタプリタのみ**：JIT は後回し（ADR 0002）。install の 9 割以上が解釈実行で、ネイティブの約 75 倍かかる。
 - **手順ごとにインスタンスを作り直す**：実装を単純にするため。1 コマンドあたり 0.3〜0.5 秒の固定費がかかる。
 - **ブラウザ版はネットワークなし**：native の基準値と条件をそろえ、余計な依存を増やさないため。
 - **実行用 Worker で `Atomics.waitAsync` を無効にする**：WebKit で代行依頼の通知が取りこぼされ、ゲスト全体が止まったため。

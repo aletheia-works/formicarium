@@ -25,4 +25,4 @@ aube の時間と連動していた（相関 0.6）。終了時の待ち、TLB �
 
 ## 参照
 
-`docs/results/failures.md`（U-2 の調査、条件をそろえた再計測）、`scripts/lib/timings.mjs`
+`scripts/lib/timings.mjs`

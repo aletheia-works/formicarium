@@ -16,7 +16,7 @@ export interface TimingDocument {
   tool?: { version?: string; commit?: string };
   host?: { os?: string; cpu?: string; node?: string };
 }
-// aube の計測結果（docs/results/aube-timings.json）の形式と、表への整形。
+// aube の計測結果（.artifacts/measure/aube-timings.json）の形式と、表への整形。
 // scripts/measure-aube.js が書き、tests/node/measure.test.js が形式を確かめる。
 
 /** 計測する 4 コマンド。キーは JSON の項目名。 */
@@ -28,11 +28,11 @@ export const COMMANDS = {
 };
 
 /**
- * 背景資料（docs/research/cheerpx-oss.md）にある CheerpX 1.3.9 上の値。
+ * 2026-10-03 に CheerpX 1.3.9 上で測った値（調べた記録は commit `8096c7b4` の docs/research/cheerpx-oss.md）。
  * 単位は秒。4 回のページ読み込み、ページは背面。i586 glibc の aube に statx の回避策を入れたもの。
  */
 export const CHEERPX_REFERENCE = {
-  source: 'docs/research/cheerpx-oss.md',
+  source: 'docs/research/cheerpx-oss.md@8096c7b4',
   environment:
     'CheerpX 1.3.9, WebVM Debian image, localhost, page hidden, 4 page loads',
   seconds: {
@@ -108,7 +108,7 @@ export function validateTimings(doc: TimingDocument) {
 
 /**
  * ホストの速さの目安：1 スレッドの固定計算にかかった時間（ms）を返す。
- * このマシンでは、同じ計算の時間が 2.4 倍ほど変動することがある（docs/results/failures.md の U-2）。
+ * このマシンでは、同じ計算の時間が 2.4 倍ほど変動することがある。
  * 計測の前後に測って記録し、遅い時間帯に当たった試行を見分けられるようにする。
  */
 export function measureHostBench(iterations = 1e8) {
@@ -176,14 +176,14 @@ export function summarize(doc: TimingDocument) {
 
 const fmt = (s: number) => (s < 1 ? s.toFixed(2) : s.toFixed(1));
 
-/** docs/results/README.md の本文を作る。 */
+/** 計測結果の表（.artifacts/measure/README.md）の本文を作る。 */
 export function renderResultsMarkdown(doc: TimingDocument) {
   const rows = summarize(doc);
   const lines = [];
   lines.push('# 計測結果：aube の 4 コマンド');
   lines.push('');
   lines.push(
-    `このファイルは \`scripts/measure-aube.js\` が \`docs/results/aube-timings.json\` から生成する。手で編集しない。`,
+    `このファイルは \`scripts/measure-aube.js\` が \`.artifacts/measure/aube-timings.json\` から生成する。手で編集しない。`,
   );
   lines.push('');
   lines.push(`- 生成日時：${doc.generatedAt}`);

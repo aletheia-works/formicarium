@@ -70,7 +70,6 @@ scripts/release's evidence collectors and legacy RC/stable decision tests remain
 available to inspect historical 0.1.0 evidence. Their writerEnabled flag is false,
 and the old release-preflight workflow is removed. Those manual input/approval/RC
 adoption contracts do not authorize or block the YAML-owned normal stable path.
-The 0.1.0 release-assurance document describes that older process only.
 
 Infrastructure state remains managed by the existing common OpenTofu seed/apply
 workflows; this release change does not modify infrastructure or credentials.

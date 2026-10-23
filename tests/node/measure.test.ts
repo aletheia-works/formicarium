@@ -1,7 +1,7 @@
 // 計測結果の JSON に 4 コマンドと環境情報（ブラウザ名とバージョン、OS、前面か背面か、
 // 試行回数）が揃っていることを確かめる。項目が欠けた JSON は不合格にする。
 // 形式の確認には固定のサンプル（tests/fixtures/timings-*.json）を使い、
-// 実際の計測結果（docs/results/aube-timings.json）は、あれば同じ検証にかける。
+// 実際の計測結果（.artifacts/measure/aube-timings.json）は、あれば同じ検証にかける。
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -100,11 +100,11 @@ describe('計測結果の形式（scripts/lib/timings.js）', () => {
     assert.ok(Number.isFinite(ms) && ms > 0, String(ms));
   });
 
-  it('docs/results/aube-timings.json（計測済みなら）も形式を満たす', (t) => {
-    const actual = path.join(root, 'docs/results/aube-timings.json');
+  it('.artifacts/measure/aube-timings.json（計測済みなら）も形式を満たす', (t) => {
+    const actual = path.join(root, '.artifacts/measure/aube-timings.json');
     if (!existsSync(actual)) {
       t.diagnostic(
-        'docs/results/aube-timings.json はまだない（node scripts/measure-aube.js で作る）',
+        '.artifacts/measure/aube-timings.json はまだない（node scripts/measure-aube.js で作る）',
       );
       return;
     }

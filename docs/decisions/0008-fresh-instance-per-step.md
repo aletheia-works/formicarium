@@ -27,4 +27,4 @@ aube #1645 の再現は、`aube install` → `rm -rf node_modules` → `aube ins
 
 ## 参照
 
-`runtime/guest-io.mjs`（`runSession`）、`docs/results/jit-decision.md`
+`runtime/guest-io.mjs`（`runSession`）

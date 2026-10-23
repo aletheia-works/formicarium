@@ -7,9 +7,7 @@ An open-source user-mode x86 Linux emulator for the browser, in the spirit
 of CheerpX: run unmodified Linux binaries in WebAssembly, without booting a
 kernel, so that CLI bug reproductions can run as-is in a web page.
 
-Status: proof of concept complete (blink on wasm, 2026-10-05). The handover
-document is [`OUTCOMES.md`](OUTCOMES.md). Background research is in
-[`docs/research/cheerpx-oss.md`](docs/research/cheerpx-oss.md).
+Status: proof of concept complete (blink on wasm, 2026-10-05).
 
 ## Local runtime package candidate
 
@@ -39,7 +37,7 @@ The default run deadline is 600000 ms and includes Worker startup. Supply `timeo
 
 Filesystem entries are copied at input and output. Persisted roots are cwd/home; executable and temporary system paths are excluded. Files sharing `inodeId` preserve hard links, symlinks remain links, and modes are preserved. Use `listEntries`, `readFile`, `remove`, `setCwd` and `reset` between runs. If the selected cwd was removed between runs, the next run recreates its missing directory ancestors with mode 0755 while preserving existing directory modes and rejecting file or symlink collisions. A successful run commits its snapshot after cleanup; timeout, abort or failed snapshot rolls it back. `dispose` is idempotent and permanently closes the session. Cleanup failure closes the session.
 
-Default assets resolve relative to the installed package. Explicit `assets` requires absolute loaderURL, wasmURL, buildInfoURL and workerURL. Loader/wasm SHA-256 digests and clean pinned core metadata are checked before initialization. The checked loader bytes are evaluated without rereading the original URL. Node uses a run-specific directory with mode 0700 and an exclusive loader copy with mode 0400; pthreads use that same copy. The host owns these files and browser Blob URLs, stops owned Workers before releasing them, and releases resources after normal completion, abort, timeout or disposal even when the root Worker is forcibly terminated. Missing or mixed assets reject with `ASSET_LOAD`; initialization failure is `CORE_INIT`. See `THIRD_PARTY_NOTICES.md` and `assets/build-info.json` for provenance. Local test observations from the first npm release are recorded at commit `8096c7b4` and summarised in `docs/history/261006-npm-terrarium-release.md`; real Safari and full product regression/CI remain separate verification obligations.
+Default assets resolve relative to the installed package. Explicit `assets` requires absolute loaderURL, wasmURL, buildInfoURL and workerURL. Loader/wasm SHA-256 digests and clean pinned core metadata are checked before initialization. The checked loader bytes are evaluated without rereading the original URL. Node uses a run-specific directory with mode 0700 and an exclusive loader copy with mode 0400; pthreads use that same copy. The host owns these files and browser Blob URLs, stops owned Workers before releasing them, and releases resources after normal completion, abort, timeout or disposal even when the root Worker is forcibly terminated. Missing or mixed assets reject with `ASSET_LOAD`; initialization failure is `CORE_INIT`. See `THIRD_PARTY_NOTICES.md` and `assets/build-info.json` for provenance. Real Safari remains unverified.
 
 ## guest・install・command API
 
@@ -105,8 +103,6 @@ Emscripten で wasm にビルドし（インタプリタのみ、JIT なし）�
 Node.js の Worker と、COOP/COEP 付きのブラウザページ（Chromium・Firefox・WebKit）で実行する。
 - 合否の判定：Rust の probe（`guest/probe/`）と、aube #1645 の再現（`fixtures/sessions/aube-1645.txt`）
 - 計測：aube の 4 コマンド（`--version`、初回 install、frozen install、list）の時間を CheerpX 1.3.9 と比べる
-- 結果：[`docs/results/`](docs/results/)（計測値は `README.md`、通らなかった項目と直したものは `failures.md`、
-  JIT の判断材料は `jit-decision.md`）
 
 ### 結果（2026-10-05）
 
@@ -115,7 +111,7 @@ Node.js の Worker と、COOP/COEP 付きのブラウザページ（Chromium・F
 - aube #1645 の再現は、すべての環境で native（x86-64 Linux）と同じ出力になった。
 - aube の 4 コマンドの合計は Chromium で約 12 秒、WebKit で約 20 秒（10 回の中央値）。install は解釈実行が 9 割以上を占め、
   ネイティブの約 75 倍かかる。CheerpX 1.3.9 と比べると、install は CheerpX の上限と同程度、frozen install は 1.5〜4 倍遅い。
-- JIT の開発は後回しにした。コアを paludarium に置き換えるときに取り組む（[`docs/results/jit-decision.md`](docs/results/jit-decision.md)）。
+- JIT の開発は後回しにした。コアを paludarium に置き換えるときに取り組む（ADR 0002）。
 
 ### 将来の構想：コアの置き換え
 
@@ -241,7 +237,7 @@ bun node_modules/@playwright/test/cli.js install chromium firefox webkit
 - `lint-autofix.yml` / `lint-autofix-apply.yml`: 権限なしで Biome の修正 patch を作り、別 job が許可された既存ファイルの差分だけを確認して適用します。head が変わっていれば適用しません。適用先は同じ repository の PR に限ります。
 - `labeler.yml` / `.github/labeler.yml`: `actions/labeler` によるファイル分類と、既存 repository と同じ Conventional Commits の type label を使います。
 - `assign.yml`、`dependency-review.yml`、`commitlint.yml`: 担当者とマイルストーンの設定、依存更新のレビュー、Conventional Commits の検査です。
-- `claude-review.yml`: 許可された作成者の PR を Claude Code がレビューします。`docs/decisions/`、`docs/history/` と AGENTS.md に照らして差分を確かめます。
+- `claude-review.yml`: 許可された作成者の PR を Claude Code がレビューします。`docs/decisions/` と AGENTS.md に照らして差分を確かめます。
 
 Bun 1.4.2 / bun.lock による依存管理、固定 Node、`ci.yml` の lint・型検査・build・軽量試験、候補回帰・coverage・公開前検査は formicarium 固有の検証として維持します。
 整形の適用には既存の repository secret `TF_TOKEN_GITHUB` を使います。Dependabot の auto-merge は `GITHUB_TOKEN` を使います。
@@ -289,7 +285,7 @@ Git Bash では、`--copy-in fixtures/...:/work` の `/work` が Windows のパ�
 `MSYS_NO_PATHCONV=1 node runtime/node/run.js ...` のように、変換を止めて実行する。
 
 ブラウザの実行用 Worker（`web/worker.js`）は、コアを読み込む前に `Atomics.waitAsync` を無効にしている。
-WebKit で Emscripten の代行依頼の通知が取りこぼされ、ゲスト全体が止まることがあったため（`docs/results/failures.md` の L-3）。
+WebKit で Emscripten の代行依頼の通知が取りこぼされ、ゲスト全体が止まることがあったため（ADR 0009）。
 
 aube は `--version` や `install` のたびに registry へ更新の確認をしに行く。ブラウザにはネットワークがなく、条件を
 native の基準値とそろえるため、`AUBE_NO_UPDATE_CHECK=1` で止めて実行する（`runtime/registry.js` の `GUESTS.aube.env`）。
@@ -337,7 +333,7 @@ node --test tests/node/probe.test.js tests/node/aube-1645.test.js   # 3 回
 ## 計測
 
 ```bash
-node scripts/measure-aube.js --trials 10   # docs/results/aube-timings.json と docs/results/README.md を書く
+node scripts/measure-aube.js --trials 10   # .artifacts/measure/aube-timings.json と README.md を書く
 ```
 
 ほかの重い処理（コンテナでのビルドなど）を止めてから計測する。並行負荷で値が大きく変わる。
@@ -348,20 +344,18 @@ node scripts/measure-aube.js --trials 10   # docs/results/aube-timings.json と 
 ## ディレクトリ
 
 ```
-OUTCOMES.md           PoC の引き継ぎ文書
 blink.lock            fork の URL とコミット
 guest/probe/          static-musl x86-64 のゲスト（probe・hello・exit3）
 fixtures/             aube #1645 と pitchfork の入力、手順、native の基準値
 runtime/              コアに依存しない実行環境（Node.js・ブラウザ）。ゲストと手順の表は runtime/registry.js
 scripts/              ビルド・取得・基準値・計測・開発用サーバー
 tests/                node --test と Playwright のテスト
-docs/                 アーキテクチャの要約、設計上の決定（decisions/）、非機能要件のまとめ、ライセンスの確認、計測値、通らなかった項目と直したもの、JIT の判断材料、作業ごとの記録（history/）、調査（research/）
+docs/                 アーキテクチャの要約、設計上の決定（decisions/）、install・command API、自動リリース、ライセンスの確認
 patches/              fork に入れた修正の写し（レビュー用）
 ```
 
 ## 既知の制約
 
-詳しくは [`docs/results/failures.md`](docs/results/failures.md) と [`OUTCOMES.md`](OUTCOMES.md) の 8 節。
 - 実機の Safari（macOS）では確かめていない。
 - 計測の条件が CheerpX とそろっていない（背面での計測をしていない。計測はこのノート PC 1 台だけ）。
 - WebKit は、まれに同じ処理が全体に遅くなる（不具合による停止ではなく、マシンの状態の影響と見ている）。

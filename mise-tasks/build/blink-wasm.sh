@@ -33,8 +33,7 @@ LINK_FLAGS=(
   -sPTHREAD_POOL_SIZE=16
   -sALLOW_MEMORY_GROWTH=1
   # WebKit はインスタンスごとに上限までコミットし、ページの処理が終わるまで手放さない。
-  # 4GB では aube #1645 の 4 手順で約 14GB になるので 1GB にする（aube と probe は 1GB で動く。
-  # docs/results/failures.md の「WebKit でまれに遅くなる件の調査」）。
+  # 4GB では aube #1645 の 4 手順で約 14GB になるので 1GB にする（aube と probe は 1GB で動く。ADR 0010）。
   -sMAXIMUM_MEMORY=1GB
   -sINITIAL_MEMORY=128MB
   -sSTACK_SIZE=8MB

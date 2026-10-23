@@ -29,4 +29,4 @@ blink の `madvise` は、何もせず 0 を返していた。Linux では、プ
 
 ## 参照
 
-`docs/results/failures.md`（madvise の不具合）、`patches/blink-madvise-dontneed.patch`
+`patches/blink-madvise-dontneed.patch`

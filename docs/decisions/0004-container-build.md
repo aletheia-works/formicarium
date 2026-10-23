@@ -26,4 +26,4 @@ sh と GNU make がある環境では、`FORMICARIUM_BUILD=host` でローカル
 
 ## 参照
 
-`scripts/build-blink-wasm.sh`、`scripts/lib/container.sh`、`docs/results/failures.md`（U-3、U-4）
+`scripts/build-blink-wasm.sh`、`scripts/lib/container.sh`

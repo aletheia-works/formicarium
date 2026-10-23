@@ -53,7 +53,7 @@ describe('blink の wasm ビルド', () => {
     assert.equal(info.blinkSourceDirty, false);
     assert.match(info.configure, /--disable-jit/);
     assert.match(info.link, /-sPROXY_TO_PTHREAD/);
-    // WebKit が上限まで確保するのを抑えるため 1GB（docs/results/failures.md）
+    // WebKit が上限まで確保するのを抑えるため 1GB（ADR 0010）
     assert.match(info.link, /-sMAXIMUM_MEMORY=1GB/);
     assert.doesNotMatch(info.link, /-sMAXIMUM_MEMORY=4GB/);
   });

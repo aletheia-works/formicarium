@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 import type { ChildProcess } from 'node:child_process';
 // usage: node scripts/measure-aube.js [--env node,chromium,firefox,webkit] [--trials 3]
-//                                      [--out docs/results/aube-timings.json]
+//                                      [--out .artifacts/measure/aube-timings.json]
 //
 // aube の 4 コマンド（--version、初回 install、frozen install、list）を、Node.js の Worker
 // と各ブラウザの blink 上で実行して時間を測り、JSON に記録する。
-// あわせて docs/results/README.md に、CheerpX 1.3.9 の値と並べた表を書く。
+// あわせて同じディレクトリの README.md に、CheerpX 1.3.9 の値と並べた表を書く。
 //
 // install・frozen install・list は fixtures/sessions/aube-1645.txt の手順で測る
 // （fixtures/aube-local-deps を /work に置き、/work/app で実行する）。
@@ -37,7 +37,7 @@ function parseArgs(argv: string[]) {
   const options = {
     envs: ['node', ...BROWSERS],
     trials: 3,
-    out: 'docs/results/aube-timings.json',
+    out: '.artifacts/measure/aube-timings.json',
     port: 8790,
   };
   for (let i = 0; i < argv.length; i += 2) {
@@ -288,15 +288,16 @@ async function main() {
   const problems = runs.length ? validateTimings(doc) : ['no successful runs'];
   const outPath = path.resolve(root, options.out);
   mkdirSync(path.dirname(outPath), { recursive: true });
-  mkdirSync(path.join(root, 'docs/results'), { recursive: true });
   writeFileSync(outPath, `${JSON.stringify(doc, null, 2)}\n`);
   process.stderr.write(`measure: wrote ${path.relative(root, outPath)}\n`);
   if (runs.length) {
     writeFileSync(
-      path.join(root, 'docs/results/README.md'),
+      path.join(path.dirname(outPath), 'README.md'),
       renderResultsMarkdown(doc),
     );
-    process.stderr.write('measure: wrote docs/results/README.md\n');
+    process.stderr.write(
+      `measure: wrote ${path.relative(root, path.join(path.dirname(outPath), 'README.md'))}\n`,
+    );
   }
   if (problems.length || failures.length) {
     process.stderr.write(

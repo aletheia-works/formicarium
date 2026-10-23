@@ -24,7 +24,3 @@ PoC はインタプリタのみ（`--disable-jit`）でビルドする。JIT の
 
 - **今すぐ C 版 blink の fork に JIT を作る**：コアの置き換えで捨てることになりうる。正しさの問題を増やしやすい。
 - **CheerpX と同等を閾値にする**：今の値では frozen install が届かず、JIT かそれに代わる高速化が先に必要になる。
-
-## 参照
-
-`docs/results/jit-decision.md`

@@ -8,9 +8,8 @@ used, and verify the output before submitting it.
 ## Getting started
 
 Use [README.md](README.md) for setup, builds, and test commands. Read
-[OUTCOMES.md](OUTCOMES.md), [the architecture](docs/architecture.md),
-[the ADRs](docs/decisions/), [quality goals](docs/nfr-summary.md), and
-[known failures](docs/results/failures.md) before changing runtime behavior.
+[the architecture](docs/architecture.md) and [the ADRs](docs/decisions/)
+before changing runtime behavior.
 [AGENTS.md](AGENTS.md) contains repository development rules.
 
 This repository uses Jujutsu (`jj`), including for fork synchronization:

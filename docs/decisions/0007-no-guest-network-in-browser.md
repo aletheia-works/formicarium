@@ -24,4 +24,4 @@ aube は `--version` や `install` のたびに registry へ更新の確認を�
 
 ## 参照
 
-`docs/results/failures.md`（F-5、O-1）、`runtime/web/sessions.mjs`（`GUEST_ENV`）
+`runtime/web/sessions.mjs`（`GUEST_ENV`）
