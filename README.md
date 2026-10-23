@@ -156,7 +156,7 @@ blink の wasm ビルドは、既定ではコンテナ（`emscripten/emsdk:<ロ�
 
 ### 通常CIと候補検証
 
-`ci.yml`は全PRとmain pushで`quality`（30分）、`product-build`（各140分）、`product-regression`（各90分）、`product-tests`（集約5分）、`commit-format`（10分）、`ci-required`（5分）を実行する。品質taskはfrozen導入→lint→typecheck→build→Bun中心の軽量検査とNode固有検査の順。通常CIはcontents readだけを使い、checkout credentialを保存しない。製品ビルドはwasm・probe・aube/pitchforkの3ジョブ、回帰試験はNode・3ブラウザの4ジョブへ分割する。コンパイラimageと入力が同じ場合に個別成果物cacheを使い、cache missでもビルドと検査を実行する。native検査と全回帰試験はcache hitでも省略しない。cross-repository consumerと配布coverageはcandidate検証で別途確認する。
+`ci.yml`は`quality`（30分）、`product-build`（各140分）、`product-regression`（各90分）、`product-tests`（集約5分）、`commit-format`（10分）、`ci-required`（5分）から成る。PRでは最初の`changes`ジョブが変更fileを`scripts/ci-changes.py`でjobのgroup（quality・product・candidate）に対応づけ、必要なgroupのjobだけを実行する（paludariumと同じ方式）。未知のpath、`ci.yml`、toolchainの変更とrelease-pleaseのPRは全group、文書・infra・showcaseはどのgroupも要らない。main pushではqualityとproductを全て実行する。`commit-format`は常に実行する。品質taskはfrozen導入→lint→typecheck→build→Bun中心の軽量検査とNode固有検査の順。通常CIはcontents readだけを使い、checkout credentialを保存しない。製品ビルドはwasm・probe・aube/pitchforkの3ジョブ、回帰試験はNode・3ブラウザの4ジョブへ分割する。コンパイラimageと入力が同じ場合に個別成果物cacheを使い、cache missでもビルドと検査を実行する。native検査と全回帰試験はcache hitでも省略しない。cross-repository consumerと配布coverageはcandidate検証で別途確認する。
 
 commit形式は信頼済みbaseの`scripts/ci/commit-format.ts`で検査する。導入前mainにこのvalidatorがない初回は安全側で失敗する。初期導入の手順は管理者がレビューと外部操作の承認後に決め、PR側validatorへのfallbackやcheck除外で回避しない。既存の`verify.yml`と`publish.yml`、公開RCと固定RC入力branchは保持する。
 
@@ -164,7 +164,7 @@ commit形式は信頼済みbaseの`scripts/ci/commit-format.ts`で検査する�
 
 承認後、管理者は新しい固定commitのHTTPS raw URLを`FORMICARIUM_MODERNIZATION_INPUT_URL`、archive SHA256を`FORMICARIUM_MODERNIZATION_INPUT_SHA256`へ設定する。旧`FORMICARIUM_CI_INPUT_*`は変更しない。入力不足、未知member、symlink、digest/source/provenance不一致は試験前に拒否する。準備した入力と環境があれば`mise run verify-candidate`も同じ入口を使う。未変更guestは再ビルドしない。
 
-必要checksの設定候補は`quality`、`commit-format`、`ci-required`、`candidate-required`。実設定と実CIは管理者の承認後に確認するため、workflowファイルがあるだけで運用済みとは扱わない。PRのGitHub run/checkがmerge SHAを示す場合も、checkoutしたhead SHAとreceiptを独立照合する。通常receiptのself申告は権限判断に使わず、run/attempt/workflow/producerとartifact digestをGitHub APIで確認する。保守自動化・自動merge・公開操作は別単位で整備する。
+`main`の必須checkは`ci-required`、`check / Commitlint`、`showcase-site-required`（`infra/github/main.tf`）。`ci-required`は、必要なjobが成功し、不要なjobがskipされたときだけ通る。PRのGitHub run/checkがmerge SHAを示す場合も、checkoutしたhead SHAとreceiptを独立照合する。通常receiptのself申告は権限判断に使わず、run/attempt/workflow/producerとartifact digestをGitHub APIで確認する。保守自動化・自動merge・公開操作は別単位で整備する。
 
 失敗時はlog、実行SHA、lock/toolchain、入力archive digestを確認し、新commit・新入力で再検証する。skip/cancel/pendingは成功へ置き換えない。入力がない状態で候補checkを成功扱いしない。公開や外向きpushは別承認を要する。実機Safariは未検証で、WebKit結果とは区別する。
 

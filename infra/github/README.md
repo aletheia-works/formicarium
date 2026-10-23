@@ -19,20 +19,21 @@ branch to be up to date with main before merging.
 
 | Exact check name         | Coverage                                                                                       |
 | ------------------------ | ---------------------------------------------------------------------------------------------- |
-| `quality`                | Lint, types, package build and light/release tests                                             |
-| `commit-format`          | Trusted base commit format validator                                                           |
-| `ci-required`            | Quality, commit-format and every product build/regression matrix job                           |
+| `ci-required`            | Every `ci.yml` job the PR's changes need (quality, commit-format, product, release candidate)  |
 | `check / Commitlint`     | Organization reusable commitlint workflow                                                      |
 | `showcase-site-required` | showcase site: Chromium/Firefox/WebKit acceptance, coverage and evidence (`showcase-site.yml`) |
 
-All are bound to GitHub Actions app ID `15368` in the `main` ruleset. Product
-Node and Chromium/Firefox/WebKit checks are covered by `ci-required`, which runs
-with `always()` and rejects failed/skipped prerequisites. Preserve these exact
-names when changing CI. Path-filtered infrastructure validation is not a global
-required check, since unrelated PRs would otherwise wait for a missing check.
-`showcase-site.yml` instead runs on every PR: its `changes` job decides whether
-the site jobs run, and `showcase-site-required` passes a PR without site
-changes and fails any other run with a failed or skipped site job.
+All are bound to GitHub Actions app ID `15368` in the `main` ruleset. As in
+paludarium, `ci.yml` runs only the jobs a PR's changed files need: its `changes`
+job maps the files to job groups with `scripts/ci-changes.py` (which has a
+self-test), and a push to `main` runs quality and product. `ci-required` runs
+with `always()`, requires every needed job to pass and every unneeded one to be
+skipped, so `ci.yml` jobs can change without a ruleset change. Preserve these
+exact names when changing CI. Path-filtered infrastructure validation is not a
+global required check, since unrelated PRs would otherwise wait for a missing
+check. `showcase-site.yml` instead runs on every PR: its `changes` job decides
+whether the site jobs run, and `showcase-site-required` passes a PR without
+site changes and fails any other run with a failed or skipped site job.
 
 ## Secret setup (日本語)
 

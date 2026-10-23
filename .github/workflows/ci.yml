@@ -28,7 +28,45 @@ concurrency:
   group: 'ci-${{ github.event.pull_request.number || github.ref }}'
   cancel-in-progress: true
 jobs:
+  # Which job groups this pull request's changed files need
+  # (scripts/ci-changes.py). A release PR and every other event run quality
+  # and product; the release candidate runs for the release PR, its own code,
+  # a manual run and a v* tag, as before.
+  changes:
+    runs-on: 'ubuntu-latest'
+    timeout-minutes: 5
+    permissions:
+      contents: 'read'
+      pull-requests: 'read'
+    outputs:
+      quality: '${{ steps.groups.outputs.quality }}'
+      product: '${{ steps.groups.outputs.product }}'
+      candidate: '${{ steps.groups.outputs.candidate }}'
+    steps:
+      - uses: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' # v7.0.1
+        with:
+          ref: '${{ github.event.pull_request.head.sha || github.sha }}'
+          persist-credentials: false
+      - run: 'python3 scripts/ci-changes.py --self-test'
+      - id: 'groups'
+        env:
+          GH_TOKEN: '${{ github.token }}'
+          EVENT_NAME: '${{ github.event_name }}'
+          HEAD_REF: '${{ github.head_ref }}'
+          PR: '${{ github.event.pull_request.number }}'
+        run: |-
+          if [ "$EVENT_NAME" = pull_request ] && [ "$HEAD_REF" != release-please--branches--main--components--formicarium ]; then
+            gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/files" \
+              --jq '.[] | .filename, (.previous_filename // empty)' |
+              python3 scripts/ci-changes.py
+          elif [ "$EVENT_NAME" = pull_request ] || [ "$EVENT_NAME" = workflow_dispatch ] || [[ "${GITHUB_REF:-}" == refs/tags/v* ]]; then
+            python3 scripts/ci-changes.py --all
+          else
+            printf 'quality=true\nproduct=true\ncandidate=false\n' | tee -a "$GITHUB_OUTPUT"
+          fi
   quality:
+    needs: 'changes'
+    if: "needs.changes.outputs.quality == 'true'"
     runs-on: 'ubuntu-latest'
     timeout-minutes: 30
     steps:
@@ -59,6 +97,8 @@ jobs:
         run: 'BUN_EXECUTABLE="$(command -v bun)" bun scripts/ci/tasks.ts test-light'
   product-build:
     name: 'Build (${{ matrix.component }})'
+    needs: 'changes'
+    if: "needs.changes.outputs.product == 'true'"
     runs-on: 'ubuntu-latest'
     timeout-minutes: 140
     strategy:
@@ -297,8 +337,9 @@ jobs:
           retention-days: 7
           if-no-files-found: 'warn'
   product-tests:
-    if: 'always()'
+    if: "always() && needs.changes.outputs.product == 'true'"
     needs:
+      - 'changes'
       - 'product-build'
       - 'product-regression'
     runs-on: 'ubuntu-latest'
@@ -324,41 +365,9 @@ jobs:
           path: 'dist/'
           retention-days: 7
           if-no-files-found: 'error'
-  candidate-scope:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      required: ${{ steps.scope.outputs.required }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        if: github.event_name == 'pull_request'
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Select release PRs and candidate infrastructure changes
-        id: scope
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          HEAD_REF: ${{ github.head_ref }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
-        run: |
-          required=false
-          if [ "$EVENT_NAME" = workflow_dispatch ] || [[ "${GITHUB_REF:-}" == refs/tags/v* ]]; then
-            required=true
-          fi
-          if [ "$EVENT_NAME" = pull_request ]; then
-            git diff --name-only "$BASE_SHA" "$SOURCE_SHA" > "$RUNNER_TEMP/candidate-paths.txt"
-            if [[ "$HEAD_REF" == release-please--branches--main--components--formicarium ]] ||
-              grep -Eq '^(\.github/workflows/(ci|release-candidate)\.yml$|scripts/(ci|package)/|tests/(package/|tooling/release-candidate\.test\.ts$))' "$RUNNER_TEMP/candidate-paths.txt"; then
-              required=true
-            fi
-          fi
-          printf 'required=%s\n' "$required" >> "$GITHUB_OUTPUT"
   release-candidate:
-    needs: [candidate-scope, product-build]
-    if: needs.candidate-scope.outputs.required == 'true'
+    needs: [changes, product-build]
+    if: needs.changes.outputs.candidate == 'true'
     uses: ./.github/workflows/release-candidate.yml
     with:
       source-sha: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -399,7 +408,7 @@ jobs:
       - 'quality'
       - 'product-tests'
       - 'commit-format'
-      - 'candidate-scope'
+      - 'changes'
       - 'release-candidate'
     runs-on: 'ubuntu-latest'
     timeout-minutes: 5
@@ -422,19 +431,27 @@ jobs:
           path: '.artifacts/ordinary-ci/receipt.json'
           include-hidden-files: true
           if-no-files-found: 'error'
-      - name: 'Require successful quality, product and commit checks'
+      - name: 'Require each needed job to pass and each unneeded job to be skipped'
         env:
+          CHANGES_RESULT: '${{ needs.changes.result }}'
+          QUALITY_NEEDED: '${{ needs.changes.outputs.quality }}'
           QUALITY_RESULT: '${{ needs.quality.result }}'
+          PRODUCT_NEEDED: '${{ needs.changes.outputs.product }}'
           PRODUCT_RESULT: '${{ needs.product-tests.result }}'
           COMMIT_RESULT: '${{ needs.commit-format.result }}'
-          SCOPE_RESULT: '${{ needs.candidate-scope.result }}'
-          CANDIDATE_REQUIRED: '${{ needs.candidate-scope.outputs.required }}'
+          CANDIDATE_REQUIRED: '${{ needs.changes.outputs.candidate }}'
           CANDIDATE_RESULT: '${{ needs.release-candidate.result }}'
         run: |
-          test "$QUALITY_RESULT" = success && test "$COMMIT_RESULT" = success && test "$PRODUCT_RESULT" = success
-          test "$SCOPE_RESULT" = success
-          if [ "$CANDIDATE_REQUIRED" = true ]; then
-            test "$CANDIDATE_RESULT" = success
-          else
-            test "$CANDIDATE_REQUIRED" = false && test "$CANDIDATE_RESULT" = skipped
-          fi
+          gate() {
+            if [ "$1" = true ]; then
+              test "$2" = success
+            else
+              test "$1" = false
+              test "$2" = skipped
+            fi
+          }
+          test "$CHANGES_RESULT" = success
+          test "$COMMIT_RESULT" = success
+          gate "$QUALITY_NEEDED" "$QUALITY_RESULT"
+          gate "$PRODUCT_NEEDED" "$PRODUCT_RESULT"
+          gate "$CANDIDATE_REQUIRED" "$CANDIDATE_RESULT"

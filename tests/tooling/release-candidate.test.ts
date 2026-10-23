@@ -96,7 +96,7 @@ test('candidate execution rejects stale source, repository, event and ref', () =
   );
 });
 
-test('required CI refuses missing or failed candidate and scope outcomes', async () => {
+test('required CI passes each needed job and refuses a skipped needed or a run unneeded job', async () => {
   const { readFile } = await import('node:fs/promises');
   const { spawnSync } = await import('node:child_process');
   const { parse } = await import('yaml');
@@ -104,10 +104,12 @@ test('required CI refuses missing or failed candidate and scope outcomes', async
   const command = workflow.jobs['ci-required'].steps.at(-1).run as string;
   const base = {
     ...process.env,
+    CHANGES_RESULT: 'success',
+    QUALITY_NEEDED: 'true',
     QUALITY_RESULT: 'success',
+    PRODUCT_NEEDED: 'true',
     PRODUCT_RESULT: 'success',
     COMMIT_RESULT: 'success',
-    SCOPE_RESULT: 'success',
     CANDIDATE_REQUIRED: 'true',
     CANDIDATE_RESULT: 'success',
   };
@@ -120,9 +122,25 @@ test('required CI refuses missing or failed candidate and scope outcomes', async
     run({ CANDIDATE_REQUIRED: 'false', CANDIDATE_RESULT: 'skipped' }),
     0,
   );
+  // A documentation-only pull request: nothing but the commit checks runs.
+  assert.equal(
+    run({
+      QUALITY_NEEDED: 'false',
+      QUALITY_RESULT: 'skipped',
+      PRODUCT_NEEDED: 'false',
+      PRODUCT_RESULT: 'skipped',
+      CANDIDATE_REQUIRED: 'false',
+      CANDIDATE_RESULT: 'skipped',
+    }),
+    0,
+  );
   for (const result of ['failure', 'cancelled', 'skipped', ''])
-    assert.notEqual(run({ CANDIDATE_RESULT: result }), 0);
-  assert.notEqual(run({ SCOPE_RESULT: 'failure' }), 0);
+    for (const name of ['QUALITY', 'PRODUCT', 'CANDIDATE'])
+      assert.notEqual(run({ [`${name}_RESULT`]: result }), 0);
+  assert.notEqual(run({ QUALITY_NEEDED: 'false' }), 0);
+  assert.notEqual(run({ PRODUCT_NEEDED: '', PRODUCT_RESULT: 'skipped' }), 0);
+  assert.notEqual(run({ CHANGES_RESULT: 'failure' }), 0);
+  assert.notEqual(run({ COMMIT_RESULT: 'skipped' }), 0);
   assert.notEqual(run({ CANDIDATE_REQUIRED: '' }), 0);
 });
 
@@ -209,14 +227,12 @@ test('RC override cannot replace the stable base or enter PR builds', () => {
     );
 });
 
-test('dispatch selects candidate verification and forwards only the observed source and RC input', async () => {
+test('dispatch, tags and the release PR select candidate verification and forward only the observed source and RC input', async () => {
   const { readFile } = await import('node:fs/promises');
   const { spawnSync } = await import('node:child_process');
   const { parse } = await import('yaml');
   const ci = parse(await readFile('.github/workflows/ci.yml', 'utf8'));
-  const scope = ci.jobs['candidate-scope'].steps.find(
-    (s: any) => s.id === 'scope',
-  );
+  const groups = ci.jobs.changes.steps.find((s: any) => s.id === 'groups');
   const {
     mkdtemp,
     readFile: readOutput,
@@ -224,18 +240,36 @@ test('dispatch selects candidate verification and forwards only the observed sou
   } = await import('node:fs/promises');
   const { tmpdir } = await import('node:os');
   const { join } = await import('node:path');
-  const directory = await mkdtemp(join(tmpdir(), 'candidate-scope-'));
-  const output = join(directory, 'output');
-  const result = spawnSync('bash', ['-euo', 'pipefail', '-c', scope.run], {
-    env: {
-      ...process.env,
-      EVENT_NAME: 'workflow_dispatch',
-      GITHUB_OUTPUT: output,
-    },
-    encoding: 'utf8',
-  });
-  assert.equal(result.status, 0);
-  assert.match(await readOutput(output, 'utf8'), /required=true/);
+  const directory = await mkdtemp(join(tmpdir(), 'ci-changes-'));
+  let count = 0;
+  const outputs = async (env: Record<string, string>) => {
+    const output = join(directory, `output-${++count}`);
+    const result = spawnSync('bash', ['-euo', 'pipefail', '-c', groups.run], {
+      env: { ...process.env, GITHUB_REF: '', ...env, GITHUB_OUTPUT: output },
+      encoding: 'utf8',
+    });
+    assert.equal(result.status, 0, result.stderr);
+    return readOutput(output, 'utf8');
+  };
+  assert.match(
+    await outputs({ EVENT_NAME: 'workflow_dispatch' }),
+    /quality=true\nproduct=true\ncandidate=true/,
+  );
+  assert.match(
+    await outputs({ EVENT_NAME: 'push', GITHUB_REF: 'refs/tags/v0.4.0' }),
+    /candidate=true/,
+  );
+  assert.match(
+    await outputs({
+      EVENT_NAME: 'pull_request',
+      HEAD_REF: 'release-please--branches--main--components--formicarium',
+    }),
+    /quality=true\nproduct=true\ncandidate=true/,
+  );
+  assert.match(
+    await outputs({ EVENT_NAME: 'push', GITHUB_REF: 'refs/heads/main' }),
+    /quality=true\nproduct=true\ncandidate=false/,
+  );
   await rm(directory, { recursive: true });
   assert.equal(
     ci.on.workflow_dispatch.inputs['candidate-version'].required,
