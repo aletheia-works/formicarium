@@ -50,7 +50,6 @@ export async function candidateSourcePaths(root: string) {
     'web',
     'scripts',
     'tests',
-    'patches',
     'guest',
   ])
     await walk(directory);

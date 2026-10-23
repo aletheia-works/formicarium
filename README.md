@@ -7,7 +7,7 @@ An open-source user-mode x86 Linux emulator for the browser, in the spirit
 of CheerpX: run unmodified Linux binaries in WebAssembly, without booting a
 kernel, so that CLI bug reproductions can run as-is in a web page.
 
-Status: proof of concept complete (blink on wasm, 2026-10-05).
+Status: the blink-on-wasm proof of concept is complete (2026-10-05), and the core is now paludarium.
 
 ## Local runtime package candidate
 
@@ -95,23 +95,22 @@ run・登録・FS 操作は session ごとに同じ排他を使い、競合は `
 
 [`showcase/`](showcase/) は、aube・pitchfork・Biome の最新の安定版を解決・取得（公式の static musl 資産がない pitchfork は source build）・検証し、公開 export（`@aletheia-works/formicarium`、`/node`、`/browser`）だけを使って Node・Chromium・Firefox・WebKit で `--version` を受入して、showcase の候補（catalog と manifest）を作ります。本体の `runtime/`・`types/` からは参照せず、境界は機械検査します。専用の CI は [`.github/workflows/showcase.yml`](.github/workflows/showcase.yml) です。構成と手順は [showcase の README](showcase/README.md) を参照して下さい。受入（3ツール×Node・3ブラウザの12行）はCIで通っています（2026-10-20のmainではrun 39412286499）。`distribute` の実行は、2026-10-20 の showcase site の最初の配布で確かめました（[showcase の README](showcase/README.md) の記録）。実機Safariは未検証です。
 
-## この PoC でしていること
+## していること
 
-[jart/blink](https://github.com/jart/blink)（x86-64 Linux のユーザーモードエミュレータ）の fork
-[aletheia-works/blink](https://github.com/aletheia-works/blink)（`formicarium-wasm` ブランチ）を
-Emscripten で wasm にビルドし（インタプリタのみ、JIT なし）、static-musl の x86-64 バイナリを
-Node.js の Worker と、COOP/COEP 付きのブラウザページ（Chromium・Firefox・WebKit）で実行する。
+x86-64 Linux のユーザーモードエミュレータ paludarium（[jart/blink](https://github.com/jart/blink) に相当するものを
+Rust で書いたもの）の wasm 版で、static-musl の x86-64 バイナリを Node.js の Worker と、COOP/COEP 付きの
+ブラウザページ（Chromium・Firefox・WebKit）で実行する。
 - 合否の判定：Rust の probe（`guest/probe/`）と、aube #1645 の再現（`fixtures/sessions/aube-1645.txt`）
 - 計測：aube の 4 コマンド（`--version`、初回 install、frozen install、list）の時間を CheerpX 1.3.9 と比べる
 
-### 結果（2026-10-05）
+### PoC の結果（2026-10-05、当時のコアは blink の fork を Emscripten で wasm にしたもの）
 
 - probe の全 8 項目（multi-thread tokio のタイマーと `UnixStream::pair`、4 並列の rayon、Mutex/Condvar、
   ファイルの作成・hard link・symlink・flock）が、Node.js・Chromium・Firefox・WebKit のすべてで合格した。
 - aube #1645 の再現は、すべての環境で native（x86-64 Linux）と同じ出力になった。
 - aube の 4 コマンドの合計は Chromium で約 12 秒、WebKit で約 20 秒（10 回の中央値）。install は解釈実行が 9 割以上を占め、
   ネイティブの約 75 倍かかる。CheerpX 1.3.9 と比べると、install は CheerpX の上限と同程度、frozen install は 1.5〜4 倍遅い。
-- JIT の開発は後回しにした。コアを paludarium に置き換えるときに取り組む（[ADR 0002](https://aletheia-works.github.io/formicarium/ja/development/decisions/0002-interpreter-only-jit-deferred/)）。
+- JIT の開発は後回しにした（[ADR 0002](https://aletheia-works.github.io/formicarium/ja/development/decisions/0002-interpreter-only-jit-deferred/)）。
 
 ### コアの構成
 
