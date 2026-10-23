@@ -85,11 +85,11 @@ run・登録・FS 操作は session ごとに同じ排他を使い、競合は `
 
 ### カタログからの install
 
-`createInstaller(session, catalog)` は、呼出し元が用意した固定カタログを検証・copy する。`installer.install('tool')` 又は `installer.install('tool@version')` で HTTPS 上の ELF・tar.gz を取得・検証し、同じ session へ登録する。既定版はカタログの defaults だけから選ぶ。通信や登録の失敗で旧 guest を置き換えず、run・FS・別の install との競合は `BUSY` になる。公開型、カタログの必須情報、取消・進捗・エラーと例は [install API](docs/install-api.md) を参照。
+`createInstaller(session, catalog)` は、呼出し元が用意した固定カタログを検証・copy する。`installer.install('tool')` 又は `installer.install('tool@version')` で HTTPS 上の ELF・tar.gz を取得・検証し、同じ session へ登録する。既定版はカタログの defaults だけから選ぶ。通信や登録の失敗で旧 guest を置き換えず、run・FS・別の install との競合は `BUSY` になる。公開型、カタログの必須情報、取消・進捗・エラーと例は [install API](https://aletheia-works.github.io/formicarium/ja/development/install-api/) を参照。
 
 ### 端末の command
 
-`createCommandSession(session, { catalog })` は 1 行の文字列を解釈し、`ls [path]`・`cat path`・`cd path`・`rm -rf path` を session の FS 操作へ、`install <selection>` を同じカタログの install へ、それ以外を登録済み guest の実行へ振り分ける。shell の構文（pipe・リダイレクト・変数展開・glob など）は展開せず `INVALID_INPUT` にする。各 command は session の予約を 1 回だけ使い、直接の API や別の command session との競合は `BUSY` になる。結果の stdout・stderr は原本の bytes で、表示への変換と表示の上限は UI 側の責任である。構文、予約名、取消と timeout、UI への受渡しの条件は [command API](docs/command-api.md) を参照。
+`createCommandSession(session, { catalog })` は 1 行の文字列を解釈し、`ls [path]`・`cat path`・`cd path`・`rm -rf path` を session の FS 操作へ、`install <selection>` を同じカタログの install へ、それ以外を登録済み guest の実行へ振り分ける。shell の構文（pipe・リダイレクト・変数展開・glob など）は展開せず `INVALID_INPUT` にする。各 command は session の予約を 1 回だけ使い、直接の API や別の command session との競合は `BUSY` になる。結果の stdout・stderr は原本の bytes で、表示への変換と表示の上限は UI 側の責任である。構文、予約名、取消と timeout、UI への受渡しの条件は [command API](https://aletheia-works.github.io/formicarium/ja/development/command-api/) を参照。
 
 ## showcase の最新版ゲスト
 
@@ -111,7 +111,7 @@ Node.js の Worker と、COOP/COEP 付きのブラウザページ（Chromium・F
 - aube #1645 の再現は、すべての環境で native（x86-64 Linux）と同じ出力になった。
 - aube の 4 コマンドの合計は Chromium で約 12 秒、WebKit で約 20 秒（10 回の中央値）。install は解釈実行が 9 割以上を占め、
   ネイティブの約 75 倍かかる。CheerpX 1.3.9 と比べると、install は CheerpX の上限と同程度、frozen install は 1.5〜4 倍遅い。
-- JIT の開発は後回しにした。コアを paludarium に置き換えるときに取り組む（ADR 0002）。
+- JIT の開発は後回しにした。コアを paludarium に置き換えるときに取り組む（[ADR 0002](https://aletheia-works.github.io/formicarium/ja/development/decisions/0002-interpreter-only-jit-deferred/)）。
 
 ### 将来の構想：コアの置き換え
 
@@ -237,7 +237,7 @@ bun node_modules/@playwright/test/cli.js install chromium firefox webkit
 - `lint-autofix.yml` / `lint-autofix-apply.yml`: 権限なしで Biome の修正 patch を作り、別 job が許可された既存ファイルの差分だけを確認して適用します。head が変わっていれば適用しません。適用先は同じ repository の PR に限ります。
 - `labeler.yml` / `.github/labeler.yml`: `actions/labeler` によるファイル分類と、既存 repository と同じ Conventional Commits の type label を使います。
 - `assign.yml`、`dependency-review.yml`、`commitlint.yml`: 担当者とマイルストーンの設定、依存更新のレビュー、Conventional Commits の検査です。
-- `claude-review.yml`: 許可された作成者の PR を Claude Code がレビューします。`docs/decisions/` と AGENTS.md に照らして差分を確かめます。
+- `claude-review.yml`: 許可された作成者の PR を Claude Code がレビューします。サイトの開発の節、`docs/decisions/`、AGENTS.md に照らして差分を確かめます。
 
 Bun 1.4.2 / bun.lock による依存管理、固定 Node、`ci.yml` の lint・型検査・build・軽量試験、候補回帰・coverage・公開前検査は formicarium 固有の検証として維持します。
 整形の適用には既存の repository secret `TF_TOKEN_GITHUB` を使います。Dependabot の auto-merge は `GITHUB_TOKEN` を使います。
@@ -350,7 +350,8 @@ fixtures/             aube #1645 と pitchfork の入力、手順、native の�
 runtime/              コアに依存しない実行環境（Node.js・ブラウザ）。ゲストと手順の表は runtime/registry.js
 scripts/              ビルド・取得・基準値・計測・開発用サーバー
 tests/                node --test と Playwright のテスト
-docs/                 アーキテクチャの要約、設計上の決定（decisions/）、install・command API、自動リリース、ライセンスの確認
+docs/decisions/       今の blink のコアに固有の設計上の決定（コアを paludarium に移すまで）
+showcase/site/src/content/docs/development/  開発の節（ランタイムの構成、API、公開、ライセンス、設計上の決定。英語と ja/）
 patches/              fork に入れた修正の写し（レビュー用）
 ```
 
@@ -365,7 +366,7 @@ patches/              fork に入れた修正の写し（レビュー用）
 
 ## License
 
-Apache License 2.0（blink の fork は ISC。[`docs/licenses.md`](docs/licenses.md) を参照）
+Apache License 2.0（blink の fork は ISC。[コアのライセンス](https://aletheia-works.github.io/formicarium/ja/development/licenses/) を参照）
 
 ### PR product tests
 
@@ -418,5 +419,5 @@ Artifacts include source SHA, run ID and attempt to keep reruns isolated.
 候補検証のソース一覧には `mise-tasks/` も含め、タスク変更を検証対象から漏らさない。
 
 配置の共通方針はvivariumに合わせる。実行用シェルはルートの `mise-tasks/` に用途別（`build/`、`test/`、`ci/`、`diagnostics/`、`install/`）の `.sh` ファイルとして置き、説明は `#MISE description` で記載する。
-共有・検証ロジックは `scripts/`、回帰試験は `tests/`、手順・判断は `docs/`、CI制御は `.github/workflows/` に置く。製品固有の `runtime/`・`guest/` は役割を保つ。
+共有・検証ロジックは `scripts/`、回帰試験は `tests/`、手順・判断はサイトの開発の節（`showcase/site/src/content/docs/development/`）、CI制御は `.github/workflows/` に置く。製品固有の `runtime/`・`guest/` は役割を保つ。
 既存の `mise run build-guests` などはaliasで維持し、`mise run build:guests` のような用途別タスク名も使える。

@@ -1,0 +1,24 @@
+---
+
+title: Architecture decisions
+description: The decisions that shape the runtime, one record each.
+sidebar: { label: Overview, order: 0 }
+---
+
+Each record states the context, the decision, its consequences and the
+alternatives rejected. To add a decision, create the next number and add a row
+here. To reverse one, mark the old record as superseded by the new number and
+give the reason in the new record.
+
+| Number                                                                         | Decision                                               | Status   |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------ | -------- |
+| [0002](/formicarium/development/decisions/0002-interpreter-only-jit-deferred/) | Interpreter only; defer the JIT                        | Accepted |
+| [0003](/formicarium/development/decisions/0003-core-boundary/)                 | Handle the core only as one wasm module and its loader | Accepted |
+| [0007](/formicarium/development/decisions/0007-no-guest-network-in-browser/)   | No guest network in the browser                        | Accepted |
+| [0008](/formicarium/development/decisions/0008-fresh-instance-per-step/)       | A fresh core instance for each step                    | Accepted |
+| [0011](/formicarium/development/decisions/0011-host-baseline-in-measurements/) | Record a host speed baseline with each measurement     | Accepted |
+
+Decisions specific to the current blink core (0001, 0004, 0005, 0006, 0009,
+0010 and 0012) stay in the repository's
+[`docs/decisions/`](https://github.com/aletheia-works/formicarium/tree/main/docs/decisions)
+until the core moves to paludarium.

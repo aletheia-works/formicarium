@@ -8,7 +8,7 @@ used, and verify the output before submitting it.
 ## Getting started
 
 Use [README.md](README.md) for setup, builds, and test commands. Read
-[the architecture](docs/architecture.md) and [the ADRs](docs/decisions/)
+[the runtime architecture](https://aletheia-works.github.io/formicarium/development/architecture/) and [the architecture decisions](https://aletheia-works.github.io/formicarium/development/decisions/)
 before changing runtime behavior.
 [AGENTS.md](AGENTS.md) contains repository development rules.
 
@@ -51,6 +51,6 @@ Do not rewrite shared history. Sign off commits created through GitHub's web UI.
 Do not apply workflow labels by judgment; organization labels are mechanical.
 
 Contributions use [Apache-2.0](LICENSE). Third-party notices are maintained in
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [docs/licenses.md](docs/licenses.md).
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [the core license](https://aletheia-works.github.io/formicarium/development/licenses/).
 Follow the [Code of Conduct](CODE_OF_CONDUCT.md) and use the private channel in
 [SECURITY.md](SECURITY.md) for vulnerabilities.

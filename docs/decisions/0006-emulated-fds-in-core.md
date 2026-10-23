@@ -21,7 +21,7 @@ eventfd、epoll（level／edge-triggered、`EPOLLONESHOT`）、socketpair、pipe
 ## Alternatives Rejected（退けた案）
 
 - **ホストの epoll や socket に渡す**：wasm にはない。
-- **formicarium の JS の側で実装する**：コアの置き換え（[0003](0003-core-boundary.md)）のたびに作り直すことになる。
+- **formicarium の JS の側で実装する**：コアの置き換え（[0003](https://aletheia-works.github.io/formicarium/development/decisions/0003-core-boundary/)）のたびに作り直すことになる。
 
 ## 参照
 

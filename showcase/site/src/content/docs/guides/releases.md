@@ -9,7 +9,9 @@ description: formicarium package releases and the showcase deployment.
 release-please prepares a release PR from Conventional Commits. Merging it
 after the required checks creates the `v<version>` tag and GitHub Release, and
 `publish.yml` publishes the verified tarball to npm with trusted publishing and
-provenance. An existing version is never replaced.
+provenance. An existing version is never replaced. The
+[package releases](/formicarium/development/releases/) page describes the
+checks in detail.
 
 ## The showcase
 

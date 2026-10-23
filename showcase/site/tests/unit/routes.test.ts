@@ -42,6 +42,19 @@ test('every page exists in English and Japanese', () => {
       'architecture',
       'maintenance',
     ].map((name) => `guides/${name}/index.html`),
+    ...[
+      'architecture',
+      'install-api',
+      'command-api',
+      'releases',
+      'licenses',
+      'decisions',
+      'decisions/0002-interpreter-only-jit-deferred',
+      'decisions/0003-core-boundary',
+      'decisions/0007-no-guest-network-in-browser',
+      'decisions/0008-fresh-instance-per-step',
+      'decisions/0011-host-baseline-in-measurements',
+    ].map((name) => `development/${name}/index.html`),
   ];
   for (const page of expected) {
     assert.ok(html.includes(page), page);

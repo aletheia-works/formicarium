@@ -14,6 +14,6 @@ jobs:
     uses: aletheia-works/.github/.github/workflows/claude-review.yml@224ce9e9c0d5ddd599e9984958b2e4dd9568ccb6 # v1.3.0
     with:
       rules: >-
-        AGENTS.md, the decisions in docs/decisions/, and the README.md nearest the changed code
+        AGENTS.md, the Development section in showcase/site/src/content/docs/development/, the decisions left in docs/decisions/, and the README.md nearest the changed code
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}

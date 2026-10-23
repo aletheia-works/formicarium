@@ -18,7 +18,13 @@
   'documentation':
     [
       {
-        'changed-files': [{ 'any-glob-to-any-file': ['README.md', 'docs/**'] }],
+        'changed-files':
+          [
+            {
+              'any-glob-to-any-file':
+                ['README.md', 'docs/**', 'showcase/site/src/content/docs/**'],
+            },
+          ],
       },
     ],
   'tooling':

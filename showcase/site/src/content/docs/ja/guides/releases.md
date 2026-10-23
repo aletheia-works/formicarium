@@ -9,7 +9,8 @@ description: formicarium の package の公開と、showcase の配布。
 release-please が Conventional Commits から release の PR を作ります。必須の
 check の後に merge すると `v<version>` の tag と GitHub Release ができ、
 `publish.yml` が検証済みの tarball を trusted publishing と provenance で npm に
-公開します。既にある版を置き換えることはありません。
+公開します。既にある版を置き換えることはありません。チェックの詳細は
+[パッケージの公開](/formicarium/ja/development/releases/)にあります。
 
 ## showcase
 

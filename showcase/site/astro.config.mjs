@@ -89,6 +89,35 @@ export default defineConfig({
             },
           ],
         },
+        {
+          ...label('Development', '開発'),
+          items: [
+            {
+              ...label('Runtime architecture', 'ランタイムの構成'),
+              link: '/development/architecture/',
+            },
+            {
+              ...label('Install API', 'install API'),
+              link: '/development/install-api/',
+            },
+            {
+              ...label('Command API', 'command API'),
+              link: '/development/command-api/',
+            },
+            {
+              ...label('Package releases', 'パッケージの公開'),
+              link: '/development/releases/',
+            },
+            {
+              ...label('Core license', 'コアのライセンス'),
+              link: '/development/licenses/',
+            },
+            {
+              ...label('Architecture decisions', '設計上の決定'),
+              items: [{ autogenerate: { directory: 'development/decisions' } }],
+            },
+          ],
+        },
       ],
     }),
   ],

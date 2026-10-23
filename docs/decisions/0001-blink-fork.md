@@ -19,7 +19,7 @@ jart/blink を `aletheia-works/blink` に fork し、`formicarium-wasm` ブラ�
 - 変更の履歴が fork の側にまとまり、upstream との差分を `git diff <upstream_commit> <commit>` で一覧できる。
 - formicarium のテストは、`blink.lock` のコミットと取得物の一致を確かめる（`tests/node/build.test.mjs`）。
 - fork を直すたびに、push と `blink.lock` の更新が要る（README の「fork を直すとき」）。
-- 将来は paludarium に置き換える前提なので、この fork への大きな投資（JIT など）は避ける（→ [0002](0002-interpreter-only-jit-deferred.md)）。
+- 将来は paludarium に置き換える前提なので、この fork への大きな投資（JIT など）は避ける（→ [0002](https://aletheia-works.github.io/formicarium/development/decisions/0002-interpreter-only-jit-deferred/)）。
 
 ## Alternatives Rejected（退けた案）
 
