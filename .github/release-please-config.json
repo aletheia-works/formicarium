@@ -9,7 +9,12 @@
       "release-type": "node",
       "component": "formicarium",
       "include-component-in-tag": false,
-      "skip-changelog": true
+      "skip-changelog": true,
+      "exclude-paths": [
+        "showcase",
+        "mise-tasks/showcase",
+        "mise-tasks/showcase-site"
+      ]
     }
   }
 }
