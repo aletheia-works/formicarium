@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -280,33 +280,49 @@ test('actual candidate export refuses changed bytes, failed checks and insuffici
 test('each reusable workflow call grants every permission its jobs request', async () => {
   const LEVELS = ['none', 'read', 'write'];
   const failures: string[] = [];
+  // Only the mapping form is compared; read-all and the like are refused.
+  const scopes = (permissions: unknown, where: string) => {
+    assert.ok(
+      permissions === undefined ||
+        (typeof permissions === 'object' && permissions !== null),
+      `${where} permissions must be a mapping`,
+    );
+    return permissions as Record<string, string> | undefined;
+  };
   const visit = async (
     file: string,
     granted: Record<string, string>,
     path: string,
   ) => {
     const called = parse(await readFile(file, 'utf8'));
+    const top = scopes(called.permissions, file);
     for (const [name, job] of Object.entries<any>(called.jobs)) {
-      const requested = job.permissions ?? called.permissions ?? {};
+      const own = scopes(job.permissions, `${file} / ${name}`);
+      const requested = own ?? top ?? {};
       for (const [scope, level] of Object.entries<string>(requested))
         if (LEVELS.indexOf(level) > LEVELS.indexOf(granted[scope] ?? 'none'))
           failures.push(`${path} / ${name}: ${scope}: ${level}`);
       if (typeof job.uses === 'string' && job.uses.startsWith('./'))
         await visit(
           job.uses.slice(2),
-          job.permissions ?? called.permissions ?? granted,
+          own ?? top ?? granted,
           `${path} / ${name}`,
         );
     }
   };
-  for (const caller of ['publish.yml', 'ci.yml', 'showcase-site.yml']) {
+  const callers = (await readdir('.github/workflows')).filter((name) =>
+    /\.ya?ml$/.test(name),
+  );
+  assert.ok(callers.includes('publish.yml'));
+  for (const caller of callers) {
     const file = `.github/workflows/${caller}`;
     const source = parse(await readFile(file, 'utf8'));
+    const top = scopes(source.permissions, file);
     for (const [name, job] of Object.entries<any>(source.jobs))
       if (typeof job.uses === 'string' && job.uses.startsWith('./'))
         await visit(
           job.uses.slice(2),
-          job.permissions ?? source.permissions ?? {},
+          scopes(job.permissions, `${file} / ${name}`) ?? top ?? {},
           `${caller} / ${name}`,
         );
   }
