@@ -69,7 +69,11 @@ test('commits that touch only the showcase do not propose a package release', ()
   );
   const excluded: string[] = config.packages['.']['exclude-paths'];
   // The showcase site and its tasks ship apart from the npm package.
-  assert.deepEqual(excluded, ['showcase', 'mise-tasks/showcase']);
+  assert.deepEqual(excluded, [
+    'showcase',
+    'mise-tasks/showcase',
+    'mise-tasks/showcase-site',
+  ]);
   // release-please matches an entry only as a directory prefix (`<path>/`),
   // so a file entry would never exclude anything.
   for (const path of excluded)

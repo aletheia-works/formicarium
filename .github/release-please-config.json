@@ -12,7 +12,8 @@
       "skip-changelog": true,
       "exclude-paths": [
         "showcase",
-        "mise-tasks/showcase"
+        "mise-tasks/showcase",
+        "mise-tasks/showcase-site"
       ]
     }
   }
