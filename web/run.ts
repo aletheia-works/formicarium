@@ -70,6 +70,8 @@ async function runGuest(
         {
           command: [name, ...args].join(' '),
           exitCode: result.exitCode,
+          // The Session's span: this run's Worker start, core check and load,
+          // and the guest. scripts/measure-aube.ts records it as the step time.
           elapsedMs: result.elapsedMs,
         },
       ],
@@ -154,6 +156,7 @@ async function runStep(
       stdout: await session.readFile(step.catFile),
       elapsedMs: 0,
     };
+  // elapsedMs spans this run's Worker start, core check and load, and the guest.
   const result = await session.run({
     guest,
     args: step.args,
