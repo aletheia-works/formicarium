@@ -1,12 +1,14 @@
 import { errorText } from '../runtime/contracts.js';
+import type { ExecutionError } from '../runtime/errors.js';
 // ページのスクリプト。crossOriginIsolated を表示し、URL のパラメータで選んだゲストを
-// Worker で実行して、結果を <pre id="output"> と data-exit-code に出す。
+// パッケージのブラウザ API（Session）で実行して、結果を <pre id="output"> と data-exit-code に出す。
 //
 //   ?guest=probe            probe を実行（既定）
 //   ?guest=hello&arg=a      引数つきで実行
 //   ?session=aube-1645      aube #1645 の手順を実行し、書き起こしを出す
 //
 // 結果は window.formicariumResult にも置く（Playwright のテストと計測が読む）。
+import { execute, type Outcome } from './run.js';
 import { parseRunRequest } from './sessions.js';
 
 const $ = (id: string): HTMLElement => {
@@ -87,55 +89,37 @@ async function main() {
 
   setStatus('running');
   const started = performance.now();
-  const worker = new Worker(new URL('./worker.js', import.meta.url), {
-    type: 'module',
-  });
-  worker.onmessage = ({ data }) => {
-    if (data.type === 'stdout' || data.type === 'stderr') {
-      window.formicariumDiagnostics[data.type as 'stdout' | 'stderr'] +=
-        data.text;
+  let outcome: Outcome;
+  try {
+    outcome = await execute(request, (stream, text) => {
+      window.formicariumDiagnostics[stream] += text;
       // 書き起こしを出す手順では、途中経過は stderr を含めて表示し、最後に置き換える
-      output.append(data.text);
-      return;
-    }
-    const elapsedMs = performance.now() - started;
-    $('elapsed').textContent = `${(elapsedMs / 1000).toFixed(2)} s`;
-    worker.terminate();
-    if (data.type === 'done') {
-      if (data.transcript !== undefined) output.textContent = data.transcript;
-      output.dataset.exitCode = String(data.exitCode);
-      setStatus(
-        `done (exit ${data.exitCode})`,
-        data.exitCode === 0 ? 'ok' : 'ng',
-      );
-      window.formicariumResult = {
-        isolated,
-        exitCode: data.exitCode,
-        transcript: data.transcript,
-        steps: data.steps,
-        elapsedMs,
-        visibility: document.visibilityState,
-        userAgent: navigator.userAgent,
-      };
-    } else {
-      setStatus(`error: ${data.message}`, 'ng');
-      if (data.stderr)
-        output.append(`
-[core stderr]
-${data.stderr}`);
-      window.formicariumResult = {
-        isolated,
-        error: data.message,
-        stderr: data.stderr,
-      };
-    }
+      output.append(text);
+    });
+  } catch (error) {
+    const { code, stderr } = error as Partial<ExecutionError>;
+    const message = code ? `${code}: ${errorText(error)}` : errorText(error);
+    setStatus(`error: ${message}`, 'ng');
+    const text = stderr?.length ? new TextDecoder().decode(stderr) : '';
+    if (text) output.append(`\n[core stderr]\n${text}`);
+    window.formicariumResult = { isolated, error: message, stderr: text };
+    return;
+  }
+  const elapsedMs = performance.now() - started;
+  $('elapsed').textContent = `${(elapsedMs / 1000).toFixed(2)} s`;
+  if (outcome.transcript !== undefined) output.textContent = outcome.transcript;
+  output.dataset.exitCode = String(outcome.exitCode);
+  setStatus(
+    `done (exit ${outcome.exitCode})`,
+    outcome.exitCode === 0 ? 'ok' : 'ng',
+  );
+  window.formicariumResult = {
+    isolated,
+    ...outcome,
+    elapsedMs,
+    visibility: document.visibilityState,
+    userAgent: navigator.userAgent,
   };
-  worker.onerror = (event) => {
-    worker.terminate();
-    setStatus(`error: ${event.message}`, 'ng');
-    window.formicariumResult = { isolated, error: event.message };
-  };
-  worker.postMessage(request);
 }
 
 main().catch((error) => {

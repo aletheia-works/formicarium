@@ -51,7 +51,9 @@ Files that share an `inodeId` stay hard links, and symlinks and modes are kept.
 | Core boundary | `core.ts`                                                      | The only file that knows the emulator core ([ADR 0003](/formicarium/development/decisions/0003-core-boundary/)) |
 
 `types/` holds the published declarations. `scripts/`, `tests/` and `web/`
-are development tools and are not part of the package.
+are development tools and are not part of the package. The `web/` page, which
+the browser regressions open, runs guests through the package's own browser API
+(`createSession`).
 
 ## The core
 

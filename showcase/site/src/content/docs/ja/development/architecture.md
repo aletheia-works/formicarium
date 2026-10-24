@@ -45,6 +45,7 @@ Session がその写しを取り込むのは、実行が成功したときだけ
 | コアとの境界   | `core.ts`                                                      | エミュレータのコアを知る唯一のファイル（[ADR 0003](/formicarium/ja/development/decisions/0003-core-boundary/)） |
 
 `types/` には公開する型宣言があります。`scripts/`・`tests/`・`web/` は開発用の道具で、パッケージには含みません。
+ブラウザの回帰テストが開く `web/` のページは、パッケージ自身のブラウザ API（`createSession`）でゲストを実行します。
 
 ## コア
 
