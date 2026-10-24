@@ -38,12 +38,10 @@ test('the committed tools.json, allow list, callers and release pin are valid', 
     await readConfigFile('trusted-callers.json'),
   );
   assert.ok(callers.reuseWorkflows.includes('.github/workflows/showcase.yml'));
-  // No npm release is pinned until a paludarium release is published.
   assert.equal(
-    validateFormicariumRelease(
-      await readConfigFile('formicarium-release.json'),
-    ),
-    null,
+    validateFormicariumRelease(await readConfigFile('formicarium-release.json'))
+      ?.version,
+    '0.4.0',
   );
   assert.equal(
     assetName('aube-{tag}-x86_64-unknown-linux-musl.tar.gz', 'v2.7.0', '2.7.0'),
