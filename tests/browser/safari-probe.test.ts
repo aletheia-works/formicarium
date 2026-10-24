@@ -2,12 +2,18 @@
 // no extra dependency). Playwright's WebKit is a separate WebKit build, so this
 // is the check against the Safari that ships with macOS. It runs one session at
 // a time with no retries, like the Playwright suites.
-// Requires: bun run build, the probe guests in dist/guests, and
+// Requires: bun run build, the probe guests in dist/guests, openssl, and
 // `safaridriver --port <port>` already running (FORMICARIUM_SAFARIDRIVER).
 import assert from 'node:assert/strict';
-import { type ChildProcess, spawn } from 'node:child_process';
+import { type ChildProcess, execFileSync, spawn } from 'node:child_process';
 import { once } from 'node:events';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { createServer, type Server } from 'node:https';
+import type { AddressInfo } from 'node:net';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { after, before, test } from 'node:test';
+import { expectation } from '../package/session-fixtures.js';
 
 const driver = process.env.FORMICARIUM_SAFARIDRIVER ?? 'http://127.0.0.1:4444';
 const port = Number(process.env.FORMICARIUM_PORT ?? 8787);
@@ -32,6 +38,9 @@ interface PageResult {
 
 let server: ChildProcess;
 let session: string;
+/** The guest download, which a catalog only accepts over HTTPS. */
+let guests: Server;
+let certificates: string;
 
 async function webdriver(method: string, path: string, body?: unknown) {
   const response = await fetch(`${driver}${path}`, {
@@ -101,10 +110,60 @@ before(async () => {
     if (attempt > 100) throw new Error(`safaridriver is not ready: ${driver}`);
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
+  // A throwaway certificate for the guest server only; the page itself stays
+  // on http://127.0.0.1, a secure context.
+  certificates = await mkdtemp(join(tmpdir(), 'formicarium-safari-'));
+  execFileSync(
+    'openssl',
+    [
+      'req',
+      '-x509',
+      '-newkey',
+      'rsa:2048',
+      '-nodes',
+      '-days',
+      '1',
+      '-subj',
+      '/CN=127.0.0.1',
+      '-addext',
+      'subjectAltName=IP:127.0.0.1',
+      '-keyout',
+      join(certificates, 'key.pem'),
+      '-out',
+      join(certificates, 'cert.pem'),
+    ],
+    { stdio: 'ignore' },
+  );
+  const hello = await readFile('dist/guests/hello');
+  guests = createServer(
+    {
+      key: await readFile(join(certificates, 'key.pem')),
+      cert: await readFile(join(certificates, 'cert.pem')),
+    },
+    (request, response) => {
+      if (request.url !== '/hello') {
+        response.writeHead(404).end();
+        return;
+      }
+      // The page is cross-origin isolated, so the download needs CORS and CORP.
+      response.writeHead(200, {
+        'access-control-allow-origin': origin,
+        'cross-origin-resource-policy': 'cross-origin',
+        'content-type': 'application/octet-stream',
+      });
+      response.end(hello);
+    },
+  ).listen(0, '127.0.0.1');
+  await once(guests, 'listening');
   const created = (await webdriver('POST', '/session', {
-    capabilities: { alwaysMatch: { browserName: 'safari' } },
+    capabilities: {
+      alwaysMatch: { browserName: 'safari', acceptInsecureCerts: true },
+    },
   })) as { sessionId: string; capabilities: Record<string, unknown> };
   session = created.sessionId;
+  await webdriver('POST', `/session/${session}/timeouts`, {
+    script: RUN_TIMEOUT_MS,
+  });
   console.log(
     `Safari ${created.capabilities.browserVersion} on ${created.capabilities.platformName}`,
   );
@@ -112,6 +171,8 @@ before(async () => {
 
 after(async () => {
   if (session) await webdriver('DELETE', `/session/${session}`).catch(() => {});
+  guests?.close();
+  if (certificates) await rm(certificates, { recursive: true, force: true });
   if (server && server.exitCode === null) {
     server.kill();
     await once(server, 'exit');
@@ -156,3 +217,74 @@ for (const item of ['futex-deadline', 'madvise-dontneed', 'page-fault-race'])
     assert.equal(streams.stdout.trim(), `PASS ${item}`);
     assert.equal(result.exitCode, 0);
   });
+
+test('install and command run a catalog guest in Safari', async () => {
+  const bytes = await readFile('dist/guests/hello');
+  const expected = expectation(bytes, {
+    tool: 'hello',
+    versionOrName: '1.0.0',
+  });
+  const catalog = {
+    schemaVersion: 1,
+    catalogId: 'safari-probe',
+    defaults: { hello: '1.0.0' },
+    entries: [
+      {
+        tool: 'hello',
+        versionOrName: '1.0.0',
+        url: `https://127.0.0.1:${(guests.address() as AddressInfo).port}/hello`,
+        format: 'elf',
+        downloadSha256: expected.elfSha256,
+        downloadBytes: bytes.length,
+        elfBytes: bytes.length,
+        buildInfo: expected.identity,
+        buildInfoSha256: expected.buildInfoSha256,
+      },
+    ],
+  };
+  await webdriver('POST', `/session/${session}/url`, {
+    url: `${origin}/web/index.html`,
+  });
+  // The public root and browser entries, with the core from the dev tree as
+  // web/run.ts uses it.
+  const observed = (await webdriver(
+    'POST',
+    `/session/${session}/execute/async`,
+    {
+      script: `const [catalog, done] = arguments;
+(async () => {
+  const api = await import('/runtime/public.js');
+  const { coreAssets } = await import('/runtime/core.js');
+  const { createSession } = await import('/runtime/web/api.js');
+  const session = await createSession({
+    assets: coreAssets(
+      new URL('/dist/paludarium/', location.href),
+      new URL('/runtime/web/package-worker.bundle.js', location.href),
+    ),
+  });
+  try {
+    const shell = api.createCommandSession(session, { catalog });
+    const installed = await shell.execute('install hello');
+    const ran = await shell.execute('hello from-safari');
+    return {
+      installed: installed.kind === 'install' && installed.exitCode === 0,
+      exitCode: ran.exitCode,
+      stdout: api.decodeUtf8(ran.stdout),
+    };
+  } finally {
+    await session.dispose();
+  }
+})().then(done, (error) => done({ error: String(error?.code ?? error) }));`,
+      args: [catalog],
+    },
+  )) as {
+    installed?: boolean;
+    exitCode?: number;
+    stdout?: string;
+    error?: string;
+  };
+  assert.equal(observed.error, undefined);
+  assert.equal(observed.installed, true);
+  assert.equal(observed.exitCode, 0);
+  assert.match(observed.stdout ?? '', /arg: from-safari/);
+});

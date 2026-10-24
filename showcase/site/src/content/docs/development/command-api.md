@@ -165,5 +165,7 @@ guest run on unchanged.
 ## Tests
 
 The unit tests are `tests/package/command-*.test.ts`. They run in ordinary CI
-(`test:node-unit`) and in the release candidate's package coverage. Real Safari
-is not verified; a WebKit result is not taken as a Safari pass.
+(`test:node-unit`) and in the release candidate's package coverage. In real
+Safari on macOS, CI runs `install <tool>` and the installed tool through a
+command session (`tests/browser/safari-probe.test.ts`); the other commands are
+not checked there, and a WebKit result is not taken as a Safari pass.

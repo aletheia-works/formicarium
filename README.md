@@ -27,8 +27,9 @@ every change:
 - Line coverage of the distributed JavaScript stays at 80% or more.
 
 It runs an interpreter (no JIT yet), so heavy programs are much slower than
-native. CI runs the browser probe in real Safari on macOS; the other browser
-suites use Playwright's WebKit in its place, and Safari on iOS is not tested.
+native. CI runs the browser probe and an install + command check in real Safari
+on macOS; the other browser suites use Playwright's WebKit in its place, and
+Safari on iOS is not tested.
 
 ## Install
 
