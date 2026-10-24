@@ -132,6 +132,6 @@ command API は、install の `Progress` とゲストの実行の `OutputChunk` 
 ## テスト
 
 単体テストは `tests/package/command-*.test.ts` にあり、通常の CI（`test:node-unit`）とリリース候補の
-パッケージのカバレッジで実行します。macOS の実機の Safari では、CI が command のセッションで `install <tool>` と
-install したツールの実行を確かめます（`tests/browser/safari-probe.test.ts`）。ほかのコマンドはそこでは確かめておらず、
+パッケージのカバレッジで実行します。macOS の実機の Safari では、CI が command のセッションで `install <tool>`、
+install したツール、`ls`・`cat`・`cd`・`rm -rf` を実行します（`tests/browser/safari-probe.test.ts`）。
 WebKit の結果を Safari の合格とは扱いません。

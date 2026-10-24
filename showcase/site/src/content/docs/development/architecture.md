@@ -83,6 +83,6 @@ build files and the decisions specific to it remain only in the git history.
 - Guests have no network ([ADR 0007](/formicarium/development/decisions/0007-no-guest-network-in-browser/)).
 - Guest memory is capped at 1 GB.
 - Browsers need cross-origin isolation (COOP/COEP or a service worker that adds them).
-- CI runs the browser probe and an install + command check in real Safari on
+- CI runs the browser probe and the install and command checks in real Safari on
   macOS. The other browser suites use
   Playwright's WebKit in its place, and Safari on iOS is not verified.

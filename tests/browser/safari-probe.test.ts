@@ -1,13 +1,14 @@
-// The probe page and one install + command run in real Safari through
+// The probe page and the install and command API checks in real Safari through
 // safaridriver (W3C WebDriver over HTTP, no extra dependency). Playwright's
 // WebKit is a separate WebKit build, so this is the check against the Safari
 // that ships with macOS. It runs one session at a time with no retries, like the
 // Playwright suites.
 // Requires: bun run build, the probe guests (probe, hello, exit3) in dist/guests,
 // `safaridriver --port <port>` already running (FORMICARIUM_SAFARIDRIVER), and,
-// for the install test only, openssl for its HTTPS guest server.
+// for the install tests only, openssl and tar for the HTTPS guest server.
 import assert from 'node:assert/strict';
 import { type ChildProcess, execFileSync, spawn } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { once } from 'node:events';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { createServer, type Server } from 'node:https';
@@ -90,7 +91,7 @@ async function runPage(path: string) {
  * certificate that the WebDriver session accepts. The page itself stays on
  * http://127.0.0.1, a secure context.
  */
-async function serveGuest(hello: Uint8Array) {
+async function serveGuests(files: Record<string, Uint8Array>) {
   const certificates = await mkdtemp(join(tmpdir(), 'formicarium-safari-'));
   try {
     execFileSync(
@@ -120,7 +121,8 @@ async function serveGuest(hello: Uint8Array) {
         cert: await readFile(join(certificates, 'cert.pem')),
       },
       (request, response) => {
-        if (request.url !== '/hello') {
+        const body = files[request.url ?? ''];
+        if (!body) {
           response.writeHead(404).end();
           return;
         }
@@ -130,7 +132,7 @@ async function serveGuest(hello: Uint8Array) {
           'cross-origin-resource-policy': 'cross-origin',
           'content-type': 'application/octet-stream',
         });
-        response.end(hello);
+        response.end(body);
       },
     ).listen(0, '127.0.0.1');
     await once(guests, 'listening');
@@ -225,75 +227,226 @@ for (const item of ['futex-deadline', 'madvise-dontneed', 'page-fault-race'])
     assert.equal(result.exitCode, 0);
   });
 
-test('install and command run a catalog guest in Safari', async (t) => {
+/**
+ * A catalog with the hello guest as a raw ELF (`hello`) and as a ustar tar.gz
+ * (`hello-archive`), served over HTTPS by serveGuests.
+ */
+async function helloCatalog(t: { after: (fn: () => unknown) => void }) {
   const bytes = await readFile('dist/guests/hello');
-  const guests = await serveGuest(bytes);
+  const archive = await mkdtemp(join(tmpdir(), 'formicarium-safari-tar-'));
+  t.after(() => rm(archive, { recursive: true, force: true }));
+  execFileSync('tar', [
+    '--format=ustar',
+    '-czf',
+    join(archive, 'hello.tar.gz'),
+    '-C',
+    'dist/guests',
+    'hello',
+  ]);
+  const tarball = await readFile(join(archive, 'hello.tar.gz'));
+  const guests = await serveGuests({
+    '/hello': bytes,
+    '/hello.tar.gz': tarball,
+  });
   t.after(() => guests.close());
-  const expected = expectation(bytes, {
-    tool: 'hello',
+  const base = `https://127.0.0.1:${(guests.address() as AddressInfo).port}`;
+  const elf = expectation(bytes, { tool: 'hello', versionOrName: '1.0.0' });
+  const packed = expectation(bytes, {
+    tool: 'hello-archive',
     versionOrName: '1.0.0',
   });
-  const catalog = {
+  return {
     schemaVersion: 1,
     catalogId: 'safari-probe',
-    defaults: { hello: '1.0.0' },
+    defaults: { hello: '1.0.0', 'hello-archive': '1.0.0' },
     entries: [
       {
         tool: 'hello',
         versionOrName: '1.0.0',
-        url: `https://127.0.0.1:${(guests.address() as AddressInfo).port}/hello`,
+        url: `${base}/hello`,
         format: 'elf',
-        downloadSha256: expected.elfSha256,
+        downloadSha256: elf.elfSha256,
         downloadBytes: bytes.length,
         elfBytes: bytes.length,
-        buildInfo: expected.identity,
-        buildInfoSha256: expected.buildInfoSha256,
+        buildInfo: elf.identity,
+        buildInfoSha256: elf.buildInfoSha256,
+      },
+      {
+        tool: 'hello-archive',
+        versionOrName: '1.0.0',
+        url: `${base}/hello.tar.gz`,
+        format: 'tar.gz',
+        archiveEntry: 'hello',
+        downloadSha256: createHash('sha256').update(tarball).digest('hex'),
+        downloadBytes: tarball.length,
+        elfBytes: bytes.length,
+        buildInfo: packed.identity,
+        buildInfoSha256: packed.buildInfoSha256,
       },
     ],
   };
+}
+
+/**
+ * Run `body` in Safari with `api` (the public root entry), a browser
+ * `session` from the dev tree's core (as web/run.ts) and `arg`; returns
+ * what `body` returns, or { error } with the ExecutionError code.
+ */
+async function inSafari<T>(
+  body: string,
+  arg: unknown,
+  options = '{}',
+): Promise<T & { error?: string }> {
   await webdriver('POST', `/session/${session}/url`, {
     url: `${origin}/web/index.html`,
   });
-  // The public root and browser entries, with the core from the dev tree as
-  // web/run.ts uses it.
-  const observed = (await webdriver(
-    'POST',
-    `/session/${session}/execute/async`,
-    {
-      script: `const [catalog, done] = arguments;
+  return (await webdriver('POST', `/session/${session}/execute/async`, {
+    script: `const [arg, done] = arguments;
 (async () => {
   const api = await import('/runtime/public.js');
   const { coreAssets } = await import('/runtime/core.js');
   const { createSession } = await import('/runtime/web/api.js');
   const session = await createSession({
+    ...${options},
     assets: coreAssets(
       new URL('/dist/paludarium/', location.href),
       new URL('/runtime/web/package-worker.bundle.js', location.href),
     ),
   });
   try {
-    const shell = api.createCommandSession(session, { catalog });
+${body}
+  } finally {
+    await session.dispose();
+  }
+})().then(done, (error) => done({ error: String(error?.code ?? error) }));`,
+    args: [arg],
+  })) as T & { error?: string };
+}
+
+test('install and command run a catalog guest in Safari', async (t) => {
+  const catalog = await helloCatalog(t);
+  const observed = await inSafari<{
+    installed: boolean;
+    exitCode: number;
+    stdout: string;
+  }>(
+    `const shell = api.createCommandSession(session, { catalog: arg });
     const installed = await shell.execute('install hello');
     const ran = await shell.execute('hello from-safari');
     return {
       installed: installed.kind === 'install' && installed.exitCode === 0,
       exitCode: ran.exitCode,
       stdout: api.decodeUtf8(ran.stdout),
-    };
-  } finally {
-    await session.dispose();
-  }
-})().then(done, (error) => done({ error: String(error?.code ?? error) }));`,
-      args: [catalog],
-    },
-  )) as {
-    installed?: boolean;
-    exitCode?: number;
-    stdout?: string;
-    error?: string;
-  };
+    };`,
+    catalog,
+  );
   assert.equal(observed.error, undefined);
   assert.equal(observed.installed, true);
   assert.equal(observed.exitCode, 0);
-  assert.match(observed.stdout ?? '', /arg: from-safari/);
+  assert.match(observed.stdout, /arg: from-safari/);
+});
+
+test('a tar.gz entry is extracted with every progress phase in Safari', async (t) => {
+  const catalog = await helloCatalog(t);
+  const observed = await inSafari<{
+    phases: string[];
+    installed: boolean;
+    exitCode: number;
+    stdout: string;
+  }>(
+    `const shell = api.createCommandSession(session, { catalog: arg });
+    const phases = [];
+    const installed = await shell.execute('install hello-archive', {
+      onProgress: (progress) => {
+        if (phases.at(-1) !== progress.phase) phases.push(progress.phase);
+      },
+    });
+    const ran = await shell.execute('hello-archive from-archive');
+    return {
+      phases,
+      installed: installed.kind === 'install' && installed.exitCode === 0,
+      exitCode: ran.exitCode,
+      stdout: api.decodeUtf8(ran.stdout),
+    };`,
+    catalog,
+  );
+  assert.equal(observed.error, undefined);
+  assert.deepEqual(observed.phases, [
+    'fetch',
+    'extract',
+    'digest',
+    'validate',
+    'register',
+  ]);
+  assert.equal(observed.installed, true);
+  assert.equal(observed.exitCode, 0);
+  assert.match(observed.stdout, /arg: from-archive/);
+});
+
+test('a cancelled install registers nothing and the next install works in Safari', async (t) => {
+  const catalog = await helloCatalog(t);
+  const observed = await inSafari<{
+    aborted: string | null;
+    missing: string | null;
+    exitCode: number;
+  }>(
+    `const shell = api.createCommandSession(session, { catalog: arg });
+    const controller = new AbortController();
+    let aborted = null;
+    try {
+      await shell.execute('install hello', {
+        signal: controller.signal,
+        onProgress: () => controller.abort(),
+      });
+    } catch (error) {
+      aborted = String(error?.code ?? error);
+    }
+    let missing = null;
+    try {
+      await shell.execute('hello');
+    } catch (error) {
+      missing = String(error?.code ?? error);
+    }
+    await shell.execute('install hello');
+    const ran = await shell.execute('hello');
+    return { aborted, missing, exitCode: ran.exitCode };`,
+    catalog,
+  );
+  assert.equal(observed.error, undefined);
+  assert.equal(observed.aborted, 'ABORTED');
+  assert.notEqual(observed.missing, null);
+  assert.equal(observed.exitCode, 0);
+});
+
+test('ls, cat, cd and rm -rf act on the session files in Safari', async () => {
+  const observed = await inSafari<{ outputs: string[]; codes: number[] }>(
+    `const shell = api.createCommandSession(session, {
+      catalog: { schemaVersion: 1, catalogId: 'none', defaults: {}, entries: [] },
+    });
+    const outputs = [];
+    const codes = [];
+    for (const line of ['ls', 'cat note.txt', 'cd sub', 'ls', 'cd /work', 'rm -rf sub', 'ls']) {
+      const result = await shell.execute(line);
+      outputs.push(api.decodeUtf8(result.stdout));
+      codes.push(result.exitCode);
+    }
+    return { outputs, codes };`,
+    null,
+    `{
+      cwd: '/work',
+      entries: [
+        { path: '/work/sub', type: 'dir', mode: 0o755 },
+        { path: '/work/sub/inner.txt', type: 'file', mode: 0o644, inodeId: 'i1', data: new TextEncoder().encode('in') },
+        { path: '/work/note.txt', type: 'file', mode: 0o644, inodeId: 'n1', data: new TextEncoder().encode('hello safari\\n') },
+      ],
+    }`,
+  );
+  assert.equal(observed.error, undefined);
+  assert.deepEqual(observed.codes, [0, 0, 0, 0, 0, 0, 0]);
+  assert.match(observed.outputs[0]!, /note\.txt/);
+  assert.match(observed.outputs[0]!, /sub/);
+  assert.equal(observed.outputs[1], 'hello safari\n');
+  assert.match(observed.outputs[3]!, /inner\.txt/);
+  assert.doesNotMatch(observed.outputs[6]!, /sub/);
+  assert.match(observed.outputs[6]!, /note\.txt/);
 });

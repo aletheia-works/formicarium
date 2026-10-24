@@ -162,7 +162,7 @@ callback can be refused with `BUSY`.
 
 The unit tests are `tests/package/install-*.test.ts`. They run in ordinary CI
 (`test:node-unit`) and in the release candidate's package coverage. In real
-Safari on macOS, CI installs one raw-ELF catalog guest over HTTPS and runs it
-(`tests/browser/safari-probe.test.ts`); `tar.gz` entries, progress and
-cancellation are not checked there, and a WebKit result is not taken as a
-Safari pass.
+Safari on macOS, CI installs catalog guests over HTTPS
+(`tests/browser/safari-probe.test.ts`): a raw ELF, a `tar.gz` entry with every
+progress phase in order, and an install cancelled at its first progress event,
+which registers nothing. A WebKit result is not taken as a Safari pass.
