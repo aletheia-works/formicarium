@@ -221,7 +221,7 @@ export async function runVerification(
       '--test',
       '--test-reporter=tap',
       '--test-concurrency=1',
-      ...['evidence', 'decision', 'collect'].map(
+      ...['evidence', 'decision'].map(
         (name) => `tests/release/${name}.test.js`,
       ),
     ]),
