@@ -70,8 +70,8 @@ export async function writePack(
       tarball,
       packSha256: recordSha ?? sha(bytes),
       formicariumSourceCommit: 'b'.repeat(40),
-      releaseTag: null,
-      evidenceSha256: null,
+      npmVersion: null,
+      integrity: null,
     }),
   });
   return pack;

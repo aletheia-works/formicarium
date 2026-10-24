@@ -134,6 +134,6 @@ export const packRecord = (packSha256 = PACK_SHA) => ({
   tarball: 'x.tgz',
   packSha256,
   formicariumSourceCommit: 'd'.repeat(40),
-  releaseTag: null,
-  evidenceSha256: null,
+  npmVersion: null,
+  integrity: null,
 });
