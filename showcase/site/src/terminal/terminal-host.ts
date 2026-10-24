@@ -145,6 +145,22 @@ export class TerminalHost {
     this.#print(`${this.cwd}$ `);
   }
 
+  /**
+   * `clear` and Ctrl-L: the page empties the terminal and its scrollback
+   * itself (no command runs), and the omitted notice goes with the output.
+   */
+  #clear(): void {
+    this.display.clear();
+    this.display.droppedBytes = 0;
+    this.display.droppedLines = 0;
+    this.#options.terminal.reset();
+    renderOmitted(
+      this.#options.omitted,
+      this.display,
+      this.#options.data.locale,
+    );
+  }
+
   /** isolating -> loading -> installing / ready, or failed. */
   async start(): Promise<void> {
     this.#setState('isolating');
@@ -262,9 +278,16 @@ export class TerminalHost {
       case 'notice':
         this.#status({ kind: action.code });
         return;
+      case 'clear':
+        this.#clear();
+        this.#print(`${this.cwd}$ ${this.editor.line}`);
+        return;
       case 'submit':
         this.#print('\n');
-        if (action.line.trim() === '') this.#prompt();
+        if (action.line.trim() === 'clear') {
+          this.#clear();
+          this.#prompt();
+        } else if (action.line.trim() === '') this.#prompt();
         else void this.#execute(action.line, false);
     }
   }

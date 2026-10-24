@@ -76,10 +76,26 @@ test('Ctrl-C drops the line while editing and aborts while running', () => {
   assert.deepEqual(editor.handle('abc\x03', true), [{ kind: 'abort' }]);
 });
 
+test('Ctrl-L asks for a clear screen and keeps the line being typed', () => {
+  const editor = new LineEditor();
+  editor.handle('ca', false);
+  assert.deepEqual(editor.handle('\x0c', false), [{ kind: 'clear' }]);
+  assert.equal(editor.line, 'ca');
+  assert.deepEqual(editor.handle('\x0c', true), []);
+});
+
 test('while running or installing every other key is discarded', () => {
   const editor = new LineEditor();
   editor.handle('ls', false);
-  for (const data of ['x', '\r', '\x7f', '\x1b[A', '\t', 'pasted\rline'])
+  for (const data of [
+    'x',
+    '\r',
+    '\x7f',
+    '\x1b[A',
+    '\t',
+    '\x0c',
+    'pasted\rline',
+  ])
     assert.deepEqual(editor.handle(data, true), [], JSON.stringify(data));
   assert.equal(editor.line, 'ls');
 });

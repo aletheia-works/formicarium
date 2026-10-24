@@ -32,7 +32,7 @@ export const STRINGS = {
       hints: 'Install a tool:',
     },
     terminalHelp:
-      'Builtins: ls, cat, cd, rm -rf and install. Tab moves the focus out of the terminal; Ctrl-C cancels a running command.',
+      'Builtins: ls, cat, cd, rm -rf and install; clear (or Ctrl-L) empties the screen. Tab moves the focus out of the terminal; Ctrl-C cancels a running command.',
     tool: {
       aube: {
         label: 'aube',
@@ -77,7 +77,7 @@ export const STRINGS = {
       hints: 'ツールの導入：',
     },
     terminalHelp:
-      '組込みの command：ls、cat、cd、rm -rf、install。Tab で端末の外へ focus を移し、Ctrl-C で実行中の command を取り消します。',
+      '組込みの command：ls、cat、cd、rm -rf、install。clear（または Ctrl-L）で画面を消します。Tab で端末の外へ focus を移し、Ctrl-C で実行中の command を取り消します。',
     tool: {
       aube: {
         label: 'aube',

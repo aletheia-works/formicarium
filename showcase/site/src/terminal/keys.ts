@@ -14,6 +14,8 @@ export type EditorAction =
   | { kind: 'abort' }
   /** ↑/↓: redraw the line with this history entry. */
   | { kind: 'replace'; line: string }
+  /** Ctrl-L: clear the screen and scrollback; the typed line stays. */
+  | { kind: 'clear' }
   /** Input was refused; the status line tells why. */
   | { kind: 'notice'; code: 'line-too-long' | 'paste-truncated' };
 
@@ -72,6 +74,10 @@ export class LineEditor {
         this.line = '';
         this.#index = this.history.length;
         actions.push({ kind: 'cancel-line' });
+        continue;
+      }
+      if (character === '\x0c') {
+        actions.push({ kind: 'clear' });
         continue;
       }
       if (character === '\x7f' || character === '\b') {

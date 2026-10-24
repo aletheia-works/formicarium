@@ -300,6 +300,31 @@ test('the empty terminal runs builtins once, follows cd and reports empty output
   );
 });
 
+test('clear and Ctrl-L wipe the screen and scrollback without running a command', async () => {
+  const h = harness('empty', async (line) =>
+    line === 'ls' ? result('builtin', 'package.json\n') : result('builtin'),
+  );
+  await h.host.start();
+  type(h.host, 'ls');
+  await settle();
+  type(h.host, 'clear');
+  await settle();
+  assert.deepEqual(h.lines, ['ls']);
+  const afterReset = () =>
+    h.writes.slice(h.writes.lastIndexOf('<reset>') + 1).join('');
+  assert.equal(afterReset(), '/work/app$ ');
+  assert.equal(h.host.display.text, '/work/app$ ');
+  assert.equal(h.host.state, 'ready');
+  // Ctrl-L keeps the line being typed on the fresh prompt.
+  h.host.onData('ca');
+  h.host.onData('\x0c');
+  assert.equal(afterReset(), '/work/app$ ca');
+  h.host.onData('t');
+  h.host.onData('\r');
+  await settle();
+  assert.deepEqual(h.lines, ['ls', 'cat']);
+});
+
 test('isolation that never comes fails the page after the wait; no input is taken', async () => {
   const clock = fakeTimers();
   const h = harness('empty', async () => result('builtin'), {
