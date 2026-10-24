@@ -14,8 +14,9 @@ description: formicarium の版が、リリース PR から npm に届くまで�
 `package.json` と release-please の manifest は同じ版を持ち、安定版のタグと GitHub Release も同じ版です。
 リポジトリの root の開発用パッケージは private のままで、stage した配布物が public です。
 
-showcase（`showcase/` と `showcase*.yml` のワークフロー）だけを変えるコミットは、次の版の計算に入りません。
+showcase（`showcase/` と `mise-tasks/showcase/`）だけを変えるコミットは、次の版の計算に入りません。
 サイトは単独で配布され、npm のパッケージは変わらないからです。release-please は `exclude-paths` でそのコミットを飛ばします。
+`exclude-paths` はディレクトリしか照合しないので、`showcase*.yml` のワークフローも変えるコミットは数えられます。
 
 release-please は変数 `RELEASE_AUTOMATION_ENABLED` で有効にします。リリース PR を定期的にマージすることはしません。
 タグは organization の bot（`BOT_CLIENT_ID`、`BOT_PRIVATE_KEY`）が作るので、Actions を起動できます。

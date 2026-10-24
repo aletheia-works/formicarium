@@ -12,9 +12,7 @@
       "skip-changelog": true,
       "exclude-paths": [
         "showcase",
-        ".github/workflows/showcase.yml",
-        ".github/workflows/showcase-site.yml",
-        ".github/workflows/showcase-release-pin.yml"
+        "mise-tasks/showcase"
       ]
     }
   }

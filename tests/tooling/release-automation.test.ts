@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { test } from 'node:test';
 import { parse } from 'yaml';
 
@@ -68,19 +68,17 @@ test('commits that touch only the showcase do not propose a package release', ()
     readFileSync('.github/release-please-config.json', 'utf8'),
   );
   const excluded: string[] = config.packages['.']['exclude-paths'];
-  // The showcase site and its workflows ship apart from the npm package.
-  assert.deepEqual(excluded, [
-    'showcase',
-    '.github/workflows/showcase.yml',
-    '.github/workflows/showcase-site.yml',
-    '.github/workflows/showcase-release-pin.yml',
-  ]);
-  for (const path of excluded.slice(1)) assert.ok(existsSync(path), path);
+  // The showcase site and its tasks ship apart from the npm package.
+  assert.deepEqual(excluded, ['showcase', 'mise-tasks/showcase']);
+  // release-please matches an entry only as a directory prefix (`<path>/`),
+  // so a file entry would never exclude anything.
+  for (const path of excluded)
+    assert.ok(statSync(path).isDirectory(), `${path} is not a directory`);
   // Nothing the package ships is excluded.
   const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
   for (const file of pkg.files as string[])
     assert.ok(
-      excluded.every((path) => !file.startsWith(path)),
+      excluded.every((path) => !`${file}/`.startsWith(`${path}/`)),
       `package file ${file} is excluded`,
     );
 });
