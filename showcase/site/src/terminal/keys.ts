@@ -76,7 +76,8 @@ export class LineEditor {
         actions.push({ kind: 'cancel-line' });
         continue;
       }
-      if (character === '\x0c') {
+      // Only the key itself clears; a form feed inside pasted text is dropped.
+      if (character === '\x0c' && data === '\x0c') {
         actions.push({ kind: 'clear' });
         continue;
       }

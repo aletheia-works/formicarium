@@ -82,6 +82,10 @@ test('Ctrl-L asks for a clear screen and keeps the line being typed', () => {
   assert.deepEqual(editor.handle('\x0c', false), [{ kind: 'clear' }]);
   assert.equal(editor.line, 'ca');
   assert.deepEqual(editor.handle('\x0c', true), []);
+  assert.deepEqual(editor.handle('t\x0c', false), [
+    { kind: 'write', text: 't' },
+  ]);
+  assert.equal(editor.line, 'cat');
 });
 
 test('while running or installing every other key is discarded', () => {

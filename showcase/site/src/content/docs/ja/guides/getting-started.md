@@ -23,8 +23,8 @@ description: formicarium の showcase の端末の使い方と制限。
 
 shell はありません。pipe・redirect・`$` の展開・glob は `INVALID_INPUT` で拒否
 されます。1行は 65536 bytes までです。↑・↓ でこの page の中の履歴を辿り、
-Ctrl-L で入力中の行を残したまま画面を消し、Ctrl-C で実行中の command や導入を取り消します。Tab と Shift+Tab は端末の外へ
-focus を移します。
+Ctrl-L で入力中の行を残したまま画面を消し、Ctrl-C で実行中の command や導入を
+取り消します。Tab と Shift+Tab は端末の外へ focus を移します。
 
 ## 制限
 
