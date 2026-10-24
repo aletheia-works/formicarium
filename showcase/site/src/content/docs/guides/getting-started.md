@@ -16,13 +16,15 @@ for example `biome --version`.
 ## Commands
 
 - `ls [path]`, `cat path`, `cd path` and `rm -rf path` are built in.
+- `clear` empties the terminal and its scrollback in the page; no command runs.
 - `install <tool>` installs a tool of the showcase catalog. Only the accepted
   versions listed on the Tools page can be installed.
 - Any other first word runs the installed tool of that name.
 
 There is no shell: pipes, redirections, `$` expansion and globbing are refused
 with `INVALID_INPUT`. One line is limited to 65536 bytes. Use ↑ and ↓ for the
-history of this page and Ctrl-C to cancel a running command or install. Tab and
+history of this page, Ctrl-L to clear the screen while keeping the typed line,
+and Ctrl-C to cancel a running command or install. Tab and
 Shift+Tab move the focus out of the terminal.
 
 ## Limits
