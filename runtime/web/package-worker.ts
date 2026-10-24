@@ -25,11 +25,13 @@ async function stop() {
   } catch {
     // The Workers below are ended either way.
   }
+  const terminated = coreWorkers.size;
   for (const worker of coreWorkers) worker.terminate();
   coreWorkers.clear();
   // terminate() returns before the browser has stopped the Worker's thread,
   // which may still run for a few milliseconds; wait before reporting.
-  await new Promise((resolve) => setTimeout(resolve, CORE_STOP_WAIT_MS));
+  if (terminated)
+    await new Promise((resolve) => setTimeout(resolve, CORE_STOP_WAIT_MS));
   self.postMessage({ type: 'stopped' });
 }
 
