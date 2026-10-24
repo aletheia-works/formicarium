@@ -1,9 +1,11 @@
-// The probe page in real Safari through safaridriver (W3C WebDriver over HTTP,
-// no extra dependency). Playwright's WebKit is a separate WebKit build, so this
-// is the check against the Safari that ships with macOS. It runs one session at
-// a time with no retries, like the Playwright suites.
-// Requires: bun run build, the probe guests in dist/guests, openssl, and
-// `safaridriver --port <port>` already running (FORMICARIUM_SAFARIDRIVER).
+// The probe page and one install + command run in real Safari through
+// safaridriver (W3C WebDriver over HTTP, no extra dependency). Playwright's
+// WebKit is a separate WebKit build, so this is the check against the Safari
+// that ships with macOS. It runs one session at a time with no retries, like the
+// Playwright suites.
+// Requires: bun run build, the probe guests (probe, hello, exit3) in dist/guests,
+// `safaridriver --port <port>` already running (FORMICARIUM_SAFARIDRIVER), and,
+// for the install test only, openssl for its HTTPS guest server.
 import assert from 'node:assert/strict';
 import { type ChildProcess, execFileSync, spawn } from 'node:child_process';
 import { once } from 'node:events';
@@ -38,9 +40,6 @@ interface PageResult {
 
 let server: ChildProcess;
 let session: string;
-/** The guest download, which a catalog only accepts over HTTPS. */
-let guests: Server;
-let certificates: string;
 
 async function webdriver(method: string, path: string, body?: unknown) {
   const response = await fetch(`${driver}${path}`, {
@@ -86,6 +85,61 @@ async function runPage(path: string) {
   }
 }
 
+/**
+ * Serve the hello guest over HTTPS, which a catalog requires, with a throwaway
+ * certificate that the WebDriver session accepts. The page itself stays on
+ * http://127.0.0.1, a secure context.
+ */
+async function serveGuest(hello: Uint8Array) {
+  const certificates = await mkdtemp(join(tmpdir(), 'formicarium-safari-'));
+  try {
+    execFileSync(
+      'openssl',
+      [
+        'req',
+        '-x509',
+        '-newkey',
+        'rsa:2048',
+        '-nodes',
+        '-days',
+        '1',
+        '-subj',
+        '/CN=127.0.0.1',
+        '-addext',
+        'subjectAltName=IP:127.0.0.1',
+        '-keyout',
+        join(certificates, 'key.pem'),
+        '-out',
+        join(certificates, 'cert.pem'),
+      ],
+      { stdio: 'ignore' },
+    );
+    const guests: Server = createServer(
+      {
+        key: await readFile(join(certificates, 'key.pem')),
+        cert: await readFile(join(certificates, 'cert.pem')),
+      },
+      (request, response) => {
+        if (request.url !== '/hello') {
+          response.writeHead(404).end();
+          return;
+        }
+        // The page is cross-origin isolated, so the download needs CORS and CORP.
+        response.writeHead(200, {
+          'access-control-allow-origin': origin,
+          'cross-origin-resource-policy': 'cross-origin',
+          'content-type': 'application/octet-stream',
+        });
+        response.end(hello);
+      },
+    ).listen(0, '127.0.0.1');
+    await once(guests, 'listening');
+    return guests;
+  } finally {
+    await rm(certificates, { recursive: true, force: true });
+  }
+}
+
 before(async () => {
   server = spawn(
     process.execPath,
@@ -110,51 +164,6 @@ before(async () => {
     if (attempt > 100) throw new Error(`safaridriver is not ready: ${driver}`);
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  // A throwaway certificate for the guest server only; the page itself stays
-  // on http://127.0.0.1, a secure context.
-  certificates = await mkdtemp(join(tmpdir(), 'formicarium-safari-'));
-  execFileSync(
-    'openssl',
-    [
-      'req',
-      '-x509',
-      '-newkey',
-      'rsa:2048',
-      '-nodes',
-      '-days',
-      '1',
-      '-subj',
-      '/CN=127.0.0.1',
-      '-addext',
-      'subjectAltName=IP:127.0.0.1',
-      '-keyout',
-      join(certificates, 'key.pem'),
-      '-out',
-      join(certificates, 'cert.pem'),
-    ],
-    { stdio: 'ignore' },
-  );
-  const hello = await readFile('dist/guests/hello');
-  guests = createServer(
-    {
-      key: await readFile(join(certificates, 'key.pem')),
-      cert: await readFile(join(certificates, 'cert.pem')),
-    },
-    (request, response) => {
-      if (request.url !== '/hello') {
-        response.writeHead(404).end();
-        return;
-      }
-      // The page is cross-origin isolated, so the download needs CORS and CORP.
-      response.writeHead(200, {
-        'access-control-allow-origin': origin,
-        'cross-origin-resource-policy': 'cross-origin',
-        'content-type': 'application/octet-stream',
-      });
-      response.end(hello);
-    },
-  ).listen(0, '127.0.0.1');
-  await once(guests, 'listening');
   const created = (await webdriver('POST', '/session', {
     capabilities: {
       alwaysMatch: { browserName: 'safari', acceptInsecureCerts: true },
@@ -171,8 +180,6 @@ before(async () => {
 
 after(async () => {
   if (session) await webdriver('DELETE', `/session/${session}`).catch(() => {});
-  guests?.close();
-  if (certificates) await rm(certificates, { recursive: true, force: true });
   if (server && server.exitCode === null) {
     server.kill();
     await once(server, 'exit');
@@ -218,8 +225,10 @@ for (const item of ['futex-deadline', 'madvise-dontneed', 'page-fault-race'])
     assert.equal(result.exitCode, 0);
   });
 
-test('install and command run a catalog guest in Safari', async () => {
+test('install and command run a catalog guest in Safari', async (t) => {
   const bytes = await readFile('dist/guests/hello');
+  const guests = await serveGuest(bytes);
+  t.after(() => guests.close());
   const expected = expectation(bytes, {
     tool: 'hello',
     versionOrName: '1.0.0',

@@ -295,7 +295,8 @@ jobs:
           retention-days: 7
           if-no-files-found: 'warn'
   # Real Safari, not Playwright's WebKit build: safaridriver drives the Safari
-  # that ships with macOS through the probe page, one session and no retries.
+  # that ships with macOS through the probe page and one install + command run,
+  # one session and no retries.
   product-safari:
     name: 'Product (safari)'
     runs-on: 'macos-latest'
@@ -332,7 +333,7 @@ jobs:
           defaults read /Applications/Safari.app/Contents/Info CFBundleShortVersionString
       - name: 'Allow safaridriver to drive Safari'
         run: 'sudo safaridriver --enable'
-      - name: 'Run the probe page in real Safari'
+      - name: 'Run the probe page and an install + command check in real Safari'
         run: |-
           safaridriver --port 4444 &
           driver=$!
