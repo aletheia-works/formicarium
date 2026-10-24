@@ -235,14 +235,19 @@ async function helloCatalog(t: { after: (fn: () => unknown) => void }) {
   const bytes = await readFile('dist/guests/hello');
   const archive = await mkdtemp(join(tmpdir(), 'formicarium-safari-tar-'));
   t.after(() => rm(archive, { recursive: true, force: true }));
-  execFileSync('tar', [
-    '--format=ustar',
-    '-czf',
-    join(archive, 'hello.tar.gz'),
-    '-C',
-    'dist/guests',
-    'hello',
-  ]);
+  // COPYFILE_DISABLE keeps macOS tar from adding ._hello AppleDouble entries.
+  execFileSync(
+    'tar',
+    [
+      '--format=ustar',
+      '-czf',
+      join(archive, 'hello.tar.gz'),
+      '-C',
+      'dist/guests',
+      'hello',
+    ],
+    { env: { ...process.env, COPYFILE_DISABLE: '1' } },
+  );
   const tarball = await readFile(join(archive, 'hello.tar.gz'));
   const guests = await serveGuests({
     '/hello': bytes,

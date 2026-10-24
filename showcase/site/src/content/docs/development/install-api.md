@@ -165,4 +165,5 @@ The unit tests are `tests/package/install-*.test.ts`. They run in ordinary CI
 Safari on macOS, CI installs catalog guests over HTTPS
 (`tests/browser/safari-probe.test.ts`): a raw ELF, a `tar.gz` entry whose
 progress goes through fetch, extract, digest, validate and register in order,
-and an install cancelled at its first progress event, which registers nothing. A WebKit result is not taken as a Safari pass.
+and an install cancelled at its first progress event, which registers nothing.
+A WebKit result is not taken as a Safari pass.
