@@ -10,6 +10,7 @@
 /tests/**/*.js
 **/*.js.map
 /test-results/
+/browser-logs/
 /playwright-report/
 
 # Logs
