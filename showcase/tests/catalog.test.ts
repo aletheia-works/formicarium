@@ -235,9 +235,10 @@ test('the acceptance page maps only public exports and pins its inline script', 
   const policy = pagePolicy('{}');
   assert.match(
     policy,
-    /script-src 'self' blob: 'wasm-unsafe-eval' 'sha256-[A-Za-z0-9+/=]+'/,
+    /script-src 'self' 'wasm-unsafe-eval' 'sha256-[A-Za-z0-9+/=]+'/,
   );
-  assert.match(policy, /worker-src 'self' blob:/);
+  assert.match(policy, /worker-src 'self';/);
+  assert.doesNotMatch(policy, /blob:/);
   assert.equal(safeJoin('/srv/site', 'guests/a/b'), '/srv/site/guests/a/b');
   for (const path of [
     '../etc/passwd',

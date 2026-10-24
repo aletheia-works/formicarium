@@ -26,13 +26,13 @@ test('only inline scripts are hashed, as base64 SHA256 of their UTF-8 text', () 
   );
 });
 
-test('the policy allows self, blob and wasm only and names no external origin', () => {
+test('the policy allows self and wasm only and names no external origin', () => {
   const policy = terminalPolicy(['abc=']);
   assert.equal(
     policy,
-    "default-src 'none'; script-src 'self' 'wasm-unsafe-eval' blob: 'sha256-abc='; worker-src 'self' blob:; connect-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; base-uri 'none'; form-action 'none'",
+    "default-src 'none'; script-src 'self' 'wasm-unsafe-eval' 'sha256-abc='; worker-src 'self'; connect-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; base-uri 'none'; form-action 'none'",
   );
-  assert.doesNotMatch(policy, /https?:|\*/);
+  assert.doesNotMatch(policy, /https?:|\*|blob:/);
 });
 
 test('the meta CSP becomes the first element of <head> with every inline hash', () => {

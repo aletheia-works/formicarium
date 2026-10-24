@@ -7,17 +7,17 @@ import { fail } from './common.ts';
 export { TERMINAL_ATTRIBUTE };
 
 /**
- * Same origin, blob and wasm only; no external origin.
- * blob: stays because the existing COI page policy (showcase accept-server) needs it.
+ * Same origin and wasm only; no external origin. The paludarium core loads its
+ * modules and Workers from same-origin URLs, so blob: is not needed.
  */
 export function terminalPolicy(hashes: readonly string[]): string {
   return [
     "default-src 'none'",
     [
-      "script-src 'self' 'wasm-unsafe-eval' blob:",
+      "script-src 'self' 'wasm-unsafe-eval'",
       ...hashes.map((hash) => `'sha256-${hash}'`),
     ].join(' '),
-    "worker-src 'self' blob:",
+    "worker-src 'self'",
     "connect-src 'self'",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data:",

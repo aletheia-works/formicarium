@@ -28,7 +28,7 @@ embedded in the page.
 terminal pages register `coi-serviceworker.js` (scope `/formicarium/`) with COEP
 `require-corp`. Because that scope covers the whole site, no page loads any
 cross-origin resource. The terminal pages carry a CSP that allows only the same
-origin, `blob:` and WebAssembly compilation; documentation pages load neither
+origin and WebAssembly compilation; documentation pages load neither
 the terminal nor the service worker.
 
 **Display.** Guest output is decoded as UTF-8 text for xterm.js and never

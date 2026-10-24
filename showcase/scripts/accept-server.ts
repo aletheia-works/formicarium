@@ -28,13 +28,13 @@ export function importMap(manifest: {
   return { imports };
 }
 
-/** Existing COI page policy (blob + wasm) plus the hash of the inline import map. */
+/** The COI page policy (same origin and wasm) plus the hash of the inline import map. */
 export function pagePolicy(inlineScript: string): string {
   const hash = createHash('sha256').update(inlineScript).digest('base64');
   return [
     "default-src 'none'",
-    `script-src 'self' blob: 'wasm-unsafe-eval' 'sha256-${hash}'`,
-    "worker-src 'self' blob:",
+    `script-src 'self' 'wasm-unsafe-eval' 'sha256-${hash}'`,
+    "worker-src 'self'",
     "connect-src 'self'",
     "style-src 'self'",
   ].join('; ');
