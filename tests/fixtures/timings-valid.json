@@ -7,9 +7,8 @@
     "commit": "bd94e42f54d3b5e3dd102716b7197f316cb5f4ed"
   },
   "core": {
-    "name": "blink",
-    "commit": "817687f0e8056b27c45e928055208900519a76b4",
-    "emcc": "emcc 6.0.10"
+    "name": "paludarium",
+    "version": "0.4.0"
   },
   "host": {
     "os": "Windows_NT 10.0.26300 x64",

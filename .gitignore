@@ -56,7 +56,6 @@ dist-ssr
 /showcase/site/tooling/astro-check/node_modules/
 
 # formicarium build outputs
-.vendor/
 dist/
 target/
 node_modules/

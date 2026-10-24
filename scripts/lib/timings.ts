@@ -12,7 +12,7 @@ export interface TimingDocument {
   schemaVersion: number;
   generatedAt: string;
   runs: TimingRun[];
-  core?: { name?: string; version?: string; commit?: string; emcc?: string };
+  core?: { name?: string; version?: string };
   tool?: { version?: string; commit?: string };
   host?: { os?: string; cpu?: string; node?: string };
 }
@@ -187,11 +187,7 @@ export function renderResultsMarkdown(doc: TimingDocument) {
   );
   lines.push('');
   lines.push(`- 生成日時：${doc.generatedAt}`);
-  lines.push(
-    doc.core?.version
-      ? `- コア：${doc.core.name ?? '?'} ${doc.core.version}`
-      : `- コア：${doc.core?.name ?? '?'}（commit ${doc.core?.commit ?? '?'}、${doc.core?.emcc ?? ''}）`,
-  );
+  lines.push(`- コア：${doc.core?.name ?? '?'} ${doc.core?.version ?? '?'}`);
   lines.push(
     `- aube：${doc.tool?.version ?? '?'}（commit ${doc.tool?.commit ?? '?'}、x86-64 static-musl）`,
   );

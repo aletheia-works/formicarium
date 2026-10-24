@@ -44,10 +44,10 @@ secure/debug/override/no-thp等の非default featureは有効にしない。
 `-O3`はrelease診断の指定であり、aubeの元ビルドの全compiler flagsと
 一致することは未検証。allocator public API経由のpurge再現を目的とする。
 
-## native → 同一ELF blink（主セッションのみ）
+## native → 同一ELF formicarium（主セッションのみ）
 
 コンテナ内で先に`/out/aube-purge`を実行し、phaseとPASS、exit codeを保存する。
-native失敗時はblink結果を正しい期待値として扱わない。
+native失敗時はformicarium（paludarium）の結果を正しい期待値として扱わない。
 出力ELFのSHA-256を保存し、同じbytesをNode runnerへ渡す。
 Node実体パスは主セッションでmiseから解決した絶対パスを使う。
 現在の`runtime/node/run.ts`のCLIに従う正式呼出し:
@@ -60,7 +60,7 @@ Node実体パスは主セッションでmiseから解決した絶対パスを使
 最初の実行はpurge設定を上書きしない。第2実行だけ診断controlとしてpurgeを
 無効化する。どちらも同じELF、600秒上限で逐次実行し、phase/exit/timeoutを保存。
 製品に環境設定を追加する指示ではない。
-blink時代の`--core-flag`によるsyscall traceは、paludariumへの移行で使えなくなった。
+以前のコアの`--core-flag`によるsyscall traceは、paludariumへの移行で使えなくなった。
 
 ## 適用限界
 
@@ -98,7 +98,7 @@ nativeで`/out/aube-purge-bitmap`を先に確認し、同ELF bytesで:
 ```
 
 本追加診断のbuild/実行は未検証。元の割当診断は主セッションでnativeと
-blink purge-onがexit0、traceでDONTNEEDを観測済みだが、aube停止は未再現。
+以前のコアのpurge-onがexit0、traceでDONTNEEDを観測済みだが、aube停止は未再現。
 
 ## BSF zero-input互換性診断（Step39）
 
@@ -107,7 +107,7 @@ blink purge-onがexit0、traceでDONTNEEDを観測済みだが、aube停止は�
 期待値はzeroがdestination64/ZF1、nonzeroがdestination15/ZF0。
 zero-inputのdestinationは命令仕様上undefinedであり、64保持をIntelの
 アーキテクチャ保証と主張しない。ここでは同じLinux x86_64 nativeで観測する
-挙動とmimallocの依存をblinkとの互換性要件として切り分ける。
+挙動とmimallocの依存をpaludariumとの互換性要件として切り分ける。
 
 同じLinux x86_64 muslコンテナで:
 
@@ -122,6 +122,6 @@ ELF SHAを保存した同じbytesで:
 /ABSOLUTE/NODE runtime/node/run.js --timeout 600 /private/tmp/formicarium-mimalloc-reproduction-v1/aube-purge-bsf-zero
 ```
 
-blinkでzero destination0となればexit1のRedとして保存する。
+formicarium（paludarium）でzero destination0となればexit1のRedとして保存する。
 nativeが異なる挙動なら互換性前提を見直し、結果を成功扱いにしない。
 本診断のbuild/実行は作成時点で未検証。core修正は別Step40の承認対象。

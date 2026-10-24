@@ -62,7 +62,7 @@ test('gate independently rejects another core and a build-info digest mismatch',
     else {
       const bytes = JSON.stringify({
         ...f.core,
-        core: 'blink',
+        core: 'other-core',
       });
       await writeFile(
         join(f.root, 'package', 'assets/paludarium/build-info.json'),

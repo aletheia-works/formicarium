@@ -97,7 +97,7 @@ test('build information must list exactly the core files with SHA-256 digests', 
   const { info } = assetsFixture();
   assert.equal(validateCoreBuildInfo(info), info);
   for (const change of [
-    { core: 'blink' },
+    { core: 'other-core' },
     { package: 'other' },
     { version: 'latest' },
     { files: { ...info.files, extra: info.files[CORE_WASM] } },
@@ -141,7 +141,7 @@ test('changed, missing or unreadable files fail without importing the core', asy
       fixture.files['jit-support.mjs'] = new Uint8Array();
     },
     (fixture: ReturnType<typeof assetsFixture>) => {
-      fixture.info.core = 'blink';
+      fixture.info.core = 'other-core';
     },
     (fixture: ReturnType<typeof assetsFixture>) => {
       fixture.assets.loaderURL = `${BASE}other.mjs`;
