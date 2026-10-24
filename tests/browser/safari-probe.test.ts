@@ -414,7 +414,7 @@ test('a cancelled install registers nothing and the next install works in Safari
   );
   assert.equal(observed.error, undefined);
   assert.equal(observed.aborted, 'ABORTED');
-  assert.notEqual(observed.missing, null);
+  assert.equal(observed.missing, 'NOT_FOUND');
   assert.equal(observed.exitCode, 0);
 });
 

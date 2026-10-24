@@ -142,5 +142,5 @@ callback から同じ Session を操作すると `BUSY` になることがあり
 
 単体テストは `tests/package/install-*.test.ts` にあり、通常の CI（`test:node-unit`）とリリース候補の
 パッケージのカバレッジで実行します。macOS の実機の Safari では、CI がカタログのゲストを HTTPS で install します
-（`tests/browser/safari-probe.test.ts`）。ELF そのもの、進捗のすべての段階を順に通る `tar.gz`、最初の進捗で中止して
+（`tests/browser/safari-probe.test.ts`）。ELF そのもの、進捗が fetch・extract・digest・validate・register の順に届く `tar.gz`、最初の進捗で中止して
 何も登録されない install を確かめます。WebKit の結果を Safari の合格とは扱いません。

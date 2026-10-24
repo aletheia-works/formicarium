@@ -99,7 +99,8 @@ scripts (`fixtures/sessions/*.txt`) accept a guest command, `rm -rf <path>` and
 `cat <path>`, split arguments like `sh -c`, and refuse other shell syntax.
 
 CI runs the probe page and the install and command API checks in real
-Safari on macOS (`tests/browser/safari-probe.test.ts` through safaridriver); the other browser suites use Playwright's WebKit in its
+Safari on macOS (`tests/browser/safari-probe.test.ts` through
+safaridriver); the other browser suites use Playwright's WebKit in its
 place, and Safari on iOS is not tested. On Windows, the POSIX
 permission checks are skipped; run them on Linux.
 

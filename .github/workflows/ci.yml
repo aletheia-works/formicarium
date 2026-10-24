@@ -296,8 +296,7 @@ jobs:
           if-no-files-found: 'warn'
   # Real Safari, not Playwright's WebKit build: safaridriver drives the Safari
   # that ships with macOS through the probe page and the install and command
-  # API checks,
-  # one session and no retries.
+  # API checks, one session and no retries.
   product-safari:
     name: 'Product (safari)'
     runs-on: 'macos-latest'
