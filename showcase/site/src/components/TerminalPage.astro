@@ -47,7 +47,14 @@ const host = { [TERMINAL_ATTRIBUTE]: JSON.stringify(data) };
   >
     {statusText({ kind: 'isolating' }, data.locale)}
   </p>
-  <div class="terminal-host" {...host} data-testid="terminal-host"></div>
+  <!-- not-content keeps Starlight's content styles (the margin between
+       sibling elements) off xterm's rows, which would space every row apart
+       and leave the input element on the wrong line. -->
+  <div
+    class="terminal-host not-content"
+    {...host}
+    data-testid="terminal-host"
+  ></div>
   <p class="terminal-omitted" data-testid="terminal-omitted" hidden></p>
   <p>{help}</p>
   <p>{hintsTitle}</p>

@@ -159,8 +159,42 @@ for (const [locale, prefix] of LOCALES)
         'aria-live',
         'polite',
       );
-      // Tab leaves the terminal instead of being typed into it.
+      // The page's content styles must not reach xterm: rows sit one row
+      // height apart with no margin, and the input element (where typing and
+      // IME composition appear) stays on the cursor row.
       await page.locator('[data-terminal-host] textarea').focus();
+      const layout = await page
+        .locator('[data-terminal-host]')
+        .evaluate((host) => {
+          const rows = [...host.querySelectorAll('.xterm-rows > div')].slice(
+            0,
+            4,
+          );
+          const tops = rows.map((row) => row.getBoundingClientRect().top);
+          // When ready, the cursor waits on the last prompt row.
+          const prompt = [...host.querySelectorAll('.xterm-rows > div')]
+            .filter((row) => /\$\s*$/.test(row.textContent ?? ''))
+            .at(-1);
+          const textarea = host.querySelector('textarea');
+          return {
+            margins: rows.map((row) => getComputedStyle(row).marginTop),
+            steps: tops.slice(1).map((top, index) => top - tops[index]!),
+            height: rows[0]!.getBoundingClientRect().height,
+            offset:
+              prompt && textarea
+                ? Math.abs(
+                    textarea.getBoundingClientRect().top -
+                      prompt.getBoundingClientRect().top,
+                  )
+                : null,
+          };
+        });
+      expect(layout.margins).toEqual(['0px', '0px', '0px', '0px']);
+      for (const step of layout.steps)
+        expect(step).toBeCloseTo(layout.height, 0);
+      expect(layout.offset).not.toBeNull();
+      expect(layout.offset!).toBeLessThan(2);
+      // Tab leaves the terminal instead of being typed into it.
       await page.keyboard.press('Tab');
       expect(
         await page.evaluate(
