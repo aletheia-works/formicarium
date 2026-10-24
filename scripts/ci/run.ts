@@ -459,7 +459,6 @@ export async function mergeParts(
   );
   const coverage = await reportPackageCoverage({
     out: coverageOut,
-    browserResults: resolve(coverageOut, 'browser-results'),
     browserParts,
     candidatePath: process.env.FORMICARIUM_CANDIDATE!,
     extraNodeWorkers: COMMAND_COVERAGE_NODE_WORKERS,

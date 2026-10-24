@@ -620,10 +620,11 @@ export async function reportCoverage({
   extraNodeWorkers = 0,
 }: {
   out: string;
-  browserResults: string;
+  /** Where every project's results are when they all ran in `out` itself. */
+  browserResults?: string;
   /**
    * One part per browser project measured in its own job, each a download of
-   * that job's coverage copy. Without it, every project ran in `out` itself.
+   * that job's coverage copy, in place of `browserResults`.
    */
   browserParts?: { project: string; out: string; browserResults: string }[];
   candidatePath: string;
@@ -632,6 +633,8 @@ export async function reportCoverage({
 }) {
   if (!Number.isSafeInteger(extraNodeWorkers) || extraNodeWorkers < 0)
     throw new Error('extra Node Worker count must be a nonnegative integer');
+  if (!browserParts === !browserResults)
+    throw new Error('give either browser results or browser parts');
   const metadataText = await readFile(
     resolve(out, 'coverage-metadata.json'),
     'utf8',
@@ -684,7 +687,9 @@ export async function reportCoverage({
       (_, index) => `node-worker-${index + 1}`,
     ),
   ];
-  const parts = browserParts ?? [{ project: '', out, browserResults }];
+  const parts = browserParts ?? [
+    { project: '', out, browserResults: browserResults! },
+  ];
   if (
     browserParts &&
     JSON.stringify(browserParts.map((part) => part.project).sort()) !==

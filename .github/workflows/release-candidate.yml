@@ -147,7 +147,9 @@ jobs:
             .artifacts/package-coverage/browser-results/
           include-hidden-files: true
           retention-days: 30
-          if-no-files-found: error
+          # A part that failed before writing anything already failed its job;
+          # the merge still refuses a missing part.
+          if-no-files-found: warn
 
   verify:
     needs: [prepare, check]

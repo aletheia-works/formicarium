@@ -633,6 +633,26 @@ test('extra planned Node Workers must be a nonnegative integer before any eviden
   );
 });
 
+test('the report takes browser results or browser parts, never both or neither', async () => {
+  const part = {
+    project: 'chromium',
+    out: '/nonexistent-part',
+    browserResults: '/nonexistent-part/browser-results',
+  };
+  for (const browsers of [
+    {},
+    { browserResults: '/nonexistent-browser-results', browserParts: [part] },
+  ])
+    await assert.rejects(
+      reportCoverage({
+        out: '/nonexistent-coverage-out',
+        candidatePath: '/nonexistent-candidate.json',
+        ...browsers,
+      }),
+      /give either browser results or browser parts/,
+    );
+});
+
 test('direct generated counters run without a coverage bridge and keep their return values', () => {
   // Release-candidate browser specs import instrumented modules into pages
   // that never load the bridge; stock istanbul discards those counts.
