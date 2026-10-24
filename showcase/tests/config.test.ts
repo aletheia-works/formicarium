@@ -6,7 +6,7 @@ import {
   assetName,
   readConfigFile,
   validateAllowedSources,
-  validateB1Pack,
+  validateFormicariumRelease,
   validateToolsConfig,
   validateTrustedCallers,
 } from '../scripts/config.ts';
@@ -20,7 +20,7 @@ const current = async () =>
 const rejects = (run: () => unknown, code: string) =>
   assert.throws(run, (error) => causeOf(error) === code);
 
-test('the committed tools.json, allow list, callers and B1 pack are valid', async () => {
+test('the committed tools.json, allow list, callers and release pin are valid', async () => {
   const tools = validateToolsConfig(await current(), allowed);
   assert.deepEqual(
     tools.tools.map((tool) => [tool.tool, tool.acquire.kind]),
@@ -38,16 +38,13 @@ test('the committed tools.json, allow list, callers and B1 pack are valid', asyn
     await readConfigFile('trusted-callers.json'),
   );
   assert.ok(callers.reuseWorkflows.includes('.github/workflows/showcase.yml'));
-  // The B1 acceptance pack of main 7f44add2 (Release b1-3777a192e789).
-  assert.deepEqual(validateB1Pack(await readConfigFile('b1-pack.json')), {
-    releaseTag: 'b1-3777a192e789',
-    packAsset: 'aletheia-works-formicarium-0.3.0-b1-3777a192e789.tgz',
-    packSha256:
-      '3777a192e78961df96c3bb63d0afb22357af781ee806af15b27a4f9130853af9',
-    evidenceAsset: 'b1-acceptance.json',
-    evidenceSha256:
-      '294aff3e470accb96b40446d498d8ef6c9553a7bc6b37f3de9cd2819e9efdac6',
-  });
+  // No npm release is pinned until a paludarium release is published.
+  assert.equal(
+    validateFormicariumRelease(
+      await readConfigFile('formicarium-release.json'),
+    ),
+    null,
+  );
   assert.equal(
     assetName('aube-{tag}-x86_64-unknown-linux-musl.tar.gz', 'v2.7.0', '2.7.0'),
     'aube-v2.7.0-x86_64-unknown-linux-musl.tar.gz',
@@ -92,29 +89,44 @@ test('tag patterns must be anchored with exactly one version group', async () =>
   }
 });
 
-test('b1-pack.json must be all null or a fully valid pack with digest-named tag', () => {
-  const pack = {
+test('formicarium-release.json must be all null or a full npm version, integrity and commit', () => {
+  const release = {
     schemaVersion: 1,
-    releaseTag: 'b1-61b209ae1c98',
-    packAsset: 'aletheia-works-formicarium-0.3.0.tgz',
-    packSha256:
-      '61b209ae1c98690f4f69eeca25c06f6485d05420c339283416e0aff91ea9cb98',
-    evidenceAsset: 'api-acceptance.json',
-    evidenceSha256: 'a'.repeat(64),
+    version: '0.4.0',
+    integrity: `sha512-${'A'.repeat(86)}==`,
+    sourceCommit: 'a'.repeat(40),
   };
-  assert.equal(validateB1Pack(pack)?.releaseTag, 'b1-61b209ae1c98');
-  rejects(
-    () => validateB1Pack({ ...pack, packSha256: 'A'.repeat(64) }),
-    'config-invalid',
+  assert.deepEqual(validateFormicariumRelease(release), {
+    version: '0.4.0',
+    integrity: release.integrity,
+    sourceCommit: release.sourceCommit,
+  });
+  assert.equal(
+    validateFormicariumRelease({
+      schemaVersion: 1,
+      version: null,
+      integrity: null,
+      sourceCommit: null,
+    }),
+    null,
   );
-  rejects(
-    () => validateB1Pack({ ...pack, releaseTag: 'b1-000000000000' }),
-    'config-invalid',
+  assert.equal(
+    validateFormicariumRelease({ ...release, version: '1.0.0-rc.2' })?.version,
+    '1.0.0-rc.2',
   );
-  rejects(
-    () => validateB1Pack({ ...pack, evidenceSha256: null }),
-    'config-invalid',
-  );
+  for (const change of [
+    { version: 'v0.4.0' },
+    { version: '0.4' },
+    { integrity: 'sha256-abc' },
+    { sourceCommit: 'A'.repeat(40) },
+    { sourceCommit: null },
+    { extra: 1 },
+    { schemaVersion: 2 },
+  ])
+    rejects(
+      () => validateFormicariumRelease({ ...release, ...change }),
+      'config-invalid',
+    );
 });
 
 test('a config file with a duplicate JSON key is refused', async () => {

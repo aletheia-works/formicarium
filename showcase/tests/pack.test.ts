@@ -3,14 +3,18 @@ import { writeFileSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import test from 'node:test';
-import { validateB1Pack } from '../scripts/config.ts';
+import { validateFormicariumRelease } from '../scripts/config.ts';
 import { causeOf } from '../scripts/errors.ts';
 import {
   installPack,
   type PackRecord,
   packDistribute,
   packVerify,
+  REGISTRY,
+  sha512Integrity,
+  tagCommitFromListing,
 } from '../scripts/pack.ts';
+import { pinRelease } from '../scripts/pin-release.ts';
 import { bytes, commit, fakeFetch, sha } from './fixtures/github.ts';
 import { tgz } from './fixtures/tar.ts';
 import { withLayout } from './fixtures/work.ts';
@@ -28,42 +32,31 @@ const packTgz = (name = '@aletheia-works/formicarium', root = 'package') =>
   ]);
 const tarball = packTgz();
 const packSha = sha(tarball);
-const b1 = validateB1Pack({
+const release = validateFormicariumRelease({
   schemaVersion: 1,
-  releaseTag: `b1-${packSha.slice(0, 12)}`,
-  packAsset: 'aletheia-works-formicarium-0.3.0.tgz',
-  packSha256: packSha,
-  evidenceAsset: 'api-acceptance.json',
-  evidenceSha256: 'f'.repeat(64),
+  version: '0.4.0',
+  integrity: sha512Integrity(tarball),
+  sourceCommit: commit('v0.4.0'),
 })!;
-const evidence = (overrides: Record<string, unknown> = {}) =>
+const metadataUrl = `${REGISTRY}/@aletheia-works%2fformicarium/0.4.0`;
+const tarballUrl = `${REGISTRY}/@aletheia-works/formicarium/-/formicarium-0.4.0.tgz`;
+const metadata = (overrides: Record<string, unknown> = {}) =>
   JSON.stringify({
-    schemaVersion: 1,
-    evidenceId: 'b1',
-    sourceCommit: commit('b1'),
-    packageVersion: '0.3.0',
-    packSha256: packSha,
-    inventorySha256: 'a'.repeat(64),
-    checks: [
-      {
-        name: 'types',
-        status: 'passed',
-        environment: 'host',
-        logSha256: 'b'.repeat(64),
-      },
-    ],
-    preflightEvidenceId: 'u1',
+    name: '@aletheia-works/formicarium',
+    version: '0.4.0',
+    dist: { tarball: tarballUrl, integrity: release.integrity },
     ...overrides,
   });
-const release = `https://github.com/owner/repo/releases/download/${b1.releaseTag}`;
-function distributeWith(packBytes: Uint8Array, evidenceText: string) {
+function registryWith(packBytes: Uint8Array, metadataText = metadata()) {
   return fakeFetch({
-    [`${release}/${b1.packAsset}`]: bytes(packBytes),
-    [`${release}/${b1.evidenceAsset}`]: bytes(
-      new TextEncoder().encode(evidenceText),
-    ),
+    [metadataUrl]: bytes(new TextEncoder().encode(metadataText)),
+    [tarballUrl]: bytes(packBytes),
   });
 }
+const tagAt =
+  (sourceCommit: string | null = release.sourceCommit) =>
+  (tag: string) =>
+    tag === 'v0.4.0' ? sourceCommit : null;
 
 test('verify packs the same commit with the body stager and records its SHA256', async () => {
   await withLayout(async (layout) => {
@@ -113,8 +106,8 @@ test('the pack is extracted only after its SHA256 matches the record', async () 
       tarball: 'p.tgz',
       packSha256: packSha,
       formicariumSourceCommit: commit('head'),
-      releaseTag: null,
-      evidenceSha256: null,
+      npmVersion: null,
+      integrity: null,
     };
     const destination = join(layout.root, 'node_modules', 'pkg');
     await installPack(record, { layout, destination });
@@ -134,7 +127,7 @@ test('the pack is extracted only after its SHA256 matches the record', async () 
         { ...record, mode: 'distribute', packSha256: '0'.repeat(64) },
         { layout, destination },
       ),
-      'b1-pack-mismatch',
+      'pack-mismatch',
     );
     for (const bad of [packTgz('other-package'), packTgz(undefined, 'pkg')]) {
       await writeFile(join(layout.pack, 'bad.tgz'), bad);
@@ -149,86 +142,157 @@ test('the pack is extracted only after its SHA256 matches the record', async () 
   });
 });
 
-test('distribute fails closed without a B1 Release', async () => {
+test('distribute fails closed without a pinned release, the registry or the tag', async () => {
   await withLayout(async (layout) => {
     await rejects(
-      packDistribute({ b1: null, repository: 'owner/repo', layout }),
-      'b1-pack-unavailable',
+      packDistribute({ release: null, tagCommit: tagAt(), layout }),
+      'release-unavailable',
     );
     await rejects(
       packDistribute({
-        b1,
-        repository: 'owner/repo',
+        release,
+        tagCommit: tagAt(),
         layout,
         fetchImpl: fakeFetch({}),
       }),
-      'b1-pack-unavailable',
+      'release-unavailable',
+    );
+    await rejects(
+      packDistribute({
+        release,
+        tagCommit: tagAt(null),
+        layout,
+        fetchImpl: registryWith(tarball),
+      }),
+      'release-unavailable',
     );
   });
 });
 
-test('distribute refuses a pack or acceptance evidence that does not match', async () => {
-  const fixedEvidence = (text: string) => ({
-    ...b1,
-    evidenceSha256: sha(text),
-  });
+test('distribute refuses metadata, bytes or a tag that differ from the pin', async () => {
   await withLayout(async (layout) => {
-    const text = evidence();
-    await rejects(
-      packDistribute({
-        b1: fixedEvidence(text),
-        repository: 'owner/repo',
-        layout,
-        fetchImpl: distributeWith(packTgz('other'), text),
-      }),
-      'b1-pack-mismatch',
-    );
-    await rejects(
-      packDistribute({
-        b1,
-        repository: 'owner/repo',
-        layout,
-        fetchImpl: distributeWith(tarball, text),
-      }),
-      'b1-pack-mismatch',
-    );
-    for (const wrong of [
-      evidence({ packSha256: '0'.repeat(64) }),
-      evidence({
-        checks: [
-          {
-            name: 'types',
-            status: 'unverified',
-            environment: 'host',
-            logSha256: 'b'.repeat(64),
+    for (const fetchImpl of [
+      registryWith(packTgz('other')),
+      registryWith(tarball, metadata({ version: '0.4.1' })),
+      registryWith(tarball, metadata({ name: 'other' })),
+      registryWith(
+        tarball,
+        metadata({
+          dist: {
+            tarball: tarballUrl,
+            integrity: sha512Integrity(packTgz('x')),
           },
-        ],
-      }),
+        }),
+      ),
+      registryWith(
+        tarball,
+        metadata({
+          dist: {
+            tarball: 'https://example.com/formicarium-0.4.0.tgz',
+            integrity: release.integrity,
+          },
+        }),
+      ),
+      registryWith(tarball, '{"name":1,"name":2}'),
     ])
       await rejects(
-        packDistribute({
-          b1: fixedEvidence(wrong),
-          repository: 'owner/repo',
-          layout,
-          fetchImpl: distributeWith(tarball, wrong),
-        }),
-        'b1-pack-mismatch',
+        packDistribute({ release, tagCommit: tagAt(), layout, fetchImpl }),
+        'pack-mismatch',
       );
+    await rejects(
+      packDistribute({
+        release,
+        tagCommit: tagAt(commit('other')),
+        layout,
+        fetchImpl: registryWith(tarball),
+      }),
+      'pack-mismatch',
+    );
   });
 });
 
-test('distribute accepts the B1 pack and takes formicariumSourceCommit from the evidence', async () => {
+test('distribute accepts the pinned npm release and records its tag commit', async () => {
   await withLayout(async (layout) => {
-    const text = evidence();
     const record = await packDistribute({
-      b1: { ...b1, evidenceSha256: sha(text) },
-      repository: 'owner/repo',
+      release,
+      tagCommit: tagAt(),
       layout,
-      fetchImpl: distributeWith(tarball, text),
+      fetchImpl: registryWith(tarball),
     });
-    assert.equal(record.mode, 'distribute');
-    assert.equal(record.packSha256, packSha);
-    assert.equal(record.formicariumSourceCommit, commit('b1'));
-    assert.equal(record.releaseTag, b1.releaseTag);
+    assert.deepEqual(record, {
+      schemaVersion: 1,
+      mode: 'distribute',
+      tarball: 'aletheia-works-formicarium-0.4.0.tgz',
+      packSha256: packSha,
+      formicariumSourceCommit: release.sourceCommit,
+      npmVersion: '0.4.0',
+      integrity: release.integrity,
+    });
+    assert.deepEqual(
+      await readFile(join(layout.pack, record.tarball)),
+      Buffer.from(tarball),
+    );
   });
+});
+
+test('the tag commit is the peeled commit of an annotated tag, else the tag itself', () => {
+  const object = commit('tag-object');
+  const target = commit('target');
+  assert.equal(
+    tagCommitFromListing(
+      `${object}\trefs/tags/v0.4.0\n${target}\trefs/tags/v0.4.0^{}\n`,
+      'v0.4.0',
+    ),
+    target,
+  );
+  assert.equal(
+    tagCommitFromListing(`${target}\trefs/tags/v0.4.0\n`, 'v0.4.0'),
+    target,
+  );
+  assert.equal(tagCommitFromListing('', 'v0.4.0'), null);
+  assert.equal(
+    tagCommitFromListing(`${target}\trefs/tags/v0.3.0\n`, 'v0.4.0'),
+    null,
+  );
+  assert.equal(
+    tagCommitFromListing('not-a-commit\trefs/tags/v0.4.0\n', 'v0.4.0'),
+    null,
+  );
+});
+
+test('a published stable release is pinned only after it passes the distribute checks', async () => {
+  const pinned = await pinRelease('0.4.0', {
+    tagCommit: tagAt(),
+    fetchImpl: registryWith(tarball),
+  });
+  assert.deepEqual(pinned, {
+    version: '0.4.0',
+    integrity: release.integrity,
+    sourceCommit: release.sourceCommit,
+  });
+  await assert.rejects(
+    pinRelease('0.4.0-rc.1', {
+      tagCommit: tagAt(),
+      fetchImpl: registryWith(tarball),
+    }),
+    (error) => causeOf(error) === 'config-invalid',
+  );
+  await rejects(
+    pinRelease('0.4.0', { tagCommit: tagAt(), fetchImpl: fakeFetch({}) }),
+    'release-unavailable',
+  );
+  await rejects(
+    pinRelease('0.4.0', {
+      tagCommit: tagAt(null),
+      fetchImpl: registryWith(tarball),
+    }),
+    'release-unavailable',
+  );
+  await rejects(
+    pinRelease('0.4.0', {
+      tagCommit: tagAt(),
+      fetchImpl: registryWith(packTgz('other')),
+    }),
+    'pack-mismatch',
+  );
 });

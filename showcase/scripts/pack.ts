@@ -1,12 +1,15 @@
 import { execFileSync } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readFile, rm } from 'node:fs/promises';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fetchBounded } from './acquire.ts';
 import { gunzipBounded, readTar, singleRoot, writeTree } from './archive.ts';
 import { COMMIT_PATTERN, parseUniqueJson, sha256 } from './build-key.ts';
-import { type B1Pack, validateB1Pack } from './config.ts';
-import { fail, runCli, ShowcaseError } from './errors.ts';
+import {
+  type FormicariumRelease,
+  validateFormicariumRelease,
+} from './config.ts';
+import { fail, runCli } from './errors.ts';
 import type { FetchLike } from './github.ts';
 import { ASSET_ARCHIVE_LIMITS, TRANSFER_POLICY } from './limits.ts';
 import {
@@ -27,8 +30,9 @@ export interface PackRecord {
   tarball: string;
   packSha256: string;
   formicariumSourceCommit: string;
-  releaseTag: string | null;
-  evidenceSha256: string | null;
+  /** The npm version and its dist.integrity; null for a verify pack. */
+  npmVersion: string | null;
+  integrity: string | null;
 }
 export type RunFile = (
   file: string,
@@ -97,113 +101,137 @@ export async function packVerify(options: {
     tarball: filename,
     packSha256: sha256(await readFile(join(layout.pack, filename))),
     formicariumSourceCommit: options.sourceCommit,
-    releaseTag: null,
-    evidenceSha256: null,
+    npmVersion: null,
+    integrity: null,
   };
   await writeJson(join(layout.pack, 'pack.json'), record);
   return record;
 }
 
-async function releaseAsset(
-  repository: string,
-  tag: string,
-  asset: string,
+export const REGISTRY = 'https://registry.npmjs.org';
+/** The commit a release tag points at, peeled; null when the tag is missing. */
+export type TagCommit = (tag: string) => string | null;
+
+async function fetchRegistry(
+  url: string,
+  maxBytes: number,
   fetchImpl?: FetchLike,
 ): Promise<Uint8Array> {
   try {
-    return (
-      await fetchBounded(
-        `https://github.com/${repository}/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(asset)}`,
-        { maxBytes: TRANSFER_POLICY.maxDownloadBytes, fetchImpl },
-      )
-    ).bytes;
+    return (await fetchBounded(url, { maxBytes, fetchImpl })).bytes;
   } catch (error) {
     return fail(
-      'b1-pack-unavailable',
-      `release asset ${asset} unavailable`,
+      'release-unavailable',
+      `npm registry fetch failed: ${url}`,
       error,
     );
   }
 }
 
-/** The ApiAcceptance evidence must name this pack and hold only passed checks. */
-export function checkEvidence(evidence: unknown, pack: B1Pack): string {
-  const value = evidence as Record<string, unknown> | null;
-  if (
-    !value ||
-    typeof value !== 'object' ||
-    value.schemaVersion !== 1 ||
-    value.packSha256 !== pack.packSha256 ||
-    typeof value.sourceCommit !== 'string' ||
-    !COMMIT_PATTERN.test(value.sourceCommit) ||
-    !Array.isArray(value.checks) ||
-    value.checks.length === 0 ||
-    value.checks.some(
-      (check) => (check as { status?: unknown } | null)?.status !== 'passed',
-    )
-  )
-    fail('b1-pack-mismatch', 'acceptance evidence does not accept this pack');
-  return value.sourceCommit as string;
-}
+/** npm's SRI form of the SHA-512 of the bytes. */
+export const sha512Integrity = (bytes: Uint8Array) =>
+  `sha512-${createHash('sha512').update(bytes).digest('base64')}`;
 
-/** distribute: only the B1-accepted pack, checked against the evidence packSha256. */
+/**
+ * distribute: the npm release pinned in formicarium-release.json. The
+ * registry's dist.integrity and the downloaded bytes must both match the
+ * pin, and the release tag v<version> must point at the pinned commit.
+ */
 export async function packDistribute(options: {
-  b1: B1Pack | null;
-  repository: string;
+  release: FormicariumRelease | null;
+  tagCommit: TagCommit;
   layout?: WorkLayout;
   fetchImpl?: FetchLike;
 }): Promise<PackRecord> {
   const layout = options.layout ?? workLayout();
-  const b1 = options.b1;
-  if (!b1) fail('b1-pack-unavailable', 'b1-pack.json names no Release yet');
-  if (!/^[\w.-]+\/[\w.-]+$/.test(options.repository))
-    fail('config-invalid', 'repository owner/repo required');
-  const pack = await releaseAsset(
-    options.repository,
-    b1.releaseTag,
-    b1.packAsset,
+  const release = options.release;
+  if (!release)
+    fail('release-unavailable', 'formicarium-release.json pins no release yet');
+  const metadataBytes = await fetchRegistry(
+    `${REGISTRY}/${PACKAGE_NAME.replace('/', '%2f')}/${release.version}`,
+    TRANSFER_POLICY.maxMetadataBytes,
     options.fetchImpl,
   );
-  if (sha256(pack) !== b1.packSha256)
-    fail('b1-pack-mismatch', 'B1 pack SHA256 differs from b1-pack.json');
-  const evidenceBytes = await releaseAsset(
-    options.repository,
-    b1.releaseTag,
-    b1.evidenceAsset,
-    options.fetchImpl,
-  );
-  if (sha256(evidenceBytes) !== b1.evidenceSha256)
-    fail(
-      'b1-pack-mismatch',
-      'acceptance evidence SHA256 differs from b1-pack.json',
-    );
-  let evidence: unknown;
+  let metadata: {
+    name?: unknown;
+    version?: unknown;
+    dist?: Record<string, unknown>;
+  };
   try {
-    evidence = parseUniqueJson(
-      new TextDecoder('utf-8', { fatal: true }).decode(evidenceBytes),
-    );
+    metadata = parseUniqueJson(
+      new TextDecoder('utf-8', { fatal: true }).decode(metadataBytes),
+    ) as typeof metadata;
   } catch (error) {
-    return fail(
-      'b1-pack-mismatch',
-      'acceptance evidence is not unique JSON',
-      error,
-    );
+    return fail('pack-mismatch', 'npm metadata is not unique JSON', error);
   }
-  const formicariumSourceCommit = checkEvidence(evidence, b1);
-  await writeOnce(join(layout.pack, b1.packAsset), pack);
-  await writeOnce(join(layout.pack, b1.evidenceAsset), evidenceBytes);
+  const tarballUrl = metadata.dist?.tarball;
+  if (
+    metadata.name !== PACKAGE_NAME ||
+    metadata.version !== release.version ||
+    metadata.dist?.integrity !== release.integrity ||
+    typeof tarballUrl !== 'string' ||
+    !tarballUrl.startsWith(`${REGISTRY}/`)
+  )
+    fail('pack-mismatch', 'npm metadata differs from formicarium-release.json');
+  const pack = await fetchRegistry(
+    tarballUrl,
+    TRANSFER_POLICY.maxDownloadBytes,
+    options.fetchImpl,
+  );
+  if (sha512Integrity(pack) !== release.integrity)
+    fail('pack-mismatch', 'npm tarball differs from its pinned integrity');
+  const tag = `v${release.version}`;
+  const commit = options.tagCommit(tag);
+  if (commit === null)
+    fail('release-unavailable', `release tag ${tag} is missing`);
+  if (commit !== release.sourceCommit)
+    fail('pack-mismatch', `release tag ${tag} points at another commit`);
+  const tarball = `aletheia-works-formicarium-${release.version}.tgz`;
+  await writeOnce(join(layout.pack, tarball), pack);
   const record: PackRecord = {
     schemaVersion: 1,
     mode: 'distribute',
-    tarball: b1.packAsset,
-    packSha256: b1.packSha256,
-    formicariumSourceCommit,
-    releaseTag: b1.releaseTag,
-    evidenceSha256: b1.evidenceSha256,
+    tarball,
+    packSha256: sha256(pack),
+    formicariumSourceCommit: release.sourceCommit,
+    npmVersion: release.version,
+    integrity: release.integrity,
   };
   await writeJson(join(layout.pack, 'pack.json'), record);
   return record;
 }
+
+/** The commit of a tag in `git ls-remote` output, peeled when annotated. */
+export function tagCommitFromListing(listing: string, tag: string) {
+  const refs = new Map<string, string>();
+  for (const line of listing.split('\n')) {
+    const [commit, ref] = line.trim().split('\t');
+    if (commit && ref && COMMIT_PATTERN.test(commit)) refs.set(ref, commit);
+  }
+  return (
+    refs.get(`refs/tags/${tag}^{}`) ?? refs.get(`refs/tags/${tag}`) ?? null
+  );
+}
+
+/** The peeled commit of a tag on origin, read without fetching the tag. */
+export const remoteTagCommit: TagCommit = (tag) => {
+  try {
+    return tagCommitFromListing(
+      execFileSync(
+        'git',
+        ['ls-remote', 'origin', `refs/tags/${tag}`, `refs/tags/${tag}^{}`],
+        {
+          cwd: REPOSITORY_ROOT,
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'pipe'],
+        },
+      ),
+      tag,
+    );
+  } catch (error) {
+    return fail('release-unavailable', `cannot list tag ${tag}`, error);
+  }
+};
 
 /** Extracts the recorded pack only after its SHA256 matches the record. */
 export async function installPack(
@@ -217,7 +245,7 @@ export async function installPack(
   const bytes = await readFile(join(layout.pack, record.tarball));
   if (sha256(bytes) !== record.packSha256)
     fail(
-      record.mode === 'distribute' ? 'b1-pack-mismatch' : 'checksum-mismatch',
+      record.mode === 'distribute' ? 'pack-mismatch' : 'checksum-mismatch',
       'pack tarball changed after it was recorded',
     );
   const tar = await gunzipBounded(bytes, ASSET_ARCHIVE_LIMITS.maxExpandedBytes);
@@ -244,22 +272,21 @@ async function main(verb: string | undefined) {
       layout,
     });
   } else if (verb === 'distribute') {
-    let b1: B1Pack | null;
+    let release: FormicariumRelease | null;
     try {
-      b1 = validateB1Pack(
-        parseUniqueJson(readFromMain('showcase/b1-pack.json')),
+      release = validateFormicariumRelease(
+        parseUniqueJson(readFromMain('showcase/formicarium-release.json')),
       );
     } catch (error) {
-      if (
-        error instanceof ShowcaseError &&
-        error.code === 'b1-pack-unavailable'
-      )
-        throw error;
-      return fail('b1-pack-unavailable', 'main b1-pack.json unusable', error);
+      return fail(
+        'release-unavailable',
+        'main formicarium-release.json unusable',
+        error,
+      );
     }
     record = await packDistribute({
-      b1,
-      repository: process.env.GITHUB_REPOSITORY ?? '',
+      release,
+      tagCommit: remoteTagCommit,
       layout,
     });
   } else if (verb === 'install') {

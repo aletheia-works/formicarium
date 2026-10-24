@@ -194,7 +194,7 @@ const VERIFY_RUN = [
 const DIST =
   "(github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'";
 
-test('triggers: manual, every PR, and push on the site paths; no schedule', () => {
+test('triggers: manual, every PR, and push on the site paths and the pinned release; no schedule', () => {
   const head = workflow.slice(0, workflow.indexOf('permissions:'));
   assert.doesNotMatch(head, /schedule:|cron:/);
   assert.match(head, /^ {2}workflow_dispatch:$/m);
@@ -203,15 +203,16 @@ test('triggers: manual, every PR, and push on the site paths; no schedule', () =
     'showcase/site/**',
     '.github/workflows/showcase-site.yml',
     'showcase/scripts/**',
+    'showcase/formicarium-release.json',
   ])
     assert.equal(head.split(`- ${path}\n`).length - 1, 1, path);
   // On a PR the changes job matches the same three paths and the showcase inputs
-  // the site build reads (tools.json, fixtures, b1-pack.json).
+  // the site build reads (tools.json, fixtures, formicarium-release.json).
   assert.ok(
     table
       .get('changes')!
       .includes(
-        "grep -qE '^(showcase/site/|showcase/scripts/|showcase/fixtures/|showcase/tools\\.json$|showcase/b1-pack\\.json$|\\.github/workflows/showcase-site\\.yml$)'",
+        "grep -qE '^(showcase/site/|showcase/scripts/|showcase/fixtures/|showcase/tools\\.json$|showcase/formicarium-release\\.json$|\\.github/workflows/showcase-site\\.yml$)'",
       ),
   );
   assert.deepEqual([...table.keys()], ALL);

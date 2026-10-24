@@ -142,12 +142,12 @@ export async function assembleCandidate(
   if (!COMMIT_PATTERN.test(options.sourceCommit))
     fail('config-invalid', 'candidate needs the 40-hex source commit');
   if (options.pack.mode !== options.mode)
-    fail('b1-pack-mismatch', 'pack mode differs from the run mode');
+    fail('pack-mismatch', 'pack mode differs from the run mode');
   if (
     options.mode === 'verify' &&
     options.pack.formicariumSourceCommit !== options.sourceCommit
   )
-    fail('b1-pack-mismatch', 'verify pack must come from this commit');
+    fail('pack-mismatch', 'verify pack must come from this commit');
   const resolutions = await loadResolutions(layout);
   const acquired = await loadAcquired(layout);
   const tools = resolvedTools(acquired, resolutions);

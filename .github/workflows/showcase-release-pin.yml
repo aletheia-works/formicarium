@@ -1,0 +1,100 @@
+name: Pin the showcase release
+
+# After a stable formicarium release is published to npm, open a PR that pins
+# it in showcase/formicarium-release.json. Merging that PR deploys the site
+# with the release (showcase-site.yml runs on pushes to the pin file).
+on:
+  workflow_run:
+    workflows: ['Publish package']
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Published stable version to pin, for example 0.4.0'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: showcase-release-pin
+  cancel-in-progress: false
+
+jobs:
+  pin:
+    name: Open the pin PR for the published release
+    if: >-
+      github.repository == 'aletheia-works/formicarium' &&
+      (github.event_name == 'workflow_dispatch' ||
+        (github.event.workflow_run.conclusion == 'success' &&
+         startsWith(github.event.workflow_run.head_branch, 'v')))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Select the version
+        id: version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          TAG: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          version="${INPUT_VERSION:-${TAG#v}}"
+          if ! [[ "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "Only a stable version is pinned; skipping $version" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.version.outputs.version != ''
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: steps.version.outputs.version != ''
+        with:
+          node-version: 'latest'
+          check-latest: true
+          package-manager-cache: false
+      - name: Check the published release and write the pin
+        if: steps.version.outputs.version != ''
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: node showcase/scripts/pin-release.ts "$VERSION"
+      - name: Get an aletheia-works-bot token
+        if: steps.version.outputs.version != ''
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.BOT_CLIENT_ID }}
+          private-key: ${{ secrets.BOT_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+      # The commit is made through the contents API, so GitHub signs it.
+      - name: Open the pin PR
+        if: steps.version.outputs.version != ''
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          path=showcase/formicarium-release.json
+          if git diff --quiet -- "$path"; then
+            echo "formicarium $VERSION is already pinned" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          branch="showcase/pin-formicarium-$VERSION"
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$branch" > /dev/null 2>&1; then
+            echo "Branch $branch already exists; leaving it as it is" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          base=$(git rev-parse HEAD)
+          gh api "repos/$GITHUB_REPOSITORY/git/refs" -f "ref=refs/heads/$branch" -f "sha=$base" > /dev/null
+          blob=$(gh api "repos/$GITHUB_REPOSITORY/contents/$path?ref=$branch" --jq .sha)
+          gh api -X PUT "repos/$GITHUB_REPOSITORY/contents/$path" \
+            -f "message=chore(showcase): distribute formicarium $VERSION from npm" \
+            -f "content=$(base64 -w0 "$path")" \
+            -f "sha=$blob" \
+            -f "branch=$branch" > /dev/null
+          gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" \
+            --title "chore(showcase): distribute formicarium $VERSION from npm" \
+            --body "Pins \`@aletheia-works/formicarium@$VERSION\` in \`$path\`: npm's integrity and the commit of tag \`v$VERSION\`, checked by \`showcase/scripts/pin-release.ts\` (download, integrity and tag commit, as distribute does). Merging deploys the showcase site with this release."

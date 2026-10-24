@@ -180,8 +180,8 @@ async function seed(layout: WorkLayout) {
     tarball: 'p.tgz',
     packSha256: 'a'.repeat(64),
     formicariumSourceCommit: sourceCommit,
-    releaseTag: null,
-    evidenceSha256: null,
+    npmVersion: null,
+    integrity: null,
   };
   return { packageRoot, pack };
 }
@@ -269,7 +269,7 @@ test('a missing acceptance row or a pack of another mode creates no candidate', 
         log: logOf(rowsFor()),
         packageRoot,
       }),
-      (error) => causeOf(error) === 'b1-pack-mismatch',
+      (error) => causeOf(error) === 'pack-mismatch',
     );
     await assert.rejects(
       assembleCandidate({
@@ -280,7 +280,7 @@ test('a missing acceptance row or a pack of another mode creates no candidate', 
         log: logOf(rowsFor()),
         packageRoot,
       }),
-      (error) => causeOf(error) === 'b1-pack-mismatch',
+      (error) => causeOf(error) === 'pack-mismatch',
     );
   });
 });

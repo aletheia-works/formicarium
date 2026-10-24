@@ -18,7 +18,7 @@ showcase/
 ├── tools.json                # ツールの条件（repository・tag の形・資産・source build）
 ├── allowed-sources.json      # 受け付ける repository（main の定義だけを使う）
 ├── trusted-callers.json      # distribute を受け付ける showcase-site workflow と再利用元の workflow
-├── b1-pack.json              # B1 の pack の Release（b1-3777a192e789）
+├── formicarium-release.json  # distribute が使う npm の版（版・integrity・タグのコミット）
 ├── fixtures/                 # demo fixture（showcase site が使う。回帰用の fixtures/ とは別）
 ├── builders/cargo.sh         # cargo を絶対 path で呼ぶ builder
 ├── scripts/                  # 解決・取得・build・再利用・catalog・pack・候補・受入・境界
@@ -36,17 +36,17 @@ fixture の共有は `scripts/boundary.ts` と Biome の `noRestrictedImports` �
 
 ## 流れ
 
-| 工程         | script                                           | 内容                                                                                                                                                        |
-| ------------ | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| mode         | `scripts/mode.ts`                                | `verify`（既定）か `distribute`。`distribute` は main の showcase-site workflow（main への `push`・`workflow_dispatch`）からの呼出しだけ                    |
-| 解決         | `scripts/resolve.ts`                             | `releases/latest`（draft・prerelease を除く）、annotated tag を辿った 40 桁の commit、資産の digest・size・URL、license。`resolutions.json` に 1 回だけ書く |
-| pack         | `scripts/pack.ts`                                | `verify`：同じ commit を本体の stager と `npm pack` で包む。`distribute`：`b1-pack.json` の Release の pack と受入の証拠を取得し `packSha256` を照合        |
-| 取得         | `scripts/acquire.ts`                             | TransferPolicy の規則（HTTPS、credential なし、redirect 5 hop、120 s、128 MiB）で取得し、SHA256・size を照合、tar.gz を検査、公開 `validateGuest` で検証    |
-| source build | `scripts/build.ts`、`builders/cargo.sh`          | `prepare`：tag と commit の一致、codeload の source、toolchain の選択、buildKey。`compile`：token なしの独立した process group で build                     |
-| 再利用       | `scripts/reuse.ts`                               | main の信頼した workflow の成功 run の `showcase-candidate` から、buildKey・ELF・build-info を照合して再利用                                                |
-| catalog      | `scripts/catalog.ts`                             | `GuestCatalog`（same-origin の相対 URL）。公開 `createInstaller` で受理を確かめる                                                                           |
-| 受入         | `scripts/accept-node.ts`、`tests/accept.spec.ts` | `install <tool>` と `<tool> --version`。3 ツール × Node・Chromium・Firefox・WebKit の 12 行                                                                 |
-| 候補         | `scripts/candidate.ts`                           | 12 行がすべて合格したときだけ manifest を作る。`verify` は常に `distributable: false`                                                                       |
+| 工程         | script                                           | 内容                                                                                                                                                         |
+| ------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| mode         | `scripts/mode.ts`                                | `verify`（既定）か `distribute`。`distribute` は main の showcase-site workflow（main への `push`・`workflow_dispatch`）からの呼出しだけ                     |
+| 解決         | `scripts/resolve.ts`                             | `releases/latest`（draft・prerelease を除く）、annotated tag を辿った 40 桁の commit、資産の digest・size・URL、license。`resolutions.json` に 1 回だけ書く  |
+| pack         | `scripts/pack.ts`                                | `verify`：同じ commit を本体の stager と `npm pack` で包む。`distribute`：`formicarium-release.json` の版を npm から取得し、integrity とタグのコミットを照合 |
+| 取得         | `scripts/acquire.ts`                             | TransferPolicy の規則（HTTPS、credential なし、redirect 5 hop、120 s、128 MiB）で取得し、SHA256・size を照合、tar.gz を検査、公開 `validateGuest` で検証     |
+| source build | `scripts/build.ts`、`builders/cargo.sh`          | `prepare`：tag と commit の一致、codeload の source、toolchain の選択、buildKey。`compile`：token なしの独立した process group で build                      |
+| 再利用       | `scripts/reuse.ts`                               | main の信頼した workflow の成功 run の `showcase-candidate` から、buildKey・ELF・build-info を照合して再利用                                                 |
+| catalog      | `scripts/catalog.ts`                             | `GuestCatalog`（same-origin の相対 URL）。公開 `createInstaller` で受理を確かめる                                                                            |
+| 受入         | `scripts/accept-node.ts`、`tests/accept.spec.ts` | `install <tool>` と `<tool> --version`。3 ツール × Node・Chromium・Firefox・WebKit の 12 行                                                                  |
+| 候補         | `scripts/candidate.ts`                           | 12 行がすべて合格したときだけ manifest を作る。`verify` は常に `distributable: false`                                                                        |
 
 toolchain は upstream の宣言（`rust-toolchain.toml`・`rust-toolchain`、UI の
 Node は `.node-version`・`mise.toml`・`.tool-versions` の正確な版）に従い、
@@ -102,21 +102,19 @@ mise run showcase-accept-browser   # SHOWCASE_TLS_* と、job CA を信頼した
 拒否する。showcase site は日次の実行をやめた）。showcase site は `candidate`
 job が成功し、出力 `distributable` が `true` のときだけ配布を始める。
 
-## B1 の pack の Release
+## npm で公開された版
 
-`distribute` は `b1-pack.json` が指す Release の pack を使う。B1 は、この pack を受け入れた
-terrarium 移行時の作業の名前で、Release の tag と資産の名前に残っている。今は
-prerelease の [`b1-3777a192e789`](https://github.com/aletheia-works/formicarium/releases/tag/b1-3777a192e789)
-を指す（main `7f44add2` から作った、コアが paludarium の pack と、その pack に対する showcase の
-受入（3 ツール×Node・3 ブラウザの 12 行、run 40076322752）の証拠。中の版の番号は `0.3.0` だが、
-npm の 0.3.0 とは中身が違う）。以前の [`b1-a3370ca4df1f`](https://github.com/aletheia-works/formicarium/releases/tag/b1-a3370ca4df1f)
-は blink 時代の pack で、ローダーを Blob から読むため、`blob:` を許さない CSP では動かない。`b1-pack.json` が
-`null` のときは、`distribute` は `b1-pack-unavailable` で失敗する。Release は、
-人間が対象（pack・受入の証拠・その SHA256）を承認した後にだけ作る。
-1. 受入で固定した pack と `ApiAcceptance` の JSON を用意し、SHA256 を確かめる。
-2. prerelease の `b1-<packSha256 の先頭 12 桁>` を作り、2 つの資産と SHA256 の一覧を上げる。
-   上書きと削除はしない。
-3. `b1-pack.json` に tag・資産名・SHA256 を書く PR を出し、main に入れる。
+`distribute` は `formicarium-release.json` が指す npm の版
+（`@aletheia-works/formicarium`）を使う。取得した tarball の sha512 が固定した
+`integrity` と npm の `dist.integrity` に一致し、tarball が `registry.npmjs.org` にあり、
+tag `v<version>` のコミットが `sourceCommit` に一致したときだけ使う。版が `null` のときは、
+`distribute` は `release-unavailable` で失敗する。
+1. 安定版の publish（`publish.yml`）が成功すると、`showcase-release-pin.yml` が
+   `scripts/pin-release.ts` でその版を確かめ（`distribute` と同じ取得と照合）、
+   `formicarium-release.json` を書き換える PR を bot で作る。RC は固定しない。
+2. その PR を main に入れると、`showcase-site.yml` がその版で受け入れてから配布する。
+3. 手で固定するときは `node showcase/scripts/pin-release.ts <version>` か、版を指定した
+   `showcase-release-pin.yml` の手動の実行。
 
 ## 配布の契機
 
@@ -131,7 +129,7 @@ summary には「最後に配布可能な候補を作った run からの日数�
 - 前の候補に戻す：候補は長期保存しないので、前の commit の showcase-site から
   `mode: distribute` で呼び直す（`showcase.yml` を直接動かすと `verify` になり、
   配布できる候補にならない）。
-- B1 の pack：`b1-pack.json` を前の tag に戻す PR。Release の資産は消さない。
+- formicarium の版：`formicarium-release.json` を前の版に戻す PR（`pin-release.ts` で作り直す）。
 - repository の設定：`infra/github/README.md` の手順。
 
 ## 未検証のこと
@@ -148,7 +146,7 @@ license があった。
 
 `distribute` の実行：2026-10-20 の main `94970a9e` の push で、
 `showcase-site.yml` の run 39422079965 が `showcase.yml` を `mode: distribute` で呼び、
-`b1-pack.json` の Release の pack（`a3370ca4…`）で候補を作り、その候補で site の
+当時の `b1-pack.json` の Release の pack（`a3370ca4…`。今は npm の版に置き換えた）で候補を作り、その候補で site の
 配布まで成功した。「配布の契機」の節の candidate job の summary の日数は、
 `showcase/tests/candidate.test.ts` の `days since the last distributable run, and the
 job summary line` が根拠である（run の summary の値は確かめていない）。

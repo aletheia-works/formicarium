@@ -32,8 +32,16 @@ on `main`, wait for it to succeed, then re-run the pull request.
   could merge while it is disabled.
 
 A pull request that changes `showcase/tools.json`, `showcase/fixtures/` or
-`showcase/b1-pack.json` verifies the site too, but its push does not deploy;
-deploy those changes with a manual run on `main`.
+`showcase/formicarium-release.json` verifies the site too. A push of
+`showcase/formicarium-release.json` deploys; the others do not, so deploy them
+with a manual run on `main`.
+
+When a stable formicarium release is published to npm,
+`showcase-release-pin.yml` opens a pull request that pins it in
+`showcase/formicarium-release.json` (the version, npm's integrity and the
+commit of its tag, checked the way distribution checks them). Merging that pull
+request deploys the site with the release. To pin a release by hand, run the
+workflow with its version.
 
 Failed builds and acceptance never deploy, so the previous site stays. An old
 run cannot be deployed again: the deploy job refuses a run older than the

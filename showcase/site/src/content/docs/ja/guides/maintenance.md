@@ -30,9 +30,14 @@ PR の run をやり直します。
   workflow を無効にしてはいけません。その `showcase-site-required` の check は
   `main` の必須の check なので、無効の間はどの PR も merge できなくなります。
 
-`showcase/tools.json`・`showcase/fixtures/`・`showcase/b1-pack.json` を変える PR も
-サイトを検証しますが、その push では deploy しません。`main` での手動の実行で
-配布します。
+`showcase/tools.json`・`showcase/fixtures/`・`showcase/formicarium-release.json` を
+変える PR もサイトを検証します。`showcase/formicarium-release.json` の push では
+deploy しますが、ほかは deploy しないので、`main` での手動の実行で配布します。
+
+formicarium の安定版が npm に公開されると、`showcase-release-pin.yml` が
+その版を `showcase/formicarium-release.json` に固定する PR を作ります（版、npm の
+integrity、タグのコミットを、配布と同じ方法で確かめます）。その PR を merge すると、
+その版でサイトを配布します。手で固定するときは、版を指定してこの workflow を実行します。
 
 build や受入の失敗では deploy しないので、前回のサイトが残ります。古い run を
 もう一度 deploy することはできません。deploy の job は、最新の deploy より古い

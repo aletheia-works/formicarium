@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { parseUniqueJson, SHA256_PATTERN } from './build-key.ts';
+import { parseUniqueJson } from './build-key.ts';
 import { fail } from './errors.ts';
 import { SHOWCASE_ROOT } from './paths.ts';
 
@@ -46,12 +46,13 @@ export interface TrustedCallers {
   distributeCaller: string;
   reuseWorkflows: string[];
 }
-export interface B1Pack {
-  releaseTag: string;
-  packAsset: string;
-  packSha256: string;
-  evidenceAsset: string;
-  evidenceSha256: string;
+/** The npm release of formicarium that the showcase distributes. */
+export interface FormicariumRelease {
+  version: string;
+  /** npm's dist.integrity of the tarball (SHA-512, base64). */
+  integrity: string;
+  /** The commit of the release tag v<version>. */
+  sourceCommit: string;
 }
 
 const TOOL = /^[a-z][a-z0-9-]{0,63}$/;
@@ -252,34 +253,32 @@ export function validateTrustedCallers(value: unknown): TrustedCallers {
   };
 }
 
-const B1_FIELDS = [
-  'releaseTag',
-  'packAsset',
-  'packSha256',
-  'evidenceAsset',
-  'evidenceSha256',
-] as const;
+const RELEASE_FIELDS = ['version', 'integrity', 'sourceCommit'] as const;
 
-/** null means no long-lived B1 pack exists yet: distribute must then fail. */
-export function validateB1Pack(value: unknown): B1Pack | null {
-  const raw = record(value, 'b1-pack');
-  only(raw, ['schemaVersion', ...B1_FIELDS], 'b1-pack');
+/** null means no release is pinned yet: distribute must then fail. */
+export function validateFormicariumRelease(
+  value: unknown,
+): FormicariumRelease | null {
+  const raw = record(value, 'formicarium-release');
+  only(raw, ['schemaVersion', ...RELEASE_FIELDS], 'formicarium-release');
   if (raw.schemaVersion !== 1)
-    fail('config-invalid', 'b1-pack.schemaVersion must be 1');
-  const empty = B1_FIELDS.filter((key) => raw[key] === null);
-  if (empty.length === B1_FIELDS.length) return null;
+    fail('config-invalid', 'formicarium-release.schemaVersion must be 1');
+  const empty = RELEASE_FIELDS.filter((key) => raw[key] === null);
+  if (empty.length === RELEASE_FIELDS.length) return null;
   if (empty.length > 0)
-    fail('config-invalid', 'b1-pack fields must be all null or all set');
-  const pack: B1Pack = {
-    releaseTag: text(raw.releaseTag, 'releaseTag', /^b1-[a-f0-9]{12}$/),
-    packAsset: text(raw.packAsset, 'packAsset', /^[A-Za-z0-9._-]+\.tgz$/),
-    packSha256: text(raw.packSha256, 'packSha256', SHA256_PATTERN),
-    evidenceAsset: text(raw.evidenceAsset, 'evidenceAsset', /^[\w.-]+\.json$/),
-    evidenceSha256: text(raw.evidenceSha256, 'evidenceSha256', SHA256_PATTERN),
+    fail(
+      'config-invalid',
+      'formicarium-release fields must be all null or all set',
+    );
+  return {
+    version: text(
+      raw.version,
+      'version',
+      /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-rc\.[1-9]\d*)?$/,
+    ),
+    integrity: text(raw.integrity, 'integrity', /^sha512-[A-Za-z0-9+/]{86}==$/),
+    sourceCommit: text(raw.sourceCommit, 'sourceCommit', /^[a-f0-9]{40}$/),
   };
-  if (pack.releaseTag !== `b1-${pack.packSha256.slice(0, 12)}`)
-    fail('config-invalid', 'b1-pack releaseTag must name the pack digest');
-  return pack;
 }
 
 export async function readConfigFile(
