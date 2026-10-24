@@ -94,9 +94,12 @@ Administrationは `github-pages` environment（保護された branch だけ）�
 
 共通workflowは同じstate artifact名でPlan/Apply/backupを直列化します。
 正本はActions artifact `terraform-state`、場所はvariable `LATEST_APPLY_RUN_ID`。
-backupはstate-backupタグのGitHub Release assetとartifact更新を使用します。
-公開repositoryのstateには秘密を入れません。tokenをresourceとして管理しません。
-stateの消失時は新規Applyせずbackupから復旧してください。
+Plan・Apply・seedはstateをorg secret `TF_STATE_PASSPHRASE` で暗号化して保存し
+（公開repositoryのartifactは誰でも取得できるため）、backupはそのartifactを取り直して
+保持期間を延ばすだけです。GitHub Releaseにはstateを置きません。暗号化前のstateも
+読めるので、最初のApplyで暗号化されます。公開repositoryのstateには秘密を入れません。
+tokenをresourceとして管理しません。stateを失ったときは新規Applyせず、live resourceを
+importして作り直します（Seed Terraform State）。
 
 ## Local verification
 
@@ -107,6 +110,7 @@ mise run infra:validate
 ```
 
 ローカルPlanは既存stateがあれば先に正しい `LATEST_APPLY_RUN_ID` のartifactを
-取得して `infra/github/terraform.tfstate` に復元します。初回はimport blockで取り込みます。
+取得して `infra/github/terraform.tfstate` に復元します。stateは暗号化されているので、
+CIと同じ `TF_ENCRYPTION` を同じpassphraseで設定します。初回はimport blockで取り込みます。
 本人の環境で `GITHUB_TOKEN` を設定して `mise run infra:plan` を実行します。
 CIと同時のローカルApplyは行いません。state・tfvars・planはgitignoredです。
