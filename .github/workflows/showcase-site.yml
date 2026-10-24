@@ -54,9 +54,10 @@ jobs:
           count=$(wc -l < "$files")
           echo "files: $count"
           # The API lists at most 3000 files; a longer PR builds the site.
-          # The site also reads the showcase's tools.json, fixtures and formicarium-release.json, so a
-          # PR changing them verifies the site too (push still deploys only on
-          # the site paths; deploy those inputs by hand).
+          # The site also reads the showcase's tools.json, fixtures and
+          # formicarium-release.json, so a PR changing them verifies the site
+          # too. A push deploys on the site paths and the release pin; deploy
+          # tools.json and fixtures by hand.
           if [ "$count" -ge 3000 ] || grep -qE '^(showcase/site/|showcase/scripts/|showcase/fixtures/|showcase/tools\.json$|showcase/formicarium-release\.json$|\.github/workflows/showcase-site\.yml$)' "$files"; then
             echo site=true >> "$GITHUB_OUTPUT"
           else

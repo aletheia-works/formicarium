@@ -83,18 +83,24 @@ jobs:
             exit 0
           fi
           branch="showcase/pin-formicarium-$VERSION"
+          # A rerun reuses the branch a failed or closed attempt left, and
+          # opens a PR unless one is already open.
           if gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$branch" > /dev/null 2>&1; then
-            echo "Branch $branch already exists; leaving it as it is" >> "$GITHUB_STEP_SUMMARY"
-            exit 0
+            open=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$branch" --state open --json url --jq '.[].url')
+            if [ -n "$open" ]; then
+              echo "The pin PR is already open: $open" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+          else
+            base=$(git rev-parse HEAD)
+            gh api "repos/$GITHUB_REPOSITORY/git/refs" -f "ref=refs/heads/$branch" -f "sha=$base" > /dev/null
+            blob=$(gh api "repos/$GITHUB_REPOSITORY/contents/$path?ref=$branch" --jq .sha)
+            gh api -X PUT "repos/$GITHUB_REPOSITORY/contents/$path" \
+              -f "message=chore(showcase): distribute formicarium $VERSION from npm" \
+              -f "content=$(base64 -w0 "$path")" \
+              -f "sha=$blob" \
+              -f "branch=$branch" > /dev/null
           fi
-          base=$(git rev-parse HEAD)
-          gh api "repos/$GITHUB_REPOSITORY/git/refs" -f "ref=refs/heads/$branch" -f "sha=$base" > /dev/null
-          blob=$(gh api "repos/$GITHUB_REPOSITORY/contents/$path?ref=$branch" --jq .sha)
-          gh api -X PUT "repos/$GITHUB_REPOSITORY/contents/$path" \
-            -f "message=chore(showcase): distribute formicarium $VERSION from npm" \
-            -f "content=$(base64 -w0 "$path")" \
-            -f "sha=$blob" \
-            -f "branch=$branch" > /dev/null
           gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" \
             --title "chore(showcase): distribute formicarium $VERSION from npm" \
             --body "Pins \`@aletheia-works/formicarium@$VERSION\` in \`$path\`: npm's integrity and the commit of tag \`v$VERSION\`, checked by \`showcase/scripts/pin-release.ts\` (download, integrity and tag commit, as distribute does). Merging deploys the showcase site with this release."
