@@ -38,7 +38,7 @@ test('the committed tools.json, allow list, callers and B1 pack are valid', asyn
     await readConfigFile('trusted-callers.json'),
   );
   assert.ok(callers.reuseWorkflows.includes('.github/workflows/showcase.yml'));
-  // The B1 acceptance pack of main 2e0358a2 (Release b1-a3370ca4df1f).
+  // The B1 acceptance pack of main 7f44add2 (Release b1-3777a192e789).
   assert.deepEqual(validateB1Pack(await readConfigFile('b1-pack.json')), {
     releaseTag: 'b1-3777a192e789',
     packAsset: 'aletheia-works-formicarium-0.3.0-b1-3777a192e789.tgz',
