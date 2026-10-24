@@ -27,7 +27,10 @@ exactly the repository `aletheia-works/formicarium`, the workflow
 The release PR runs every CI group: lint, types and light tests, the native
 baselines and the Node.js, Chromium, Firefox and WebKit regressions, and the
 release candidate, which packs the exact tarball and requires at least 80% line
-coverage of the 23 distributed JavaScript files.
+coverage of the 23 distributed JavaScript files. The candidate is packed once;
+Node.js and each browser then check those bytes in parallel jobs, each with one
+worker and no retries, and a last job merges their checks and coverage. It
+counts a part only if it measured the same inputs and instrumentation.
 
 `publish.yml` reads the GitHub API itself. It requires exactly one merged
 release-please PR from `aletheia-works-bot` in the same repository, its exact

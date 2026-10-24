@@ -147,31 +147,71 @@ test('required CI passes each needed job and refuses a skipped needed or a run u
 test('release candidate workflow builds the pinned core itself and exports no writer permissions', async () => {
   const { readFile } = await import('node:fs/promises');
   const { parse } = await import('yaml');
+  const { CANDIDATE_PARTS, partChecks, REQUIRED_CHECKS } = await import(
+    '../../scripts/ci/verification.js'
+  );
   const workflow = parse(
     await readFile('.github/workflows/release-candidate.yml', 'utf8'),
   );
   assert.deepEqual(workflow.permissions, { contents: 'read' });
   assert.deepEqual(Object.keys(workflow.on), ['workflow_call']);
-  const steps = workflow.jobs.verify.steps as {
+  type Step = {
     name?: string;
     run?: string;
     uses?: string;
     with?: Record<string, string>;
     env?: Record<string, string>;
-  }[];
+  };
+  const { prepare, check, verify } = workflow.jobs as Record<
+    string,
+    { needs?: unknown; steps: Step[]; strategy?: any }
+  >;
   // The core comes from the pinned npm package through this run's own build.
   assert.ok(
-    steps.every((s) => !s.uses?.startsWith('actions/download-artifact@')),
+    prepare!.steps.every(
+      (s) => !s.uses?.startsWith('actions/download-artifact@'),
+    ),
   );
-  assert.ok(steps.some((s) => s.run === 'bun scripts/ci/tasks.ts build'));
+  for (const job of [prepare!, check!, verify!])
+    assert.ok(job.steps.some((s) => s.run === 'bun scripts/ci/tasks.ts build'));
   assert.ok(
-    steps.some((s) => s.run?.includes('release-candidate.ts prepare-inputs')),
+    prepare!.steps.some((s) =>
+      s.run?.includes('release-candidate.ts prepare-inputs'),
+    ),
   );
-  assert.ok(steps.some((s) => s.run?.includes('release-candidate.ts verify')));
+  // The checking jobs take only this run's candidate and parts.
+  for (const job of [check!, verify!])
+    for (const step of job.steps.filter((s) =>
+      s.uses?.startsWith('actions/download-artifact@'),
+    ))
+      assert.match(
+        step.with!.name ?? step.with!.pattern ?? '',
+        /-\$\{\{ inputs\.source-sha \}\}-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}$/,
+      );
+  assert.equal(check!.needs, 'prepare');
+  assert.deepEqual(check!.strategy.matrix.part, [...CANDIDATE_PARTS]);
+  // The parts together record exactly the mandatory checks.
+  assert.deepEqual(
+    CANDIDATE_PARTS.flatMap(partChecks).sort(),
+    [...REQUIRED_CHECKS].sort(),
+  );
   assert.ok(
-    steps.every((s) => !s.run?.match(/npm publish|gh release|git push/)),
+    check!.steps.some((s) =>
+      s.run?.includes('release-candidate.ts verify "$PART"'),
+    ),
   );
-  assert.ok(steps.every((s) => !JSON.stringify(s).includes('secrets.')));
+  assert.deepEqual(verify!.needs, ['prepare', 'check']);
+  assert.ok(
+    verify!.steps.some((s) =>
+      s.run?.includes('release-candidate.ts merge .artifacts/candidate-parts'),
+    ),
+  );
+  for (const job of [prepare!, check!, verify!]) {
+    assert.ok(
+      job.steps.every((s) => !s.run?.match(/npm publish|gh release|git push/)),
+    );
+    assert.ok(job.steps.every((s) => !JSON.stringify(s).includes('secrets.')));
+  }
 });
 
 test('main dispatch binds the actual source and rejects forks, tags and push events', () => {
@@ -282,10 +322,11 @@ test('dispatch, tags and the release PR select candidate verification and forwar
   const reusable = parse(
     await readFile('.github/workflows/release-candidate.yml', 'utf8'),
   );
-  assert.equal(
-    reusable.jobs.verify.env.CANDIDATE_VERSION,
-    '${{ inputs.candidate-version }}',
-  );
+  for (const job of ['prepare', 'check', 'verify'])
+    assert.equal(
+      reusable.jobs[job].env.CANDIDATE_VERSION,
+      '${{ inputs.candidate-version }}',
+    );
 });
 
 test('stable tag measurement rejects RC, mismatched version, forks and unbound source', () => {

@@ -404,10 +404,15 @@ async function readPlaywrightLaunchLedger(
   return launches;
 }
 
-/** The same fail-closed reader serves collection preflight and final merging. */
+/**
+ * The same fail-closed reader serves collection preflight and final merging.
+ * A browser part measured in another job is read from its download, but its
+ * generation still names the path it was measured at (`generatedOut`).
+ */
 export async function readPlaywrightNodeRealms(
   out: string,
   expectedSuites: string[],
+  generatedOut: string = out,
 ) {
   const allowed = ['package'];
   if (
@@ -432,7 +437,7 @@ export async function readPlaywrightNodeRealms(
   );
   if (
     generation.version !== 1 ||
-    generation.out !== resolve(out) ||
+    generation.out !== resolve(generatedOut) ||
     typeof generation.id !== 'string' ||
     generation.metadataSha256 !== sha256(JSON.stringify(metadata))
   )
@@ -610,20 +615,28 @@ test.afterEach(async({page},info)=>{const rows=await page.evaluate(()=>globalThi
 export async function reportCoverage({
   out,
   browserResults,
+  browserParts,
   candidatePath,
   extraNodeWorkers = 0,
 }: {
   out: string;
   browserResults: string;
+  /**
+   * One part per browser project measured in its own job, each a download of
+   * that job's coverage copy. Without it, every project ran in `out` itself.
+   */
+  browserParts?: { project: string; out: string; browserResults: string }[];
   candidatePath: string;
   /** Planned Workers of suites run in the same Node process beyond the inventory. */
   extraNodeWorkers?: number;
 }) {
   if (!Number.isSafeInteger(extraNodeWorkers) || extraNodeWorkers < 0)
     throw new Error('extra Node Worker count must be a nonnegative integer');
-  const { metadata, layout, digests } = JSON.parse(
-    await readFile(resolve(out, 'coverage-metadata.json'), 'utf8'),
-  ) as {
+  const metadataText = await readFile(
+    resolve(out, 'coverage-metadata.json'),
+    'utf8',
+  );
+  const { metadata, layout, digests } = JSON.parse(metadataText) as {
     metadata: FileCoverageData[];
     layout: CounterRow[];
     digests: DigestRow[];
@@ -671,23 +684,48 @@ export async function reportCoverage({
       (_, index) => `node-worker-${index + 1}`,
     ),
   ];
-  const runnerRealms = await readPlaywrightNodeRealms(out, ['package']);
-  realms.push(...runnerRealms);
-  expected.push(...runnerRealms.map((realm) => realm.name));
+  const parts = browserParts ?? [{ project: '', out, browserResults }];
+  if (
+    browserParts &&
+    JSON.stringify(browserParts.map((part) => part.project).sort()) !==
+      JSON.stringify(['chromium', 'firefox', 'webkit'])
+  )
+    throw new Error('browser coverage parts differ from the planned projects');
+  for (const part of parts) {
+    // A part counts only if it ran this exact instrumentation.
+    if (
+      part.out !== out &&
+      (await readFile(resolve(part.out, 'coverage-metadata.json'), 'utf8')) !==
+        metadataText
+    )
+      throw new Error(
+        `browser part measured other instrumentation: ${part.project}`,
+      );
+    const runnerRealms = (
+      await readPlaywrightNodeRealms(part.out, ['package'], out)
+    ).map((realm) =>
+      part.project
+        ? { ...realm, name: `${part.project}:${realm.name}` }
+        : realm,
+    );
+    realms.push(...runnerRealms);
+    expected.push(...runnerRealms.map((realm) => realm.name));
+  }
   if (
     nodeRows.length !==
     inventory.node.workers + extraNodeWorkers + inventory.node.host
   )
     throw new Error('Node planned Worker realms were not all retained');
-  const files: string[] = [];
-  async function scan(directory: string): Promise<void> {
+  const files: { path: string; project: string }[] = [];
+  async function scan(directory: string, project: string): Promise<void> {
     for (const entry of await readdir(directory, { withFileTypes: true })) {
       const path = resolve(directory, entry.name);
-      if (entry.isDirectory()) await scan(path);
-      else if (entry.name === 'coverage-realms.json') files.push(path);
+      if (entry.isDirectory()) await scan(path, project);
+      else if (entry.name === 'coverage-realms.json')
+        files.push({ path, project });
     }
   }
-  await scan(browserResults);
+  for (const part of parts) await scan(part.browserResults, part.project);
   const groups = new Map<
     string,
     {
@@ -696,12 +734,14 @@ export async function reportCoverage({
       rows: { name: string; counts: number[] }[];
     }
   >();
-  for (const path of files) {
+  for (const { path, project } of files) {
     const item = JSON.parse(await readFile(path, 'utf8')) as {
       project: string;
       title: string;
       rows: { name: string; counts: number[] }[];
     };
+    if (project && item.project !== project)
+      throw new Error(`browser coverage case outside its part: ${project}`);
     const key = `${item.project}:${item.title}`;
     if (groups.has(key)) throw new Error('duplicate browser coverage case');
     groups.set(key, item);

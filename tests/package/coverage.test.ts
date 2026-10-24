@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import {
+  cp,
   mkdir,
   mkdtemp,
   readFile,
@@ -145,6 +146,19 @@ test('generated Playwright configuration initializes a real Node importer and pr
     const retained = await readPlaywrightNodeRealms(out, ['package']);
     assert.equal(retained.length, 1);
     assert.deepEqual([...new Int32Array(retained[0]!.buffer)], final.counts);
+    // A browser part downloaded from its own job keeps the path it ran at.
+    const download = `${out}-download`;
+    await cp(out, download, { recursive: true });
+    await assert.rejects(
+      readPlaywrightNodeRealms(download, ['package']),
+      /Playwright generation boundary mismatch/,
+    );
+    assert.deepEqual(
+      (await readPlaywrightNodeRealms(download, ['package'], out)).map(
+        (realm) => [...new Int32Array(realm.buffer)],
+      ),
+      [final.counts],
+    );
     const worker = spawn(
       process.execPath,
       [join(out, 'tests/package/playwright.config.ts')],

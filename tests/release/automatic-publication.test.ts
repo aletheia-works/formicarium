@@ -180,11 +180,13 @@ test('source CI, measured package and writers form a same-run dependency chain',
   const exportStep = candidate.jobs.verify.steps.find(
     (s: any) => s.id === 'candidate',
   );
-  assert.ok(
-    candidate.jobs.verify.steps.findIndex(
-      (s: any) => s.name === 'Run regression and fixed-inventory coverage',
-    ) < candidate.jobs.verify.steps.indexOf(exportStep),
+  const merge = candidate.jobs.verify.steps.findIndex(
+    (s: any) => s.name === "Merge the parts' regression and coverage",
   );
+  assert.ok(
+    merge >= 0 && merge < candidate.jobs.verify.steps.indexOf(exportStep),
+  );
+  assert.deepEqual(candidate.jobs.verify.needs, ['prepare', 'check']);
   assert.match(exportStep.run, /coverage.lines.pct < 80/);
   assert.match(exportStep.run, /coverage.files.length !== 23/);
   assert.equal(exportStep.if, undefined);

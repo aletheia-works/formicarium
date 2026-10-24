@@ -312,21 +312,29 @@ if (
     case 'prepare-inputs':
       await prepareInputs(root, await eventContext());
       break;
-    case 'verify': {
+    case 'verify':
+    case 'merge': {
       const expected = await eventContext();
       const { validateCandidateManifest } = await import('./candidate.js');
-      const { runVerification } = await import('./run.js');
-      await runVerification((manifest, context) =>
+      const { mergeParts, runPart, runVerification } = await import('./run.js');
+      const validate: Parameters<typeof runVerification>[0] = (
+        manifest,
+        context,
+      ) =>
         validateCandidateManifest(
           manifest,
           validateReleaseCandidateContext(manifest, context, expected),
-        ),
-      );
+        );
+      const argument = process.argv[3];
+      if (process.argv[2] === 'merge') await mergeParts(argument, validate);
+      else if (argument)
+        await runPart(argument as Parameters<typeof runPart>[0], validate);
+      else await runVerification(validate);
       break;
     }
     default:
       throw Error(
-        'usage: release-candidate.ts prepare-public|prepare-inputs|verify',
+        'usage: release-candidate.ts prepare-public|prepare-inputs|verify [part]|merge <parts-dir>',
       );
   }
 }

@@ -1,5 +1,12 @@
 import { spawn } from 'node:child_process';
-import { cp, mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import {
+  cp,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rename,
+  writeFile,
+} from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -11,11 +18,14 @@ import {
 import { FIRST_PARTY_JS } from '../release/inventory.js';
 import { validatePayloadInventory } from './bundle.js';
 import {
+  CANDIDATE_PARTS,
+  type CandidatePart,
   type CheckResult,
   createFreshResultsDirectory,
   hash,
   type InputManifest,
   parseTestSummary,
+  partChecks,
   REQUIRED_CHECKS,
   safePath,
   validateChecks,
@@ -99,14 +109,16 @@ async function command(
     throw Error(`CI command failed: ${id}`);
   return result;
 }
-export async function runVerification(
-  validateInput: typeof validateManifest = validateManifest,
-) {
+const coverageOut = resolve(root, '.artifacts/package-coverage');
+const partsRoot = resolve(root, '.artifacts/candidate-parts');
+
+/** Materialize and check the pinned inputs, install the candidate and copy it for coverage. */
+async function prepareWorkspace(validateInput: typeof validateManifest) {
   await createFreshResultsDirectory(output); // Fresh output only; never reuse an earlier successful generation.
+  results.length = 0;
   const inputRoot = resolve(root, '.ci-inputs');
-  const manifest = JSON.parse(
-    await readFile(resolve(inputRoot, 'manifest.json'), 'utf8'),
-  ) as InputManifest;
+  const manifestBytes = await readFile(resolve(inputRoot, 'manifest.json'));
+  const manifest = JSON.parse(manifestBytes.toString()) as InputManifest;
   const context = {
     repository: process.env.GITHUB_REPOSITORY ?? '',
     commit: process.env.GITHUB_SHA ?? '',
@@ -177,9 +189,9 @@ export async function runVerification(
   const candidate = JSON.parse(
     await readFile(process.env.FORMICARIUM_CANDIDATE, 'utf8'),
   );
+  const tarballSha256 = hash(await readFile(resolve(root, manifest.tarball)));
   if (
-    candidate.tarball.sha256 !==
-      hash(await readFile(resolve(root, manifest.tarball))) ||
+    candidate.tarball.sha256 !== tarballSha256 ||
     candidate.core?.package !== CORE_PACKAGE
   )
     throw Error('package/core manifest differs');
@@ -215,6 +227,20 @@ export async function runVerification(
     root,
     '.artifacts/ci-candidate/inputs',
   );
+  await preparePackageCoverage({ source: installedPackage, out: coverageOut });
+  return {
+    manifest,
+    context,
+    inputRoot,
+    bun,
+    tarballSha256,
+    manifestSha256: hash(manifestBytes),
+  };
+}
+
+type Workspace = Awaited<ReturnType<typeof prepareWorkspace>>;
+
+async function nodeChecks() {
   results.push(
     await command('release', [
       node,
@@ -242,20 +268,6 @@ export async function runVerification(
       ].map((name) => `tests/node/${name}.test.js`),
     ]),
   );
-  results.push(
-    await command('browser-regression', [
-      bun,
-      playwright,
-      'test',
-      'tests/browser/probe.spec.ts',
-      'tests/browser/aube-1645.spec.ts',
-      'tests/browser/pitchfork-basic.spec.ts',
-      '--workers=1',
-      '--retries=0',
-      '--output',
-      resolve(output, 'regression-browser'),
-    ]),
-  );
   // A fresh remote checkout may write native baselines, then must match the supplied originals.
   for (const session of ['aube-1645', 'pitchfork-basic']) {
     const baseline = resolve(root, `fixtures/baseline/${session}.native.txt`);
@@ -275,8 +287,6 @@ export async function runVerification(
     if (hash(await readFile(baseline)) !== before)
       throw Error(`native baseline differs: ${session}`);
   }
-  const coverageOut = resolve(root, '.artifacts/package-coverage');
-  await preparePackageCoverage({ source: installedPackage, out: coverageOut });
   results.push(
     await command('package-coverage-node', [
       node,
@@ -312,9 +322,27 @@ export async function runVerification(
       ].map((name) => resolve(coverageOut, `tests/package/${name}.test.js`)),
     ]),
   );
+}
+
+async function browserChecks(project: string, bun: string) {
+  results.push(
+    await command(`browser-regression-${project}`, [
+      bun,
+      playwright,
+      'test',
+      'tests/browser/probe.spec.ts',
+      'tests/browser/aube-1645.spec.ts',
+      'tests/browser/pitchfork-basic.spec.ts',
+      `--project=${project}`,
+      '--workers=1',
+      '--retries=0',
+      '--output',
+      resolve(output, 'regression-browser'),
+    ]),
+  );
   results.push(
     await command(
-      'package-coverage-browser',
+      `package-coverage-browser-${project}`,
       [
         // Playwright cannot load these compiled coverage specs under Bun 1.4.3.
         // Node is required here; ordinary browser suites continue to use Bun.
@@ -323,6 +351,7 @@ export async function runVerification(
         'test',
         '--config',
         'playwright.config.ts',
+        `--project=${project}`,
         '--workers=1',
         '--retries=0',
         '--output',
@@ -331,29 +360,128 @@ export async function runVerification(
       { cwd: resolve(coverageOut, 'tests/package') },
     ),
   );
+}
+
+/** Run one part's checks and record them for the merge (part.json). */
+export async function runPart(
+  part: CandidatePart,
+  validateInput: typeof validateManifest = validateManifest,
+) {
+  if (!CANDIDATE_PARTS.includes(part))
+    throw Error(`unknown candidate part: ${part}`);
+  const workspace = await prepareWorkspace(validateInput);
+  if (part === 'node') await nodeChecks();
+  else await browserChecks(part, workspace.bun);
+  await verifyPins(
+    resolve(workspace.inputRoot, 'payload'),
+    workspace.manifest.files,
+  );
+  await verifyPins(root, workspace.manifest.sourceFiles);
+  await writeFile(
+    resolve(output, 'part.json'),
+    JSON.stringify(
+      {
+        part,
+        context: workspace.context,
+        manifestSha256: workspace.manifestSha256,
+        tarballSha256: workspace.tarballSha256,
+        checks: results,
+      },
+      null,
+      2,
+    ),
+  );
+}
+
+async function readPart(
+  partsDir: string,
+  part: CandidatePart,
+  workspace: Workspace,
+) {
+  const record = JSON.parse(
+    await readFile(resolve(partsDir, part, 'ci-results/part.json'), 'utf8'),
+  ) as {
+    part: string;
+    context: Workspace['context'];
+    manifestSha256: string;
+    tarballSha256: string;
+    checks: CheckResult[];
+  };
+  if (
+    record.part !== part ||
+    JSON.stringify(record.context) !== JSON.stringify(workspace.context) ||
+    record.manifestSha256 !== workspace.manifestSha256 ||
+    record.tarballSha256 !== workspace.tarballSha256 ||
+    JSON.stringify(record.checks.map((check) => check.id)) !==
+      JSON.stringify(partChecks(part))
+  )
+    throw Error(`candidate part measured other inputs: ${part}`);
+  return record.checks;
+}
+
+/**
+ * Combine the parts' checks and coverage into one acceptance record. The
+ * merge prepares the same coverage copy itself, so a part counts only if it
+ * measured byte-identical instrumentation of the same candidate.
+ */
+export async function mergeParts(
+  partsDir: string = partsRoot,
+  validateInput: typeof validateManifest = validateManifest,
+) {
+  const workspace = await prepareWorkspace(validateInput);
+  const checks: CheckResult[] = [];
+  for (const part of CANDIDATE_PARTS)
+    checks.push(...(await readPart(partsDir, part, workspace)));
+  const nodeCoverage = resolve(partsDir, 'node/package-coverage');
+  if (
+    (await readFile(
+      resolve(nodeCoverage, 'coverage-metadata.json'),
+      'utf8',
+    )) !==
+    (await readFile(resolve(coverageOut, 'coverage-metadata.json'), 'utf8'))
+  )
+    throw Error('node part measured other instrumentation');
+  await cp(
+    resolve(nodeCoverage, 'coverage-node.json'),
+    resolve(coverageOut, 'coverage-node.json'),
+    { errorOnExist: true, force: false },
+  );
+  const browserParts = CANDIDATE_PARTS.filter((part) => part !== 'node').map(
+    (project) => ({
+      project,
+      out: resolve(partsDir, project, 'package-coverage'),
+      browserResults: resolve(
+        partsDir,
+        project,
+        'package-coverage/browser-results',
+      ),
+    }),
+  );
   const coverage = await reportPackageCoverage({
     out: coverageOut,
     browserResults: resolve(coverageOut, 'browser-results'),
-    candidatePath: process.env.FORMICARIUM_CANDIDATE,
+    browserParts,
+    candidatePath: process.env.FORMICARIUM_CANDIDATE!,
     extraNodeWorkers: COMMAND_COVERAGE_NODE_WORKERS,
   });
   validateCoverage(coverage, {
     files: FIRST_PARTY_JS,
-    tarballSha256: hash(await readFile(resolve(root, manifest.tarball))),
+    tarballSha256: workspace.tarballSha256,
   });
-  validateChecks(results);
-  await verifyPins(resolve(inputRoot, 'payload'), manifest.files);
-  await verifyPins(root, manifest.sourceFiles);
+  validateChecks(checks);
+  await verifyPins(
+    resolve(workspace.inputRoot, 'payload'),
+    workspace.manifest.files,
+  );
+  await verifyPins(root, workspace.manifest.sourceFiles);
   await writeFile(
     resolve(output, 'acceptance.json'),
     JSON.stringify(
       {
         passed: true,
-        context,
-        manifestSha256: hash(
-          await readFile(resolve(inputRoot, 'manifest.json')),
-        ),
-        checks: results,
+        context: workspace.context,
+        manifestSha256: workspace.manifestSha256,
+        checks,
         coverage,
         limits:
           'Local/fresh CI verification only; no RC adoption or publication approval.',
@@ -362,6 +490,20 @@ export async function runVerification(
       2,
     ),
   );
+}
+
+/** Every part in turn, then the merge: what the parallel CI jobs do, on one machine. */
+export async function runVerification(
+  validateInput: typeof validateManifest = validateManifest,
+) {
+  await mkdir(partsRoot);
+  for (const part of CANDIDATE_PARTS) {
+    await runPart(part, validateInput);
+    await mkdir(resolve(partsRoot, part));
+    await rename(output, resolve(partsRoot, part, 'ci-results'));
+    await rename(coverageOut, resolve(partsRoot, part, 'package-coverage'));
+  }
+  await mergeParts(partsRoot, validateInput);
 }
 if (
   process.argv[1] &&

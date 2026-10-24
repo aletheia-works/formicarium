@@ -7,15 +7,30 @@ export async function createFreshResultsDirectory(output: string) {
   await mkdir(output);
 }
 
-export const REQUIRED_CHECKS = Object.freeze([
-  'release',
-  'node-regression',
-  'browser-regression',
-  'native-aube',
-  'native-pitchfork',
-  'package-coverage-node',
-  'package-coverage-browser',
-]);
+/** The candidate's checks, split so each part can run as its own CI job. */
+export const CANDIDATE_PARTS = Object.freeze([
+  'node',
+  'chromium',
+  'firefox',
+  'webkit',
+] as const);
+export type CandidatePart = (typeof CANDIDATE_PARTS)[number];
+/** The checks each part must have recorded, in order. */
+export function partChecks(part: CandidatePart) {
+  return part === 'node'
+    ? [
+        'release',
+        'node-regression',
+        'native-aube',
+        'native-pitchfork',
+        'package-coverage-node',
+      ]
+    : [`browser-regression-${part}`, `package-coverage-browser-${part}`];
+}
+
+export const REQUIRED_CHECKS = Object.freeze(
+  CANDIDATE_PARTS.flatMap(partChecks),
+);
 export interface FilePin {
   path: string;
   bytes: number;
