@@ -96,7 +96,11 @@ export function validatePublishWorkflow(text: string) {
   requireCondition(
     w.jobs.verify.needs === 'authorize' &&
       w.jobs.verify.uses === './.github/workflows/ci.yml' &&
-      same(w.jobs.verify.permissions, { contents: 'read', actions: 'read' }),
+      same(w.jobs.verify.permissions, {
+        contents: 'read',
+        actions: 'read',
+        'pull-requests': 'read',
+      }),
     'verification dependency/permissions differ',
   );
   for (const name of ['publish', 'release']) {

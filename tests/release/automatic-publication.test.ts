@@ -274,3 +274,41 @@ test('actual candidate export refuses changed bytes, failed checks and insuffici
   assert.notEqual(changed.status, 0);
   assert.equal(changed.output, '');
 });
+
+// GitHub refuses to start a run whose reusable workflow requests a permission
+// its caller did not grant (startup_failure), so check every local call chain.
+test('each reusable workflow call grants every permission its jobs request', async () => {
+  const LEVELS = ['none', 'read', 'write'];
+  const failures: string[] = [];
+  const visit = async (
+    file: string,
+    granted: Record<string, string>,
+    path: string,
+  ) => {
+    const called = parse(await readFile(file, 'utf8'));
+    for (const [name, job] of Object.entries<any>(called.jobs)) {
+      const requested = job.permissions ?? called.permissions ?? {};
+      for (const [scope, level] of Object.entries<string>(requested))
+        if (LEVELS.indexOf(level) > LEVELS.indexOf(granted[scope] ?? 'none'))
+          failures.push(`${path} / ${name}: ${scope}: ${level}`);
+      if (typeof job.uses === 'string' && job.uses.startsWith('./'))
+        await visit(
+          job.uses.slice(2),
+          job.permissions ?? called.permissions ?? granted,
+          `${path} / ${name}`,
+        );
+    }
+  };
+  for (const caller of ['publish.yml', 'ci.yml', 'showcase-site.yml']) {
+    const file = `.github/workflows/${caller}`;
+    const source = parse(await readFile(file, 'utf8'));
+    for (const [name, job] of Object.entries<any>(source.jobs))
+      if (typeof job.uses === 'string' && job.uses.startsWith('./'))
+        await visit(
+          job.uses.slice(2),
+          job.permissions ?? source.permissions ?? {},
+          `${caller} / ${name}`,
+        );
+  }
+  assert.deepEqual(failures, []);
+});
