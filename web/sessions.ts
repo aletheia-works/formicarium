@@ -31,8 +31,9 @@ export const GUEST_ENV = Object.freeze(
 );
 
 /**
- * ?session=<name> で選べる手順。project のファイルは cwd の親（projectRoot）以下に置き、
- * persist のディレクトリをステップの間で引き継ぐ。
+ * ?session=<name> で選べる手順。project のファイルは cwd の親（projectRoot）以下に置く。
+ * ページは projectRoot で Session を作るので、ステップの間で projectRoot と HOME の中身が
+ * 引き継がれる（registry の persist と同じ範囲。persist は計測のスクリプトも読む）。
  */
 export const SESSIONS = Object.freeze(
   Object.fromEntries(

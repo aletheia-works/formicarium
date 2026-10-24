@@ -98,7 +98,12 @@ async function main() {
     });
   } catch (error) {
     const { code, stderr } = error as Partial<ExecutionError>;
-    const message = code ? `${code}: ${errorText(error)}` : errorText(error);
+    // ExecutionError carries a string code; other errors (a DOMException's
+    // numeric code, for one) are shown with their message only.
+    const message =
+      typeof code === 'string'
+        ? `${code}: ${errorText(error)}`
+        : errorText(error);
     setStatus(`error: ${message}`, 'ng');
     const text = stderr?.length ? new TextDecoder().decode(stderr) : '';
     if (text) output.append(`\n[core stderr]\n${text}`);
