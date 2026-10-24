@@ -18,6 +18,8 @@ export interface Outcome {
   transcript?: string;
   steps: { command: string; exitCode: number; elapsedMs: number }[];
 }
+/** The browser's limit for one aube #1645 run (AGENTS.md quality limits). */
+const SESSION_STEP_TIMEOUT_MS = 840_000;
 type Sink = (stream: OutputChunk['stream'], text: string) => void;
 
 const assets = coreAssets(
@@ -161,6 +163,10 @@ async function runStep(
     guest,
     args: step.args,
     env: GUEST_ENV[tool] ?? {},
+    // A session step may take as long as the 840 s the browser allows one
+    // aube #1645 run, not the Session's 600 s default. A single guest run
+    // (probe) keeps the default, which is its 600 s limit.
+    timeoutMs: SESSION_STEP_TIMEOUT_MS,
     onOutput: textOutput(sink),
   });
   return result;
