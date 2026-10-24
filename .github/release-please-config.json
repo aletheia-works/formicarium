@@ -9,7 +9,13 @@
       "release-type": "node",
       "component": "formicarium",
       "include-component-in-tag": false,
-      "skip-changelog": true
+      "skip-changelog": true,
+      "exclude-paths": [
+        "showcase",
+        ".github/workflows/showcase.yml",
+        ".github/workflows/showcase-site.yml",
+        ".github/workflows/showcase-release-pin.yml"
+      ]
     }
   }
 }
