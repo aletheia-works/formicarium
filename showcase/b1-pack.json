@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "releaseTag": "b1-a3370ca4df1f",
-  "packAsset": "aletheia-works-formicarium-0.3.0-b1-a3370ca4df1f.tgz",
-  "packSha256": "a3370ca4df1f969ca613fe7253c831933d594b14f9650c609a6ced4581834046",
+  "releaseTag": "b1-3777a192e789",
+  "packAsset": "aletheia-works-formicarium-0.3.0-b1-3777a192e789.tgz",
+  "packSha256": "3777a192e78961df96c3bb63d0afb22357af781ee806af15b27a4f9130853af9",
   "evidenceAsset": "b1-acceptance.json",
-  "evidenceSha256": "0c6e547fee04b6db7a49cfd171bfb6526d90f02f074ceec176cee7ba28f27a35"
+  "evidenceSha256": "294aff3e470accb96b40446d498d8ef6c9553a7bc6b37f3de9cd2819e9efdac6"
 }

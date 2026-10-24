@@ -18,7 +18,7 @@ showcase/
 ├── tools.json                # ツールの条件（repository・tag の形・資産・source build）
 ├── allowed-sources.json      # 受け付ける repository（main の定義だけを使う）
 ├── trusted-callers.json      # distribute を受け付ける showcase-site workflow と再利用元の workflow
-├── b1-pack.json              # B1 の pack の Release（b1-a3370ca4df1f）
+├── b1-pack.json              # B1 の pack の Release（b1-3777a192e789）
 ├── fixtures/                 # demo fixture（showcase site が使う。回帰用の fixtures/ とは別）
 ├── builders/cargo.sh         # cargo を絶対 path で呼ぶ builder
 ├── scripts/                  # 解決・取得・build・再利用・catalog・pack・候補・受入・境界
@@ -106,9 +106,11 @@ job が成功し、出力 `distributable` が `true` のときだけ配布を始
 
 `distribute` は `b1-pack.json` が指す Release の pack を使う。B1 は、この pack を受け入れた
 terrarium 移行時の作業の名前で、Release の tag と資産の名前に残っている。今は
-prerelease の [`b1-a3370ca4df1f`](https://github.com/aletheia-works/formicarium/releases/tag/b1-a3370ca4df1f)
-を指す（main `2e0358a2` から作った pack と、command API の正式な完了確認の受入の証拠。
-中の版の番号は `0.3.0` だが、npm の 0.3.0 とは中身が違う）。`b1-pack.json` が
+prerelease の [`b1-3777a192e789`](https://github.com/aletheia-works/formicarium/releases/tag/b1-3777a192e789)
+を指す（main `7f44add2` から作った、コアが paludarium の pack と、その pack に対する showcase の
+受入（3 ツール×Node・3 ブラウザの 12 行、run 40076322752）の証拠。中の版の番号は `0.3.0` だが、
+npm の 0.3.0 とは中身が違う）。以前の [`b1-a3370ca4df1f`](https://github.com/aletheia-works/formicarium/releases/tag/b1-a3370ca4df1f)
+は blink 時代の pack で、ローダーを Blob から読むため、`blob:` を許さない CSP では動かない。`b1-pack.json` が
 `null` のときは、`distribute` は `b1-pack-unavailable` で失敗する。Release は、
 人間が対象（pack・受入の証拠・その SHA256）を承認した後にだけ作る。
 1. 受入で固定した pack と `ApiAcceptance` の JSON を用意し、SHA256 を確かめる。
