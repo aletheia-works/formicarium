@@ -2,7 +2,7 @@
   "name": "@aletheia-works/formicarium",
   "version": "0.3.0",
   "private": true,
-  "description": "paludarium（x86-64 Linux ユーザーモードエミュレータ）を wasm 上で動かして Linux の CLI を実行する",
+  "description": "Run unmodified x86-64 Linux CLI programs in the browser and Node.js on the paludarium WebAssembly emulator",
   "license": "Apache-2.0",
   "type": "module",
   "packageManager": "bun@1.4.3",
