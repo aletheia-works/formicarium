@@ -38,10 +38,13 @@ test('the committed tools.json, allow list, callers and release pin are valid', 
     await readConfigFile('trusted-callers.json'),
   );
   assert.ok(callers.reuseWorkflows.includes('.github/workflows/showcase.yml'));
-  assert.equal(
-    validateFormicariumRelease(await readConfigFile('formicarium-release.json'))
-      ?.version,
-    '0.4.0',
+  // The pin moves with each release (showcase-release-pin.yml), so only its
+  // shape is fixed here: a complete pin, never the unpinned null.
+  assert.notEqual(
+    validateFormicariumRelease(
+      await readConfigFile('formicarium-release.json'),
+    ),
+    null,
   );
   assert.equal(
     assetName('aube-{tag}-x86_64-unknown-linux-musl.tar.gz', 'v2.7.0', '2.7.0'),

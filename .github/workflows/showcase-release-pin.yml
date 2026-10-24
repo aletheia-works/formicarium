@@ -30,7 +30,7 @@ jobs:
         (github.event.workflow_run.conclusion == 'success' &&
          startsWith(github.event.workflow_run.head_branch, 'v')))
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 25
     steps:
       - name: Select the version
         id: version
@@ -55,6 +55,19 @@ jobs:
           node-version: 'latest'
           check-latest: true
           package-manager-cache: false
+      # npm may take minutes to serve a version it has just accepted.
+      - name: Wait until npm serves the version
+        if: steps.version.outputs.version != ''
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          url="https://registry.npmjs.org/@aletheia-works%2fformicarium/$VERSION"
+          for _ in $(seq 1 90); do
+            if curl -fsS -o /dev/null "$url"; then exit 0; fi
+            sleep 10
+          done
+          echo "::error::npm still does not serve $VERSION after 15 minutes"
+          exit 1
       - name: Check the published release and write the pin
         if: steps.version.outputs.version != ''
         env:
