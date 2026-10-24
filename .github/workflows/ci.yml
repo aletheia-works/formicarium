@@ -206,7 +206,11 @@ jobs:
       - name: 'Share compiled products with downstream jobs'
         uses: 'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9' # v7.0.2
         with:
-          name: 'product-build-${{ matrix.component }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}'
+          # Named per run, not per attempt: a rerun of only the failed jobs
+          # finds the products of the attempt that built them, and a rebuild
+          # in a later attempt replaces them.
+          name: 'product-build-${{ matrix.component }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}'
+          overwrite: true
           path: 'dist/'
           retention-days: 7
           if-no-files-found: 'error'
@@ -245,7 +249,7 @@ jobs:
       - name: 'Download products built by this source and run attempt'
         uses: 'actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333' # v8.0.2
         with:
-          pattern: 'product-build-*-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}'
+          pattern: 'product-build-*-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}'
           path: 'dist'
           merge-multiple: true
       - name: 'Restore guest executable permissions'
@@ -307,7 +311,7 @@ jobs:
       - name: 'Download products built by this source and run attempt'
         uses: 'actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333' # v8.0.2
         with:
-          pattern: 'product-build-*-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}'
+          pattern: 'product-build-*-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}'
           path: 'dist'
           merge-multiple: true
       - name: 'Restore guest executable permissions'
