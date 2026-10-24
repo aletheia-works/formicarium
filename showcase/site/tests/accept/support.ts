@@ -151,18 +151,29 @@ export async function recordTiming(
   });
 }
 
+/** URL paths of the test-only isolation probe Workers (served by ISOLATION_OVERLAY). */
+const ISOLATION_DIR = '/formicarium/__isolation';
+/**
+ * The probe Workers as test server overlay files. They are same-origin
+ * scripts, because the terminal pages' CSP allows no blob: Workers.
+ */
+export const ISOLATION_OVERLAY: ReadonlyMap<string, string> = new Map([
+  [
+    `${ISOLATION_DIR}/isolation-worker.js`,
+    join(import.meta.dirname, 'harness', 'isolation-worker.js'),
+  ],
+  [
+    `${ISOLATION_DIR}/isolation-child.js`,
+    join(import.meta.dirname, 'harness', 'isolation-child.js'),
+  ],
+]);
+
 /** Page, Worker and child Worker are all cross-origin isolated with SharedArrayBuffer. */
 export async function isolationOf(
   page: Page,
 ): Promise<{ page: boolean; worker: boolean; child: boolean }> {
-  return page.evaluate(async () => {
-    const child =
-      'postMessage([self.crossOriginIsolated, typeof SharedArrayBuffer === "function"])';
-    const parent = `const c = new Worker(URL.createObjectURL(new Blob([${JSON.stringify(child)}], { type: 'text/javascript' })));
-      c.onmessage = (e) => postMessage({ worker: self.crossOriginIsolated && typeof SharedArrayBuffer === 'function', child: e.data[0] && e.data[1] });`;
-    const worker = new Worker(
-      URL.createObjectURL(new Blob([parent], { type: 'text/javascript' })),
-    );
+  return page.evaluate(async (directory) => {
+    const worker = new Worker(`${directory}/isolation-worker.js`);
     const result = await new Promise<{ worker: boolean; child: boolean }>(
       (done) => {
         worker.onmessage = (event) => done(event.data);
@@ -173,5 +184,5 @@ export async function isolationOf(
       page: crossOriginIsolated && typeof SharedArrayBuffer === 'function',
       ...result,
     };
-  });
+  }, ISOLATION_DIR);
 }

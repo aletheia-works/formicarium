@@ -9,6 +9,7 @@ import {
 import {
   cspViolations,
   finishPage,
+  ISOLATION_OVERLAY,
   isolationOf,
   newPage,
   occurrences,
@@ -41,7 +42,7 @@ const FIXTURE_FILES: Record<string, [string, string]> = {
 
 let server: PagesServer;
 test.beforeAll(async () => {
-  server = await serverFromEnvironment(process.env);
+  server = await serverFromEnvironment(process.env, ISOLATION_OVERLAY);
 });
 test.afterAll(async () => {
   await server?.close();
