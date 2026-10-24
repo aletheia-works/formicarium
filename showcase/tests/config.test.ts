@@ -40,13 +40,13 @@ test('the committed tools.json, allow list, callers and B1 pack are valid', asyn
   assert.ok(callers.reuseWorkflows.includes('.github/workflows/showcase.yml'));
   // The B1 acceptance pack of main 2e0358a2 (Release b1-a3370ca4df1f).
   assert.deepEqual(validateB1Pack(await readConfigFile('b1-pack.json')), {
-    releaseTag: 'b1-a3370ca4df1f',
-    packAsset: 'aletheia-works-formicarium-0.3.0-b1-a3370ca4df1f.tgz',
+    releaseTag: 'b1-3777a192e789',
+    packAsset: 'aletheia-works-formicarium-0.3.0-b1-3777a192e789.tgz',
     packSha256:
-      'a3370ca4df1f969ca613fe7253c831933d594b14f9650c609a6ced4581834046',
+      '3777a192e78961df96c3bb63d0afb22357af781ee806af15b27a4f9130853af9',
     evidenceAsset: 'b1-acceptance.json',
     evidenceSha256:
-      '0c6e547fee04b6db7a49cfd171bfb6526d90f02f074ceec176cee7ba28f27a35',
+      '294aff3e470accb96b40446d498d8ef6c9553a7bc6b37f3de9cd2819e9efdac6',
   });
   assert.equal(
     assetName('aube-{tag}-x86_64-unknown-linux-musl.tar.gz', 'v2.7.0', '2.7.0'),
