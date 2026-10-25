@@ -1,6 +1,7 @@
 // Real Safari acceptance: safaridriver drives the Safari that ships with macOS
 // through the same page function as the Playwright projects. Safari verifies
 // TLS normally, so the job CA must already be trusted in the keychain (CI step).
+import { request } from 'node:http';
 import { join } from 'node:path';
 import { loadSite } from '../scripts/accept-node.ts';
 import { startAcceptServer } from '../scripts/accept-server.ts';
@@ -18,16 +19,55 @@ const driver = process.env.SHOWCASE_SAFARIDRIVER ?? 'http://127.0.0.1:4444';
 /** The same per-tool limit as the Playwright acceptance. */
 const TOOL_TIMEOUT_MS = 840000;
 
-async function webdriver(method: string, path: string, body?: unknown) {
-  const response = await fetch(`${driver}${path}`, {
-    method,
-    headers: { 'content-type': 'application/json' },
-    body: body === undefined ? undefined : JSON.stringify(body),
+/**
+ * node:http, not fetch: fetch gives up after 300 s without response headers,
+ * and execute/async answers only when the page script ends, up to the limit.
+ */
+function webdriver(
+  method: string,
+  path: string,
+  body?: unknown,
+): Promise<unknown> {
+  const payload = body === undefined ? undefined : JSON.stringify(body);
+  return new Promise((resolve, reject) => {
+    const call = request(
+      `${driver}${path}`,
+      {
+        method,
+        headers: payload
+          ? {
+              'content-type': 'application/json',
+              'content-length': Buffer.byteLength(payload),
+            }
+          : {},
+      },
+      (response) => {
+        const chunks: Buffer[] = [];
+        response.on('data', (chunk: Buffer) => chunks.push(chunk));
+        response.on('error', reject);
+        response.on('end', () => {
+          try {
+            const reply = JSON.parse(Buffer.concat(chunks).toString()) as {
+              value: unknown;
+            };
+            if ((response.statusCode ?? 500) >= 400)
+              throw Error(
+                `WebDriver ${method} ${path}: ${JSON.stringify(reply)}`,
+              );
+            resolve(reply.value);
+          } catch (error) {
+            reject(error);
+          }
+        });
+      },
+    );
+    // Safari's own script timeout answers first; this only catches a hung driver.
+    call.setTimeout(TOOL_TIMEOUT_MS + 60000, () =>
+      call.destroy(Error(`WebDriver ${method} ${path}: no answer`)),
+    );
+    call.on('error', reject);
+    call.end(payload);
   });
-  const reply = (await response.json()) as { value: unknown };
-  if (!response.ok)
-    throw Error(`WebDriver ${method} ${path}: ${JSON.stringify(reply)}`);
-  return reply.value;
 }
 
 /** safaridriver may still be starting when this script does. */
