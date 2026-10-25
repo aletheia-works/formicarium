@@ -174,14 +174,15 @@ test('real Safari accepts on macOS, trusts only the job CA and gates the candida
   assert.match(safari, /node showcase\/tests\/accept-safari\.ts/);
   // Safari verifies TLS: the job CA is trusted, never acceptInsecureCerts.
   assert.match(safari, /add-trusted-cert -d -r trustRoot/);
+  assert.match(
+    safari,
+    /verify-cert -c "\$SHOWCASE_TLS_CERT" -p ssl -s localhost/,
+  );
   const list = steps(safari);
   const cleanup = list.find((step) => step.includes('remove-trusted-cert'));
   assert.ok(cleanup);
   assert.match(cleanup, /if: always\(\)/);
-  assert.match(
-    cleanup,
-    /authorizationdb write com\.apple\.trust-settings\.admin </,
-  );
+  assert.match(cleanup, /delete-certificate -c formicarium-showcase-job-ca/);
   assert.ok(
     list.indexOf(cleanup) >
       list.findIndex((step) => step.includes('accept-safari.ts')),

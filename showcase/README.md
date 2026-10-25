@@ -81,8 +81,8 @@ mise run showcase-accept-safari    # macOS。SHOWCASE_TLS_*、keychain で job C
 `NODE_EXTRA_CA_CERTS` で子 process だけに信頼させ、終了時に消す。browser の
 受入は TLS の検証を緩めない（`ignoreHTTPSErrors: false`、Safari では
 `acceptInsecureCerts` を使わない）ため、CA を信頼した環境（CI の手順）でだけ動く。
-Safari の job は macOS の System keychain に job CA を信頼させ、終了時に外して、
-信頼設定の規則も元に戻す。pitchfork は CI の Linux で build したものだけで
+Safari の job は macOS の System keychain に job CA を信頼させ、leaf が localhost で
+信頼されることを確かめてから受入し、終了時に外す。pitchfork は CI の Linux で build したものだけで
 受入し、ローカル（macOS）では build しない。
 
 ## ツールの追加

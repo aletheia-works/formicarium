@@ -310,11 +310,9 @@ jobs:
       - name: Trust only this job CA (System keychain)
         shell: bash
         run: |
-          # Trust settings need an admin prompt unless the rule allows them;
-          # the rule is saved first and restored after the run.
-          security authorizationdb read com.apple.trust-settings.admin > "$RUNNER_TEMP/trust-settings-rule.plist"
-          sudo security authorizationdb write com.apple.trust-settings.admin allow
           sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain "$SHOWCASE_TLS_CA"
+          # Fail here, not in Safari, if the leaf is not trusted for localhost.
+          security verify-cert -c "$SHOWCASE_TLS_CERT" -p ssl -s localhost
       - name: Allow safaridriver to drive Safari
         run: sudo safaridriver --enable
       - name: Safari acceptance through the public /browser export
@@ -333,12 +331,6 @@ jobs:
           while sudo security find-certificate -c formicarium-showcase-job-ca /Library/Keychains/System.keychain >/dev/null 2>&1; do
             sudo security delete-certificate -c formicarium-showcase-job-ca /Library/Keychains/System.keychain
           done
-          rule="$RUNNER_TEMP/trust-settings-rule.plist"
-          if [[ -s "$rule" ]]; then
-            # The runner reads its own file; only the write needs root.
-            # shellcheck disable=SC2024
-            sudo security authorizationdb write com.apple.trust-settings.admin < "$rule"
-          fi
           rm -rf -- showcase/.work/tls
           [[ ! -e showcase/.work/tls ]]
           ! sudo security find-certificate -c formicarium-showcase-job-ca /Library/Keychains/System.keychain >/dev/null 2>&1
