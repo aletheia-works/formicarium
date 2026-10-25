@@ -82,7 +82,7 @@ mise run showcase-accept-safari    # macOS。SHOWCASE_TLS_*、keychain で job C
 受入は TLS の検証を緩めない（`ignoreHTTPSErrors: false`、Safari では
 `acceptInsecureCerts` を使わない）ため、CA を信頼した環境（CI の手順）でだけ動く。
 Safari の job は macOS の System keychain に job CA を信頼させ、leaf が localhost で
-信頼されることを確かめてから受入し、終了時に外す。pitchfork は CI の Linux で build したものだけで
+信頼されることを確かめてから受入し、終了時に証明書ごと消す（信頼もそれで消える）。pitchfork は CI の Linux で build したものだけで
 受入し、ローカル（macOS）では build しない。
 
 ## ツールの追加

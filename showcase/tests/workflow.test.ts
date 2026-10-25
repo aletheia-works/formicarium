@@ -179,10 +179,13 @@ test('real Safari accepts on macOS, trusts only the job CA and gates the candida
     /verify-cert -c "\$SHOWCASE_TLS_CERT" -p ssl -s localhost/,
   );
   const list = steps(safari);
-  const cleanup = list.find((step) => step.includes('remove-trusted-cert'));
+  const cleanup = list.find((step) => step.includes('delete-certificate'));
   assert.ok(cleanup);
   assert.match(cleanup, /if: always\(\)/);
-  assert.match(cleanup, /delete-certificate -c formicarium-showcase-job-ca/);
+  assert.match(cleanup, /timeout-minutes: 5/);
+  assert.match(cleanup, /delete-certificate -Z "\$hash"/);
+  // remove-trusted-cert -d waits for an admin prompt and hangs the job.
+  assert.doesNotMatch(safari, /security remove-trusted-cert/);
   assert.ok(
     list.indexOf(cleanup) >
       list.findIndex((step) => step.includes('accept-safari.ts')),

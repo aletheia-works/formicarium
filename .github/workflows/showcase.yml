@@ -321,16 +321,21 @@ jobs:
           driver=$!
           trap 'kill "$driver"' EXIT
           node showcase/tests/accept-safari.ts
+      # Deleting the certificate drops its trust with it. remove-trusted-cert
+      # waits for an admin prompt that a runner never answers, so it is not used.
       - name: Remove only this job CA trust and private keys
         if: always()
+        timeout-minutes: 5
         shell: bash
         run: |
           if [[ -f "${SHOWCASE_TLS_CA:-}" ]]; then
-            sudo security remove-trusted-cert -d "$SHOWCASE_TLS_CA" || true
+            hash=$(openssl x509 -in "$SHOWCASE_TLS_CA" -noout -fingerprint -sha1 | cut -d= -f2 | tr -d :)
+            # A variable, not a pipe: grep -q could end the pipe early under pipefail.
+            listed=$(sudo security find-certificate -Z -a /Library/Keychains/System.keychain)
+            if grep -q "SHA-1 hash: $hash" <<< "$listed"; then
+              sudo security delete-certificate -Z "$hash" /Library/Keychains/System.keychain
+            fi
           fi
-          while sudo security find-certificate -c formicarium-showcase-job-ca /Library/Keychains/System.keychain >/dev/null 2>&1; do
-            sudo security delete-certificate -c formicarium-showcase-job-ca /Library/Keychains/System.keychain
-          done
           rm -rf -- showcase/.work/tls
           [[ ! -e showcase/.work/tls ]]
           ! sudo security find-certificate -c formicarium-showcase-job-ca /Library/Keychains/System.keychain >/dev/null 2>&1
