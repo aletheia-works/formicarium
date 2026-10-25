@@ -6,6 +6,7 @@ import {
   serverFromEnvironment,
   startPagesServer,
   typeOf,
+  withHeadScript,
 } from '../../scripts/serve-pages-like.ts';
 import { tempDir, writeFiles } from './helpers.ts';
 
@@ -80,6 +81,40 @@ test('the test overlay replaces one file of the site', async () => {
     'export const fake = 1;',
   );
   assert.ok(server.requests.includes('/formicarium/_astro/a.js'));
+});
+
+test('the Safari head script goes first in <head> of each page, and only there', async () => {
+  const injected = await startPagesServer({
+    siteDir: site,
+    http: true,
+    overlay: new Map([['/formicarium/__csp.js', join(site, 'harness.js')]]),
+    headScript: '/formicarium/__csp.js',
+  });
+  try {
+    await writeFiles(site, {
+      'head/index.html': '<html><head><title>t</title></head></html>',
+    });
+    const page = await fetch(`${injected.origin}/formicarium/head/`);
+    assert.equal(
+      await page.text(),
+      '<html><head><script src="/formicarium/__csp.js"></script><title>t</title></head></html>',
+    );
+    assert.equal(
+      Number(page.headers.get('content-length')),
+      '<html><head><script src="/formicarium/__csp.js"></script><title>t</title></head></html>'
+        .length,
+    );
+    const script = await fetch(`${injected.origin}/formicarium/_astro/a.js`);
+    assert.equal(await script.text(), 'export {}');
+    // A page without exactly one <head> is an error, not a page without the listener.
+    assert.equal((await fetch(`${injected.origin}/formicarium/`)).status, 500);
+  } finally {
+    await injected.close();
+  }
+  assert.throws(
+    () => withHeadScript(Buffer.from('<head><head>'), '/x.js'),
+    /exactly one <head>/,
+  );
 });
 
 test('HTTPS material or the explicit local HTTP mode is required', async () => {

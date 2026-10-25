@@ -128,6 +128,7 @@ test('a verify run passes only when every verify job succeeded; a skip fails it'
           'accept-chromium',
           'accept-firefox',
           'accept-webkit',
+          'accept-safari',
           'coverage',
           'evidence',
         ],
@@ -138,7 +139,7 @@ test('a verify run passes only when every verify job succeeded; a skip fails it'
   assert.equal(seen.ok, false);
   assert.match(
     seen.markdown,
-    /accept-chromium, accept-firefox, accept-webkit, coverage, evidence/,
+    /accept-chromium, accept-firefox, accept-webkit, accept-safari, coverage, evidence/,
   );
 });
 

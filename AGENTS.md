@@ -23,7 +23,7 @@ These were affirmed by the user; the background of each piece of work is in its 
 - The terrarium migration is finished and its migration-only tooling is removed. AI-DLC is no longer used; its records stay in git at commit `8096c7b4`, and names say what they cover rather than which unit introduced them.
 - The emulator core is paludarium, the npm package `@aletheia-works/paludarium-wasm`, pinned as an exact devDependency (0.4.0; this is paludarium's version, not formicarium's). `bun run build` copies its files to `dist/paludarium/` with a `build-info.json` of their SHA-256 digests, and the package ships them in `assets/paludarium/`. Keep core-specific knowledge in `runtime/core.ts` only (ADR 0003). The blink fork, its build files, patches and decisions were removed; they stay in git history.
 - JIT work is deferred and must not be proposed unless the user reopens it (ADR 0002).
-- Open items: only the browser probe, the install and command API checks and the showcase acceptance run in real Safari on macOS (the other browser suites use WebKit, and iOS Safari is untested), timings were taken on one laptop with the page in front only, and a private file-backed page does not revert to file contents on `MADV_DONTNEED`.
+- Open items: only the browser probe, the install and command API checks, the showcase acceptance and the site acceptance run in real Safari on macOS (the other browser suites use WebKit, and iOS Safari is untested), timings were taken on one laptop with the page in front only, and a private file-backed page does not revert to file contents on `MADV_DONTNEED`.
 
 ## Working notes for agents
 

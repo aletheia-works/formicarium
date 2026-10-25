@@ -7,7 +7,13 @@ import {
   SHA256_HEX,
 } from './model-error.ts';
 
-export type EnvironmentId = 'node' | 'chromium' | 'firefox' | 'webkit' | 'host';
+export type EnvironmentId =
+  | 'node'
+  | 'chromium'
+  | 'firefox'
+  | 'webkit'
+  | 'safari'
+  | 'host';
 export type CheckStatus = 'passed' | 'failed' | 'unverified';
 /** CheckRow: logSha256 is the SHA256 of the check record file. */
 export interface CheckRow {
@@ -49,12 +55,17 @@ export interface AcceptanceEvidence {
   deployedIdentity?: string;
 }
 
-const BROWSERS: readonly EnvironmentId[] = ['chromium', 'firefox', 'webkit'];
+const BROWSERS: readonly EnvironmentId[] = [
+  'chromium',
+  'firefox',
+  'webkit',
+  'safari',
+];
 const ALL: readonly EnvironmentId[] = ['node', ...BROWSERS];
 const ENVIRONMENTS: readonly EnvironmentId[] = [...ALL, 'host'];
 const STATUSES: readonly CheckStatus[] = ['passed', 'failed', 'unverified'];
 
-/** Site acceptance profile: the 27 required (name, environment) rows. */
+/** Site acceptance profile: the 33 required (name, environment) rows. */
 export const REQUIRED_ROWS: readonly {
   name: string;
   environment: EnvironmentId;

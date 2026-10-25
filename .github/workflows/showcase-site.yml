@@ -478,9 +478,97 @@ jobs:
           path: |
             showcase/site/.work/accept/
             showcase/site/.work/logs/inventory-accept-webkit.json
+  accept-safari:
+    needs: build
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
+    runs-on: macos-latest
+    timeout-minutes: 60
+    env:
+      BROWSER: safari
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 'latest'
+          check-latest: true
+          package-manager-cache: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.4.3'
+      - run: node scripts/ci/tasks.ts install-frozen
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: github-pages
+          path: showcase/site/.work/pages
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: showcase-site-build
+          path: showcase/site/.work
+      - name: Unpack the accepted Pages artifact and compare its inventory
+        run: |
+          mkdir -p showcase/site/dist
+          tar -xf showcase/site/.work/pages/artifact.tar -C showcase/site/dist
+          node showcase/site/scripts/inventory.ts --site showcase/site/dist --expect showcase/site/.work/build/site-inventory.json --log "showcase/site/.work/logs/inventory-accept-$BROWSER.json"
+      - name: Record the macOS and Safari versions
+        run: |
+          sw_vers
+          defaults read /Applications/Safari.app/Contents/Info CFBundleShortVersionString
+      - name: Create a job-only localhost CA and leaf (CA key deleted at once)
+        run: node showcase/scripts/tls.ts create >> "$GITHUB_ENV"
+      - name: Trust only this job CA (System keychain)
+        shell: bash
+        run: |
+          sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain "$SHOWCASE_TLS_CA"
+          # Fail here, not in Safari, if the leaf is not trusted for localhost.
+          security verify-cert -c "$SHOWCASE_TLS_CERT" -p ssl -s localhost
+      - name: Allow safaridriver to drive Safari
+        run: sudo safaridriver --enable
+      - name: Site acceptance in Safari (16 tests, 1 worker, no retry, 180 s each)
+        env:
+          SHOWCASE_ACCEPT_RESULTS: ${{ github.workspace }}/showcase/site/.work/accept/safari/results.json
+        run: |
+          safaridriver --port 4444 &
+          driver=$!
+          trap 'kill "$driver"' EXIT
+          node node_modules/@playwright/test/cli.js test --config showcase/site/tests/playwright.config.ts --project="$BROWSER" --workers=1 --retries=0
+      # As in showcase.yml: the job CA is deleted from the keychain by its SHA-1;
+      # remove-trusted-cert waits for an admin prompt that a runner never answers.
+      - name: Remove only this job CA trust and private keys
+        if: always()
+        timeout-minutes: 5
+        shell: bash
+        run: |
+          if [[ -f "${SHOWCASE_TLS_CA:-}" ]]; then
+            hash=$(openssl x509 -in "$SHOWCASE_TLS_CA" -noout -fingerprint -sha1 | cut -d= -f2 | tr -d :)
+            # A variable, not a pipe: grep -q could end the pipe early under pipefail.
+            listed=$(sudo security find-certificate -Z -a /Library/Keychains/System.keychain)
+            if grep -q "SHA-1 hash: $hash" <<< "$listed"; then
+              sudo security delete-certificate -Z "$hash" /Library/Keychains/System.keychain
+            fi
+          fi
+          rm -rf -- showcase/.work/tls
+          [[ ! -e showcase/.work/tls ]]
+          if sudo security find-certificate -c formicarium-showcase-job-ca /Library/Keychains/System.keychain >/dev/null 2>&1; then
+            echo 'the job CA is still in the System keychain' >&2
+            exit 1
+          fi
+          # Recorded only: shows whether an admin trust entry was left behind.
+          security dump-trust-settings -d || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: showcase-site-accept-safari
+          retention-days: 1
+          if-no-files-found: error
+          path: |
+            showcase/site/.work/accept/
+            showcase/site/.work/logs/inventory-accept-safari.json
   coverage:
-    needs: [build, accept-chromium, accept-firefox, accept-webkit]
-    if: ${{ !cancelled() && needs.build.result == 'success' && needs.accept-chromium.result == 'success' && needs.accept-firefox.result == 'success' && needs.accept-webkit.result == 'success' }}
+    needs:
+      [build, accept-chromium, accept-firefox, accept-webkit, accept-safari]
+    if: ${{ !cancelled() && needs.build.result == 'success' && needs.accept-chromium.result == 'success' && needs.accept-firefox.result == 'success' && needs.accept-webkit.result == 'success' && needs.accept-safari.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -520,8 +608,16 @@ jobs:
           if-no-files-found: error
           path: showcase/site/.work/coverage/report/
   evidence:
-    needs: [build, accept-chromium, accept-firefox, accept-webkit, coverage]
-    if: ${{ !cancelled() && needs.build.result == 'success' && needs.accept-chromium.result == 'success' && needs.accept-firefox.result == 'success' && needs.accept-webkit.result == 'success' && needs.coverage.result == 'success' }}
+    needs:
+      [
+        build,
+        accept-chromium,
+        accept-firefox,
+        accept-webkit,
+        accept-safari,
+        coverage,
+      ]
+    if: ${{ !cancelled() && needs.build.result == 'success' && needs.accept-chromium.result == 'success' && needs.accept-firefox.result == 'success' && needs.accept-webkit.result == 'success' && needs.accept-safari.result == 'success' && needs.coverage.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -560,10 +656,11 @@ jobs:
         accept-chromium,
         accept-firefox,
         accept-webkit,
+        accept-safari,
         coverage,
         evidence,
       ]
-    if: ${{ !cancelled() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && needs.candidate.result == 'success' && needs.build.result == 'success' && needs.accept-chromium.result == 'success' && needs.accept-firefox.result == 'success' && needs.accept-webkit.result == 'success' && needs.coverage.result == 'success' && needs.evidence.result == 'success' }}
+    if: ${{ !cancelled() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && needs.candidate.result == 'success' && needs.build.result == 'success' && needs.accept-chromium.result == 'success' && needs.accept-firefox.result == 'success' && needs.accept-webkit.result == 'success' && needs.accept-safari.result == 'success' && needs.coverage.result == 'success' && needs.evidence.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -660,6 +757,7 @@ jobs:
         accept-chromium,
         accept-firefox,
         accept-webkit,
+        accept-safari,
         coverage,
         evidence,
         deploy,
@@ -699,6 +797,7 @@ jobs:
         accept-chromium,
         accept-firefox,
         accept-webkit,
+        accept-safari,
         coverage,
         evidence,
         deploy,

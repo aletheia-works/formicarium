@@ -171,6 +171,7 @@ const ALL = [
   'accept-chromium',
   'accept-firefox',
   'accept-webkit',
+  'accept-safari',
   'coverage',
   'evidence',
   'deploy',
@@ -186,6 +187,7 @@ const VERIFY_RUN = [
   'accept-chromium',
   'accept-firefox',
   'accept-webkit',
+  'accept-safari',
   'coverage',
   'evidence',
   'summary',
@@ -278,6 +280,7 @@ test('deploy needs every earlier gate and runs only when distributing and all su
     'accept-chromium',
     'accept-firefox',
     'accept-webkit',
+    'accept-safari',
     'coverage',
     'evidence',
   ]);
@@ -320,6 +323,7 @@ test('deploy needs every earlier gate and runs only when distributing and all su
     'accept-chromium',
     'accept-firefox',
     'accept-webkit',
+    'accept-safari',
   ]);
   assert.equal(
     evaluate(field('build', 'if')!, {
@@ -456,6 +460,7 @@ test('timeouts, pinned actions, credentials and artifacts follow the infrastruct
     'accept-chromium': 60,
     'accept-firefox': 60,
     'accept-webkit': 60,
+    'accept-safari': 60,
     coverage: 15,
     evidence: 10,
     deploy: 15,
@@ -478,7 +483,7 @@ test('timeouts, pinned actions, credentials and artifacts follow the infrastruct
     /actions\/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5\.0\.1/,
   );
   const checkouts = workflow.split('uses: actions/checkout@').slice(1);
-  assert.equal(checkouts.length, 12);
+  assert.equal(checkouts.length, 13);
   for (const checkout of checkouts)
     assert.match(
       checkout.split('\n      - ')[0]!,
@@ -497,6 +502,32 @@ test('timeouts, pinned actions, credentials and artifacts follow the infrastruct
     table.get('build')!,
     /bun install --frozen-lockfile --ignore-scripts/,
   );
+});
+
+test('accept-safari runs the 16 tests in real Safari on macOS and removes the job CA', () => {
+  const job = table.get('accept-safari')!;
+  assert.match(job, /runs-on: macos-latest/);
+  assert.match(
+    job,
+    /sudo security add-trusted-cert -d -r trustRoot -k \/Library\/Keychains\/System\.keychain "\$SHOWCASE_TLS_CA"/,
+  );
+  assert.match(
+    job,
+    /security verify-cert -c "\$SHOWCASE_TLS_CERT" -p ssl -s localhost/,
+  );
+  assert.match(job, /sudo safaridriver --enable/);
+  assert.match(job, /safaridriver --port 4444 &/);
+  assert.match(job, /--project="\$BROWSER" --workers=1 --retries=0/);
+  assert.match(job, /BROWSER: safari/);
+  assert.match(job, /accept\/safari\/results\.json/);
+  // No Playwright browser: Safari is the one that ships with macOS.
+  assert.doesNotMatch(job, /install-playwright/);
+  const cleanup = job.slice(job.indexOf('- name: Remove only this job CA'));
+  assert.match(cleanup, /if: always\(\)\n {8}timeout-minutes: 5/);
+  assert.match(cleanup, /delete-certificate -Z "\$hash"/);
+  assert.doesNotMatch(job, /security remove-trusted-cert/);
+  assert.match(job, /name: showcase-site-accept-safari/);
+  assert.match(job, /inventory-accept-safari\.json/);
 });
 
 test('showcase.yml skips site-only changes on PR and push', () => {

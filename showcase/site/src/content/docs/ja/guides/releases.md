@@ -24,7 +24,7 @@ check の後に merge すると `v<version>` の tag と GitHub Release がで�
    照らしてから、候補を作って受け入れます。版を固定していない間は配布が失敗し、
    何も deploy しません。
 2. このサイトを候補から1回だけ build し、検査し、header の無い HTTPS で
-   Chromium・Firefox・WebKit の受入を行います。
+   Chromium・Firefox・WebKit・macOS の実機の Safari の受入を行います。
 3. サイトの証拠を作ります。必須の行はすべて合格でなければなりません。
 4. deploy の job が、より新しい run が deploy していないことを確かめてから、
    受け入れた同じ artifact を GitHub Pages に公開します。

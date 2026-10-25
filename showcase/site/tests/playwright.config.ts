@@ -6,6 +6,8 @@ const WORK = join(import.meta.dirname, '..', '.work');
 // Site acceptance: 1 worker, no retry, 180 s per
 // test; each test waits at most 120 s from goto until the terminal is ready.
 // One browser per run: the JSON report goes to accept/<browser>/results.json.
+// `safari` is the Safari that ships with macOS, driven through safaridriver
+// (SHOWCASE_SAFARIDRIVER); it needs the macOS job, see tests/accept/site-page.ts.
 export default defineConfig({
   testDir: './accept',
   testMatch: ['*.spec.ts'],
@@ -31,5 +33,6 @@ export default defineConfig({
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
     { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
     { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+    { name: 'safari' },
   ],
 });

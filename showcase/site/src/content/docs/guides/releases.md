@@ -25,7 +25,8 @@ deployed by a manual run. Only these two runs distribute:
    from npm and checked against the pinned integrity and the commit of its tag.
    While no release is pinned, distribution fails and nothing is deployed.
 2. This site is built once from the candidate, checked, and accepted in
-   Chromium, Firefox and WebKit over HTTPS without server headers.
+   Chromium, Firefox, WebKit and real Safari on macOS over HTTPS without server
+   headers.
 3. The site evidence is assembled; every required row must have passed.
 4. The deploy job publishes the same accepted artifact to GitHub Pages, after a
    check that no newer run has already deployed.

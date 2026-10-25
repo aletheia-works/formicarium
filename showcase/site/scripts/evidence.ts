@@ -33,7 +33,7 @@ import {
 } from './common.ts';
 
 export type Stage = 'pre' | 'deployed';
-export const BROWSERS = ['chromium', 'firefox', 'webkit'] as const;
+export const BROWSERS = ['chromium', 'firefox', 'webkit', 'safari'] as const;
 /** Playwright tests behind each browser row (16 per browser). */
 export const ACCEPT_ROWS: Readonly<
   Record<string, { tag: string; count: number }[]>

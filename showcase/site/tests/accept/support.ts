@@ -1,126 +1,116 @@
-import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type {
-  Browser,
-  BrowserContext,
-  BrowserType,
-  Page,
-  TestInfo,
-} from '@playwright/test';
+import type { TestInfo } from '@playwright/test';
 import { expect } from '@playwright/test';
-import { SITE_ROOT } from '../../scripts/common.ts';
+import {
+  type PagesServer,
+  serverFromEnvironment,
+} from '../../scripts/serve-pages-like.ts';
+import { CSP_LISTENER, type SitePage } from './site-page.ts';
 
 /** goto -> ready within 120 s (the test itself has 180 s). */
 export const READY_MS = 120000;
-export const COVERAGE_DIR = join(SITE_ROOT, '.work', 'coverage', 'v8');
-const COLLECT_COVERAGE = process.env.SHOWCASE_SITE_COVERAGE === '1';
+
+/** URL path of the CSP listener that the Safari pages load first. */
+const CSP_PATH = '/formicarium/__acceptance/csp.js';
 
 /**
- * A fresh context per test (first visit registers the service worker). In CI
- * Firefox uses the profile that trusts the job CA, as in the showcase acceptance.
+ * The Pages-like server of a spec. Safari has no init script, so its pages
+ * load the CSP listener first in <head>; the other browsers get the site's
+ * bytes unchanged.
  */
-export async function openContext(
-  browser: Browser,
-  playwright: { firefox: BrowserType },
+export function startServer(
   project: string,
-): Promise<BrowserContext> {
-  const profile = process.env.SHOWCASE_FIREFOX_PROFILE;
-  const context =
-    project === 'firefox' && profile
-      ? await playwright.firefox.launchPersistentContext(profile, {
-          ignoreHTTPSErrors: false,
-          firefoxUserPrefs: { 'security.enterprise_roots.enabled': true },
-        })
-      : await browser.newContext({ ignoreHTTPSErrors: false });
-  // Every CSP violation of every page is collected and must stay at zero.
-  await context.addInitScript(() => {
-    const violations: string[] = [];
-    (globalThis as unknown as { __cspViolations: string[] }).__cspViolations =
-      violations;
-    document.addEventListener('securitypolicyviolation', (event) => {
-      violations.push(`${event.violatedDirective} ${event.blockedURI}`);
-    });
-  });
-  return context;
+  overlay: ReadonlyMap<string, string> = new Map(),
+): Promise<PagesServer> {
+  if (project !== 'safari') return serverFromEnvironment(process.env, overlay);
+  return serverFromEnvironment(
+    process.env,
+    new Map([...overlay, [CSP_PATH, CSP_LISTENER]]),
+    CSP_PATH,
+  );
 }
 
-export async function newPage(
-  context: BrowserContext,
-  project: string,
-): Promise<Page> {
-  const page = context.pages()[0] ?? (await context.newPage());
-  if (COLLECT_COVERAGE && project === 'chromium')
-    await page.coverage.startJSCoverage({ resetOnNavigation: false });
-  return page;
-}
-
-/** Saves Chromium V8 coverage of the site scripts for merge-coverage.ts. */
-export async function finishPage(page: Page, info: TestInfo): Promise<void> {
-  if (COLLECT_COVERAGE && info.project.name === 'chromium') {
-    const entries = (await page.coverage.stopJSCoverage()).filter((entry) =>
-      entry.url.includes('/_astro/'),
-    );
-    await mkdir(COVERAGE_DIR, { recursive: true });
-    await writeFile(
-      join(COVERAGE_DIR, `${info.testId}.json`),
-      JSON.stringify(entries),
-    );
-  }
-}
-
-export async function cspViolations(page: Page): Promise<string[]> {
-  return page.evaluate(
+export async function cspViolations(site: SitePage): Promise<string[]> {
+  return site.evaluate(
     () =>
       (globalThis as unknown as { __cspViolations?: string[] })
-        .__cspViolations ?? [],
+        .__cspViolations ?? ['the CSP listener did not run'],
   );
 }
 
 /** Visible terminal rows as text (xterm's DOM renderer), NBSP as space. */
-export async function terminalText(page: Page): Promise<string> {
-  return page
-    .locator('[data-terminal-host] .xterm-rows')
-    .evaluate((rows) =>
-      [...rows.children]
-        .map((row) => (row.textContent ?? '').replace(/ /g, ' ').trimEnd())
-        .join('\n'),
-    );
+export async function terminalText(site: SitePage): Promise<string> {
+  return site.evaluate(() =>
+    [
+      ...(document.querySelector('[data-terminal-host] .xterm-rows')
+        ?.children ?? []),
+    ]
+      .map((row) => (row.textContent ?? '').replace(/\u00a0/g, ' ').trimEnd())
+      .join('\n'),
+  );
 }
 
-export const state = (page: Page) =>
-  page.locator('[data-terminal-host]').getAttribute('data-state');
+export const state = (site: SitePage) =>
+  site.evaluate(
+    () =>
+      document
+        .querySelector('[data-terminal-host]')
+        ?.getAttribute('data-state') ?? null,
+  );
+
+/** The status line's text, whitespace collapsed. */
+export const statusText = (site: SitePage) =>
+  site.evaluate(() =>
+    (
+      document.querySelector('[data-testid="terminal-status"]')?.textContent ??
+      ''
+    )
+      .replace(/\s+/g, ' ')
+      .trim(),
+  );
+
+/**
+ * Polls `read` until it passes. A read that throws (the page is navigating,
+ * for example after the service worker's first reload) counts as null and is
+ * retried.
+ */
+export const poll = <T>(read: () => Promise<T>, timeout = 5000) =>
+  expect.poll(() => read().catch(() => null), { timeout, intervals: [100] });
 
 /** Waits for one of the terminal states; returns the elapsed ms. */
 export async function waitState(
-  page: Page,
+  site: SitePage,
   states: string[],
   timeout = READY_MS,
 ): Promise<number> {
   const started = Date.now();
-  await expect(page.locator('[data-terminal-host]')).toHaveAttribute(
-    'data-state',
+  await poll(() => state(site), timeout).toMatch(
     new RegExp(`^(?:${states.join('|')})$`),
-    { timeout },
   );
   return Date.now() - started;
 }
 
+export const focusTerminal = (site: SitePage) =>
+  site.evaluate(() =>
+    document
+      .querySelector<HTMLTextAreaElement>('[data-terminal-host] textarea')
+      ?.focus(),
+  );
+
 /** Types a command and Enter, then waits until the terminal is ready again. */
 export async function run(
-  page: Page,
+  site: SitePage,
   line: string,
   timeout = READY_MS,
 ): Promise<string> {
-  await page.locator('[data-terminal-host] textarea').focus();
-  await page.keyboard.type(line);
-  await page.keyboard.press('Enter');
-  await expect(page.locator('[data-terminal-host]'))
-    .not.toHaveAttribute('data-state', /^(?:ready|ready_failed_install)$/, {
-      timeout: 5000,
-    })
+  await focusTerminal(site);
+  await site.type(line);
+  await site.press('Enter');
+  await poll(() => state(site))
+    .not.toMatch(/^(?:ready|ready_failed_install)$/)
     .catch(() => undefined);
-  await waitState(page, ['ready', 'ready_failed_install'], timeout);
-  return segmentAfter(await terminalText(page), line);
+  await waitState(site, ['ready', 'ready_failed_install'], timeout);
+  return segmentAfter(await terminalText(site), line);
 }
 
 /** Lines printed by `line`: after its prompt row, before the new prompt row. */
@@ -170,9 +160,9 @@ export const ISOLATION_OVERLAY: ReadonlyMap<string, string> = new Map([
 
 /** Page, Worker and child Worker are all cross-origin isolated with SharedArrayBuffer. */
 export async function isolationOf(
-  page: Page,
+  site: SitePage,
 ): Promise<{ page: boolean; worker: boolean; child: boolean }> {
-  return page.evaluate(async (directory) => {
+  return site.evaluate(async (directory) => {
     const worker = new Worker(`${directory}/isolation-worker.js`);
     const result = await new Promise<{ worker: boolean; child: boolean }>(
       (done) => {

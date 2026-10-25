@@ -45,6 +45,11 @@ export interface PagesServerOptions {
   port?: number;
   /** Test-only replacement files, by URL path (adversarial harness). */
   overlay?: ReadonlyMap<string, string>;
+  /**
+   * Test-only: an overlay script loaded first in each page's <head> (Safari,
+   * whose WebDriver has no init script, gets the CSP listener this way).
+   */
+  headScript?: string;
 }
 export interface PagesServer {
   origin: string;
@@ -71,6 +76,13 @@ async function resolveFile(
   }
 }
 
+/** The page with `<script src>` right after its `<head>` (exactly one). */
+export function withHeadScript(page: Buffer, src: string): Buffer {
+  const parts = page.toString('utf8').split('<head>');
+  if (parts.length !== 2) throw Error('expected exactly one <head>');
+  return Buffer.from(parts.join(`<head><script src="${src}"></script>`));
+}
+
 async function handle(
   options: PagesServerOptions,
   request: IncomingMessage,
@@ -84,7 +96,11 @@ async function handle(
   const url = new URL(request.url ?? '/', 'https://localhost');
   const path = url.pathname;
   const overlay = options.overlay?.get(path);
-  const send = (status: number, file: string, body: Buffer) => {
+  const send = (status: number, file: string, bytes: Buffer) => {
+    const body =
+      options.headScript && extname(file) === '.html'
+        ? withHeadScript(bytes, options.headScript)
+        : bytes;
     response.statusCode = status;
     response.setHeader('Content-Type', typeOf(file));
     response.setHeader('Content-Length', body.length);
@@ -104,17 +120,14 @@ async function handle(
     response.end();
     return;
   }
-  try {
-    if (!file) throw Error('missing');
-    return send(200, file, await readFile(file));
-  } catch {
-    const missing = join(options.siteDir, '404.html');
-    return send(
-      404,
-      missing,
-      await readFile(missing).catch(() => Buffer.from('Not Found')),
-    );
-  }
+  const found = file ? await readFile(file).catch(() => null) : null;
+  if (file && found) return send(200, file, found);
+  const missing = join(options.siteDir, '404.html');
+  return send(
+    404,
+    missing,
+    await readFile(missing).catch(() => Buffer.from('Not Found')),
+  );
 }
 
 export async function startPagesServer(
@@ -159,6 +172,7 @@ export async function startPagesServer(
 export async function serverFromEnvironment(
   env: NodeJS.ProcessEnv,
   overlay?: ReadonlyMap<string, string>,
+  headScript?: string,
 ): Promise<PagesServer> {
   const tls = await tlsFromEnvironment(env);
   return startPagesServer({
@@ -166,6 +180,7 @@ export async function serverFromEnvironment(
     tls: tls ?? undefined,
     http: !tls && env.SHOWCASE_SITE_LOCAL_HTTP === '1',
     overlay,
+    headScript,
   });
 }
 

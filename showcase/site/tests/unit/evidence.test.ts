@@ -111,7 +111,7 @@ test('playwrightSpecs walks nested suites and needs every test expected', () => 
   assert.deepEqual(playwrightSpecs(null), []);
 });
 
-test('complete logs give the 27-row site evidence without deployedIdentity', async () => {
+test('complete logs give the 33-row site evidence without deployedIdentity', async () => {
   const { layout, manifest } = await work();
   const { evidence, directory } = await assembleEvidence({
     layout,
@@ -119,7 +119,7 @@ test('complete logs give the 27-row site evidence without deployedIdentity', asy
     sourceCommit: COMMIT,
     recordedAt: '2026-10-19T12:00:00Z',
   });
-  assert.equal(evidence.checks.length, 27);
+  assert.equal(evidence.checks.length, 33);
   assert.ok(evidence.checks.every((row) => row.status === 'passed'));
   assert.equal(evidence.deployedIdentity, undefined);
   assert.equal(evidence.identity.candidateId, manifest.candidateId);
@@ -177,6 +177,14 @@ test('a failed browser test fails its row and the evidence is refused', async ()
   await assert.rejects(
     assembleEvidence({ layout, stage: 'pre', sourceCommit: COMMIT }),
     /evidence-invalid: failed ui-states-keyboard\/webkit/,
+  );
+});
+
+test('without the Safari report its rows are unverified; WebKit does not stand in', async () => {
+  const { layout } = await work({ [LOGS.accept('safari')]: null });
+  await assert.rejects(
+    assembleEvidence({ layout, stage: 'pre', sourceCommit: COMMIT }),
+    /unverified empty-terminal-install\/safari/,
   );
 });
 
