@@ -85,5 +85,7 @@ build files and the decisions specific to it remain only in the git history.
 - Browsers need cross-origin isolation (COOP/COEP or a service worker that adds them).
 - CI runs the browser probe, the install and command checks, the showcase
   acceptance and this site's acceptance in real Safari on macOS. The other
-  browser suites use Playwright's WebKit in its place, and Safari on iOS is not
-  verified.
+  browser suites use Playwright's WebKit in its place. The browser probe and the
+  install and command checks also run in Safari on iOS in an iOS 26 Simulator (iOS 27
+  is not run: safaridriver cannot drive it); a
+  real iPhone is not verified.

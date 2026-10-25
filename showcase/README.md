@@ -140,7 +140,7 @@ summary には「最後に配布可能な候補を作った run からの日数�
 
 ## 未検証のこと
 
-- iOS の Safari。
+- iOS の Safari（showcase の受入。ブラウザの probe と install・command の確認は iOS 26 の Simulator で動かしている。iOS 27 は safaridriver が接続できず未実行）。
 - `accept-safari` job が keychain に job CA を信頼させる手順は、GitHub の macOS runner でだけ
   動かす。手元の Mac の信頼設定は変えないので、ローカルで Safari の受入を動かすには、
   その Mac で job CA を信頼させる必要がある。

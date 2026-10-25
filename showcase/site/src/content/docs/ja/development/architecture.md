@@ -69,4 +69,4 @@ formicarium での JIT の作業は後回しのままです（[ADR 0002](/formic
 - ゲストのメモリの上限は 1 GB です。
 - ブラウザでは cross-origin isolation（COOP/COEP か、それを付ける service worker）が必要です。
 - CI で、ブラウザの probe、install・command の確認、showcase とこのサイトの受け入れを macOS の実機の Safari で動かしています。ほかのブラウザのテストは Playwright の WebKit で
-  代用しており、iOS の Safari では確かめていません。
+  代用しています。ブラウザの probe と install・command の確認は iOS 26 の Simulator の iOS 版 Safari でも動かしており（iOS 27 は safaridriver が接続できず未実行）、実機の iPhone では確かめていません。

@@ -103,7 +103,10 @@ Safari on macOS (`tests/browser/safari-probe.test.ts` through
 safaridriver), and so do the showcase acceptance
 (`showcase/tests/accept-safari.ts`) and the site acceptance (the `safari`
 project of `showcase/site/tests/playwright.config.ts`); the other browser suites use
-Playwright's WebKit in its place, and Safari on iOS is not tested. On Windows, the POSIX
+Playwright's WebKit in its place. The probe page and the install and command
+API checks also run in Safari on iOS, on an iPhone in the newest iOS 26 Simulator
+(`FORMICARIUM_SAFARI_PLATFORM=ios`). iOS 27 is not run: safaridriver 27.0.1
+finds no session host on an iOS 27.0 simulator. A real iPhone is not tested. On Windows, the POSIX
 permission checks are skipped; run them on Linux.
 
 ## Measurements

@@ -29,7 +29,9 @@ every change:
 It runs an interpreter (no JIT yet), so heavy programs are much slower than
 native. CI runs the browser probe, the install and command checks, the
 showcase acceptance and the showcase site's acceptance in real Safari on macOS; the other browser suites use
-Playwright's WebKit in its place, and Safari on iOS is not tested.
+Playwright's WebKit in its place. The browser probe and the install and command
+checks also run in Safari on iOS in an iOS 26 Simulator (not yet iOS 27, which
+safaridriver cannot drive); a real iPhone is not tested.
 
 ## Install
 

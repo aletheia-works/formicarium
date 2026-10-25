@@ -339,6 +339,70 @@ jobs:
           driver=$!
           trap 'kill "$driver"' EXIT
           node --test --test-concurrency=1 tests/browser/safari-probe.test.js
+  # The same checks in Safari on iOS: an iPhone on the newest iOS 26 Simulator
+  # runtime, with the newest released Xcode on the runner. safaridriver 27.0.1
+  # finds no session host on an iOS 27.0 simulator, so iOS 27 is not run yet.
+  # The simulator runs on the Mac's CPU and memory, so it is not a check of an
+  # iPhone's memory limits.
+  product-safari-ios:
+    name: 'Product (safari-ios)'
+    runs-on: 'macos-latest'
+    needs:
+      - 'product-build'
+    timeout-minutes: 90
+    steps:
+      - uses: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' # v7.0.1
+        with:
+          ref: '${{ github.event.pull_request.head.sha || github.sha }}'
+          persist-credentials: false
+      - uses: 'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1' # v7.1.0
+        with:
+          node-version: 'latest'
+          check-latest: true
+          package-manager-cache: false
+      - uses: 'oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6' # v2.2.0
+        with:
+          bun-version: 'latest'
+      - run: 'bun install --frozen-lockfile --ignore-scripts'
+      - run: 'bun add --dev --no-save --ignore-scripts @playwright/test@latest @biomejs/biome@latest typescript@latest'
+      - run: 'bun run --bun build'
+      - name: 'Download products built by this source and run'
+        uses: 'actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333' # v8.0.2
+        with:
+          pattern: 'product-build-*-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}'
+          path: 'dist'
+          merge-multiple: true
+      - name: 'Restore guest executable permissions'
+        run: 'chmod +x dist/guests/probe dist/guests/hello dist/guests/exit3'
+      - name: 'Select the newest released Xcode'
+        run: |-
+          xcode=$(printf '%s\n' /Applications/Xcode_*.app | grep -v -i -E 'beta|rc|release_candidate' | sort -V | tail -n 1)
+          sudo xcode-select --switch "$xcode"
+          xcodebuild -version
+      - name: 'Boot an iPhone on the newest iOS 26 Simulator runtime'
+        run: |-
+          runtimes=$(xcrun simctl list runtimes --json)
+          runtime=$(jq -r '[.runtimes[] | select(.platform == "iOS" and .isAvailable and (.version | startswith("26.")))] | sort_by(.version | split(".") | map(tonumber)) | last | .identifier // empty' <<< "$runtimes")
+          if [ -z "$runtime" ]; then
+            jq -r '.runtimes[] | select(.platform == "iOS") | "\(.name) (\(.buildversion))"' <<< "$runtimes"
+            echo 'no iOS 26 Simulator runtime on this runner' >&2
+            exit 1
+          fi
+          jq -r --arg runtime "$runtime" '.runtimes[] | select(.identifier == $runtime) | "\(.name) (\(.buildversion))"' <<< "$runtimes"
+          # One booted device only: safaridriver picks the booted simulator.
+          device=$(xcrun simctl list devices available --json | jq -r --arg runtime "$runtime" '[.devices[$runtime][] | select(.name | startswith("iPhone"))] | first | "\(.udid) \(.name)"')
+          echo "$device"
+          xcrun simctl bootstatus "${device%% *}" -b
+      - name: 'Allow safaridriver to drive Safari'
+        run: 'sudo safaridriver --enable'
+      - name: 'Run the probe page and the install and command checks in iOS Safari'
+        env:
+          FORMICARIUM_SAFARI_PLATFORM: 'ios'
+        run: |-
+          safaridriver --port 4444 &
+          driver=$!
+          trap 'kill "$driver"' EXIT
+          node --test --test-concurrency=1 tests/browser/safari-probe.test.js
   product-tests:
     if: "always() && needs.changes.outputs.product == 'true'"
     needs:
@@ -346,6 +410,7 @@ jobs:
       - 'product-build'
       - 'product-regression'
       - 'product-safari'
+      - 'product-safari-ios'
     runs-on: 'ubuntu-latest'
     timeout-minutes: 5
     steps:
@@ -354,7 +419,8 @@ jobs:
           BUILD_RESULT: '${{ needs.product-build.result }}'
           REGRESSION_RESULT: '${{ needs.product-regression.result }}'
           SAFARI_RESULT: '${{ needs.product-safari.result }}'
-        run: 'test "$BUILD_RESULT" = success && test "$REGRESSION_RESULT" = success && test "$SAFARI_RESULT" = success'
+          SAFARI_IOS_RESULT: '${{ needs.product-safari-ios.result }}'
+        run: 'test "$BUILD_RESULT" = success && test "$REGRESSION_RESULT" = success && test "$SAFARI_RESULT" = success && test "$SAFARI_IOS_RESULT" = success'
       - name: 'Download products built by this source and run'
         uses: 'actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333' # v8.0.2
         with:

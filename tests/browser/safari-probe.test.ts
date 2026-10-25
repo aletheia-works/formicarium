@@ -19,6 +19,8 @@ import { after, before, test } from 'node:test';
 import { expectation } from '../package/session-fixtures.js';
 
 const driver = process.env.FORMICARIUM_SAFARIDRIVER ?? 'http://127.0.0.1:4444';
+/** FORMICARIUM_SAFARI_PLATFORM=ios runs the same checks in iOS Safari. */
+const ios = process.env.FORMICARIUM_SAFARI_PLATFORM === 'ios';
 const port = Number(process.env.FORMICARIUM_PORT ?? 8787);
 const origin = `http://127.0.0.1:${port}`;
 /** The same per-run limit as the Playwright probe test. */
@@ -168,7 +170,13 @@ before(async () => {
   }
   const created = (await webdriver('POST', '/session', {
     capabilities: {
-      alwaysMatch: { browserName: 'safari', acceptInsecureCerts: true },
+      alwaysMatch: {
+        browserName: 'safari',
+        acceptInsecureCerts: true,
+        // Safari on iOS: the booted iOS Simulator, which shares the host's
+        // 127.0.0.1.
+        ...(ios ? { platformName: 'iOS', 'safari:useSimulator': true } : {}),
+      },
     },
   })) as { sessionId: string; capabilities: Record<string, unknown> };
   session = created.sessionId;

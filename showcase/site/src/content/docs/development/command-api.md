@@ -168,4 +168,4 @@ The unit tests are `tests/package/command-*.test.ts`. They run in ordinary CI
 (`test:node-unit`) and in the release candidate's package coverage. In real
 Safari on macOS, CI runs `install <tool>`, the installed tool, `ls`, `cat`, `cd`
 and `rm -rf` through a command session (`tests/browser/safari-probe.test.ts`).
-A WebKit result is not taken as a Safari pass.
+The same checks run in Safari on iOS in an iOS 26 Simulator; iOS 27 is not run, because safaridriver 27.0.1 finds no session host on it. A WebKit result is not taken as a Safari pass.

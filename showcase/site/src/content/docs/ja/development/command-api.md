@@ -134,4 +134,4 @@ command API は、install の `Progress` とゲストの実行の `OutputChunk` 
 単体テストは `tests/package/command-*.test.ts` にあり、通常の CI（`test:node-unit`）とリリース候補の
 パッケージのカバレッジで実行します。macOS の実機の Safari では、CI が command のセッションで `install <tool>`、
 install したツール、`ls`・`cat`・`cd`・`rm -rf` を実行します（`tests/browser/safari-probe.test.ts`）。
-WebKit の結果を Safari の合格とは扱いません。
+同じ確認を iOS 26 の Simulator の iOS 版 Safari でも行います（iOS 27 は safaridriver 27.0.1 が接続先を見つけられないため未実行）。WebKit の結果を Safari の合格とは扱いません。
