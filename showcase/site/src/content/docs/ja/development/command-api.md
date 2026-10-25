@@ -91,7 +91,8 @@ cross-origin isolation・Worker・資産・CSP の要件を満たしてくださ
 
 `cp` と `mv` は、できるところは POSIX に合わせています。
 - `dst` が既にあるディレクトリなら、その中へ元の名前で置きます。そうでなければ `dst` に置き、その親は既にある
-  ディレクトリでなければなりません（ない場合は `NOT_FOUND`）。
+  ディレクトリでなければなりません（ない場合は `NOT_FOUND`）。symlink はたどりません。ディレクトリを指す symlink を
+  `dst` にすると既にある symlink として扱い、`mv` は置き換え、`cp` は拒否します。
 - `cp` は通常のファイルを 1 つ複製します（ディレクトリと symlink は `NOT_FILE`）。`cp -r` はディレクトリの木も複製し、
   symlink は同じ target の symlink として複製します。複製は `cp -p` なしと同じく新しい inode と元の mode を持つので、複製した木の中の hard link は別々のファイルになります。
   既にあるファイルへの複製はそのファイルの mode と inode を保つので、その hard link にも新しい中身が見えます。

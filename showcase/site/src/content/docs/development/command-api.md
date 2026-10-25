@@ -110,7 +110,9 @@ before.
 `cp` and `mv` follow POSIX where they can:
 - When `dst` is an existing directory, the entry goes inside it under its own
   name; otherwise it goes to `dst`, whose parent must already be a directory
-  (`NOT_FOUND` when it does not exist).
+  (`NOT_FOUND` when it does not exist). Symlinks are not followed: a symlink
+  to a directory as `dst` is an existing symlink, which `mv` replaces and `cp`
+  refuses.
 - `cp` copies one regular file (a directory or symlink is `NOT_FILE`); `cp -r`
   also copies a directory tree, and copies symlinks as symlinks with the same
   target. Copies get new inodes and the source's mode, as without `cp -p`, so
