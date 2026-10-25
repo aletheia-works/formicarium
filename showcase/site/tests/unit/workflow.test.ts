@@ -56,6 +56,7 @@ type Value = string | boolean | null;
 interface Context {
   event: string;
   ref: string;
+  repository?: string;
   results: Record<string, string>;
   /** `needs.<job>.outputs.<name>` values, as `<job>.<name>`. */
   outputs?: Record<string, string>;
@@ -81,6 +82,7 @@ function evaluate(expression: string, context: Context): Value {
     if (token === 'cancelled()') return false;
     if (token === 'github.event_name') return context.event;
     if (token === 'github.ref') return context.ref;
+    if (token === 'github.repository') return context.repository ?? null;
     const result = /^needs\.([\w-]+)\.result$/.exec(token);
     if (result) return context.results[result[1]!] ?? null;
     const output = /^needs\.([\w-]+)\.outputs\.([\w-]+)$/.exec(token);
@@ -132,12 +134,19 @@ function ancestors(name: string, seen = new Set<string>()): Set<string> {
 }
 const STATUS_FUNCTION = /\b(?:always|cancelled|success|failure)\(\)/;
 
+const UPSTREAM = 'aletheia-works/formicarium';
+
 /**
  * Jobs that run for an event when every job that runs succeeds. As on
  * GitHub, a condition without a status function also needs `success()`:
  * every ancestor job, not only the direct needs, must have succeeded.
  */
-function runs(event: string, ref = 'refs/heads/main', site = 'true'): string[] {
+function runs(
+  event: string,
+  ref = 'refs/heads/main',
+  site = 'true',
+  repository = UPSTREAM,
+): string[] {
   const results: Record<string, string> = {};
   const outputs = { 'changes.site': site };
   const ran: string[] = [];
@@ -151,7 +160,7 @@ function runs(event: string, ref = 'refs/heads/main', site = 'true'): string[] {
     const value =
       condition === null
         ? true
-        : evaluate(condition, { event, ref, results, outputs });
+        : evaluate(condition, { event, ref, repository, results, outputs });
     const run =
       (condition === null || !STATUS_FUNCTION.test(condition)
         ? succeeded
@@ -238,6 +247,16 @@ test('each event runs its jobs, and nothing after build is skipped by mistake', 
   ]);
 });
 
+test('a fork runs no job: its main has no release tags or Pages to deploy', () => {
+  const fork = 'Marukome0743/formicarium';
+  assert.deepEqual(runs('push', 'refs/heads/main', 'true', fork), []);
+  assert.deepEqual(
+    runs('workflow_dispatch', 'refs/heads/main', 'true', fork),
+    [],
+  );
+  assert.deepEqual(runs('pull_request', 'refs/pull/7/merge', 'true', fork), []);
+});
+
 test('every job after the entry jobs has a status function, so the other path cannot skip it', () => {
   for (const name of ALL.filter(
     (job) =>
@@ -259,7 +278,10 @@ test('every job after the entry jobs has a status function, so the other path ca
 
 test('showcase-site-required needs every job but the summary and always reports', () => {
   assert.equal(field('required', 'name'), 'showcase-site-required');
-  assert.equal(field('required', 'if'), 'always()');
+  assert.equal(
+    field('required', 'if'),
+    `always() && github.repository == '${UPSTREAM}'`,
+  );
   assert.deepEqual(
     needsOf('required'),
     ALL.filter((name) => !['summary', 'required'].includes(name)),
@@ -424,7 +446,10 @@ test('PR runs and manual runs of another branch never call showcase.yml and neve
     assert.ok(!ran.includes('candidate') && !ran.includes('deploy'), event);
   }
   const summary = table.get('summary')!;
-  assert.equal(field('summary', 'if'), 'always()');
+  assert.equal(
+    field('summary', 'if'),
+    `always() && github.repository == '${UPSTREAM}'`,
+  );
   assert.deepEqual(needsOf('summary'), ALL.slice(0, -2));
   const dist = /SHOWCASE_DIST: \$\{\{ (.+) \}\}/.exec(summary)?.[1];
   assert.equal(dist, DIST);

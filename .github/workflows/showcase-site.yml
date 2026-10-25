@@ -28,8 +28,10 @@ env:
 # A job whose `if:` has no status function also needs every ancestor job to
 # succeed, and each path skips the other path's jobs, so every condition after
 # the entry jobs starts with !cancelled().
+# A fork runs no job: its main has no release tags to pack and no Pages site.
 jobs:
   changes:
+    if: github.repository == 'aletheia-works/formicarium'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -66,7 +68,7 @@ jobs:
             echo site=false >> "$GITHUB_OUTPUT"
           fi
   candidate:
-    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+    if: github.repository == 'aletheia-works/formicarium' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     permissions:
       contents: read
       actions: read
@@ -765,7 +767,7 @@ jobs:
         deploy,
         verify-deployment,
       ]
-    if: always()
+    if: always() && github.repository == 'aletheia-works/formicarium'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -805,7 +807,7 @@ jobs:
         deploy,
         verify-deployment,
       ]
-    if: always()
+    if: always() && github.repository == 'aletheia-works/formicarium'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
