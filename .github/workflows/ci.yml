@@ -430,6 +430,15 @@ jobs:
           driver=$!
           trap 'kill "$driver"' EXIT
           node --test --test-concurrency=1 tests/browser/safari-probe.test.js
+      # A later timeout then shows whether the remote-automation keys were set.
+      - name: 'Record the simulator and its web inspector and Safari settings after a failure'
+        if: 'failure()'
+        run: |-
+          xcrun simctl list devices booted
+          for domain in com.apple.webinspectord com.apple.mobilesafari; do
+            echo "--- $domain"
+            xcrun simctl spawn booted defaults read "$domain" || true
+          done
   product-tests:
     if: "always() && needs.changes.outputs.product == 'true'"
     needs:

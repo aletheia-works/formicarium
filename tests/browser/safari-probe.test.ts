@@ -1,8 +1,9 @@
 // The probe page and the install and command API checks in real Safari through
 // safaridriver (W3C WebDriver over HTTP, no extra dependency). Playwright's
 // WebKit is a separate WebKit build, so this is the check against the Safari
-// that ships with macOS. It runs one session at a time with no retries, like the
-// Playwright suites.
+// that ships with macOS, or with FORMICARIUM_SAFARI_PLATFORM=ios the Safari of
+// the booted iOS Simulator. It runs one session at a time with no retries, like
+// the Playwright suites.
 // Requires: bun run build, the probe guests (probe, hello, exit3) in dist/guests,
 // `safaridriver --port <port>` already running (FORMICARIUM_SAFARIDRIVER), and,
 // for the install tests only, openssl and tar for the HTTPS guest server.
@@ -186,6 +187,14 @@ before(async () => {
   console.log(
     `Safari ${created.capabilities.browserVersion} on ${created.capabilities.platformName}`,
   );
+  // An iOS run that safaridriver answered with another Safari is not an iOS pass.
+  if (ios) {
+    assert.equal(
+      String(created.capabilities.platformName).toLowerCase(),
+      'ios',
+    );
+    assert.equal(created.capabilities['safari:useSimulator'], true);
+  }
 });
 
 after(async () => {
