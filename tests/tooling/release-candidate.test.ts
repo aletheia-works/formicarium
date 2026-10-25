@@ -206,6 +206,11 @@ test('release candidate workflow builds the pinned core itself and exports no wr
     rename!.run!,
     /"\.artifacts\/candidate-download\/release-candidate-part-\$part-\$SOURCE_SHA-\$GITHUB_RUN_ID"/,
   );
+  // It moves every part of the matrix, and only those.
+  assert.deepEqual(
+    /for part in ([\w ]+); do/.exec(rename!.run!)?.[1]?.split(' '),
+    [...CANDIDATE_PARTS],
+  );
   assert.equal(check!.needs, 'prepare');
   assert.deepEqual(check!.strategy.matrix.part, [...CANDIDATE_PARTS]);
   // The parts together record exactly the mandatory checks.

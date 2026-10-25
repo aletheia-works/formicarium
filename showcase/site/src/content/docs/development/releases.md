@@ -47,9 +47,11 @@ After that, the tag's source runs the reusable `ci.yml` again with the same
 build, regression and coverage. The tagged commit differs from the PR head, so
 the PR's results are never reused. The package comes from this run's wasm
 build, source, version and attempt, and `ci-required` must pass before anything
-is written. Every required check must have passed in that one attempt: after a
-rerun of only the failed jobs, CI can pass while the candidate is not
-publishable, and only a full rerun gives a publishable candidate.
+is written. After a rerun of only the failed jobs, the candidate merges the
+parts that passed in earlier attempts with the rerun ones. GitHub lists the
+carried-over jobs under the new attempt, so publication accepts that
+candidate. Every part checked the same candidate bytes: they are made only by
+`prepare`, and a rerun of `prepare` reruns every part.
 
 ## Publishing
 
