@@ -198,6 +198,14 @@ test('release candidate workflow builds the pinned core itself and exports no wr
     assert.match(step.with!.name!, PER_RUN);
     assert.equal(step.with!.overwrite, true);
   }
+  // The merge reads each part from the per-run download directory.
+  const rename = verify!.steps.find(
+    (s) => s.name === 'Name each part by its job',
+  );
+  assert.match(
+    rename!.run!,
+    /"\.artifacts\/candidate-download\/release-candidate-part-\$part-\$SOURCE_SHA-\$GITHUB_RUN_ID"/,
+  );
   assert.equal(check!.needs, 'prepare');
   assert.deepEqual(check!.strategy.matrix.part, [...CANDIDATE_PARTS]);
   // The parts together record exactly the mandatory checks.

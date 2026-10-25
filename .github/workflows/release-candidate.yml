@@ -80,8 +80,9 @@ jobs:
         with:
           # The inputs and parts are named per run, not per attempt: a rerun of
           # only the failed jobs finds those of the attempts that made them, and
-          # an attempt that makes them again replaces them. Publication still
-          # requires every check to pass in one attempt.
+          # an attempt that makes them again replaces them. The candidate is
+          # then merged from parts of several attempts; publication refuses it
+          # and needs every check to pass in one attempt (a full rerun).
           name: release-candidate-inputs-${{ inputs.source-sha }}-${{ github.run_id }}
           overwrite: true
           path: |
