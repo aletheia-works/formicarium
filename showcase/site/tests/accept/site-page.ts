@@ -10,7 +10,7 @@ import { createSession, webdriver } from '../../../tests/webdriver.ts';
 import { SITE_ROOT } from '../../scripts/common.ts';
 
 /** Keys the tests press. */
-export type Key = 'Enter' | 'Tab' | 'Control+c' | 'q';
+export type Key = 'Enter' | 'Tab' | 'Alt+Tab' | 'Control+c' | 'q';
 
 /**
  * One browser tab as the site acceptance sees it. Playwright drives Chromium,
@@ -82,9 +82,10 @@ class PlaywrightPage implements SitePage {
 
 /** WebDriver key code points (https://w3c.github.io/webdriver/#keyboard-actions). */
 const WEBDRIVER_KEYS: Readonly<Record<string, string>> = Object.freeze({
-  Enter: '',
-  Tab: '',
-  Control: '',
+  Enter: '\uE007',
+  Tab: '\uE004',
+  Control: '\uE009',
+  Alt: '\uE00A',
 });
 const keyActions = (keys: string[]) => [
   ...keys.map((value) => ({ type: 'keyDown', value })),

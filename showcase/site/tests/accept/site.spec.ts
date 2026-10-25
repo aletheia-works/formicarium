@@ -169,8 +169,10 @@ for (const [locale, prefix] of LOCALES)
     for (const step of layout.steps) expect(step).toBeCloseTo(layout.height, 0);
     expect(layout.offset).not.toBeNull();
     expect(layout.offset!).toBeLessThan(2);
-    // Tab leaves the terminal instead of being typed into it.
-    await site.press('Tab');
+    // Tab leaves the terminal instead of being typed into it. Safari's Tab
+    // moves only between form fields by default, and the terminal is the
+    // only one; Option-Tab is Safari's key for every item.
+    await site.press(site.project === 'safari' ? 'Alt+Tab' : 'Tab');
     expect(
       await site.evaluate(
         () => !!document.activeElement?.closest('[data-terminal-host]'),
