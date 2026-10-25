@@ -90,7 +90,9 @@ has a complete example.
   in order. Host, core, timeout (600000 ms by default, `timeoutMs` to change)
   and cancellation (`AbortSignal`) failures reject with an `ExecutionError`
   carrying a stable `code` and the partial output. A failed or cancelled run
-  leaves the filesystem as it was.
+  leaves the filesystem as it was. For an interactive guest, `stdin` streams
+  its standard input and `terminal: { columns, rows }` makes its standard
+  streams a terminal; a run with `stdin` has no default timeout.
 - **Core assets.** Before the core starts, the pinned paludarium version and the
   SHA-256 of every core file are checked against
   `assets/paludarium/build-info.json` (`ASSET_LOAD` if missing or changed,

@@ -53,6 +53,7 @@ export interface CoreLauncher {
     env: Record<string, string>;
     cwd: string;
     filesystem: CoreFileSystem;
+    tty?: { columns: number; rows: number } | null;
   }): CoreGuest;
   dispose(): Promise<void>;
 }
@@ -66,6 +67,10 @@ export interface GuestOptions {
   snapshotRoots?: readonly string[];
   onStdout?: ByteSink;
   onStderr?: ByteSink;
+  /** Bytes for the guest's stdin; without it the guest reads end of file at once. */
+  stdin?: ReadableStream<Uint8Array>;
+  /** Makes the guest's standard streams a terminal of this size. */
+  terminal?: { columns: number; rows: number };
 }
 export interface GuestResult {
   exitCode: number;
@@ -94,12 +99,20 @@ export interface RunRequest extends Identity {
   home: string;
   entries: FsEntry[];
   snapshotRoots: string[];
+  /** True when the host sends `input` messages and then `input-end`. */
+  interactive?: boolean;
+  terminal?: { columns: number; rows: number };
 }
+/** Host to Worker, after the run request: guest stdin bytes, then its end. */
+export type InputMessage = Identity &
+  ({ type: 'input'; bytes: Uint8Array } | { type: 'input-end' });
 export interface Streams {
   stdout: Uint8Array[];
   stderr: Uint8Array[];
 }
 export interface WorkerHandle {
+  /** Delivers an input message to the run's Worker, in order. */
+  send?(message: InputMessage): void;
   detach?(): void;
   terminate(): void | Promise<void>;
 }

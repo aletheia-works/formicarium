@@ -23,6 +23,8 @@ const options: CommandOptions = {
     const bytes: Uint8Array = chunk.bytes;
     void bytes;
   },
+  stdin: new ReadableStream<Uint8Array>(),
+  terminal: { columns: 80, rows: 24 },
 };
 const pending: Promise<CommandResult> = shell.execute('ls /work', options);
 void shell.execute('');

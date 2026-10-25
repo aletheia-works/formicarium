@@ -89,14 +89,19 @@ export declare function createInstaller(
  * - `onProgress`: forwarded unchanged from the installer. `totalBytes: null`
  *   means unknown and is distinct from `0`.
  * - `onOutput`: forwarded unchanged from the guest run.
+ * - `stdin` and `terminal`: forwarded to guest runs only, as in
+ *   {@link RunOptions}. Builtins and `install` never read them.
  *
  * There is no timeout option: guest runs use the session run default
- * (600000 ms) and install keeps its own 120 s fetch / 180 s total deadlines.
+ * (600000 ms, none with `stdin`) and install keeps its own 120 s fetch / 180 s
+ * total deadlines.
  */
 export interface CommandOptions {
   signal?: AbortSignal;
   onProgress?: (progress: Progress) => void;
   onOutput?: (chunk: OutputChunk) => void;
+  stdin?: ReadableStream<Uint8Array>;
+  terminal?: TerminalSize;
 }
 /**
  * Result of one command. `stdout`/`stderr` are new caller-owned original
@@ -186,6 +191,25 @@ export interface OutputChunk {
   stream: 'stdout' | 'stderr';
   bytes: Uint8Array;
 }
+/** Size of the virtual terminal a guest sees, in character cells (1 to 65535). */
+export interface TerminalSize {
+  columns: number;
+  rows: number;
+}
+/**
+ * Options for one {@link Session.run}.
+ *
+ * - `timeoutMs`: 600000 by default. With `stdin` there is no default limit,
+ *   since an interactive guest waits for its user; pass `timeoutMs` or abort
+ *   `signal` to stop it.
+ * - `stdin`: bytes for the guest's standard input, read while the guest runs.
+ *   When the stream ends, or errors, the guest reads end of file. Without it
+ *   the guest reads end of file at once. A chunk that is not a `Uint8Array`
+ *   ends the run with `INVALID_INPUT`. The run cancels the stream when it
+ *   finishes.
+ * - `terminal`: makes the guest's standard streams a terminal of this size
+ *   (`isatty`, `TCGETS` and `TIOCGWINSZ`). The size is fixed for the run.
+ */
 export interface RunOptions {
   guest: Uint8Array;
   args?: readonly string[];
@@ -193,6 +217,8 @@ export interface RunOptions {
   timeoutMs?: number;
   signal?: AbortSignal;
   onOutput?: (chunk: OutputChunk) => void;
+  stdin?: ReadableStream<Uint8Array>;
+  terminal?: TerminalSize;
 }
 export interface RunResult {
   runId: string;

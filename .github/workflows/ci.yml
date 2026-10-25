@@ -253,7 +253,7 @@ jobs:
           path: 'dist'
           merge-multiple: true
       - name: 'Restore guest executable permissions'
-        run: 'chmod +x dist/guests/probe dist/guests/hello dist/guests/exit3 dist/guests/aube dist/guests/pitchfork'
+        run: 'chmod +x dist/guests/probe dist/guests/hello dist/guests/exit3 dist/guests/ttyecho dist/guests/aube dist/guests/pitchfork'
       - name: 'Record resolved tools for this suite'
         run: |-
           bun --version
@@ -326,7 +326,7 @@ jobs:
           path: 'dist'
           merge-multiple: true
       - name: 'Restore guest executable permissions'
-        run: 'chmod +x dist/guests/probe dist/guests/hello dist/guests/exit3'
+        run: 'chmod +x dist/guests/probe dist/guests/hello dist/guests/exit3 dist/guests/ttyecho'
       - name: 'Record the macOS and Safari versions'
         run: |-
           sw_vers
@@ -374,7 +374,7 @@ jobs:
           path: 'dist'
           merge-multiple: true
       - name: 'Restore guest executable permissions'
-        run: 'chmod +x dist/guests/probe dist/guests/hello dist/guests/exit3'
+        run: 'chmod +x dist/guests/probe dist/guests/hello dist/guests/exit3 dist/guests/ttyecho'
       # The image's default Xcode (/Applications/Xcode.app), not one picked with
       # xcode-select: with Xcode_26.6.app selected, safaridriver answered
       # "Could not find Simulator.app or a devices:// URL handler".
@@ -464,7 +464,7 @@ jobs:
           path: 'dist'
           merge-multiple: true
       - name: 'Restore guest executable permissions'
-        run: 'chmod +x dist/guests/probe dist/guests/hello dist/guests/exit3 dist/guests/aube dist/guests/pitchfork'
+        run: 'chmod +x dist/guests/probe dist/guests/hello dist/guests/exit3 dist/guests/ttyecho dist/guests/aube dist/guests/pitchfork'
       - name: 'Retain complete compiled products for source-bound candidate inputs'
         uses: 'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9' # v7.0.2
         with:

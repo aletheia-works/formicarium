@@ -53,18 +53,43 @@ function directoriesUnder(root: string, path: string) {
     .map((_, index) => `${root}/${parts.slice(0, index + 1).join('/')}`);
 }
 
+/** ゲストが最初に出力したら text を送って閉じる stdin（対話的な実行の確認用）。 */
+function typedInput(text: string) {
+  let controller!: ReadableStreamDefaultController<Uint8Array>;
+  const stream = new ReadableStream<Uint8Array>({
+    start(value) {
+      controller = value;
+    },
+  });
+  let sent = false;
+  const afterOutput = () => {
+    if (sent) return;
+    sent = true;
+    controller.enqueue(new TextEncoder().encode(text));
+    controller.close();
+  };
+  return { stream, afterOutput };
+}
+
 async function runGuest(
-  { name, args }: Extract<Request, { kind: 'guest' }>,
+  { name, args, stdin, terminal }: Extract<Request, { kind: 'guest' }>,
   sink: Sink,
 ): Promise<Outcome> {
   const guest = await fetchBytes(GUESTS[name]!);
   const session = await createSession({ assets });
+  const input = stdin === null ? null : typedInput(stdin);
+  const output = textOutput(sink);
   try {
     const result = await session.run({
       guest,
       args,
       env: GUEST_ENV[name] ?? {},
-      onOutput: textOutput(sink),
+      onOutput: (chunk) => {
+        output(chunk);
+        input?.afterOutput();
+      },
+      ...(input ? { stdin: input.stream } : {}),
+      ...(terminal ? { terminal } : {}),
     });
     return {
       exitCode: result.exitCode,

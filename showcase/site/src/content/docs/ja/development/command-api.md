@@ -42,7 +42,11 @@ cross-origin isolation・Worker・資産・CSP の要件を満たしてくださ
 満たさなければ `INVALID_INPUT` を投げ、Session は変えません。内部でインストーラを 1 つだけ作りますが、
 返すオブジェクトは `execute` だけを持ち、Session・インストーラ・内部の port を外に出しません。
 
-`shell.execute(input, { signal?, onProgress?, onOutput? }): Promise<CommandResult>` は 1 回の command です。
+`shell.execute(input, { signal?, onProgress?, onOutput?, stdin?, terminal? }): Promise<CommandResult>` は 1 回の command です。
+`stdin`（`ReadableStream<Uint8Array>`）と `terminal`（`{ columns, rows }`、1〜65535）は、Session の `run` と同じく
+ゲストの実行にだけ渡します（[ADR 0013](/formicarium/ja/development/decisions/0013-interactive-guest-runs/)）。
+ゲストは stream を stdin として読み、その大きさの端末を見ます。builtin と `install` は読みません。ロックされていない
+`ReadableStream` でない `stdin` や、形の違う `terminal` は、予約の前に `INVALID_INPUT` です。
 
 ## 構文
 
@@ -126,7 +130,7 @@ install が成功したときの stdout は `installed <tool>@<versionOrName> (s
 - `ls`・`cat`・`cd`・`rm`・`cp`・`mv` は Session の中で同期的に終わる操作です。始まった後に立った signal では止めず、終わった結果を返します。
 - `install` とゲストの実行は、signal をインストーラと Session の実行へ渡します。取消の後の結果は、それぞれの決まり
   （`ABORTED`、元の登録の保持）に従います。command API には再試行・待ち行列・代替はありません。
-- timeout の指定はありません。ゲストの実行は Session の既定値（600000 ms）に、install は取得 120 秒・全体 180 秒の上限に従います。
+- timeout の指定はありません。ゲストの実行は Session の既定値（600000 ms。`stdin` があるときは、対話的なゲストは使う人を待つので、なし）に、install は取得 120 秒・全体 180 秒の上限に従います。
 - ゲストが正常に終われば、終了コードが 0 以外でも `kind: 'guest'` で resolve します。ホスト・コア・timeout・取消の失敗は
   `ExecutionError` で reject します。
 - ゲストの実行は `runId`、install は `installation.operationId` で識別します。

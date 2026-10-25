@@ -25,7 +25,8 @@ formicarium は、改変していない static な x86-64 Linux のバイナリ�
 実行のたびに、**新しい Worker** を立てます（Node.js では `worker_threads`、ブラウザでは module Worker）。
 1. Worker はコアの資産を読み込み、評価する前に SHA-256 をビルド情報と照合します。
 2. Session のファイルとゲストのバイナリを新しいメモリ上のファイルシステムに置き、引数と環境変数を渡してゲストを実行し、
-   stdout と stderr を流します。
+   stdout と stderr を流します。対話的な実行では、Session が stdin も Worker に送り、ゲストからは端末に見えます
+   （[ADR 0013](/formicarium/ja/development/decisions/0013-interactive-guest-runs/)）。
 3. 終了したら、引き継ぐ場所（作業ディレクトリと home ディレクトリ）を写し取り、終了コードと一緒に返します。
 
 Session がその写しを取り込むのは、実行が成功したときだけです。timeout・中断・写し取りの失敗では Worker を止め、

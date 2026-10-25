@@ -29,6 +29,8 @@ export const GUESTS = deepFreeze({
   probe: { path: 'dist/guests/probe', env: {} },
   hello: { path: 'dist/guests/hello', env: {} },
   exit3: { path: 'dist/guests/exit3', env: {} },
+  // 対話的な実行（stdin と端末）の確認用
+  ttyecho: { path: 'dist/guests/ttyecho', env: {} },
   aube: { path: 'dist/guests/aube', env: { AUBE_NO_UPDATE_CHECK: '1' } },
   // 環境変数は不要（2026-10-06 に scripts/pitchfork-probe-paths.sh で native に確認済み）
   pitchfork: { path: 'dist/guests/pitchfork', env: {} },

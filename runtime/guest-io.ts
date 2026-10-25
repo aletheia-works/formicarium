@@ -215,6 +215,8 @@ export async function runGuest(options: GuestOptions): Promise<GuestResult> {
     snapshotRoots = [],
     onStdout,
     onStderr,
+    stdin,
+    terminal,
   } = options;
   if (typeof launcher?.run !== 'function')
     throw new TypeError('launcher must be a started core');
@@ -235,8 +237,15 @@ export async function runGuest(options: GuestOptions): Promise<GuestResult> {
       env: { HOME: '/root', PATH: '/usr/bin:/bin', ...env },
       cwd,
       filesystem,
+      ...(terminal ? { tty: terminal } : {}),
     });
-    await guest.stdin.close();
+    if (!stdin) await guest.stdin.close();
+    // An input stream that errors gives the guest end of file. Input stops at
+    // the guest's exit, and pipeTo then cancels the stream.
+    const input = new AbortController();
+    const piped = stdin
+      ?.pipeTo(guest.stdin, { signal: input.signal, preventAbort: true })
+      .catch(() => guest.stdin.close().catch(() => {}));
     let exit: Awaited<typeof guest.exited>;
     let stdout: Uint8Array;
     let stderr: Uint8Array;
@@ -250,6 +259,9 @@ export async function runGuest(options: GuestOptions): Promise<GuestResult> {
       throw new GuestRunError('core failed to run the guest', {
         cause: error,
       });
+    } finally {
+      input.abort();
+      await piped;
     }
     const exitCode = exit.kind === 'exited' ? exit.code : 128 + exit.signal;
     let snapshot: FsEntry[] | undefined;

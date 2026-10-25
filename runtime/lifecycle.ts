@@ -43,6 +43,8 @@ interface ActiveRun extends Identity {
   abort(): void;
   disposeResolve?: () => void;
   disposeReject?: (error: unknown) => void;
+  /** Stops reading `stdin` when the run settles. */
+  stopInput?: () => void;
 }
 interface LifecycleOptions {
   spawn: SpawnWorker;
@@ -64,6 +66,8 @@ import { failure, safeCause } from './errors.js';
 import { identity, inspectMessage, joinBytes } from './protocol.js';
 import { normalizePath, validateRun } from './validation.js';
 
+/** Largest stdin chunk sent to the Worker in one message. */
+export const MAX_INPUT_CHUNK = 65536;
 let nextSessionId = 0;
 const defaultClock = () => globalThis.performance?.now() ?? Date.now();
 
@@ -97,6 +101,8 @@ export function createLifecycle(
     timers.clearTimeout(run.deadlineTimer);
 
   function scheduleDeadline(run: ActiveRun) {
+    // A run with stdin and no timeoutMs has no deadline.
+    if (!Number.isFinite(run.deadline)) return;
     const remaining = run.deadline - clock();
     if (remaining <= 0) {
       terminate(run, { error: runFailure(run, 'TIMEOUT') });
@@ -110,6 +116,7 @@ export function createLifecycle(
 
   function finish(run: ActiveRun, cleanupError: boolean) {
     stopDeadline(run);
+    run.stopInput?.();
     run.input.signal?.removeEventListener('abort', run.abort);
     let error = run.decision.error;
     if (cleanupError) {
@@ -185,6 +192,42 @@ export function createLifecycle(
         finish(run, true);
       },
     );
+  }
+
+  /**
+   * Sends `stdin` to the Worker in order, at most MAX_INPUT_CHUNK bytes per
+   * message, then `input-end`. A stream that errors ends the input the same
+   * way; a chunk that is not a Uint8Array ends the run with INVALID_INPUT.
+   */
+  async function pumpInput(run: ActiveRun, stdin: ReadableStream<Uint8Array>) {
+    const reader = stdin.getReader();
+    run.stopInput = () => void reader.cancel().catch(() => {});
+    const live = () => run.phase === 'preparing' || run.phase === 'running';
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done || !live()) break;
+        if (!(value instanceof Uint8Array)) {
+          terminate(run, {
+            error: failure(
+              'INVALID_INPUT',
+              'stdin chunks must be Uint8Array',
+              received(run),
+            ),
+          });
+          return;
+        }
+        for (let start = 0; start < value.length; start += MAX_INPUT_CHUNK)
+          run.worker?.send?.({
+            ...identity(run),
+            type: 'input',
+            bytes: value.slice(start, start + MAX_INPUT_CHUNK),
+          });
+      }
+    } catch {
+      // An errored stream gives the guest end of file, like a closed one.
+    }
+    if (live()) run.worker?.send?.({ ...identity(run), type: 'input-end' });
   }
 
   function message(run: ActiveRun, value: unknown) {
@@ -277,6 +320,8 @@ export function createLifecycle(
     handle.abort = () =>
       terminate(handle, { error: runFailure(handle, 'ABORTED') });
     input.signal?.addEventListener('abort', handle.abort, { once: true });
+    // Until pumpInput takes it over, a settled run still cancels the stream.
+    handle.stopInput = () => void input.stdin?.cancel().catch(() => {});
     scheduleDeadline(handle);
     try {
       const request: RunRequest = {
@@ -290,6 +335,8 @@ export function createLifecycle(
         home: state.home,
         entries,
         snapshotRoots: [...state.roots],
+        ...(input.stdin ? { interactive: true } : {}),
+        ...(input.terminal ? { terminal: { ...input.terminal } } : {}),
       };
       handle.worker = spawn(request, {
         message: (value) => message(handle, value),
@@ -303,6 +350,7 @@ export function createLifecycle(
         },
       });
       handle.phase = handle.phase === 'preparing' ? 'running' : handle.phase;
+      if (input.stdin) void pumpInput(handle, input.stdin);
     } catch (error) {
       const code = spawnErrorCode(error);
       terminate(handle, { error: runFailure(handle, code) });

@@ -85,7 +85,43 @@ describe('ブラウザ用の手順の定義（web/sessions.js）', () => {
   it('ゲストと引数をそのまま返す', () => {
     assert.deepEqual(
       parseRunRequest(new URLSearchParams('guest=hello&arg=one')),
-      { kind: 'guest', name: 'hello', args: ['one'] },
+      {
+        kind: 'guest',
+        name: 'hello',
+        args: ['one'],
+        stdin: null,
+        terminal: null,
+      },
+    );
+  });
+  it('stdin と端末の大きさを受け取り、形の違う値を拒否する', () => {
+    assert.deepEqual(
+      parseRunRequest(
+        new URLSearchParams('guest=ttyecho&stdin=a%0D&terminal=100x30'),
+      ),
+      {
+        kind: 'guest',
+        name: 'ttyecho',
+        args: [],
+        stdin: 'a\r',
+        terminal: { columns: 100, rows: 30 },
+      },
+    );
+    for (const terminal of ['0x24', '80', '80x', 'x24', '80x24x1', '100000x24'])
+      assert.throws(
+        () =>
+          parseRunRequest(
+            new URLSearchParams(`guest=ttyecho&terminal=${terminal}`),
+          ),
+        /invalid terminal/,
+        terminal,
+      );
+    assert.throws(
+      () =>
+        parseRunRequest(
+          new URLSearchParams(`guest=ttyecho&stdin=${'a'.repeat(4097)}`),
+        ),
+      /stdin too long/,
     );
   });
   it('aube-1645 のファイル一覧は fixtures/ の中身と一致する', () => {
@@ -210,6 +246,8 @@ describe('入口の検証', () => {
         kind: 'guest',
         name: 'pitchfork',
         args: ['--version'],
+        stdin: null,
+        terminal: null,
       },
     );
   });

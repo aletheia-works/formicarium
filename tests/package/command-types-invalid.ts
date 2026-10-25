@@ -19,6 +19,10 @@ shell.execute(['ls']);
 shell.execute('ls', { signal: 'abort' });
 // @ts-expect-error there is no command timeout option.
 shell.execute('ls', { timeoutMs: 1 });
+// @ts-expect-error stdin is a byte stream, not a string.
+shell.execute('ls', { stdin: 'keys' });
+// @ts-expect-error a terminal needs both columns and rows.
+shell.execute('ls', { terminal: { columns: 80 } });
 // @ts-expect-error onOutput receives a chunk callback, not a string.
 shell.execute('ls', { onOutput: 'stdout' });
 const result: CommandResult = {

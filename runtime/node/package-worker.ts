@@ -2,8 +2,8 @@ import { readFile } from 'node:fs/promises';
 import { parentPort } from 'node:worker_threads';
 import type { ControlMessage, RunRequest } from '../contracts.js';
 import { createCoreResourceClient } from '../core.js';
-import { identity, workerErrorMessage } from '../protocol.js';
-import { executeWorkerRequest } from '../worker-execution.js';
+import { identity, PROTOCOL_VERSION, workerErrorMessage } from '../protocol.js';
+import { executeWorkerRequest, inputChannel } from '../worker-execution.js';
 
 export async function readNodeAsset(value: string | URL) {
   const url = new URL(value);
@@ -17,7 +17,7 @@ let request: RunRequest | undefined;
 if (parentPort) {
   parentPort.once('message', (value) => {
     request = value;
-    if (value?.type !== 'run' || value.protocolVersion !== 1) {
+    if (value?.type !== 'run' || value.protocolVersion !== PROTOCOL_VERSION) {
       parentPort?.postMessage({
         ...identity(value ?? {}),
         type: 'error',
@@ -47,10 +47,13 @@ if (parentPort) {
         return () => parentPort?.off('message', callback);
       },
     });
+    const input = value.interactive ? inputChannel(value) : undefined;
+    if (input) parentPort?.on('message', input.receive);
     void executeWorkerRequest(value, {
       post: (message) => parentPort?.postMessage(message),
       readBytes: readNodeAsset,
       resources,
+      ...(input ? { stdin: input.stream } : {}),
     });
   });
   const uncaught = () => {

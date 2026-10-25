@@ -17,7 +17,7 @@ test.beforeEach(async ({ page }) => {
 });
 const envelope = {
   type: 'run',
-  protocolVersion: 1,
+  protocolVersion: 2,
   sessionId: 's',
   runId: 'r',
   generation: 1,
@@ -68,7 +68,7 @@ test('actual browser Worker rejects unsupported protocol major', async ({
 }) => {
   const message = await workerMessage(page, {
     ...envelope,
-    protocolVersion: 2,
+    protocolVersion: 1,
   });
   expect(message.code).toBe('EXECUTION');
 });

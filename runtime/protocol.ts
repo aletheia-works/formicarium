@@ -10,7 +10,7 @@ import { isRecord } from './contracts.js';
 import { ERROR_CODES, failure } from './errors.js';
 import { equalBytes } from './validation.js';
 
-export const PROTOCOL_VERSION = 1;
+export const PROTOCOL_VERSION = 2;
 export const identity = (run: Identity) => ({
   protocolVersion: PROTOCOL_VERSION,
   sessionId: run.sessionId,

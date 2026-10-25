@@ -7,6 +7,7 @@ import type {
   Progress,
   RunOptions,
   Session,
+  TerminalSize,
 } from '../types/index.js';
 import {
   formatListing,
@@ -17,6 +18,7 @@ import { failure, invalid } from './errors.js';
 import { createInstaller, type Installer } from './install.js';
 import type { GuestCatalog } from './install-catalog.js';
 import { type SessionPort, sessionPort } from './session-port.js';
+import { validateTerminal } from './validation.js';
 
 /** Exact argv[0] names that never reach a registered guest of the same name. */
 export const RESERVED_COMMANDS = Object.freeze([
@@ -35,6 +37,8 @@ interface CheckedOptions {
   signal?: AbortSignal;
   onProgress?: (progress: Progress) => void;
   onOutput?: (chunk: OutputChunk) => void;
+  stdin?: ReadableStream<Uint8Array>;
+  terminal?: TerminalSize;
 }
 type Route =
   | { kind: 'ls'; path?: string }
@@ -55,7 +59,7 @@ function checkOptions(value: unknown): CheckedOptions {
     'command options invalid',
   );
   const raw = value as CommandOptions;
-  const { signal, onProgress, onOutput } = raw;
+  const { signal, onProgress, onOutput, stdin, terminal } = raw;
   invalid(
     signal === undefined || signal instanceof AbortSignal,
     'command signal invalid',
@@ -68,7 +72,17 @@ function checkOptions(value: unknown): CheckedOptions {
     onOutput === undefined || typeof onOutput === 'function',
     'command output callback invalid',
   );
-  return { signal, onProgress, onOutput };
+  invalid(
+    stdin === undefined || (stdin instanceof ReadableStream && !stdin.locked),
+    'command stdin must be an unlocked ReadableStream',
+  );
+  return {
+    signal,
+    onProgress,
+    onOutput,
+    ...(stdin ? { stdin } : {}),
+    ...(terminal === undefined ? {} : { terminal: validateTerminal(terminal) }),
+  };
 }
 
 /** CommandDispatcher (BR4.8, BR4.9, BR4.12): shape checks precede reservation. */
@@ -181,7 +195,10 @@ async function runInstall(
   return { ...result('install', 0, encoder.encode(line)), installation };
 }
 
-/** GuestRunAdapter: one run reservation; Session.run's default timeout applies. */
+/**
+ * GuestRunAdapter: one run reservation; Session.run's default timeout applies.
+ * Only guest runs receive stdin and terminal.
+ */
 async function runGuest(
   port: SessionPort,
   target: Extract<Route, { kind: 'guest' }>,
@@ -193,6 +210,8 @@ async function runGuest(
     const runOptions: Omit<RunOptions, 'guest' | 'args'> = {
       ...(options.signal ? { signal: options.signal } : {}),
       ...(options.onOutput ? { onOutput: options.onOutput } : {}),
+      ...(options.stdin ? { stdin: options.stdin } : {}),
+      ...(options.terminal ? { terminal: options.terminal } : {}),
     };
     const run = await port.runInstalled(
       reservation,

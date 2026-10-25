@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createCommandSession } from '../../runtime/command.js';
-import type { FsEntry, OutputChunk, Progress } from '../../types/index.js';
+import type {
+  CommandOptions,
+  FsEntry,
+  OutputChunk,
+  Progress,
+} from '../../types/index.js';
 import {
   catalogFor,
   dir,
@@ -664,6 +669,54 @@ test('onOutput receives the guest chunks and no timeoutMs is passed (600000 ms d
   );
   // With a fixed clock the first deadline timer equals the full default.
   assert.equal(value.delays[0], 600_000);
+});
+test('stdin and terminal reach guest runs only, and lift the default timeout', async (t) => {
+  const value = harness();
+  t.after(() => value.session.dispose());
+  await value.register();
+  const shell = command(value);
+  const stdin = new ReadableStream<Uint8Array>();
+  await shell.execute('fixture', {
+    stdin,
+    terminal: { columns: 100, rows: 30 },
+  });
+  const request = value.requests.at(-1);
+  assert.equal(request?.interactive, true);
+  assert.deepEqual(request?.terminal, { columns: 100, rows: 30 });
+  assert.equal(value.delays.includes(600_000), false);
+  // Builtins and install never read the stream.
+  const unread = new ReadableStream<Uint8Array>();
+  await shell.execute('ls', {
+    stdin: unread,
+    terminal: { columns: 1, rows: 1 },
+  });
+  assert.equal(unread.locked, false);
+  assert.equal(value.requests.length, 1);
+});
+test('a malformed stdin or terminal is INVALID_INPUT before the reservation', async (t) => {
+  const value = harness();
+  t.after(() => value.session.dispose());
+  await value.register();
+  const shell = command(value);
+  value.plans.push({ pending: true });
+  const running = shell.execute('fixture');
+  await value.started();
+  const locked = new ReadableStream<Uint8Array>();
+  locked.getReader();
+  for (const options of [
+    { stdin: 'keys' },
+    { stdin: locked },
+    { terminal: { columns: 0, rows: 24 } },
+    { terminal: { columns: 80 } },
+    { terminal: null },
+  ])
+    await assert.rejects(
+      shell.execute('fixture', options as unknown as CommandOptions),
+      code('INVALID_INPUT'),
+      JSON.stringify(options),
+    );
+  await value.finishPending();
+  await running;
 });
 test('aborting a running guest rejects ABORTED, terminates the Worker and releases', async (t) => {
   const value = harness();

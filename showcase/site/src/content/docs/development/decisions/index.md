@@ -18,6 +18,8 @@ give the reason in the new record.
 | [0008](/formicarium/development/decisions/0008-fresh-instance-per-step/)       | A fresh core instance for each step                    | Accepted |
 | [0010](/formicarium/development/decisions/0010-wasm-memory-1gb/)               | Cap the wasm memory at 1 GB                            | Accepted |
 | [0011](/formicarium/development/decisions/0011-host-baseline-in-measurements/) | Record a host speed baseline with each measurement     | Accepted |
+| [0013](/formicarium/development/decisions/0013-interactive-guest-runs/)        | Interactive guest runs with stdin and a terminal       | Accepted |
 
 The decisions specific to the former blink core (0001, 0004, 0005, 0006, 0009
-and 0012) were removed with it; they remain in the git history.
+and 0012) were removed with it; they remain in the git history. Their numbers
+are not reused.

@@ -21,7 +21,7 @@ const output = () => ({
 });
 test('protocol binds version/session/run/generation and ignores previous runs', () => {
   assert.deepEqual(identity(run), {
-    protocolVersion: 1,
+    protocolVersion: 2,
     sessionId: 's',
     runId: 'r',
     generation: 1,
@@ -58,7 +58,7 @@ test('current invalid major, unknown type and malformed message are rejected', (
   for (const message of [
     null,
     { ...identity(run), type: 'other' },
-    { ...output(), protocolVersion: 2 },
+    { ...output(), protocolVersion: 1 },
   ])
     assert.throws(() => inspectMessage(message, run, streams()), {
       code: 'EXECUTION',

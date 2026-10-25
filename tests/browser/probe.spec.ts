@@ -63,6 +63,20 @@ test('終了コード 3 のゲストの終了コードが伝わる', async ({ pa
   );
 });
 
+test('対話的な実行で、ゲストに端末の大きさと stdin が届く', async ({
+  page,
+}) => {
+  await page.goto(
+    '/web/index.html?guest=ttyecho&terminal=100x30&stdin=a%1B%5BA%0D',
+  );
+  const result = await waitForResult(page);
+  expect(result.error).toBeUndefined();
+  expect(result.exitCode).toBe(0);
+  expect((await captureDiagnostics(page)).streams.stdout).toBe(
+    'tty in=1 out=1\nsize 100x30\ninput 61 1b 5b 41 0d\n',
+  );
+});
+
 test('診断: ゲスト待機期限切れでも途中結果を保存できる', async ({
   page,
 }, testInfo) => {

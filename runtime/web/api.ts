@@ -38,6 +38,8 @@ function spawnBrowserWorker(
   let worker: Worker | undefined;
   const preflight = new AbortController();
   let terminated = false;
+  // Input sent before the Worker exists follows the run request in order.
+  const queued: object[] = [];
   const callbacks = {
     message: (event: MessageEvent) => handlers.message(event.data),
     error: (event: ErrorEvent) => {
@@ -67,6 +69,7 @@ function spawnBrowserWorker(
       worker.addEventListener('error', callbacks.error);
       worker.addEventListener('messageerror', callbacks.messageerror);
       worker?.postMessage(request);
+      for (const message of queued.splice(0)) worker.postMessage(message);
     } catch {
       if (!terminated)
         handlers.error(
@@ -78,6 +81,11 @@ function spawnBrowserWorker(
     }
   })();
   return {
+    send(message) {
+      if (terminated) return;
+      if (worker) worker.postMessage(message);
+      else queued.push(message);
+    },
     detach() {
       worker?.removeEventListener('message', callbacks.message);
       worker?.removeEventListener('error', callbacks.error);

@@ -245,11 +245,20 @@ export function validateRun(options: RunOptions, home: string) {
     'env HOME must match session home',
   );
   copy.HOME = home;
-  const timeoutMs = options.timeoutMs ?? 600_000;
+  const stdin = options.stdin;
   invalid(
-    Number.isSafeInteger(timeoutMs) && timeoutMs > 0,
+    stdin === undefined || (stdin instanceof ReadableStream && !stdin.locked),
+    'stdin must be an unlocked ReadableStream',
+  );
+  const terminal = validateTerminal(options.terminal);
+  invalid(
+    options.timeoutMs === undefined ||
+      (Number.isSafeInteger(options.timeoutMs) && options.timeoutMs > 0),
     'timeoutMs must be a positive finite integer',
   );
+  // An interactive guest waits for its user, so only stdin lifts the default.
+  const timeoutMs =
+    options.timeoutMs ?? (stdin ? Number.POSITIVE_INFINITY : 600_000);
   invalid(
     options.onOutput === undefined || typeof options.onOutput === 'function',
     'onOutput must be a function',
@@ -270,7 +279,26 @@ export function validateRun(options: RunOptions, home: string) {
     timeoutMs,
     onOutput: options.onOutput,
     signal,
+    stdin,
+    terminal,
   };
+}
+
+/** The core accepts 0 to 65535; a zero-sized terminal is refused as unusable. */
+export function validateTerminal(value: unknown) {
+  if (value === undefined) return undefined;
+  invalid(isRecord(value), 'terminal must be an object');
+  const { columns, rows } = value;
+  invalid(
+    [columns, rows].every(
+      (size) =>
+        Number.isInteger(size) &&
+        (size as number) >= 1 &&
+        (size as number) <= 65535,
+    ),
+    'terminal columns and rows must be integers from 1 to 65535',
+  );
+  return { columns: columns as number, rows: rows as number };
 }
 
 export function validateAssets(assets: unknown): Record<keyof Assets, string> {

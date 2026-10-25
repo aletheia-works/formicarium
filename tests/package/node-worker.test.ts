@@ -52,7 +52,7 @@ async function workerMessage(t: TestContext, request: object) {
 test('actual Node Worker rejects unsupported protocol major', async (t) => {
   const result = await workerMessage(t, {
     type: 'run',
-    protocolVersion: 2,
+    protocolVersion: 1,
     sessionId: 's',
     runId: 'r',
     generation: 1,
@@ -63,7 +63,7 @@ test('actual Node Worker rejects unsupported protocol major', async (t) => {
 test('actual Node Worker rejects unknown request type', async (t) => {
   const result = await workerMessage(t, {
     type: 'other',
-    protocolVersion: 1,
+    protocolVersion: 2,
     sessionId: 's',
     runId: 'r',
     generation: 1,
@@ -73,7 +73,7 @@ test('actual Node Worker rejects unknown request type', async (t) => {
 test('actual Node Worker classifies asset failure and suppresses arbitrary diagnostics', async (t) => {
   const result = await workerMessage(t, {
     type: 'run',
-    protocolVersion: 1,
+    protocolVersion: 2,
     sessionId: 's',
     runId: 'r',
     generation: 1,

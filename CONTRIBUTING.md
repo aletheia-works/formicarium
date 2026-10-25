@@ -58,7 +58,7 @@ The regression tests run static x86-64 musl guests from `dist/guests/`, built
 in containers:
 
 ```sh
-mise run build-guests probe       # probe, hello and exit3 (about a minute)
+mise run build-guests probe       # probe, hello, exit3 and ttyecho (about a minute)
 mise run build-guests aube        # aube (over an hour; rebuild only when its inputs change)
 mise run build-guests pitchfork   # pitchfork, with its web UI built by dist/guests/aube (about 35 minutes cold)
 mise run native-baseline aube-1645 --check-reproducible

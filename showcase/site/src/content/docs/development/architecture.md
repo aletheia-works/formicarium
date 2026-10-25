@@ -30,7 +30,9 @@ in browsers):
    the build information before evaluating them.
 2. It places the Session's files and the guest binary in a new in-memory
    filesystem, runs the guest with the given arguments and environment, and
-   streams stdout and stderr back.
+   streams stdout and stderr back. For an interactive run, the Session also
+   sends stdin to the Worker and the guest sees a terminal
+   ([ADR 0013](/formicarium/development/decisions/0013-interactive-guest-runs/)).
 3. On exit it takes a snapshot of the persisted roots (the working directory and
    the home directory) and returns it with the exit code.
 

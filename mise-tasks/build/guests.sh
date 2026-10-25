@@ -3,7 +3,7 @@
 #MISE description="build guests"
 # usage: mise run build-guests [probe|aube|pitchfork|all]
 # static-musl x86-64 のゲストをコンテナ（rust:alpine）でビルドし、dist/guests/ に置く。
-#   probe     : guest/probe の probe・hello・exit3
+#   probe     : guest/probe の probe・hello・exit3・ttyecho
 #   aube      : aubepkg/aube の AUBE_REF（既定 v2.6.1）
 #   pitchfork : jdx/pitchfork（公式リポジトリ）の PITCHFORK_REF（既定 v2.30.1）。ソースは変えない
 # 取得したコミットは dist/guests/<name>.commit に記録する。
@@ -21,7 +21,7 @@ what=${1:-all}
 case $what in probe|aube|pitchfork|all) ;; *) echo "usage: $0 [probe|aube|pitchfork|all]" >&2; exit 2;; esac
 
 # ビルドで作られるゲストの一覧（生成物の確認に使う）
-guests="probe hello exit3 aube pitchfork"
+guests="probe hello exit3 ttyecho aube pitchfork"
 
 image=${FORMICARIUM_RUST_IMAGE:-rust:alpine}
 aube_repo=${AUBE_REPO:-https://github.com/aubepkg/aube.git}
@@ -44,12 +44,12 @@ target=x86_64-unknown-linux-musl
 mkdir -p "$root/dist/guests"
 
 build_probe() {
-  echo "== probe・hello・exit3 をビルド（${image}）"
+  echo "== probe・hello・exit3・ttyecho をビルド（${image}）"
   container_run "$image" dist/guests "
     apk add --no-cache musl-dev >/dev/null
     cargo build --release --locked --target $target \
       --manifest-path guest/probe/Cargo.toml --target-dir /cache/guests
-    for bin in probe hello exit3; do
+    for bin in probe hello exit3 ttyecho; do
       cp /cache/guests/$target/release/\$bin /out/\$bin
     done
   " guest/probe/Cargo.toml guest/probe/Cargo.lock guest/probe/src

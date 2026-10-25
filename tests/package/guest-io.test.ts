@@ -220,3 +220,112 @@ test('a session carries persisted roots between steps and runs host steps withou
     /removeTree must be inside/,
   );
 });
+
+/** A core whose guest records its stdin and exits when the test says so. */
+function stdinLauncher() {
+  const seen = {
+    tty: undefined as unknown,
+    written: [] as number[],
+    closed: false,
+    exit: () => {},
+  };
+  const base = fakeLauncher();
+  const launcher = {
+    ...base,
+    run(options: Parameters<typeof base.run>[0]) {
+      seen.tty = options.tty;
+      const exited = new Promise<{ kind: 'exited'; code: number }>(
+        (resolve) => {
+          seen.exit = () => resolve({ kind: 'exited', code: 0 });
+        },
+      );
+      const empty = () =>
+        new ReadableStream<Uint8Array>({ start: (c) => c.close() });
+      return {
+        stdin: new WritableStream<Uint8Array>({
+          write(chunk) {
+            seen.written.push(...chunk);
+          },
+          close() {
+            seen.closed = true;
+          },
+        }),
+        stdout: empty(),
+        stderr: empty(),
+        exited,
+        kill() {},
+      };
+    },
+  };
+  return { launcher, seen };
+}
+const settle = () => new Promise<void>((resolve) => setImmediate(resolve));
+
+test('runGuest pipes stdin and the terminal size to the core guest', async () => {
+  const { launcher, seen } = stdinLauncher();
+  let controller!: ReadableStreamDefaultController<Uint8Array>;
+  const stdin = new ReadableStream<Uint8Array>({
+    start(value) {
+      controller = value;
+    },
+  });
+  const running = runGuest({
+    launcher,
+    guestPath: '/guest/program',
+    stdin,
+    terminal: { columns: 80, rows: 24 },
+  });
+  await settle();
+  assert.deepEqual(seen.tty, { columns: 80, rows: 24 });
+  controller.enqueue(Uint8Array.of(0x61, 0x0d));
+  controller.close();
+  await settle();
+  assert.deepEqual(seen.written, [0x61, 0x0d]);
+  assert.equal(seen.closed, true);
+  seen.exit();
+  assert.equal((await running).exitCode, 0);
+});
+test('runGuest stops reading stdin when the guest exits, and an errored stdin is end of file', async () => {
+  const { launcher, seen } = stdinLauncher();
+  let cancelled = false;
+  const open = new ReadableStream<Uint8Array>({
+    cancel() {
+      cancelled = true;
+    },
+  });
+  const running = runGuest({
+    launcher,
+    guestPath: '/guest/program',
+    stdin: open,
+  });
+  await settle();
+  assert.equal(seen.tty, undefined);
+  seen.exit();
+  await running;
+  assert.equal(cancelled, true);
+  const failing = stdinLauncher();
+  const broken = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.error(new Error('gone'));
+    },
+  });
+  const second = runGuest({
+    launcher: failing.launcher,
+    guestPath: '/guest/program',
+    stdin: broken,
+  });
+  await settle();
+  assert.equal(failing.seen.closed, true);
+  failing.seen.exit();
+  await second;
+  // Without stdin the guest reads end of file at once.
+  const plain = stdinLauncher();
+  const third = runGuest({
+    launcher: plain.launcher,
+    guestPath: '/guest/program',
+  });
+  await settle();
+  assert.equal(plain.seen.closed, true);
+  plain.seen.exit();
+  await third;
+});

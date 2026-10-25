@@ -26,7 +26,7 @@ import {
 
 const request = (): RunRequest => ({
   type: 'run',
-  protocolVersion: 1,
+  protocolVersion: 2,
   sessionId: 's',
   runId: 'r',
   generation: 1,

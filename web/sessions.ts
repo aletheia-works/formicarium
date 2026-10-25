@@ -64,5 +64,16 @@ export function parseRunRequest(searchParams: URLSearchParams) {
   }
   const args = searchParams.getAll('arg');
   if (args.some((a) => a.length > 4096)) throw new Error('argument too long');
-  return { kind: 'guest' as const, name: guest, args };
+  // ?stdin=<text> はゲストが最初に出力した後に stdin へ送り、そこで閉じる。
+  const stdin = searchParams.get('stdin');
+  if (stdin !== null && stdin.length > 4096) throw new Error('stdin too long');
+  // ?terminal=<columns>x<rows> はゲストに端末として見せる大きさ。
+  const size = searchParams.get('terminal');
+  const match =
+    size === null ? null : /^([1-9]\d{0,4})x([1-9]\d{0,4})$/.exec(size);
+  if (size !== null && !match) throw new Error(`invalid terminal: ${size}`);
+  const terminal = match
+    ? { columns: Number(match[1]), rows: Number(match[2]) }
+    : null;
+  return { kind: 'guest' as const, name: guest, args, stdin, terminal };
 }

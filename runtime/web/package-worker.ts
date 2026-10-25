@@ -1,7 +1,7 @@
 import type { RunRequest } from '../contracts.js';
 import { loadPackageCore } from '../core.js';
-import { identity, workerErrorMessage } from '../protocol.js';
-import { executeWorkerRequest } from '../worker-execution.js';
+import { identity, PROTOCOL_VERSION, workerErrorMessage } from '../protocol.js';
+import { executeWorkerRequest, inputChannel } from '../worker-execution.js';
 
 export async function readBrowserAsset(url: string | URL) {
   const response = await fetch(url);
@@ -13,6 +13,7 @@ export async function readBrowserAsset(url: string | URL) {
 const CORE_STOP_WAIT_MS = 50;
 
 let request: RunRequest | undefined;
+let input: ReturnType<typeof inputChannel> | undefined;
 let core: { cleanup(): Promise<void> } | undefined;
 // The core's Workers, started from this Worker. A browser ends the Workers of
 // a terminated Worker only later, so the host asks for a stop first.
@@ -50,9 +51,12 @@ if (typeof self !== 'undefined') {
       void stop();
       return;
     }
-    if (request) return;
+    if (request) {
+      input?.receive(data);
+      return;
+    }
     request = data;
-    if (data?.type !== 'run' || data.protocolVersion !== 1) {
+    if (data?.type !== 'run' || data.protocolVersion !== PROTOCOL_VERSION) {
       self.postMessage({
         ...identity(data ?? {}),
         type: 'error',
@@ -63,7 +67,9 @@ if (typeof self !== 'undefined') {
       });
       return;
     }
+    input = data.interactive ? inputChannel(data) : undefined;
     void executeWorkerRequest(data, {
+      ...(input ? { stdin: input.stream } : {}),
       post: (message) => self.postMessage(message),
       readBytes: readBrowserAsset,
       loadCore: async (options) => {

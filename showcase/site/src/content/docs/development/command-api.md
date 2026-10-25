@@ -47,8 +47,14 @@ rules. Otherwise it throws `INVALID_INPUT` and leaves the Session unchanged. It
 creates one installer internally; the returned object has only `execute` and
 never hands out the Session, the installer or the internal port.
 
-`shell.execute(input, { signal?, onProgress?, onOutput? }): Promise<CommandResult>`
-runs one command.
+`shell.execute(input, { signal?, onProgress?, onOutput?, stdin?, terminal? }): Promise<CommandResult>`
+runs one command. `stdin` (a `ReadableStream<Uint8Array>`) and `terminal`
+(`{ columns, rows }`, 1 to 65535) go to guest runs only, as in the Session's
+`run` ([ADR 0013](/formicarium/development/decisions/0013-interactive-guest-runs/)):
+the guest reads the stream as its stdin and sees a terminal of that size.
+Builtins and `install` never read them. A stream that is not an unlocked
+`ReadableStream`, or a malformed `terminal`, is `INVALID_INPUT` before the
+reservation.
 
 ## Syntax
 
@@ -161,7 +167,8 @@ an install fails).
 - `install` and guest runs pass the signal to the installer and to the
   Session's run; a cancelled result follows their contracts (`ABORTED`, the old
   registration kept). The command API has no retries, queue or fallback.
-- There is no timeout option. Guest runs use the Session's default (600000 ms);
+- There is no timeout option. Guest runs use the Session's default (600000 ms,
+  or none with `stdin`, since an interactive guest waits for its user);
   installs keep their 120 s fetch and 180 s total limits.
 - A guest that exits normally resolves as `kind: 'guest'`, even with a nonzero
   exit code. Host, core, timeout and cancellation failures reject with

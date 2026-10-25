@@ -86,6 +86,9 @@ function spawnNodeWorker(
     worker.on(event, callback);
   worker.postMessage(request);
   return {
+    send(message) {
+      if (!terminated) worker.postMessage(message);
+    },
     detach() {
       for (const [event, callback] of Object.entries(callbacks))
         worker.off(event, callback);

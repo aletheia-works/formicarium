@@ -16,5 +16,7 @@ sidebar: { label: 一覧, order: 0 }
 | [0008](/formicarium/ja/development/decisions/0008-fresh-instance-per-step/)       | 手順ごとに新しいコアのインスタンスを作る            | 採用 |
 | [0010](/formicarium/ja/development/decisions/0010-wasm-memory-1gb/)               | wasm メモリの上限を 1 GB にする                     | 採用 |
 | [0011](/formicarium/ja/development/decisions/0011-host-baseline-in-measurements/) | 計測にホストの速さの基準値を添える                  | 採用 |
+| [0013](/formicarium/ja/development/decisions/0013-interactive-guest-runs/)        | stdin と端末を使う対話的なゲストの実行              | 採用 |
 
 以前の blink のコアに固有の決定（0001、0004、0005、0006、0009、0012）は、コアと一緒に削除しました。git の履歴に残っています。
+その番号は使い回しません。
