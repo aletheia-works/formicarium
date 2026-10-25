@@ -34,6 +34,8 @@ export function inputChannel(request: RunRequest) {
     )
       return false;
     if (ended) return true;
+    // The Session sends only Uint8Array bytes; anything else from a broken
+    // host ends the input rather than failing the Worker mid-run.
     if (
       message.type === 'input-end' ||
       !(message.bytes instanceof Uint8Array)

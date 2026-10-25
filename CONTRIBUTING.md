@@ -77,7 +77,7 @@ natively, which paths each pitchfork command writes.
 
 ```sh
 # Node.js regressions (the same list as CI's Node suite)
-node --test --test-concurrency=1 tests/node/build.test.js tests/node/runner.test.js tests/node/probe.test.js tests/node/session.test.js tests/node/aube-1645.test.js tests/node/pitchfork-basic.test.js
+node --test --test-concurrency=1 tests/node/build.test.js tests/node/runner.test.js tests/node/probe.test.js tests/node/session.test.js tests/node/interactive.test.js tests/node/aube-1645.test.js tests/node/pitchfork-basic.test.js
 # Browser regressions: probe, aube #1645 and pitchfork-basic in Chromium, Firefox and WebKit
 bun run test:browser
 bun run test:browser -- --repeat-each=3   # repeatability

@@ -319,6 +319,7 @@ async function nodeChecks() {
         'command-dispatch',
         'command-parse',
         'command-public',
+        'session-input',
       ].map((name) => resolve(coverageOut, `tests/package/${name}.test.js`)),
     ]),
   );

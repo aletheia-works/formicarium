@@ -103,46 +103,6 @@ test('real Node nonzero guest resolves and immediate second run is not BUSY', as
     );
   }
 });
-test('real Node interactive run gives the guest a terminal and streamed stdin', async (t) => {
-  const session = await createSession({ assets: await developmentAssets(t) });
-  t.after(() => session.dispose());
-  const guest = new Uint8Array(
-    await readFile(new URL('../../dist/guests/ttyecho', import.meta.url)),
-  );
-  let controller!: ReadableStreamDefaultController<Uint8Array>;
-  const stdin = new ReadableStream<Uint8Array>({
-    start(value) {
-      controller = value;
-    },
-  });
-  let started!: () => void;
-  const ready = new Promise<void>((resolve) => {
-    started = resolve;
-  });
-  const running = session.run({
-    guest,
-    stdin,
-    terminal: { columns: 100, rows: 30 },
-    // The guest reports its terminal before it reads, so input follows output.
-    onOutput: () => started(),
-  });
-  await ready;
-  controller.enqueue(Uint8Array.of(0x61));
-  controller.enqueue(Uint8Array.of(0x1b, 0x5b, 0x41, 0x0d));
-  controller.close();
-  const result = await running;
-  assert.equal(result.exitCode, 0);
-  assert.equal(
-    new TextDecoder().decode(result.stdout),
-    'tty in=1 out=1\nsize 100x30\ninput 61 1b 5b 41 0d\n',
-  );
-  // Without stdin and terminal the guest sees no terminal and end of file.
-  const plain = await session.run({ guest });
-  assert.equal(
-    new TextDecoder().decode(plain.stdout),
-    'tty in=0 out=0\nsize none\ninput \n',
-  );
-});
 test('Node abort/reset/dispose produce defined public errors without implicit queue', async () => {
   const session = await createSession();
   const controller = new AbortController();

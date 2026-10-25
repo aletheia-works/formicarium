@@ -107,7 +107,15 @@ describe('ブラウザ用の手順の定義（web/sessions.js）', () => {
         terminal: { columns: 100, rows: 30 },
       },
     );
-    for (const terminal of ['0x24', '80', '80x', 'x24', '80x24x1', '100000x24'])
+    for (const terminal of [
+      '0x24',
+      '80',
+      '80x',
+      'x24',
+      '80x24x1',
+      '100000x24',
+      '65536x24',
+    ])
       assert.throws(
         () =>
           parseRunRequest(

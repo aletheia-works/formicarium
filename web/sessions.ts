@@ -69,11 +69,16 @@ export function parseRunRequest(searchParams: URLSearchParams) {
   if (stdin !== null && stdin.length > 4096) throw new Error('stdin too long');
   // ?terminal=<columns>x<rows> はゲストに端末として見せる大きさ。
   const size = searchParams.get('terminal');
+  // 上限は Session の検査（validateTerminal）と同じ 65535。
   const match =
     size === null ? null : /^([1-9]\d{0,4})x([1-9]\d{0,4})$/.exec(size);
-  if (size !== null && !match) throw new Error(`invalid terminal: ${size}`);
   const terminal = match
     ? { columns: Number(match[1]), rows: Number(match[2]) }
     : null;
+  if (
+    size !== null &&
+    (!terminal || terminal.columns > 65535 || terminal.rows > 65535)
+  )
+    throw new Error(`invalid terminal: ${size}`);
   return { kind: 'guest' as const, name: guest, args, stdin, terminal };
 }
