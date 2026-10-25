@@ -401,6 +401,23 @@ jobs:
           device=$(xcrun simctl create formicarium-iphone "$device_type" "$runtime")
           xcrun simctl boot "$device"
           xcrun simctl bootstatus "$device" -b
+          # A new simulator answered safaridriver only with a timeout waiting for
+          # Safari's RWIApplication. These are the web inspector and Safari keys
+          # that a working iOS 26.5 setup on this image writes (which of them
+          # matter is not known); a restart lets webinspectord and Safari read them.
+          for key in \
+            com.apple.webinspectord:RemoteInspectorEnabled \
+            com.apple.webinspectord:RemoteAutomationEnabled \
+            com.apple.webinspectord:WIRRemoteAutomationEnabled \
+            com.apple.mobilesafari:WebKitDeveloperExtrasEnabledPreferenceKey \
+            com.apple.mobilesafari:WebInspectorEnabled \
+            com.apple.mobilesafari:RemoteAutomationEnabled \
+            com.apple.mobilesafari:WebKitRemoteAutomationEnabled; do
+            xcrun simctl spawn "$device" defaults write "${key%%:*}" "${key#*:}" -bool true
+          done
+          xcrun simctl shutdown "$device"
+          xcrun simctl boot "$device"
+          xcrun simctl bootstatus "$device" -b
           # Safari running first gives the web inspector an application to list.
           xcrun simctl launch "$device" com.apple.mobilesafari
       - name: 'Allow safaridriver to drive Safari'
