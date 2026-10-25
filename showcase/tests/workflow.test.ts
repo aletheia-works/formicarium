@@ -63,7 +63,7 @@ test('permissions are read-only; only acquire, catalog and candidate read action
   const table = jobs();
   assert.deepEqual(
     [...table.keys()],
-    ['resolve', 'acquire', 'catalog', 'accept', 'candidate'],
+    ['resolve', 'acquire', 'catalog', 'accept', 'accept-safari', 'candidate'],
   );
   for (const [name, body] of table) {
     const block =
@@ -87,6 +87,7 @@ test('job timeouts follow the infrastructure design', () => {
     acquire: 180,
     catalog: 15,
     accept: 60,
+    'accept-safari': 60,
     candidate: 10,
   });
 });
@@ -119,7 +120,7 @@ test('actions are pinned by commit SHA and match the versions ci.yml uses', () =
 
 test('every checkout keeps credentials out of the workspace', () => {
   const checkouts = workflow.split('uses: actions/checkout@').slice(1);
-  assert.equal(checkouts.length, 5);
+  assert.equal(checkouts.length, 6);
   for (const checkout of checkouts)
     assert.match(
       checkout.split('\n      - ')[0]!,
@@ -153,11 +154,44 @@ test('PR runs cancel older revisions only; the candidate is uploaded once at the
   const candidate = steps(jobs().get('candidate')!);
   assert.match(candidate.at(-1)!, /name: showcase-candidate/);
   assert.doesNotMatch(candidate.at(-1)!, /if: always\(\)/);
-  for (const name of ['resolve', 'acquired', 'site', 'acceptance'])
+  for (const name of [
+    'resolve',
+    'acquired',
+    'site',
+    'acceptance',
+    'acceptance-safari',
+  ])
     assert.match(
       workflow,
       new RegExp(`name: showcase-work-${name}\\n {10}retention-days: 1`),
     );
+});
+
+test('real Safari accepts on macOS, trusts only the job CA and gates the candidate', () => {
+  const table = jobs();
+  const safari = table.get('accept-safari')!;
+  assert.match(safari, /^ {4}runs-on: macos-latest$/m);
+  assert.match(safari, /node showcase\/tests\/accept-safari\.ts/);
+  // Safari verifies TLS: the job CA is trusted, never acceptInsecureCerts.
+  assert.match(safari, /add-trusted-cert -d -r trustRoot/);
+  const list = steps(safari);
+  const cleanup = list.find((step) => step.includes('remove-trusted-cert'));
+  assert.ok(cleanup);
+  assert.match(cleanup, /if: always\(\)/);
+  assert.match(
+    cleanup,
+    /authorizationdb write com\.apple\.trust-settings\.admin </,
+  );
+  assert.ok(
+    list.indexOf(cleanup) >
+      list.findIndex((step) => step.includes('accept-safari.ts')),
+  );
+  const candidate = table.get('candidate')!;
+  assert.match(candidate, /needs: \[[^\]]*\baccept-safari\b/);
+  assert.match(
+    candidate,
+    /name: showcase-work-acceptance-safari\n {10}path: showcase\/\.work\/acceptance\n/,
+  );
 });
 
 test('the showcase CI does not copy the heavy body regressions', () => {

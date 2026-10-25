@@ -90,6 +90,7 @@
     "showcase:boundary": "node showcase/scripts/boundary.ts",
     "showcase:accept-node": "node showcase/scripts/accept-node.ts",
     "showcase:accept-browser": "node node_modules/@playwright/test/cli.js test --config showcase/tests/playwright.config.ts --workers=1 --retries=0",
+    "showcase:accept-safari": "node showcase/tests/accept-safari.ts",
     "showcase-site:prepare": "node showcase/site/scripts/build-site.ts prepare",
     "showcase-site:assemble": "node showcase/site/scripts/build-site.ts assemble",
     "showcase-site:typecheck": "node showcase/site/node_modules/typescript/bin/tsc -p showcase/site/tsconfig.json",

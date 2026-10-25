@@ -7,7 +7,8 @@
 
 単体試験・境界の検査・`verify` の受入（3 ツール × Node・Chromium・Firefox・WebKit の
 12 行）は CI で通っている（最初は run 39113037176、2026-10-20 の main `c9b37c4a` では
-run 39412286499）。実機 Safari は WebKit の結果で置き換えず、未検証として記録する。
+run 39412286499）。macOS の実機 Safari の 3 行も受入に加え（`accept-safari` job）、
+15 行がそろわないと候補を作らない。WebKit の結果を Safari の代わりにはしない。
 
 ## 構成
 
@@ -36,17 +37,17 @@ fixture の共有は `scripts/boundary.ts` と Biome の `noRestrictedImports` �
 
 ## 流れ
 
-| 工程         | script                                           | 内容                                                                                                                                                         |
-| ------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| mode         | `scripts/mode.ts`                                | `verify`（既定）か `distribute`。`distribute` は main の showcase-site workflow（main への `push`・`workflow_dispatch`）からの呼出しだけ                     |
-| 解決         | `scripts/resolve.ts`                             | `releases/latest`（draft・prerelease を除く）、annotated tag を辿った 40 桁の commit、資産の digest・size・URL、license。`resolutions.json` に 1 回だけ書く  |
-| pack         | `scripts/pack.ts`                                | `verify`：同じ commit を本体の stager と `npm pack` で包む。`distribute`：`formicarium-release.json` の版を npm から取得し、integrity とタグのコミットを照合 |
-| 取得         | `scripts/acquire.ts`                             | TransferPolicy の規則（HTTPS、credential なし、redirect 5 hop、120 s、128 MiB）で取得し、SHA256・size を照合、tar.gz を検査、公開 `validateGuest` で検証     |
-| source build | `scripts/build.ts`、`builders/cargo.sh`          | `prepare`：tag と commit の一致、codeload の source、toolchain の選択、buildKey。`compile`：token なしの独立した process group で build                      |
-| 再利用       | `scripts/reuse.ts`                               | main の信頼した workflow の成功 run の `showcase-candidate` から、buildKey・ELF・build-info を照合して再利用                                                 |
-| catalog      | `scripts/catalog.ts`                             | `GuestCatalog`（same-origin の相対 URL）。公開 `createInstaller` で受理を確かめる                                                                            |
-| 受入         | `scripts/accept-node.ts`、`tests/accept.spec.ts` | `install <tool>` と `<tool> --version`。3 ツール × Node・Chromium・Firefox・WebKit の 12 行                                                                  |
-| 候補         | `scripts/candidate.ts`                           | 12 行がすべて合格したときだけ manifest を作る。`verify` は常に `distributable: false`                                                                        |
+| 工程         | script                                                                     | 内容                                                                                                                                                         |
+| ------------ | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| mode         | `scripts/mode.ts`                                                          | `verify`（既定）か `distribute`。`distribute` は main の showcase-site workflow（main への `push`・`workflow_dispatch`）からの呼出しだけ                     |
+| 解決         | `scripts/resolve.ts`                                                       | `releases/latest`（draft・prerelease を除く）、annotated tag を辿った 40 桁の commit、資産の digest・size・URL、license。`resolutions.json` に 1 回だけ書く  |
+| pack         | `scripts/pack.ts`                                                          | `verify`：同じ commit を本体の stager と `npm pack` で包む。`distribute`：`formicarium-release.json` の版を npm から取得し、integrity とタグのコミットを照合 |
+| 取得         | `scripts/acquire.ts`                                                       | TransferPolicy の規則（HTTPS、credential なし、redirect 5 hop、120 s、128 MiB）で取得し、SHA256・size を照合、tar.gz を検査、公開 `validateGuest` で検証     |
+| source build | `scripts/build.ts`、`builders/cargo.sh`                                    | `prepare`：tag と commit の一致、codeload の source、toolchain の選択、buildKey。`compile`：token なしの独立した process group で build                      |
+| 再利用       | `scripts/reuse.ts`                                                         | main の信頼した workflow の成功 run の `showcase-candidate` から、buildKey・ELF・build-info を照合して再利用                                                 |
+| catalog      | `scripts/catalog.ts`                                                       | `GuestCatalog`（same-origin の相対 URL）。公開 `createInstaller` で受理を確かめる                                                                            |
+| 受入         | `scripts/accept-node.ts`、`tests/accept.spec.ts`、`tests/accept-safari.ts` | `install <tool>` と `<tool> --version`。3 ツール × Node・Chromium・Firefox・WebKit・実機 Safari の 15 行                                                     |
+| 候補         | `scripts/candidate.ts`                                                     | 15 行がすべて合格したときだけ manifest を作る。`verify` は常に `distributable: false`                                                                        |
 
 toolchain は upstream の宣言（`rust-toolchain.toml`・`rust-toolchain`、UI の
 Node は `.node-version`・`mise.toml`・`.tool-versions` の正確な版）に従い、
@@ -73,12 +74,15 @@ node showcase/scripts/acquire.ts
 node showcase/scripts/catalog.ts
 mise run showcase-accept-node
 mise run showcase-accept-browser   # SHOWCASE_TLS_* と、job CA を信頼した browser が要る
+mise run showcase-accept-safari    # macOS。SHOWCASE_TLS_*、keychain で job CA を信頼した Safari、port 4444 の safaridriver が要る
 ```
 
 `showcase-accept-node` は job 専用の CA を `showcase/.work/tls/` に作り、
 `NODE_EXTRA_CA_CERTS` で子 process だけに信頼させ、終了時に消す。browser の
-受入は TLS の検証を緩めない（`ignoreHTTPSErrors: false`）ため、CA を信頼した
-環境（CI の手順）でだけ動く。pitchfork は CI の Linux で build したものだけで
+受入は TLS の検証を緩めない（`ignoreHTTPSErrors: false`、Safari では
+`acceptInsecureCerts` を使わない）ため、CA を信頼した環境（CI の手順）でだけ動く。
+Safari の job は macOS の System keychain に job CA を信頼させ、終了時に外して、
+信頼設定の規則も元に戻す。pitchfork は CI の Linux で build したものだけで
 受入し、ローカル（macOS）では build しない。
 
 ## ツールの追加
@@ -134,7 +138,10 @@ summary には「最後に配布可能な候補を作った run からの日数�
 
 ## 未検証のこと
 
-- 実機 Safari。
+- iOS の Safari。
+- `accept-safari` job が keychain に job CA を信頼させる手順は、GitHub の macOS runner でだけ
+  動かす。手元の Mac の信頼設定は変えないので、ローカルで Safari の受入を動かすには、
+  その Mac で job CA を信頼させる必要がある。
 - 単体試験は showcase の script 全体の行 coverage 80% 以上を満たすが、`accept-node.ts`
   （子 process での受入）と `tls.ts`（job 専用の CA）の多くの経路は単体試験では通らず、
   CI の受入 job でだけ守られる。受入が壊れたときは、ここが局所的な回帰の検出の弱い所である。

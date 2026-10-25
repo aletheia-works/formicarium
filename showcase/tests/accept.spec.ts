@@ -6,13 +6,10 @@ import {
   type AcceptServer,
   startAcceptServer,
 } from '../scripts/accept-server.ts';
-import {
-  type AcceptanceRow,
-  type EnvironmentId,
-  judgeRow,
-} from '../scripts/acceptance.ts';
+import type { AcceptanceRow, EnvironmentId } from '../scripts/acceptance.ts';
 import { SHOWCASE_ROOT, workLayout, writeJson } from '../scripts/paths.ts';
 import { tlsFromEnvironment } from '../scripts/tls.ts';
+import { acceptInPage, rowFromPage } from './accept-page.ts';
 
 const layout = workLayout();
 const site = await loadSite(layout);
@@ -87,63 +84,11 @@ for (const tool of site.tools)
     try {
       const page = await context.newPage();
       await page.goto(`${server.origin}/`);
-      const observed = await page.evaluate(
-        async ({ catalog, name }) => {
-          const api = await import('@aletheia-works/formicarium');
-          const { createSession } = await import(
-            '@aletheia-works/formicarium/browser'
-          );
-          const session = await createSession();
-          let installMs: number | null = null;
-          let versionMs: number | null = null;
-          try {
-            const shell = api.createCommandSession(session, { catalog });
-            const started = performance.now();
-            const installed = await shell.execute(`install ${name}`);
-            installMs = Math.round(performance.now() - started);
-            const before = performance.now();
-            const run = await shell.execute(`${name} --version`);
-            versionMs = Math.round(performance.now() - before);
-            return {
-              coi: crossOriginIsolated,
-              installed:
-                installed.kind === 'install' && installed.exitCode === 0,
-              exitCode: run.exitCode,
-              stdout: api.decodeUtf8(run.stdout),
-              installMs,
-              versionMs,
-              error: null,
-            };
-          } catch (error) {
-            return {
-              coi: crossOriginIsolated,
-              installed: false,
-              exitCode: null,
-              stdout: '',
-              installMs,
-              versionMs,
-              error: String((error as { code?: unknown }).code ?? 'unexpected'),
-            };
-          } finally {
-            await session.dispose();
-          }
-        },
-        { catalog: site.catalog, name: tool.tool },
-      );
-      const row = judgeRow({
-        tool: tool.tool,
-        expectedVersion: tool.version,
-        environment,
-        exitCode: observed.exitCode,
-        stdout: observed.stdout,
-        installMs: observed.installMs,
-        versionMs: observed.versionMs,
-        error: !observed.coi
-          ? 'not-cross-origin-isolated'
-          : !observed.installed && !observed.error
-            ? 'install-failed'
-            : observed.error,
+      const observed = await page.evaluate(acceptInPage, {
+        catalog: site.catalog,
+        name: tool.tool,
       });
+      const row = rowFromPage(tool, environment, observed);
       rows.push(row);
       console.log(
         `${tool.tool}/${environment} ${row.status} install ${row.installMs} ms, --version ${row.versionMs} ms`,

@@ -149,7 +149,16 @@ test('every tool x environment row must exist once and pass', () => {
     () => requireAllRows(failed, tools),
     (error) => causeOf(error) === 'acceptance-row-missing',
   );
-  assert.equal(rowsFor().length, 8);
+  // Real Safari is required: the WebKit rows do not stand in for it.
+  assert.throws(
+    () =>
+      requireAllRows(
+        rows.filter((row) => row.environment !== 'safari'),
+        tools,
+      ),
+    (error) => causeOf(error) === 'acceptance-row-missing',
+  );
+  assert.equal(rowsFor().length, 10);
 });
 
 async function seed(layout: WorkLayout) {
@@ -292,13 +301,21 @@ test('acceptance parts are merged from per-environment files only', async () => 
       environment: { environment: 'node', observed: {} },
       rows: rowsFor().slice(0, 1),
     });
+    await writeJson(join(layout.acceptance, 'safari.json'), {
+      schemaVersion: 1,
+      environment: { environment: 'safari', observed: {} },
+      rows: rowsFor().slice(1, 2),
+    });
     await writeJson(join(layout.acceptance, 'other.json'), {
       schemaVersion: 1,
       rows: [],
     });
     const parts = await readAcceptanceParts(layout.acceptance);
-    assert.equal(parts.length, 1);
-    assert.equal(logOf(parts[0]!.rows).safari, 'unverified');
+    assert.deepEqual(
+      parts.map((part) => part.environment.environment),
+      ['node', 'safari'],
+    );
+    assert.equal('safari' in logOf(parts[0]!.rows), false);
     await writeJson(join(layout.acceptance, 'webkit.json'), {
       schemaVersion: 2,
     });

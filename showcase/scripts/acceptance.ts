@@ -9,6 +9,7 @@ export const ENVIRONMENTS = Object.freeze([
   'chromium',
   'firefox',
   'webkit',
+  'safari',
 ] as const);
 export type EnvironmentId = (typeof ENVIRONMENTS)[number];
 export const MAX_LOGGED_OUTPUT = 1024;
@@ -41,7 +42,6 @@ export interface AcceptanceLog {
   recordedAt: string;
   environments: EnvironmentRecord[];
   rows: AcceptanceRow[];
-  safari: 'unverified';
 }
 
 const escapeRegExp = (value: string) =>
@@ -88,7 +88,7 @@ export function judgeRow(observation: Observation): AcceptanceRow {
   };
 }
 
-/** Exactly tools x 4 environments, each passed once; otherwise no candidate. */
+/** Exactly tools x 5 environments, each passed once; otherwise no candidate. */
 export function requireAllRows(
   rows: readonly AcceptanceRow[],
   tools: readonly { tool: string; version: string }[],
@@ -115,13 +115,13 @@ export function requireAllRows(
     fail('acceptance-row-missing', 'unexpected acceptance rows');
 }
 
-/** Merges the per-environment parts written by Node and Playwright runs. */
+/** Merges the per-environment parts written by the Node, Playwright and Safari runs. */
 export async function readAcceptanceParts(
   directory: string,
 ): Promise<AcceptancePart[]> {
   const parts: AcceptancePart[] = [];
   for (const name of (await readdir(directory)).sort()) {
-    if (!/^(node|chromium|firefox|webkit)\.json$/.test(name)) continue;
+    if (!/^(node|chromium|firefox|webkit|safari)\.json$/.test(name)) continue;
     const part = parseUniqueJson(
       await readFile(join(directory, name), 'utf8'),
     ) as AcceptancePart;
@@ -145,6 +145,5 @@ export function mergeAcceptance(
     ...context,
     environments: parts.map((part) => part.environment),
     rows: parts.flatMap((part) => part.rows),
-    safari: 'unverified',
   };
 }
