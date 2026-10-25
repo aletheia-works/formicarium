@@ -105,8 +105,8 @@ safaridriver), and so do the showcase acceptance
 project of `showcase/site/tests/playwright.config.ts`); the other browser suites use
 Playwright's WebKit in its place. The probe page and the install and command
 API checks also run in Safari on iOS, on an iPhone in the newest iOS 26 Simulator
-(`FORMICARIUM_SAFARI_PLATFORM=ios`). iOS 27 is not run: safaridriver 27.0.1
-finds no session host on an iOS 27.0 simulator. A real iPhone is not tested. On Windows, the POSIX
+(`FORMICARIUM_SAFARI_PLATFORM=ios`). iOS 27 is not run: Xcode 27 replaced
+Simulator.app with Device Hub, and safaridriver then finds no iOS Simulator. A real iPhone is not tested. On Windows, the POSIX
 permission checks are skipped; run them on Linux.
 
 ## Measurements

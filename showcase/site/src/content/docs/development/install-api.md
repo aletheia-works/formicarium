@@ -166,4 +166,4 @@ Safari on macOS, CI installs catalog guests over HTTPS
 (`tests/browser/safari-probe.test.ts`): a raw ELF, a `tar.gz` entry whose
 progress goes through fetch, extract, digest, validate and register in order,
 and an install cancelled at its first progress event, which registers nothing.
-The same checks run in Safari on iOS in an iOS 26 Simulator; iOS 27 is not run, because safaridriver 27.0.1 finds no session host on it. A WebKit result is not taken as a Safari pass.
+The same checks run in Safari on iOS in an iOS 26 Simulator; iOS 27 is not run, because safaridriver finds no iOS Simulator with Xcode 27, which replaced Simulator.app with Device Hub. A WebKit result is not taken as a Safari pass.

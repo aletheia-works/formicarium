@@ -143,4 +143,4 @@ callback から同じ Session を操作すると `BUSY` になることがあり
 単体テストは `tests/package/install-*.test.ts` にあり、通常の CI（`test:node-unit`）とリリース候補の
 パッケージのカバレッジで実行します。macOS の実機の Safari では、CI がカタログのゲストを HTTPS で install します
 （`tests/browser/safari-probe.test.ts`）。ELF そのもの、進捗が fetch・extract・digest・validate・register の順に届く `tar.gz`、最初の進捗で中止して
-何も登録されない install を確かめます。同じ確認を iOS 26 の Simulator の iOS 版 Safari でも行います（iOS 27 は safaridriver 27.0.1 が接続先を見つけられないため未実行）。WebKit の結果を Safari の合格とは扱いません。
+何も登録されない install を確かめます。同じ確認を iOS 26 の Simulator の iOS 版 Safari でも行います（iOS 27 は未実行。Xcode 27 で Simulator.app が Device Hub に置き換わり、safaridriver が iOS Simulator を見つけられないため）。WebKit の結果を Safari の合格とは扱いません。

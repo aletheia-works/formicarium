@@ -340,8 +340,9 @@ jobs:
           trap 'kill "$driver"' EXIT
           node --test --test-concurrency=1 tests/browser/safari-probe.test.js
   # The same checks in Safari on iOS: an iPhone on the newest iOS 26 Simulator
-  # runtime, with the newest released Xcode on the runner. safaridriver 27.0.1
-  # finds no session host on an iOS 27.0 simulator, so iOS 27 is not run yet.
+  # runtime, with the newest released Xcode 26 on the runner. Xcode 27 replaced
+  # Simulator.app with Device Hub, and safaridriver 27.0.1 finds no iOS
+  # Simulator session host with it, so Xcode 27 and iOS 27 are not run yet.
   # The simulator runs on the Mac's CPU and memory, so it is not a check of an
   # iPhone's memory limits.
   product-safari-ios:
@@ -374,9 +375,10 @@ jobs:
           merge-multiple: true
       - name: 'Restore guest executable permissions'
         run: 'chmod +x dist/guests/probe dist/guests/hello dist/guests/exit3'
-      - name: 'Select the newest released Xcode'
+      - name: 'Select the newest released Xcode 26, which still ships Simulator.app'
         run: |-
-          xcode=$(printf '%s\n' /Applications/Xcode_*.app | grep -v -i -E 'beta|rc|release_candidate' | sort -V | tail -n 1)
+          xcode=$(printf '%s\n' /Applications/Xcode_26*.app | grep -v -i -E 'beta|rc|release_candidate' | sort -V | tail -n 1)
+          test -d "$xcode/Contents/Developer/Applications/Simulator.app"
           sudo xcode-select --switch "$xcode"
           xcodebuild -version
       - name: 'Boot an iPhone on the newest iOS 26 Simulator runtime'
@@ -393,6 +395,9 @@ jobs:
           device=$(xcrun simctl list devices available --json | jq -r --arg runtime "$runtime" '[.devices[$runtime][] | select(.name | startswith("iPhone"))] | first | "\(.udid) \(.name)"')
           echo "$device"
           xcrun simctl bootstatus "${device%% *}" -b
+          # safaridriver finds the simulator through Simulator.app; opening it
+          # registers the selected Xcode's copy with Launch Services.
+          open -a "$(xcode-select -p)/Applications/Simulator.app" --args -CurrentDeviceUDID "${device%% *}"
       - name: 'Allow safaridriver to drive Safari'
         run: 'sudo safaridriver --enable'
       - name: 'Run the probe page and the install and command checks in iOS Safari'
