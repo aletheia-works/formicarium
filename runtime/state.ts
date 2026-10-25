@@ -226,6 +226,133 @@ export class SessionState {
     );
   }
 
+  /**
+   * Resolves where `cp` and `mv` put `source`: into an existing directory
+   * `destination` under the source's name, otherwise at `destination`, whose
+   * parent must already be a directory.
+   */
+  #target(source: string, rawDestination: string, reservation: Reservation) {
+    const destination = this.#path(rawDestination, reservation);
+    const existing = this.#entries.find((entry) => entry.path === destination);
+    const target =
+      existing?.type === 'dir'
+        ? `${destination}/${source.slice(source.lastIndexOf('/') + 1)}`
+        : destination;
+    invalid(inRoots(target, this.roots), 'path lies outside persistence roots');
+    invalid(
+      target !== source && !target.startsWith(`${source}/`),
+      'cannot copy or move an entry into itself',
+    );
+    // #path already refused a non-directory parent; a missing one is NOT_FOUND.
+    this.#find(parentPath(target));
+    return {
+      target,
+      existing: this.#entries.find((entry) => entry.path === target),
+    };
+  }
+
+  /** Validates the whole result first, so a refused copy or move changes nothing. */
+  #replace(entries: FsEntry[]) {
+    this.#entries = validateEntries(entries, this.roots);
+  }
+
+  /**
+   * `cp source destination` copies one regular file; `recursive` also copies
+   * a directory tree or a symlink as itself. Copies get new inodes, as
+   * without `cp -p`. Overwriting an existing file keeps its mode and inode,
+   * so its hard links see the new bytes.
+   */
+  copy(
+    rawSource: string,
+    rawDestination: string,
+    recursive: boolean,
+    reservation: Reservation,
+  ) {
+    const source = this.#path(rawSource, reservation);
+    const entry = this.#find(source);
+    if (!recursive && entry.type !== 'file')
+      throw failure('NOT_FILE', 'Entry is not a regular file');
+    const { target, existing } = this.#target(
+      source,
+      rawDestination,
+      reservation,
+    );
+    if (existing) {
+      invalid(
+        entry.type === 'file' && existing.type === 'file',
+        'destination already exists',
+      );
+      invalid(
+        existing.inodeId !== entry.inodeId,
+        'source and destination are the same file',
+      );
+      this.#replace(
+        this.#entries.map((other) =>
+          other.type === 'file' && other.inodeId === existing.inodeId
+            ? { ...other, data: new Uint8Array(entry.data) }
+            : other,
+        ),
+      );
+      return;
+    }
+    const inodes = new Set(
+      this.#entries.flatMap((other) =>
+        other.type === 'file' ? [other.inodeId] : [],
+      ),
+    );
+    let next = 0;
+    const copies = this.#entries
+      .filter(
+        (other) => other.path === source || other.path.startsWith(`${source}/`),
+      )
+      .map((other): FsEntry => {
+        const path = target + other.path.slice(source.length);
+        if (other.type !== 'file') return { ...other, path };
+        while (inodes.has(`copy-${next}`)) next++;
+        inodes.add(`copy-${next}`);
+        return { ...other, path, inodeId: `copy-${next}` };
+      });
+    this.#replace([...this.#entries, ...copies]);
+  }
+
+  /**
+   * `mv source destination` renames an entry with its subtree and keeps its
+   * inodes. A file or symlink replaces an existing file or symlink; a
+   * directory never replaces anything. The cwd follows a moved directory.
+   */
+  move(rawSource: string, rawDestination: string, reservation: Reservation) {
+    const source = this.#path(rawSource, reservation);
+    invalid(!this.roots.includes(source), 'cannot move a persistence root');
+    const entry = this.#find(source);
+    const { target, existing } = this.#target(
+      source,
+      rawDestination,
+      reservation,
+    );
+    if (existing) {
+      invalid(
+        entry.type !== 'dir' && existing.type !== 'dir',
+        'destination already exists',
+      );
+      invalid(
+        entry.type !== 'file' ||
+          existing.type !== 'file' ||
+          existing.inodeId !== entry.inodeId,
+        'source and destination are the same file',
+      );
+    }
+    const moved = (path: string) =>
+      path === source || path.startsWith(`${source}/`)
+        ? target + path.slice(source.length)
+        : path;
+    this.#replace(
+      this.#entries
+        .filter((other) => other.path !== target)
+        .map((other) => ({ ...other, path: moved(other.path) })),
+    );
+    this.cwd = moved(this.cwd);
+  }
+
   setCwd(raw: string, reservation?: Reservation) {
     const path = this.#path(raw, reservation);
     if (this.#find(path).type !== 'dir')

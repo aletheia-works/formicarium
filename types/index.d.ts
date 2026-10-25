@@ -82,7 +82,7 @@ export declare function createInstaller(
  *
  * - `signal`: checked before any reservation; an already aborted signal
  *   rejects with `ABORTED` and changes nothing. The builtins `ls`, `cat`,
- *   `cd` and `rm` complete synchronously inside the Session once started, so a signal
+ *   `cd`, `rm`, `cp` and `mv` complete synchronously inside the Session once started, so a signal
  *   raised after they start does not interrupt or change their result.
  *   `install` and guest runs forward the signal to the installer and to the
  *   session run.
@@ -126,11 +126,11 @@ export interface CommandResult {
  * Nothing is expanded. An input of only spaces/tabs (or empty) resolves as
  * `kind: 'empty'` with exit code 0 and takes no reservation.
  *
- * Routing is by exact `argv[0]`: `ls [path]`, `cat path`, `cd path` and
- * `rm -rf path` are builtins, `install <selection>` installs through the
+ * Routing is by exact `argv[0]`: `ls [path]`, `cat path`, `cd path`,
+ * `rm -rf path`, `cp [-r] src dst` and `mv src dst` are builtins, `install <selection>` installs through the
  * catalog, and any other name runs the registered guest of that name
  * (`NOT_FOUND` when absent; a nonzero guest exit still resolves).
- * `ls`, `cat`, `rm`, `cd` and `install` are reserved: a guest registered under
+ * `ls`, `cat`, `rm`, `cd`, `cp`, `mv` and `install` are reserved: a guest registered under
  * one of these names (for example by `install ls@x`) cannot be run from a
  * command, and the builtin keeps running. Paths are guest paths resolved by the
  * Session: a relative path resolves against its current cwd, and an empty

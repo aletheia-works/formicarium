@@ -79,16 +79,18 @@ runs one command.
 
 Routing is by the exact `argv[0]`.
 
-| `argv[0]` | Accepted forms      | Action                                                                                                 |
-| --------- | ------------------- | ------------------------------------------------------------------------------------------------------ |
-| `ls`      | `ls`, `ls path`     | One `listEntries` on the Session. An argument starting with `-` or two or more arguments are refused   |
-| `cat`     | `cat path`          | Takes the filesystem reservation once; the original bytes go to stdout                                 |
-| `cd`      | `cd path`           | Takes the filesystem reservation once; changes the working directory                                   |
-| `rm`      | `rm -rf path`       | Takes the filesystem reservation once; removes. `rm -r -f`, `rm -fr`, `rm path` and others are refused |
-| `install` | `install selection` | One catalog install. URLs are not accepted (selection rules as in the install API)                     |
-| any other | `tool [args...]`    | Runs the registered tool; `NOT_FOUND` when it is not registered                                        |
+| `argv[0]` | Accepted forms                | Action                                                                                                 |
+| --------- | ----------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `ls`      | `ls`, `ls path`               | One `listEntries` on the Session. An argument starting with `-` or two or more arguments are refused   |
+| `cat`     | `cat path`                    | Takes the filesystem reservation once; the original bytes go to stdout                                 |
+| `cd`      | `cd path`                     | Takes the filesystem reservation once; changes the working directory                                   |
+| `rm`      | `rm -rf path`                 | Takes the filesystem reservation once; removes. `rm -r -f`, `rm -fr`, `rm path` and others are refused |
+| `cp`      | `cp src dst`, `cp -r src dst` | Takes the filesystem reservation once; copies. Other flags, `--` and three or more paths are refused   |
+| `mv`      | `mv src dst`                  | Takes the filesystem reservation once; moves. Flags, `--` and three or more paths are refused          |
+| `install` | `install selection`           | One catalog install. URLs are not accepted (selection rules as in the install API)                     |
+| any other | `tool [args...]`              | Runs the registered tool; `NOT_FOUND` when it is not registered                                        |
 
-`ls`, `cat`, `rm`, `cd` and `install` are reserved. A guest can be registered
+`ls`, `cat`, `rm`, `cd`, `cp`, `mv` and `install` are reserved. A guest can be registered
 under one of these names (for example `install ls@x` registers a tool `ls`), but
 a command cannot run it, and `ls` stays the builtin. `pwd` is not a builtin; it
 is `NOT_FOUND` unless a guest is registered under that name.
@@ -97,13 +99,31 @@ Paths are guest paths; the Session normalizes and resolves them. The command
 API reads no host filesystem, URL or environment variable. A path that does not
 start with `/` resolves against the Session's current working directory (with
 `/work` as the working directory, `cat a.txt` is `/work/a.txt` and `ls .` is
-`/work`). `cat`, `cd` and `rm` resolve after taking the filesystem reservation,
+`/work`). `cat`, `cd`, `rm`, `cp` and `mv` resolve after taking the filesystem reservation,
 and `ls` calls `listEntries` in the same tick as it resolves, so the directory
 used to resolve is the one the operation sees. An empty path, a path containing
 NUL and a path containing `..` (relative or absolute) are refused with
 `INVALID_INPUT` before the reservation and change nothing. A path outside the
 persisted roots, or removing a root itself, is the Session's `INVALID_INPUT` as
 before.
+
+`cp` and `mv` follow POSIX where they can:
+- When `dst` is an existing directory, the entry goes inside it under its own
+  name; otherwise it goes to `dst`, whose parent must already be a directory
+  (`NOT_FOUND` when it does not exist).
+- `cp` copies one regular file (a directory or symlink is `NOT_FILE`); `cp -r`
+  also copies a directory tree, and copies symlinks as symlinks with the same
+  target. Copies get new inodes and the source's mode, as without `cp -p`.
+  Copying over an existing file keeps that file's mode and inode, so its hard
+  links see the new bytes.
+- `mv` renames an entry with its subtree and keeps its inodes. A file or
+  symlink replaces an existing file or symlink. When the cwd is inside a moved
+  directory, the cwd follows it.
+- `INVALID_INPUT` and no change: a directory never overwrites or is
+  overwritten, an entry cannot go into itself, the source and destination
+  cannot be the same file, a persistence root cannot be moved, and a symlink
+  whose target would leave the persistence roots at its new place is refused.
+- A path that starts with `-` is refused as a flag; write it as `./-x`.
 
 `ls` prints a directory as `name/`, a symlink as `name -> target` and a file as
 `name`, sorted by the whole printed string in UTF-16 code unit order (the
@@ -132,7 +152,7 @@ an install fails).
 
 - `signal` is checked before the reservation; if it is already aborted, the
   call rejects with `ABORTED` without taking the reservation.
-- `ls`, `cat`, `cd` and `rm` complete synchronously inside the Session. A signal
+- `ls`, `cat`, `cd`, `rm`, `cp` and `mv` complete synchronously inside the Session. A signal
   raised after they start does not interrupt them, and the completed result is
   returned.
 - `install` and guest runs pass the signal to the installer and to the

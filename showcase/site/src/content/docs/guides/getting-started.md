@@ -15,7 +15,8 @@ for example `biome --version`.
 
 ## Commands
 
-- `ls [path]`, `cat path`, `cd path` and `rm -rf path` are built in.
+- `ls [path]`, `cat path`, `cd path`, `rm -rf path`, `cp [-r] src dst` and
+  `mv src dst` are built in.
 - `clear` empties the terminal and its scrollback in the page; no command runs.
 - `install <tool>` installs a tool of the showcase catalog. Only the accepted
   versions listed on the Tools page can be installed.

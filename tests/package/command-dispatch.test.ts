@@ -1,8 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createCommandSession } from '../../runtime/command.js';
-import type { OutputChunk, Progress } from '../../types/index.js';
-import { catalogFor, harness, mergeCatalogs, text } from './command-harness.js';
+import type { FsEntry, OutputChunk, Progress } from '../../types/index.js';
+import {
+  catalogFor,
+  dir,
+  file,
+  harness,
+  mergeCatalogs,
+  text,
+} from './command-harness.js';
 
 type Fixture = ReturnType<typeof harness>;
 const code = (expected: string) => (error: { code?: string }) => {
@@ -88,12 +95,14 @@ test('pwd is not a builtin: unregistered it is NOT_FOUND and releases the run re
 test('reserved names stay builtins even when a guest with that name is registered', async (t) => {
   const value = harness();
   t.after(() => value.session.dispose());
-  for (const name of ['ls', 'cat', 'rm', 'cd', 'install'])
+  for (const name of ['ls', 'cat', 'rm', 'cd', 'cp', 'mv', 'install'])
     await value.register(name);
   const shell = command(value);
   assert.equal(text((await shell.execute('cat /work/a.txt')).stdout), 'alpha');
   assert.equal((await shell.execute('ls')).kind, 'builtin');
   assert.equal((await shell.execute('cd /work/sub')).kind, 'builtin');
+  assert.equal((await shell.execute('cp b.txt c.txt')).kind, 'builtin');
+  assert.equal((await shell.execute('mv c.txt d.txt')).kind, 'builtin');
   assert.equal((await shell.execute('rm -rf /work/sub/b.txt')).kind, 'builtin');
   await assert.rejects(shell.execute('install'), code('INVALID_INPUT'));
   assert.equal(value.requests.length, 0);
@@ -330,8 +339,138 @@ test('unsupported builtin shapes are refused and leave cwd and filesystem unchan
     'cat /work/a.txt /work/sub/b.txt',
     'cd',
     'cd /work /work/sub',
+    'cp',
+    'cp /work/a.txt',
+    'cp /work/a.txt /work/x /work/y',
+    'cp -R /work/sub /work/x',
+    'cp -rf /work/sub /work/x',
+    'cp -r /work/sub',
+    'cp -- /work/a.txt /work/x',
+    'cp /work/a.txt -x',
+    'mv',
+    'mv /work/a.txt',
+    'mv -r /work/sub /work/x',
+    'mv -f /work/a.txt /work/x',
+    'mv /work/a.txt /work/x /work/y',
   ])
     await assert.rejects(shell.execute(input), code('INVALID_INPUT'), input);
+  assert.equal(await observe(value), before);
+});
+test('cp copies a file with a new inode and mv renames it keeping its inode', async (t) => {
+  const value = harness();
+  t.after(() => value.session.dispose());
+  const shell = command(value);
+  const inode = async (path: string) => {
+    const entry = (
+      await value.session.listEntries(path.slice(0, path.lastIndexOf('/')))
+    ).find((candidate) => candidate.path === path);
+    return entry?.type === 'file' ? entry.inodeId : undefined;
+  };
+  const cp = await shell.execute('cp a.txt copy.txt');
+  assert.deepEqual([cp.kind, cp.exitCode, cp.stdout.length], ['builtin', 0, 0]);
+  assert.equal(text(await value.session.readFile('/work/copy.txt')), 'alpha');
+  const copied = await inode('/work/copy.txt');
+  assert.ok(copied);
+  assert.notEqual(copied, await inode('/work/a.txt'));
+  await shell.execute('cp a.txt sub');
+  assert.equal(text(await value.session.readFile('/work/sub/a.txt')), 'alpha');
+  await shell.execute('mv copy.txt sub/moved.txt');
+  await assert.rejects(
+    value.session.readFile('/work/copy.txt'),
+    code('NOT_FOUND'),
+  );
+  assert.equal(await inode('/work/sub/moved.txt'), copied);
+  await shell.execute('mv sub/moved.txt .');
+  assert.equal(text(await value.session.readFile('/work/moved.txt')), 'alpha');
+});
+test('cp onto an existing file keeps its mode and inode, so its hard links change too', async (t) => {
+  const linked = (path: string): FsEntry => ({
+    path,
+    type: 'file',
+    mode: 0o600,
+    inodeId: 'shared',
+    data: new TextEncoder().encode('stale'),
+  });
+  const value = harness([
+    file('/work/new', 'fresh'),
+    linked('/work/old'),
+    linked('/work/link'),
+  ]);
+  t.after(() => value.session.dispose());
+  const shell = command(value);
+  await shell.execute('cp new old');
+  assert.equal(text(await value.session.readFile('/work/link')), 'fresh');
+  const old = (await value.session.listEntries('/work')).find(
+    (entry) => entry.path === '/work/old',
+  );
+  assert.deepEqual(old?.type === 'file' && [old.mode, old.inodeId], [
+    0o600,
+    'shared',
+  ]);
+  await assert.rejects(shell.execute('cp old link'), code('INVALID_INPUT'));
+  await assert.rejects(shell.execute('cp old old'), code('INVALID_INPUT'));
+});
+test('cp -r copies a tree with symlinks as they are, and mv moves a tree and the cwd with it', async (t) => {
+  const value = harness([
+    dir('/work/src'),
+    file('/work/src/x', 'x'),
+    dir('/work/src/deep'),
+    file('/work/src/deep/y', 'y'),
+    { path: '/work/src/link', type: 'symlink', target: 'x' },
+  ]);
+  t.after(() => value.session.dispose());
+  const shell = command(value);
+  const ls = async (path: string) =>
+    text((await shell.execute(`ls ${path}`)).stdout);
+  await assert.rejects(shell.execute('cp src dst'), code('NOT_FILE'));
+  await assert.rejects(shell.execute('cp src/link dst'), code('NOT_FILE'));
+  await shell.execute('cp -r src dst');
+  assert.equal(await ls('dst'), 'deep/\nlink -> x\nx\n');
+  assert.equal(await ls('src'), 'deep/\nlink -> x\nx\n');
+  assert.equal(text(await value.session.readFile('/work/dst/deep/y')), 'y');
+  await shell.execute('cp -r src/link dst/link2');
+  assert.equal(await ls('dst'), 'deep/\nlink -> x\nlink2 -> x\nx\n');
+  await shell.execute('cd src/deep');
+  await shell.execute('mv /work/src /work/dst');
+  assert.equal(value.state.cwd, '/work/dst/src/deep');
+  assert.equal(text(await value.session.readFile('/work/dst/src/deep/y')), 'y');
+  assert.equal(await ls('/work'), 'dst/\n');
+});
+test('cp and mv refuse to overwrite a directory, move into themselves or move a root, and keep state', async (t) => {
+  const value = harness([
+    file('/work/a', 'a'),
+    { ...file('/work/a', 'a'), path: '/work/b' },
+    dir('/work/d'),
+    dir('/work/d/a'),
+    dir('/work/d/e'),
+    { path: '/work/d/tmp', type: 'symlink', target: '../tmp' },
+    dir('/work/e'),
+    file('/work/e/f', 'f'),
+  ]);
+  t.after(() => value.session.dispose());
+  const shell = command(value);
+  const before = await observe(value);
+  for (const input of [
+    'cp a d',
+    'mv a d',
+    'cp -r e d',
+    'mv e d',
+    'cp -r e e/inner',
+    'mv e e/inner',
+    'mv e e',
+    'mv a b',
+    'mv /work /work/d/w',
+    'cp -r e a',
+    'mv e a',
+    'cp a e/f/g',
+    'mv a /tmp/a',
+    // At /work/tmp, the symlink's `../tmp` would point outside the roots.
+    'cp -r d/tmp tmp',
+    'mv d/tmp tmp',
+  ])
+    await assert.rejects(shell.execute(input), code('INVALID_INPUT'), input);
+  await assert.rejects(shell.execute('cp a missing/a'), code('NOT_FOUND'));
+  await assert.rejects(shell.execute('mv missing a'), code('NOT_FOUND'));
   assert.equal(await observe(value), before);
 });
 test('Session NOT_FOUND and NOT_FILE propagate unchanged and the fs reservation is released', async (t) => {

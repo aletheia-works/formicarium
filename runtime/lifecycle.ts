@@ -415,6 +415,12 @@ export function createLifecycle(
       else if (argv[0] === 'cd' && argv.length === 2) state.setCwd(argv[1]!, r);
       else if (argv[0] === 'rm' && argv[1] === '-rf' && argv.length === 3)
         state.remove(argv[2]!, r);
+      else if (argv[0] === 'cp' && argv.length === 3)
+        state.copy(argv[1]!, argv[2]!, false, r);
+      else if (argv[0] === 'cp' && argv[1] === '-r' && argv.length === 4)
+        state.copy(argv[2]!, argv[3]!, true, r);
+      else if (argv[0] === 'mv' && argv.length === 3)
+        state.move(argv[1]!, argv[2]!, r);
       else invalid(false, 'builtin argv unsupported');
       return {
         kind: 'builtin' as const,

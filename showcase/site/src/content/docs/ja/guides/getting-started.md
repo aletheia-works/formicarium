@@ -15,7 +15,7 @@ description: formicarium の showcase の端末の使い方と制限。
 
 ## command
 
-- `ls [path]`・`cat path`・`cd path`・`rm -rf path` は組込みです。
+- `ls [path]`・`cat path`・`cd path`・`rm -rf path`・`cp [-r] src dst`・`mv src dst` は組込みです。
 - `clear` は page の中で端末と scrollback を消します。command は実行しません。
 - `install <tool>` は showcase の catalog のツールを導入します。導入できるのは
   ツールの page にある受入済みの版だけです。

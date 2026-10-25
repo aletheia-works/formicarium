@@ -24,6 +24,8 @@ export const RESERVED_COMMANDS = Object.freeze([
   'cat',
   'rm',
   'cd',
+  'cp',
+  'mv',
   'install',
 ] as const);
 const EMPTY = new Uint8Array();
@@ -36,7 +38,12 @@ interface CheckedOptions {
 }
 type Route =
   | { kind: 'ls'; path?: string }
-  | { kind: 'fs'; name: 'cat' | 'cd' | 'rm'; path: string }
+  | {
+      kind: 'fs';
+      name: 'cat' | 'cd' | 'rm' | 'cp' | 'mv';
+      flag?: '-rf' | '-r';
+      paths: readonly string[];
+    }
   | { kind: 'install'; selection: string }
   | { kind: 'guest'; tool: string; args: readonly string[] };
 
@@ -74,14 +81,26 @@ function route(argv: readonly string[]): Route {
   }
   if (name === 'cat' || name === 'cd') {
     invalid(rest.length === 1, `${name} requires exactly one path`);
-    return { kind: 'fs', name, path: rest[0]! };
+    return { kind: 'fs', name, paths: rest };
   }
   if (name === 'rm') {
     invalid(
       rest.length === 2 && rest[0] === '-rf',
       'rm accepts only rm -rf path',
     );
-    return { kind: 'fs', name, path: rest[1]! };
+    return { kind: 'fs', name, flag: '-rf', paths: rest.slice(1) };
+  }
+  if (name === 'cp' || name === 'mv') {
+    // Only `cp -r` takes a flag; a path that starts with `-` is written `./-x`.
+    const flag = name === 'cp' && rest[0] === '-r' ? '-r' : undefined;
+    const paths = flag ? rest.slice(1) : rest;
+    invalid(
+      paths.length === 2 && paths.every((path) => !path.startsWith('-')),
+      name === 'cp'
+        ? 'cp accepts only cp [-r] source destination'
+        : 'mv accepts only mv source destination',
+    );
+    return { kind: 'fs', name, ...(flag ? { flag } : {}), paths };
   }
   if (name === 'install') {
     invalid(rest.length === 1, 'install requires exactly one selection');
@@ -110,7 +129,7 @@ function preabort(options: CheckedOptions): void {
     throw failure('ABORTED', 'Command was aborted before it started');
 }
 
-/** BuiltinAdapter: cat/cd/rm use one fs reservation; ls uses public listEntries. */
+/** BuiltinAdapter: cat/cd/rm/cp/mv use one fs reservation; ls uses public listEntries. */
 async function runBuiltin(
   session: Session,
   port: SessionPort,
@@ -119,7 +138,8 @@ async function runBuiltin(
 ): Promise<CommandResult> {
   // Path syntax (empty, NUL, `..`) does not depend on the cwd, so it is
   // rejected as INVALID_INPUT before the abort check and the reservation.
-  if (target.path !== undefined) port.resolvePath(target.path);
+  const paths = target.kind === 'ls' ? [target.path] : target.paths;
+  for (const path of paths) if (path !== undefined) port.resolvePath(path);
   // The Session completes builtins synchronously; a signal raised after this check
   // does not interrupt or change the completed result.
   preabort(options);
@@ -135,9 +155,11 @@ async function runBuiltin(
   const reservation = await port.acquire('fs');
   try {
     // The cwd cannot change while this fs reservation is held.
-    const path = port.resolvePath(target.path);
-    const argv =
-      target.name === 'rm' ? ['rm', '-rf', path] : [target.name, path];
+    const argv = [
+      target.name,
+      ...(target.flag ? [target.flag] : []),
+      ...target.paths.map((path) => port.resolvePath(path)),
+    ];
     const done = await port.builtin(reservation, argv);
     return result('builtin', 0, done.stdout);
   } finally {
