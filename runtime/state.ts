@@ -239,8 +239,9 @@ export class SessionState {
         ? `${destination}/${source.slice(source.lastIndexOf('/') + 1)}`
         : destination;
     invalid(inRoots(target, this.roots), 'path lies outside persistence roots');
+    invalid(target !== source, 'source and destination are the same file');
     invalid(
-      target !== source && !target.startsWith(`${source}/`),
+      !target.startsWith(`${source}/`),
       'cannot copy or move an entry into itself',
     );
     // #path already refused a non-directory parent; a missing one is NOT_FOUND.

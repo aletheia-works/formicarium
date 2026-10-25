@@ -113,7 +113,8 @@ before.
   (`NOT_FOUND` when it does not exist).
 - `cp` copies one regular file (a directory or symlink is `NOT_FILE`); `cp -r`
   also copies a directory tree, and copies symlinks as symlinks with the same
-  target. Copies get new inodes and the source's mode, as without `cp -p`.
+  target. Copies get new inodes and the source's mode, as without `cp -p`, so
+  hard links inside a copied tree become separate files.
   Copying over an existing file keeps that file's mode and inode, so its hard
   links see the new bytes.
 - `mv` renames an entry with its subtree and keeps its inodes. A file or
