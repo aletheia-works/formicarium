@@ -340,7 +340,7 @@ jobs:
           trap 'kill "$driver"' EXIT
           node --test --test-concurrency=1 tests/browser/safari-probe.test.js
   # The same checks in Safari on iOS: an iPhone on the newest iOS 26 Simulator
-  # runtime, with the newest released Xcode 26 on the runner. Xcode 27 replaced
+  # runtime, with the image's default Xcode 26. Xcode 27 replaced
   # Simulator.app with Device Hub, and safaridriver 27.0.1 finds no iOS
   # Simulator session host with it, so Xcode 27 and iOS 27 are not run yet.
   # The simulator runs on the Mac's CPU and memory, so it is not a check of an
@@ -375,12 +375,14 @@ jobs:
           merge-multiple: true
       - name: 'Restore guest executable permissions'
         run: 'chmod +x dist/guests/probe dist/guests/hello dist/guests/exit3'
-      - name: 'Select the newest released Xcode 26, which still ships Simulator.app'
+      # The image's default Xcode (/Applications/Xcode.app), not one picked with
+      # xcode-select: with Xcode_26.6.app selected, safaridriver answered
+      # "Could not find Simulator.app or a devices:// URL handler".
+      - name: 'Use the default Xcode, an Xcode 26 that still ships Simulator.app'
         run: |-
-          xcode=$(printf '%s\n' /Applications/Xcode_26*.app | grep -v -i -E 'beta|rc|release_candidate' | sort -V | tail -n 1)
-          test -d "$xcode/Contents/Developer/Applications/Simulator.app"
-          sudo xcode-select --switch "$xcode"
           xcodebuild -version
+          xcodebuild -version | grep -q '^Xcode 26\.'
+          test -d "$(xcode-select -p)/Applications/Simulator.app"
       - name: 'Boot an iPhone on the newest iOS 26 Simulator runtime'
         run: |-
           runtimes=$(xcrun simctl list runtimes --json)
@@ -391,13 +393,16 @@ jobs:
             exit 1
           fi
           jq -r --arg runtime "$runtime" '.runtimes[] | select(.identifier == $runtime) | "\(.name) (\(.buildversion))"' <<< "$runtimes"
-          # One booted device only: safaridriver picks the booted simulator.
-          device=$(xcrun simctl list devices available --json | jq -r --arg runtime "$runtime" '[.devices[$runtime][] | select(.name | startswith("iPhone"))] | first | "\(.udid) \(.name)"')
-          echo "$device"
-          xcrun simctl bootstatus "${device%% *}" -b
-          # safaridriver finds the simulator through Simulator.app; opening it
-          # registers the selected Xcode's copy with Launch Services.
-          open -a "$(xcode-select -p)/Applications/Simulator.app" --args -CurrentDeviceUDID "${device%% *}"
+          device_type=$(xcrun simctl list devices available --json | jq -r --arg runtime "$runtime" '[.devices[$runtime][] | select(.name | startswith("iPhone"))] | first | .deviceTypeIdentifier')
+          echo "$device_type"
+          # One booted simulator with a name of its own: the image may boot its
+          # own iPhone, and safaridriver then waits on the wrong one.
+          xcrun simctl shutdown all
+          device=$(xcrun simctl create formicarium-iphone "$device_type" "$runtime")
+          xcrun simctl boot "$device"
+          xcrun simctl bootstatus "$device" -b
+          # Safari running first gives the web inspector an application to list.
+          xcrun simctl launch "$device" com.apple.mobilesafari
       - name: 'Allow safaridriver to drive Safari'
         run: 'sudo safaridriver --enable'
       - name: 'Run the probe page and the install and command checks in iOS Safari'
