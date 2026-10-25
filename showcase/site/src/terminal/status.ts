@@ -15,6 +15,7 @@ export type Status =
   | { kind: 'ready'; tool: string | null; version: string | null }
   | { kind: 'ready-failed-install'; code: string; message: string }
   | { kind: 'running' }
+  | { kind: 'interactive' }
   | { kind: 'no-output' }
   | { kind: 'aborted' }
   | { kind: 'command-failed'; code: string; message: string }
@@ -91,6 +92,10 @@ export function statusText(status: Status, locale: Locale): string {
       return ja
         ? '実行中… Ctrl-C で取り消します。'
         : 'Running… Press Ctrl-C to cancel.';
+    case 'interactive':
+      return ja
+        ? '対話モードで実行中です。キー入力（Ctrl-C も）はツールに渡ります。止めるには「停止」を押してください。'
+        : 'Running interactively. Keys, Ctrl-C included, go to the tool; press Stop to end it.';
     case 'no-output':
       return ja ? '（出力なし）' : '(no output)';
     case 'aborted':

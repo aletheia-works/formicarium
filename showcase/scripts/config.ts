@@ -32,6 +32,8 @@ export interface ToolConfig {
   tagPattern: string;
   fixture: string;
   acquire: ReleaseAssetAcquire | SourceBuildAcquire;
+  /** The terminal pages pass keystrokes to this tool and give it a terminal. */
+  interactive?: true;
 }
 export interface ToolsConfig {
   schemaVersion: 1;
@@ -171,7 +173,13 @@ function sourceBuild(value: Json, where: string): SourceBuildAcquire {
 function tool(value: unknown, index: number, allowed: Set<string>): ToolConfig {
   const where = `tools[${index}]`;
   const raw = record(value, where);
-  only(raw, ['tool', 'repository', 'tagPattern', 'fixture', 'acquire'], where);
+  only(
+    raw,
+    ['tool', 'repository', 'tagPattern', 'fixture', 'acquire', 'interactive'],
+    where,
+  );
+  if (raw.interactive !== undefined && raw.interactive !== true)
+    fail('config-invalid', `${where}.interactive must be true when present`);
   const repository = text(raw.repository, `${where}.repository`, REPOSITORY);
   if (!allowed.has(repository))
     fail('source-not-allowed', `${repository} is not in the main allow list`);
@@ -187,6 +195,7 @@ function tool(value: unknown, index: number, allowed: Set<string>): ToolConfig {
         : acquire.kind === 'source-build'
           ? sourceBuild(acquire, `${where}.acquire`)
           : fail('config-invalid', `${where}.acquire.kind is unknown`),
+    ...(raw.interactive === true ? { interactive: true as const } : {}),
   };
 }
 

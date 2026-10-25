@@ -26,6 +26,11 @@ shell はありません。pipe・redirect・`$` の展開・glob は `INVALID_I
 Ctrl-L で入力中の行を残したまま画面を消し、Ctrl-C で実行中の command や導入を
 取り消します。Tab と Shift+Tab は端末の外へ focus を移します。
 
+catalog で対話的と決めたツールは、動いている間キーボードを受け取ります。
+Enter や Ctrl-C を含むすべてのキーがツールに渡り、ツールからは page の今の
+大きさの端末に見えます。端末の下の「停止」ボタンで実行を終わらせます
+（`ABORTED`）。
+
 ## 制限
 
 - 何も保存しません。再読み込みや page の移動で session を捨てます。

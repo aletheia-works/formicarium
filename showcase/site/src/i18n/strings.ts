@@ -33,6 +33,7 @@ export const STRINGS = {
     },
     terminalHelp:
       'Builtins: ls, cat, cd, rm -rf, cp, mv and install; clear (or Ctrl-L) empties the screen. Tab moves the focus out of the terminal; Ctrl-C cancels a running command.',
+    terminalStop: 'Stop',
     tool: {
       aube: {
         label: 'aube',
@@ -78,6 +79,7 @@ export const STRINGS = {
     },
     terminalHelp:
       '組込みの command：ls、cat、cd、rm -rf、cp、mv、install。clear（または Ctrl-L）で画面を消します。Tab で端末の外へ focus を移し、Ctrl-C で実行中の command を取り消します。',
+    terminalStop: '停止',
     tool: {
       aube: {
         label: 'aube',

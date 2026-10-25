@@ -61,6 +61,19 @@ test('a missing required field or an unknown field is refused', async () => {
   rejects(() => validateToolsConfig(extra, allowed), 'config-invalid');
 });
 
+test('interactive is kept only as true, and any other value is refused', async () => {
+  const config = await current();
+  config.tools[2]!.interactive = true;
+  const tools = validateToolsConfig(config, allowed).tools;
+  assert.equal(tools[2]!.interactive, true);
+  assert.equal(Object.hasOwn(tools[0]!, 'interactive'), false);
+  for (const value of [false, 'yes', 1, null]) {
+    const bad = await current();
+    bad.tools[0]!.interactive = value;
+    rejects(() => validateToolsConfig(bad, allowed), 'config-invalid');
+  }
+});
+
 test('a duplicate tool is refused', async () => {
   const config = await current();
   config.tools.push(structuredClone(config.tools[0]!));

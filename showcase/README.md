@@ -95,6 +95,8 @@ Safari の job は macOS の System keychain に job CA を信頼させ、leaf �
 3. `tools.json` に条件を加える。公式資産があれば `release-asset`
    （`asset` の名前、`format`、tar.gz なら `archiveEntry`）、なければ
    `source-build`（`builder: "cargo"`、`binary`）。script に分岐は書かない。
+   全画面で動くツールには `interactive: true` を足す。端末の page がキー入力と
+   端末の大きさをそのツールに渡し、「停止」ボタンを出す。
 4. `fixtures/` に demo fixture を加える。
 5. manifest の `resolvedTools[].tool` の型は今は 3 ツールに限られるので、4 つ目を
    加えるときは契約の変更をレビューに出す。

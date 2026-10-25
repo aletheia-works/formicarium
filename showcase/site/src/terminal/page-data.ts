@@ -24,10 +24,14 @@ export interface TerminalPageData {
   catalog: EmbeddedFile;
   fixture: EmbeddedFile | null;
   formicarium: FormicariumManifest;
+  /** Tools whose runs get the keystrokes and a terminal (tools.json `interactive`). */
+  interactive: string[];
 }
 
 const SHA256 = /^[a-f0-9]{64}$/;
 const PATH = /^[a-z0-9][a-z0-9._/-]*$/;
+/** The tool name shape of tools.json. */
+const TOOL = /^[a-z][a-z0-9-]{0,63}$/;
 
 function embedded(value: unknown, name: string): EmbeddedFile {
   const file = value as EmbeddedFile | null;
@@ -67,6 +71,13 @@ export function parsePageData(
     throw new Error('preinstalled page needs a tool and version');
   if (!value.formicarium || typeof value.formicarium !== 'object')
     throw new Error('page data formicarium missing');
+  if (
+    !Array.isArray(value.interactive) ||
+    !value.interactive.every(
+      (tool) => typeof tool === 'string' && TOOL.test(tool),
+    )
+  )
+    throw new Error('page data interactive invalid');
   return {
     mode: value.mode,
     locale: value.locale,
@@ -76,5 +87,6 @@ export function parsePageData(
     catalog: embedded(value.catalog, 'catalog'),
     fixture: preinstalled ? embedded(value.fixture, 'fixture') : null,
     formicarium: value.formicarium,
+    interactive: [...value.interactive],
   };
 }

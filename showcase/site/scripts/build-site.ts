@@ -243,6 +243,7 @@ async function siteData(
         repository: entry.repository,
         fixture: entry.fixture,
         fixtureIndex: { path: index.path, sha256: index.sha256 },
+        ...(entry.interactive ? { interactive: true as const } : {}),
       };
     }),
     formicarium: context.formicarium!,

@@ -13,6 +13,8 @@ export interface SiteTool {
   repository: string;
   fixture: string;
   fixtureIndex: EmbeddedFile;
+  /** tools.json `interactive`: the terminal passes keystrokes to this tool. */
+  interactive?: true;
 }
 export interface SiteData {
   schemaVersion: 1;
@@ -48,6 +50,10 @@ export function loadSiteData(
     throw new Error('site data invalid');
   return value;
 }
+
+/** The tools the terminal pages run interactively (page data `interactive`). */
+export const interactiveTools = (data: SiteData): string[] =>
+  data.tools.filter((tool) => tool.interactive).map((tool) => tool.tool);
 
 export const toolOf = (data: SiteData, tool: string): SiteTool => {
   const found = data.tools.find((item) => item.tool === tool);

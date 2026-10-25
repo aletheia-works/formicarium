@@ -72,6 +72,7 @@ function data(
       assets: { loader: 'l', wasm: 'w', worker: 'k', buildInfo: 'i' },
       files: [],
     },
+    interactive: [],
     ...overrides,
   };
 }
@@ -114,6 +115,8 @@ function harness(
   const cwds: string[] = [];
   let disposed = 0;
   const terminal = {
+    cols: 80,
+    rows: 24,
     write: (text: string) => writes.push(text),
     reset: () => writes.push('<reset>'),
     focus() {},
@@ -253,6 +256,102 @@ test('Ctrl-C cancels a running command; its late output is not shown', async () 
   assert.doesNotMatch(text, /late output|typed while running/);
   assert.equal(h.status.textContent, 'Cancelled (ABORTED).');
   release(result('guest'));
+});
+
+/** Reads a stdin stream to its end as text. */
+async function readAll(stream: ReadableStream<Uint8Array>): Promise<string> {
+  let text = '';
+  const decoder = new TextDecoder();
+  for await (const chunk of stream) text += decoder.decode(chunk);
+  return text;
+}
+
+test('an interactive tool gets every key, a terminal and the Stop button; its screen skips the buffer', async () => {
+  const seen: CommandOptions[] = [];
+  let finish: (value: CommandResult) => void = () => {};
+  const stop = { hidden: true };
+  const h = harness(
+    'empty',
+    (line, options) => {
+      seen.push(options);
+      if (line !== 'nano notes.txt') return Promise.resolve(result('builtin'));
+      options.onOutput?.({
+        runId: 'r',
+        sequence: 0,
+        stream: 'stdout',
+        bytes: encode('\x1b[?1049h\x1b[2J  GNU nano'),
+      });
+      return new Promise((done) => {
+        finish = done;
+      });
+    },
+    { data: data('empty', { interactive: ['nano'] }), stop },
+  );
+  await h.host.start();
+  type(h.host, 'nano notes.txt');
+  await settle();
+  assert.equal(h.host.state, 'running');
+  assert.equal(stop.hidden, false);
+  assert.equal(
+    h.status.textContent,
+    'Running interactively. Keys, Ctrl-C included, go to the tool; press Stop to end it.',
+  );
+  const options = seen[0]!;
+  assert.deepEqual(options.terminal, { columns: 80, rows: 24 });
+  const typed = readAll(options.stdin!);
+  // Keys, Enter as CR and Ctrl-C reach the tool unchanged; nothing is echoed.
+  const before = h.writes.length;
+  h.host.onData('hi\r');
+  h.host.onData('\x03');
+  h.host.onData('é');
+  assert.equal(h.host.state, 'running');
+  assert.equal(h.writes.length, before);
+  assert.ok(h.writes.join('').includes('\x1b[2J  GNU nano'));
+  assert.doesNotMatch(h.host.display.text, /GNU nano/);
+  finish(result('guest'));
+  await settle();
+  assert.equal(await typed, 'hi\r\x03é');
+  assert.equal(stop.hidden, true);
+  assert.equal(h.host.state, 'ready');
+  assert.ok(h.writes.join('').endsWith('/work/app$ '));
+  // A key after the run goes to the line again, and other commands get no stdin.
+  type(h.host, 'ls');
+  await settle();
+  assert.equal(seen[1]?.stdin, undefined);
+  assert.equal(seen[1]?.terminal, undefined);
+});
+
+test('Stop ends an interactive run with ABORTED and closes its stdin', async () => {
+  const seen: CommandOptions[] = [];
+  const stop = { hidden: true };
+  const h = harness(
+    'empty',
+    (_line, options) => {
+      seen.push(options);
+      return new Promise((_done, reject) => {
+        options.signal?.addEventListener('abort', () =>
+          reject(Object.assign(new Error('aborted'), { code: 'ABORTED' })),
+        );
+      });
+    },
+    { data: data('empty', { interactive: ['nano'] }), stop },
+  );
+  await h.host.start();
+  type(h.host, 'nano');
+  await settle();
+  const typed = readAll(seen[0]!.stdin!);
+  h.host.onData('x');
+  h.host.abort();
+  await settle();
+  assert.equal(await typed, 'x');
+  assert.equal(h.host.state, 'ready');
+  assert.equal(stop.hidden, true);
+  assert.equal(h.status.textContent, 'Cancelled (ABORTED).');
+  assert.match(h.writes.join(''), /ABORTED: the command was cancelled\n/);
+  // install is never interactive, even for an interactive tool.
+  type(h.host, 'install nano');
+  await settle();
+  assert.equal(seen[1]?.stdin, undefined);
 });
 
 test('the empty terminal runs builtins once, follows cd and reports empty output', async () => {

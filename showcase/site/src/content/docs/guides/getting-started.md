@@ -28,6 +28,11 @@ history of this page, Ctrl-L to clear the screen while keeping the typed line,
 and Ctrl-C to cancel a running command or install. Tab and
 Shift+Tab move the focus out of the terminal.
 
+A tool marked interactive in the catalog takes the keyboard while it runs:
+every key, Enter and Ctrl-C included, goes to the tool, which sees a terminal
+of the page's current size. A Stop button below the terminal ends the run
+(`ABORTED`).
+
 ## Limits
 
 - Nothing is saved. Reloading or leaving the page discards the session.

@@ -88,6 +88,7 @@ test('only the tool pages and /terminal/ are terminal pages, with their page dat
       data.version,
       data.base,
       data.fixture?.path,
+      data.interactive,
     ],
     [
       'preinstalled',
@@ -96,6 +97,7 @@ test('only the tool pages and /terminal/ are terminal pages, with their page dat
       '2.7.2',
       '/formicarium/',
       'demo-fixtures/aube-local-deps.json',
+      [],
     ],
   );
   const empty = parsePageData(
@@ -107,6 +109,12 @@ test('only the tool pages and /terminal/ are terminal pages, with their page dat
     [empty.mode, empty.locale, empty.fixture],
     ['empty', 'en', null],
   );
+  // The interactive list must be tool names; anything else stops the page.
+  for (const interactive of [undefined, 'nano', ['../nano'], [1]])
+    assert.throws(
+      () => parsePageData(JSON.stringify({ ...empty, interactive })),
+      /page data interactive invalid/,
+    );
 });
 
 test('documentation pages and /tools/ load no terminal module and no service worker', async () => {

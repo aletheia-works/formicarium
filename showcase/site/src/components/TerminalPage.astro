@@ -17,10 +17,11 @@ interface Props {
   description: string;
   intro: string;
   help: string;
+  stop: string;
   hintsTitle: string;
   hints: readonly string[];
 }
-const { data, title, description, intro, help, hintsTitle, hints } =
+const { data, title, description, intro, help, stop, hintsTitle, hints } =
   Astro.props;
 const base = data.base;
 const host = { [TERMINAL_ATTRIBUTE]: JSON.stringify(data) };
@@ -56,6 +57,13 @@ const host = { [TERMINAL_ATTRIBUTE]: JSON.stringify(data) };
     data-testid="terminal-host"
   ></div>
   <p class="terminal-omitted" data-testid="terminal-omitted" hidden></p>
+  <!-- Shown only while an interactive tool runs; it gets Ctrl-C itself. -->
+  <button
+    type="button"
+    class="terminal-stop"
+    data-testid="terminal-stop"
+    hidden>{stop}</button
+  >
   <p>{help}</p>
   <p>{hintsTitle}</p>
   <ul class="terminal-hints" data-testid="terminal-hints">

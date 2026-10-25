@@ -43,6 +43,9 @@ export const ISOLATION_WAIT_MS = 15000;
 
 /** The part of xterm.js the host uses (a fake in unit tests). */
 export interface TerminalLike {
+  /** The size an interactive run is given (fixed for the run). */
+  readonly cols: number;
+  readonly rows: number;
   write(data: string): void;
   reset(): void;
   focus(): void;
@@ -62,6 +65,8 @@ export interface HostOptions {
   omitted: TextElement & { hidden: HTMLElement['hidden'] };
   /** The host element: its data-state mirrors the state for styling and tests. */
   root?: { dataset: Record<string, string | undefined> };
+  /** The Stop button: shown only while an interactive run takes the keys. */
+  stop?: { hidden: HTMLElement['hidden'] };
   pageUrl: string;
   isolation: () => Isolation;
   load?: (
@@ -108,6 +113,9 @@ export class TerminalHost {
   #session: Session | null = null;
   #commands: CommandSession | null = null;
   #isolationTimer: unknown = null;
+  /** The stdin of the running interactive tool; null when none runs. */
+  #input: ReadableStreamDefaultController<Uint8Array> | null = null;
+  readonly #encoder = new TextEncoder();
   /** The last tool an install command registered (shown in the ready text). */
   #installed: { tool: string; version: string } | null = null;
 
@@ -252,9 +260,20 @@ export class TerminalHost {
     }
   }
 
-  /** xterm onData. Nothing is typed before ready or after a failure. */
+  /**
+   * xterm onData. Nothing is typed before ready or after a failure. An
+   * interactive run gets every key unchanged (Ctrl-C included).
+   */
   onData(data: string): void {
     if (!INPUT.includes(this.state)) return;
+    if (this.#input) {
+      try {
+        this.#input.enqueue(this.#encoder.encode(data));
+      } catch {
+        // The run settled and the Session cancelled its stdin: the key is late.
+      }
+      return;
+    }
     for (const action of this.editor.handle(data, BUSY.includes(this.state)))
       this.#apply(action);
   }
@@ -292,7 +311,10 @@ export class TerminalHost {
     }
   }
 
-  /** Ctrl-C while running or installing: ABORTED, late output is dropped. */
+  /**
+   * Ctrl-C while running or installing, or the Stop button of an interactive
+   * run: ABORTED, late output is dropped.
+   */
   abort(): void {
     if (!BUSY.includes(this.state)) return;
     this.#output?.cancel();
@@ -306,6 +328,8 @@ export class TerminalHost {
     const installing = words[0] === 'install' && words.length === 2;
     const target = installing ? (words[1] ?? '') : '';
     const shownVersion = automatic ? (this.#options.data.version ?? '') : '';
+    const interactive =
+      !installing && this.#options.data.interactive.includes(words[0] ?? '');
     this.#setState(installing ? 'installing' : 'running');
     this.#status(
       installing
@@ -315,11 +339,29 @@ export class TerminalHost {
             version: shownVersion,
             progress: null,
           }
-        : { kind: 'running' },
+        : interactive
+          ? { kind: 'interactive' }
+          : { kind: 'running' },
     );
     const run = new AbortController();
     this.#run = run;
-    const output = new CommandOutput({ write: (text) => this.#print(text) });
+    const { terminal } = this.#options;
+    let stdin: ReadableStream<Uint8Array> | undefined;
+    if (interactive) {
+      stdin = new ReadableStream({
+        start: (controller) => {
+          this.#input = controller;
+        },
+      });
+      if (this.#options.stop) this.#options.stop.hidden = false;
+    }
+    // A full-screen tool draws with escape sequences, so its output goes
+    // straight to xterm: the display buffer would cut and redraw it.
+    const output = new CommandOutput({
+      write: interactive
+        ? (text) => terminal.write(text)
+        : (text) => this.#print(text),
+    });
     this.#output = output;
     const onProgress = (progress: Progress) => {
       if (!run.signal.aborted && this.state === 'installing')
@@ -336,6 +378,12 @@ export class TerminalHost {
         signal: run.signal,
         onOutput: output.onOutput,
         onProgress,
+        ...(stdin
+          ? {
+              stdin,
+              terminal: { columns: terminal.cols, rows: terminal.rows },
+            }
+          : {}),
       });
       if (this.state === 'disposed') return;
       if (run.signal.aborted) failure = this.#aborted();
@@ -358,6 +406,7 @@ export class TerminalHost {
       failure = run.signal.aborted ? this.#aborted() : output.fail(error);
     } finally {
       if (this.#run === run) this.#run = null;
+      if (interactive) this.#endInput();
     }
     this.#finish(automatic, failure, output.wrote);
   }
@@ -386,6 +435,18 @@ export class TerminalHost {
     this.#prompt();
   }
 
+  /** The interactive run is over: its stdin ends and the keys return to the line. */
+  #endInput(): void {
+    try {
+      this.#input?.close();
+    } catch {
+      // The Session cancelled the stream when the run settled.
+    }
+    this.#input = null;
+    if (this.#options.stop) this.#options.stop.hidden = true;
+    if (this.state !== 'disposed') this.#options.terminal.focus();
+  }
+
   #aborted(): { code: string; message: string } {
     this.#print('^C\nABORTED: the command was cancelled\n');
     return { code: 'ABORTED', message: 'the command was cancelled' };
@@ -401,6 +462,7 @@ export class TerminalHost {
       );
     this.#output?.cancel();
     this.#run?.abort();
+    this.#endInput();
     this.#page.abort();
     this.#commands = null;
     const session = this.#session;
@@ -440,6 +502,9 @@ export async function startTerminalPage(
   );
   const omitted = document.querySelector<HTMLElement>(
     '[data-testid="terminal-omitted"]',
+  );
+  const stop = document.querySelector<HTMLButtonElement>(
+    '[data-testid="terminal-stop"]',
   );
   if (!element || !status || !omitted) return null;
   const data = parsePageData(element.getAttribute(TERMINAL_ATTRIBUTE));
@@ -489,6 +554,7 @@ export async function startTerminalPage(
     status,
     omitted,
     root: element,
+    ...(stop ? { stop } : {}),
     pageUrl: document.location.href,
     isolation: () => ({
       isolated: globalThis.crossOriginIsolated === true,
@@ -500,6 +566,7 @@ export async function startTerminalPage(
     }),
   });
   terminal.onData((input) => host.onData(input));
+  stop?.addEventListener('click', () => host.abort());
   attachPageEvents(window, host, () => document.location.reload());
   await host.start();
   return host;

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { join } from 'node:path';
 import test from 'node:test';
-import { loadSiteData, toolOf } from '../../src/site-data.ts';
+import { interactiveTools, loadSiteData, toolOf } from '../../src/site-data.ts';
 import { tempDir, writeFiles } from './helpers.ts';
 import { testSiteData } from './site-fixture.ts';
 
@@ -11,6 +11,13 @@ test('the pages read the site data written by the build', async () => {
   const data = loadSiteData(join(root, 'site-data.json'));
   assert.equal(toolOf(data, 'biome').version, '2.5.15');
   assert.throws(() => toolOf(data, 'deno'), /unknown tool deno/);
+});
+
+test('the interactive tools are the ones tools.json marks', () => {
+  const data = testSiteData();
+  assert.deepEqual(interactiveTools(data), []);
+  data.tools[1] = { ...data.tools[1]!, interactive: true };
+  assert.deepEqual(interactiveTools(data), [data.tools[1]!.tool]);
 });
 
 test('missing or empty site data stops the build', async () => {

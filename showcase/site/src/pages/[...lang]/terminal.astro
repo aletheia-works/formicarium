@@ -1,7 +1,7 @@
 ---
 import TerminalPage from '../../components/TerminalPage.astro';
 import { requireStrings, stringsFor } from '../../i18n/strings.ts';
-import { loadSiteData } from '../../site-data.ts';
+import { interactiveTools, loadSiteData } from '../../site-data.ts';
 import type { TerminalPageData } from '../../terminal/page-data.ts';
 
 export function getStaticPaths() {
@@ -24,6 +24,7 @@ const data: TerminalPageData = {
   catalog: site.catalog,
   fixture: null,
   formicarium: site.formicarium,
+  interactive: interactiveTools(site),
 };
 ---
 
@@ -33,6 +34,7 @@ const data: TerminalPageData = {
   description={strings.terminal.description}
   intro={strings.terminal.intro}
   help={strings.terminalHelp}
+  stop={strings.terminalStop}
   hintsTitle={strings.terminal.hints}
   hints={site.tools.map((tool) => `install ${tool.tool}`)}
 />
