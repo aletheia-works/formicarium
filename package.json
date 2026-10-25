@@ -1,6 +1,6 @@
 {
   "name": "@aletheia-works/formicarium",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "description": "Run unmodified x86-64 Linux CLI programs in the browser and Node.js on the paludarium WebAssembly emulator",
   "license": "Apache-2.0",
