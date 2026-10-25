@@ -205,6 +205,7 @@ test('triggers: manual, every PR, and push on the site paths and the pinned rele
     'showcase/site/**',
     '.github/workflows/showcase-site.yml',
     'showcase/scripts/**',
+    'showcase/tests/webdriver.ts',
     'showcase/formicarium-release.json',
   ])
     assert.equal(head.split(`- ${path}\n`).length - 1, 1, path);
@@ -214,7 +215,7 @@ test('triggers: manual, every PR, and push on the site paths and the pinned rele
     table
       .get('changes')!
       .includes(
-        "grep -qE '^(showcase/site/|showcase/scripts/|showcase/fixtures/|showcase/tools\\.json$|showcase/formicarium-release\\.json$|\\.github/workflows/showcase-site\\.yml$)'",
+        "grep -qE '^(showcase/site/|showcase/scripts/|showcase/fixtures/|showcase/tests/webdriver\\.ts$|showcase/tools\\.json$|showcase/formicarium-release\\.json$|\\.github/workflows/showcase-site\\.yml$)'",
       ),
   );
   assert.deepEqual([...table.keys()], ALL);

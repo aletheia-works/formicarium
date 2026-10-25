@@ -11,6 +11,8 @@ on:
       - showcase/site/**
       - .github/workflows/showcase-site.yml
       - showcase/scripts/**
+      # The site's Safari acceptance drives Safari through this client.
+      - showcase/tests/webdriver.ts
       # A new pinned npm release deploys the site with it.
       - showcase/formicarium-release.json
 permissions:
@@ -58,7 +60,7 @@ jobs:
           # formicarium-release.json, so a PR changing them verifies the site
           # too. A push deploys on the site paths and the release pin; deploy
           # tools.json and fixtures by hand.
-          if [ "$count" -ge 3000 ] || grep -qE '^(showcase/site/|showcase/scripts/|showcase/fixtures/|showcase/tools\.json$|showcase/formicarium-release\.json$|\.github/workflows/showcase-site\.yml$)' "$files"; then
+          if [ "$count" -ge 3000 ] || grep -qE '^(showcase/site/|showcase/scripts/|showcase/fixtures/|showcase/tests/webdriver\.ts$|showcase/tools\.json$|showcase/formicarium-release\.json$|\.github/workflows/showcase-site\.yml$)' "$files"; then
             echo site=true >> "$GITHUB_OUTPUT"
           else
             echo site=false >> "$GITHUB_OUTPUT"
