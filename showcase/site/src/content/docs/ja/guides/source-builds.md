@@ -16,8 +16,8 @@ showcase のツールは
   工程には network の token を渡しません。以前の信頼できる main の run に同じ
   `buildKey` の build があれば、compile せずに再利用します。
 
-その後、run は catalog を書き、Node・Chromium・Firefox・WebKit で公開 API を通して
-各ツールを導入して `--version` を実行し、12件の確認がすべて通ったときだけ候補を
+その後、run は catalog を書き、Node・Chromium・Firefox・WebKit・macOS の実機の Safari で
+公開 API を通して各ツールを導入して `--version` を実行し、15件の確認がすべて通ったときだけ候補を
 作ります。このサイトはその候補から作り、`latest` を解決し直しません。
 
 ツールを足すには、`tools.json` の entry、`showcase/fixtures/<名前>/app` の demo の

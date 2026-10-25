@@ -8,7 +8,8 @@
 単体試験・境界の検査・`verify` の受入（3 ツール × Node・Chromium・Firefox・WebKit の
 12 行）は CI で通っている（最初は run 39113037176、2026-10-20 の main `c9b37c4a` では
 run 39412286499）。macOS の実機 Safari の 3 行も受入に加え（`accept-safari` job）、
-15 行がそろわないと候補を作らない。WebKit の結果を Safari の代わりにはしない。
+15 行がそろわないと候補を作らない（15 行がそろった最初の main の run は 40151083995、
+`82a01c27`、Safari 26.6.2）。WebKit の結果を Safari の代わりにはしない。
 
 ## 構成
 

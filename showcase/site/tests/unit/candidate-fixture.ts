@@ -16,7 +16,7 @@ export const TOOLS = [
   { tool: 'biome', version: '2.5.15', fixture: 'biome-basic' },
   { tool: 'pitchfork', version: '2.32.0', fixture: 'pitchfork-basic' },
 ] as const;
-const ENVIRONMENTS = ['chromium', 'firefox', 'node', 'webkit'];
+const ENVIRONMENTS = ['chromium', 'firefox', 'node', 'safari', 'webkit'];
 export const PACK_SHA = 'c'.repeat(64);
 
 /** Small fixtures tree: aube's has the outside/ directory it links to. */

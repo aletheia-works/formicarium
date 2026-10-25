@@ -19,7 +19,13 @@ import {
 } from './common.ts';
 
 export type Mode = 'verify' | 'distribute';
-const ENVIRONMENTS = ['node', 'chromium', 'firefox', 'webkit'] as const;
+const ENVIRONMENTS = [
+  'node',
+  'chromium',
+  'firefox',
+  'webkit',
+  'safari',
+] as const;
 
 /** One line of the candidate-identity log: item, path, expected, actual. */
 export interface CheckLine {
@@ -115,7 +121,7 @@ async function assetLines(
   return lines;
 }
 
-/** (4) the 12 rows: 3 tools x node and 3 browsers, all passed, accepted versions. */
+/** (4) the 15 rows: 3 tools x node, 3 browsers and Safari, all passed, accepted versions. */
 function logLines(log: unknown, manifest: CandidateManifest): CheckLine[] {
   const rows = (log as { rows?: LogRow[] } | null)?.rows;
   if (!Array.isArray(rows))

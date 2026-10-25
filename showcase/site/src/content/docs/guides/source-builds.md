@@ -18,8 +18,8 @@ commit for the rest of the run.
   trusted main run is reused instead of compiling again.
 
 The run then writes the catalog, installs and runs each tool with
-`--version` through the public API in Node, Chromium, Firefox and WebKit, and
-assembles the candidate only when all twelve checks pass. This site is built
+`--version` through the public API in Node, Chromium, Firefox, WebKit and real
+Safari on macOS, and assembles the candidate only when all fifteen checks pass. This site is built
 from that candidate and never resolves `latest` again.
 
 Adding a tool needs an entry in `tools.json`, a demo fixture in

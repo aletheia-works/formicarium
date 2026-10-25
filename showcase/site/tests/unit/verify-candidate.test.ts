@@ -116,7 +116,7 @@ test('(4) a failed, missing or other-version log row fails, and so does the log 
     mismatches(result).map((line) => line.path),
     [
       'acceptance-log.json#aube/chromium',
-      'acceptance-log.json#biome/node',
+      'acceptance-log.json#biome/chromium',
       'acceptance-log.json#biome/firefox',
     ],
   );
@@ -128,6 +128,26 @@ test('(4) a failed, missing or other-version log row fails, and so does the log 
     pack: packRecord(),
   });
   assert.ok(items(changed).includes('4-log-sha256'));
+});
+
+test('(4) a log without the real Safari rows fails; WebKit does not stand in', async () => {
+  const { candidateDir, fixturesDir } = await setup({
+    logRows: (rows) => rows.filter((row) => row.environment !== 'safari'),
+  });
+  const result = await verifyCandidate({
+    mode: 'verify',
+    candidateDir,
+    fixturesDir,
+    pack: packRecord(),
+  });
+  assert.deepEqual(
+    mismatches(result).map((line) => line.path),
+    [
+      'acceptance-log.json#aube/safari',
+      'acceptance-log.json#biome/safari',
+      'acceptance-log.json#pitchfork/safari',
+    ],
+  );
 });
 
 test('(5) a catalog default that is not the accepted version fails', async () => {
