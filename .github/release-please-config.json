@@ -3,7 +3,7 @@
   "bootstrap-sha": "6dccd223a2fc4cb5237db2456403f710cd4dbf8a",
   "bump-minor-pre-major": true,
   "bump-patch-for-minor-pre-major": false,
-  "pull-request-header": "Release Please calculated this version from Conventional Commits. Review the changes and merge this PR to create the tag and GitHub release; publish.yml then publishes the verified package to npm under latest.",
+  "pull-request-header": "Release Please calculated this version from Conventional Commits. Merging this PR approves this version: it creates the tag and GitHub release, and publish.yml then publishes the verified package to npm under latest.",
   "packages": {
     ".": {
       "release-type": "node",

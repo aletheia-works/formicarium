@@ -5,9 +5,10 @@ description: How a formicarium version goes from a release PR to npm.
 ---
 
 Releases are automated as in vivarium. release-please prepares a release PR from
-Conventional Commits; merging it after the required checks creates the matching
-`v<version>` tag and GitHub Release, and `publish.yml` publishes the verified
-package to npm with trusted publishing (OIDC). As in vivarium and paludarium,
+Conventional Commits. Merging it after the required checks is the approval of
+that version: it creates the matching `v<version>` tag and GitHub Release, and
+`publish.yml` publishes the verified package to npm with trusted publishing
+(OIDC). As in vivarium and paludarium,
 there are no prerelease versions: every version is stable and goes to npm's
 `latest` dist-tag. The CI job named release candidate checks the tarball that
 will be published; it is not a prerelease.

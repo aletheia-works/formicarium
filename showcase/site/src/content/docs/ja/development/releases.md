@@ -5,7 +5,7 @@ description: formicarium の版が、リリース PR から npm に届くまで�
 ---
 
 公開は vivarium と同じく自動化しています。release-please が Conventional Commits からリリース PR を作り、
-必須のチェックが通った後にマージすると、対応する `v<version>` のタグと GitHub Release ができます。
+必須のチェックが通った後のマージが、その版の承認です。マージすると、対応する `v<version>` のタグと GitHub Release ができます。
 `publish.yml` が、検証したパッケージを trusted publishing（OIDC）で npm に公開します。
 vivarium や paludarium と同じく、プレリリースの版（RC）は出しません。どの版も安定版として npm の `latest` に
 公開します。CI の「リリース候補」は公開する tarball の検証のことで、プレリリースの版ではありません。
