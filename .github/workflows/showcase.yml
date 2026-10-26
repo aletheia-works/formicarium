@@ -129,6 +129,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: node showcase/scripts/acquire.ts
+      # prepare reads musl-gcc's identity and libc.a into the buildKey.
+      - name: Install native build dependencies
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq musl-tools linux-libc-dev
       - name: Prepare source builds (tag check, source, toolchain, buildKey)
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -142,8 +145,6 @@ jobs:
         with:
           install: false
           cache: false
-      - name: Install native build dependencies
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq musl-tools linux-libc-dev
       # Upstream build scripts run here: no token is passed to this step.
       - name: Source build without token in its own process group
         run: node showcase/scripts/build.ts compile
