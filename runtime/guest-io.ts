@@ -201,6 +201,40 @@ async function collect(stream: ReadableStream<Uint8Array>, sink?: ByteSink) {
 }
 
 /**
+ * Copies `source` to the guest's stdin until it ends, then closes the
+ * guest's stdin; a source that errors gives the guest end of file too.
+ * `stop` (at the guest's exit) cancels the source. A reader is used instead
+ * of pipeTo: Safari 26 never settles a pipeTo aborted while a read is
+ * pending, so an interactive run whose input was still open never ended.
+ */
+function pumpStdin(
+  source: ReadableStream<Uint8Array>,
+  sink: WritableStream<Uint8Array>,
+) {
+  const reader = source.getReader();
+  const writer = sink.getWriter();
+  let stopped = false;
+  void (async () => {
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done || stopped) break;
+        await writer.write(value);
+      }
+    } catch {
+      // An erroring source, or a guest that no longer reads, ends the input.
+    }
+    if (!stopped) await writer.close().catch(() => {});
+  })();
+  return {
+    async stop() {
+      stopped = true;
+      await reader.cancel().catch(() => {});
+    },
+  };
+}
+
+/**
  * コアでゲストを 1 回実行する。ファイルシステムは実行ごとに新しく作る（ADR 0008）。
  * シグナルで終わったゲストの終了コードは、シェルと同じく 128 + シグナル番号にする。
  */
@@ -240,12 +274,7 @@ export async function runGuest(options: GuestOptions): Promise<GuestResult> {
       ...(terminal ? { tty: terminal } : {}),
     });
     if (!stdin) await guest.stdin.close();
-    // An input stream that errors gives the guest end of file. Input stops at
-    // the guest's exit, and pipeTo then cancels the stream.
-    const input = new AbortController();
-    const piped = stdin
-      ?.pipeTo(guest.stdin, { signal: input.signal, preventAbort: true })
-      .catch(() => guest.stdin.close().catch(() => {}));
+    const input = stdin ? pumpStdin(stdin, guest.stdin) : null;
     let exit: Awaited<typeof guest.exited>;
     let stdout: Uint8Array;
     let stderr: Uint8Array;
@@ -260,8 +289,7 @@ export async function runGuest(options: GuestOptions): Promise<GuestResult> {
         cause: error,
       });
     } finally {
-      input.abort();
-      await piped;
+      await input?.stop();
     }
     const exitCode = exit.kind === 'exited' ? exit.code : 128 + exit.signal;
     let snapshot: FsEntry[] | undefined;

@@ -440,6 +440,26 @@ test('a cancelled install registers nothing and the next install works in Safari
   assert.equal(observed.exitCode, 0);
 });
 
+test('a run whose stdin is still open ends with the guest in Safari', async () => {
+  // Safari 26 never settled a pipeTo aborted during a pending read, so the
+  // run waited for its open stdin forever (the site terminal keeps it open).
+  const observed = await inSafari<{ exitCode: number }>(
+    `const guest = new Uint8Array(
+      await (await fetch('/dist/guests/hello')).arrayBuffer(),
+    );
+    const result = await session.run({
+      guest,
+      stdin: new ReadableStream({ start() {} }),
+      terminal: { columns: 80, rows: 24 },
+      timeoutMs: 60000,
+    });
+    return { exitCode: result.exitCode };`,
+    null,
+  );
+  assert.equal(observed.error, undefined);
+  assert.equal(observed.exitCode, 0);
+});
+
 test('ls, cat, cd and rm -rf act on the session files in Safari', async () => {
   const observed = await inSafari<{ outputs: string[]; codes: number[] }>(
     `const shell = api.createCommandSession(session, {
