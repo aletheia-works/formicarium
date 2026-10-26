@@ -95,6 +95,40 @@ test('a repository outside the main allow list is refused', async () => {
   rejects(() => validateToolsConfig(config, allowed), 'source-not-allowed');
 });
 
+test('the allow list takes GitHub and Savannah git repositories only', () => {
+  const list = (repository: string) => () =>
+    validateAllowedSources({ schemaVersion: 1, repositories: [repository] });
+  for (const repository of [
+    'https://github.com/aubepkg/aube',
+    'https://git.savannah.gnu.org/git/nano.git',
+  ])
+    assert.deepEqual(list(repository)().repositories, [repository]);
+  for (const repository of [
+    'http://git.savannah.gnu.org/git/nano.git',
+    'https://git.savannah.gnu.org/git/nano',
+    'https://git.savannah.gnu.org/cgit/nano.git',
+    'https://git.savannah.gnu.org/git/../nano.git',
+    'https://gitlab.com/someone/nano',
+  ])
+    rejects(list(repository), 'config-invalid');
+});
+
+test('a release asset or a Cargo build needs a GitHub repository', async () => {
+  const savannah = {
+    ...allowed,
+    repositories: [
+      ...allowed.repositories,
+      'https://git.savannah.gnu.org/git/biome.git',
+    ],
+  };
+  for (const index of [1, 2]) {
+    const config = await current();
+    config.tools[index]!.repository =
+      'https://git.savannah.gnu.org/git/biome.git';
+    rejects(() => validateToolsConfig(config, savannah), 'config-invalid');
+  }
+});
+
 test('tag patterns must be anchored with exactly one version group', async () => {
   for (const pattern of ['v(\\d+)$', '^v\\d+$', '^(v)(\\d+)$', '^v(\\d+$']) {
     const config = await current();

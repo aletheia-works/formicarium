@@ -58,7 +58,9 @@ export interface FormicariumRelease {
 }
 
 const TOOL = /^[a-z][a-z0-9-]{0,63}$/;
-const REPOSITORY = /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
+/** A GitHub repository, or a Savannah git repository (GNU packages). */
+const REPOSITORY =
+  /^https:\/\/(?:github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+|git\.savannah\.gnu\.org\/git\/[a-z0-9][a-z0-9_-]*\.git)$/;
 const IDENTIFIER = /^[A-Za-z0-9_-]{1,128}$/;
 const ASSET = /^[A-Za-z0-9._@+-]+$/;
 const WORKFLOW = /^\.github\/workflows\/[A-Za-z0-9_.-]+\.ya?ml$/;
@@ -184,6 +186,12 @@ function tool(value: unknown, index: number, allowed: Set<string>): ToolConfig {
   if (!allowed.has(repository))
     fail('source-not-allowed', `${repository} is not in the main allow list`);
   const acquire = record(raw.acquire, `${where}.acquire`);
+  // Release assets and Cargo source builds use the GitHub API and codeload.
+  if (
+    (acquire.kind === 'release-asset' || acquire.kind === 'source-build') &&
+    !repository.startsWith('https://github.com/')
+  )
+    fail('config-invalid', `${where}.repository must be on GitHub`);
   return {
     tool: text(raw.tool, `${where}.tool`, TOOL),
     repository,

@@ -156,7 +156,11 @@ export function createGitHubApi(options: GitHubApiOptions = {}): GitHubApi {
   };
 }
 
-/** owner/repo of an allowed https://github.com/<owner>/<repo> URL. */
+/**
+ * owner/repo of a https://github.com/<owner>/<repo> URL. The allow list also
+ * takes Savannah git URLs, but config.ts gives only GitHub repositories to the
+ * acquire kinds that call this.
+ */
 export function repositorySlug(repository: string): string {
   const match =
     /^https:\/\/github\.com\/([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)$/.exec(
