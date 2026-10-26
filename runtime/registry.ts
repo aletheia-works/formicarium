@@ -31,6 +31,8 @@ export const GUESTS = deepFreeze({
   exit3: { path: 'dist/guests/exit3', env: {} },
   // 対話的な実行（stdin と端末）の確認用
   ttyecho: { path: 'dist/guests/ttyecho', env: {} },
+  // 全画面のエディタ。端末の定義（xterm-256color）はビルドで組み込んであり、terminfo のファイルは要らない
+  nano: { path: 'dist/guests/nano', env: { TERM: 'xterm-256color' } },
   aube: { path: 'dist/guests/aube', env: { AUBE_NO_UPDATE_CHECK: '1' } },
   // 環境変数は不要（2026-10-06 に scripts/pitchfork-probe-paths.sh で native に確認済み）
   pitchfork: { path: 'dist/guests/pitchfork', env: {} },

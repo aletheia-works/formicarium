@@ -148,6 +148,8 @@ jobs:
             docker pull node:current-alpine
             digest=$(docker image inspect --format '{{.Id}}' rust:alpine node:current-alpine | sha256sum | cut -d ' ' -f 1)
             printf 'ui-digest=%s\n' "$digest" >> "$GITHUB_OUTPUT"
+            docker pull alpine:latest
+            printf 'c-digest=%s\n' "$(docker image inspect --format '{{.Id}}' alpine:latest)" >> "$GITHUB_OUTPUT"
           fi
       - name: 'Cache probe by compiler and build inputs'
         if: "matrix.component == 'probe'"
@@ -194,6 +196,22 @@ jobs:
         with:
           path: 'dist/guests/pitchfork*'
           key: '${{ steps.pitchfork-cache.outputs.cache-primary-key }}'
+      - name: 'Restore nano by C compiler image and build inputs'
+        if: "matrix.component == 'guests'"
+        id: 'nano-cache'
+        uses: 'actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9' # v6.1.0
+        with:
+          path: 'dist/guests/nano*'
+          key: "product-nano-${{ runner.os }}-${{ runner.arch }}-${{ steps.build-image.outputs.c-digest }}-${{ hashFiles('mise-tasks/build/guests.sh', 'scripts/lib/container.sh') }}"
+      - name: 'Build unpatched nano and ncurses from digest-checked tarballs'
+        if: "matrix.component == 'guests' && steps.nano-cache.outputs.cache-hit != 'true'"
+        run: 'bash mise-tasks/build/guests.sh nano'
+      - name: 'Save nano before downstream tests can fail'
+        if: "matrix.component == 'guests' && steps.nano-cache.outputs.cache-hit != 'true'"
+        uses: 'actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9' # v6.1.0
+        with:
+          path: 'dist/guests/nano*'
+          key: '${{ steps.nano-cache.outputs.cache-primary-key }}'
       - name: 'Verify reproducible native baselines'
         run: |-
           cp fixtures/baseline/aube-1645.native.txt "$RUNNER_TEMP/aube.native.txt"
@@ -253,7 +271,7 @@ jobs:
           path: 'dist'
           merge-multiple: true
       - name: 'Restore guest executable permissions'
-        run: 'chmod +x dist/guests/probe dist/guests/hello dist/guests/exit3 dist/guests/ttyecho dist/guests/aube dist/guests/pitchfork'
+        run: 'chmod +x dist/guests/probe dist/guests/hello dist/guests/exit3 dist/guests/ttyecho dist/guests/aube dist/guests/pitchfork dist/guests/nano'
       - name: 'Record resolved tools for this suite'
         run: |-
           bun --version
@@ -464,7 +482,7 @@ jobs:
           path: 'dist'
           merge-multiple: true
       - name: 'Restore guest executable permissions'
-        run: 'chmod +x dist/guests/probe dist/guests/hello dist/guests/exit3 dist/guests/ttyecho dist/guests/aube dist/guests/pitchfork'
+        run: 'chmod +x dist/guests/probe dist/guests/hello dist/guests/exit3 dist/guests/ttyecho dist/guests/aube dist/guests/pitchfork dist/guests/nano'
       - name: 'Retain complete compiled products for source-bound candidate inputs'
         uses: 'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9' # v7.0.2
         with:

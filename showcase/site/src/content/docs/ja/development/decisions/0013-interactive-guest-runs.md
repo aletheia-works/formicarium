@@ -35,8 +35,8 @@ stream と端末の大きさ（`tty: { columns, rows }`）を受け付けます�
 
 - showcase の端末は、キーをゲストに渡し、ゲストを自分の操作で止められます。Ctrl-C はエディタのものだからです。
 - 端末の大きさは、1 回の実行の間は変わりません。
-- nano には、stdin の読める状態を正しく報告する paludarium 0.5.0 以降が要ります。ランタイムそのものは `ttyecho`
-  ゲストで確かめます。
+- nano には、stdin の読める状態を正しく報告する paludarium 0.5.0 以降が要ります。product の CI では、`ttyecho`
+  ゲストと、文字を打って保存して終える nano のゲスト（`mise run build-guests nano`）を動かします。
 
 ## 退けた案
 

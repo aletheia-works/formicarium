@@ -61,12 +61,18 @@ in containers:
 mise run build-guests probe       # probe, hello, exit3 and ttyecho (about a minute)
 mise run build-guests aube        # aube (over an hour; rebuild only when its inputs change)
 mise run build-guests pitchfork   # pitchfork, with its web UI built by dist/guests/aube (about 35 minutes cold)
+mise run build-guests nano        # nano with ncurses (about 11 minutes under amd64 emulation on an arm64 Mac)
 mise run native-baseline aube-1645 --check-reproducible
 mise run native-baseline pitchfork-basic --check-reproducible
 ```
 
-CI builds aube v2.7.0 and pitchfork v2.30.1 (`AUBE_REF`, `PITCHFORK_REF`).
-Upstream sources are not patched. The native baselines in
+CI builds aube v2.7.0 and pitchfork v2.30.1 (`AUBE_REF`, `PITCHFORK_REF`),
+and nano 9.3 with ncurses 6.6 (`NANO_VERSION`, `NCURSES_VERSION`). The nano and
+ncurses tarballs are checked against SHA-256 digests in the build script,
+taken from tarballs whose signatures were checked with the GNU keyring; a
+different version needs its digest too (`NANO_SHA256`, `NCURSES_SHA256`).
+ncurses is built with the xterm-256color definition compiled in, so nano needs
+no terminfo files, only `TERM=xterm-256color`. Upstream sources are not patched. The native baselines in
 `fixtures/baseline/` are the expected transcripts; the emulator must produce
 the same output. Guests, their environment and the session scripts are listed
 only in `runtime/registry.ts`. To add a guest, add it there and add its build

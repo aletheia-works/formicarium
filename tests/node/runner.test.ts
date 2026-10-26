@@ -223,7 +223,10 @@ describe('ゲストと手順の表（runtime/registry.js）', () => {
     const built = new Set(listed[1].split(' '));
     for (const name of Object.keys(GUEST_TABLE))
       assert.ok(built.has(name), `${name} がビルドの対象にありません`);
-    assert.match(script, /^case \$what in probe\|aube\|pitchfork\|all\)/m);
+    assert.match(
+      script,
+      /^case \$what in probe\|aube\|pitchfork\|nano\|all\)/m,
+    );
   });
 
   it('ブラウザの一覧（sessions.js）は表と同じ手順を、このファイルからの相対パスで公開する', () => {

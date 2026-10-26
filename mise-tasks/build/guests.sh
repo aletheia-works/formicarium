@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 #MISE alias="build-guests"
 #MISE description="build guests"
-# usage: mise run build-guests [probe|aube|pitchfork|all]
+# usage: mise run build-guests [probe|aube|pitchfork|nano|all]
 # static-musl x86-64 のゲストをコンテナ（rust:alpine）でビルドし、dist/guests/ に置く。
 #   probe     : guest/probe の probe・hello・exit3・ttyecho
 #   aube      : aubepkg/aube の AUBE_REF（既定 v2.6.1）
 #   pitchfork : jdx/pitchfork（公式リポジトリ）の PITCHFORK_REF（既定 v2.30.1）。ソースは変えない
+#   nano      : GNU nano NANO_VERSION（既定 9.3）。ncurses NCURSES_VERSION（既定 6.6）に
+#               xterm-256color の端末定義を組み込み、terminfo のファイルなしで動くようにする。ソースは変えない
 # 取得したコミットは dist/guests/<name>.commit に記録する。
 # ビルド後、dist/guests/ にあるすべてのゲストが x86-64 の static な ELF であることを確かめる。
 # runtime/registry.js の GUESTS にあるゲストは、すべて下の guests に含める
@@ -18,10 +20,10 @@ root=$(cd "$(dirname "$0")/../.." && pwd)
 . "$root/scripts/lib/container.sh"
 
 what=${1:-all}
-case $what in probe|aube|pitchfork|all) ;; *) echo "usage: $0 [probe|aube|pitchfork|all]" >&2; exit 2;; esac
+case $what in probe|aube|pitchfork|nano|all) ;; *) echo "usage: $0 [probe|aube|pitchfork|nano|all]" >&2; exit 2;; esac
 
 # ビルドで作られるゲストの一覧（生成物の確認に使う）
-guests="probe hello exit3 ttyecho aube pitchfork"
+guests="probe hello exit3 ttyecho aube pitchfork nano"
 
 image=${FORMICARIUM_RUST_IMAGE:-rust:alpine}
 aube_repo=${AUBE_REPO:-https://github.com/aubepkg/aube.git}
@@ -40,6 +42,24 @@ if ! [[ $pitchfork_repo =~ ^https://[A-Za-z0-9._/-]+$ ]]; then
   echo "error: PITCHFORK_REPO は https の URL にしてください: $pitchfork_repo" >&2
   exit 2
 fi
+# nano と ncurses の tarball は SHA-256 で確かめる。既定の版の値は、GNU の keyring で署名を
+# 確かめた tarball のもの。別の版を使うときは、その版の値も渡す。
+nano_version=${NANO_VERSION:-9.3}
+nano_sha256=${NANO_SHA256:-a9affc52c9596ee0682bcdd4ceb3c0b235eb221d83d733dfd9b0dff45897cb0d}
+ncurses_version=${NCURSES_VERSION:-6.6}
+ncurses_sha256=${NCURSES_SHA256:-355b4cbbed880b0381a04c46617b7656e362585d52e9cf84a67e2009b749ff11}
+for value in "$nano_version" "$ncurses_version"; do
+  if ! [[ $value =~ ^[0-9]+(\.[0-9]+)+$ ]]; then
+    echo "error: 版の形が正しくありません: $value" >&2
+    exit 2
+  fi
+done
+for value in "$nano_sha256" "$ncurses_sha256"; do
+  if ! [[ $value =~ ^[0-9a-f]{64}$ ]]; then
+    echo "error: SHA-256 の形が正しくありません: $value" >&2
+    exit 2
+  fi
+done
 target=x86_64-unknown-linux-musl
 mkdir -p "$root/dist/guests"
 
@@ -121,11 +141,56 @@ build_pitchfork() {
   " guest/probe/Cargo.toml "$aube_bin" .artifacts/pitchfork-ui-node/node
 }
 
+build_nano() {
+  echo "== nano $nano_version（ncurses $ncurses_version）をビルド（${FORMICARIUM_C_IMAGE:-alpine:latest}）"
+  # ncurses は static で、端末の定義を組み込み（--with-fallbacks）、terminfo を探さない
+  # （--disable-database）。ゲストには TERM=xterm-256color だけを渡せばよい。
+  container_run "${FORMICARIUM_C_IMAGE:-alpine:latest}" dist/guests "
+    apk add --no-cache build-base linux-headers ncurses ncurses-terminfo-base >/dev/null
+    mkdir -p /cache/nano-src && cd /cache/nano-src
+    # 取得済みでも毎回 SHA-256 を確かめ、合わなければ捨てて止める。
+    fetch() {
+      if [ ! -f \"\$1\" ]; then
+        wget -q -O \"\$1.part\" \"\$2\"
+        mv \"\$1.part\" \"\$1\"
+      fi
+      echo \"\$3  \$1\" | sha256sum -c - || { rm -f \"\$1\"; exit 1; }
+    }
+    fetch ncurses-$ncurses_version.tar.gz https://ftp.gnu.org/gnu/ncurses/ncurses-$ncurses_version.tar.gz $ncurses_sha256
+    fetch nano-$nano_version.tar.xz https://www.nano-editor.org/dist/v${nano_version%%.*}/nano-$nano_version.tar.xz $nano_sha256
+    rm -rf /tmp/build && mkdir /tmp/build && cd /tmp/build
+    tar -xzf /cache/nano-src/ncurses-$ncurses_version.tar.gz
+    cd ncurses-$ncurses_version
+    ./configure --prefix=/tmp/ncurses --without-shared --without-cxx --without-cxx-binding \\
+      --without-ada --without-manpages --without-tests --without-progs --enable-widec \\
+      --disable-database --with-fallbacks=xterm-256color >/dev/null
+    make -j\$(nproc) >/dev/null
+    make install >/dev/null
+    cd /tmp/build
+    tar -xJf /cache/nano-src/nano-$nano_version.tar.xz
+    cd nano-$nano_version
+    ./configure --disable-nls --disable-libmagic --disable-speller --enable-utf8 \\
+      CPPFLAGS='-I/tmp/ncurses/include -I/tmp/ncurses/include/ncursesw' \\
+      LDFLAGS='-static -L/tmp/ncurses/lib' NCURSESW_LIBS='-lncursesw' NCURSESW_CFLAGS=' ' >/dev/null
+    make -j\$(nproc) >/dev/null
+    strip -o /out/nano src/nano
+    {
+      echo \"nano=$nano_version\"
+      echo \"nano-sha256=$nano_sha256\"
+      echo \"ncurses=$ncurses_version\"
+      echo \"ncurses-sha256=$ncurses_sha256\"
+      echo \"fallbacks=xterm-256color\"
+      echo \"alpine=\$(cat /etc/alpine-release)\"
+    } > /out/nano.build-info
+  " guest/probe/Cargo.toml
+}
+
 case $what in
   probe) build_probe ;;
   aube) build_aube ;;
   pitchfork) build_pitchfork ;;
-  all) build_probe; build_aube; build_pitchfork ;;
+  nano) build_nano ;;
+  all) build_probe; build_aube; build_pitchfork; build_nano ;;
 esac
 
 # 生成物が static な ELF であること（プログラムヘッダに PT_INTERP がない）を確かめる。

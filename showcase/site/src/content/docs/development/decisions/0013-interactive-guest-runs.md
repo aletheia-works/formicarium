@@ -46,7 +46,8 @@ starts.
   control, since Ctrl-C belongs to the editor.
 - The terminal size is fixed for a run.
 - nano needs paludarium 0.5.0 or later, which reports stdin readiness
-  accurately; the runtime itself is tested with the `ttyecho` guest.
+  accurately. The product CI runs the `ttyecho` guest and a nano guest
+  (`mise run build-guests nano`) that types, saves and exits.
 
 ## Alternatives rejected
 
