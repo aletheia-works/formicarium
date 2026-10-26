@@ -8,7 +8,8 @@
 #   pitchfork : jdx/pitchfork（公式リポジトリ）の PITCHFORK_REF（既定 v2.30.1）。ソースは変えない
 #   nano      : GNU nano NANO_VERSION（既定 9.3）。ncurses NCURSES_VERSION（既定 6.6）に
 #               xterm-256color の端末定義を組み込み、terminfo のファイルなしで動くようにする。ソースは変えない
-# 取得したコミットは dist/guests/<name>.commit に記録する。
+# git から取得したゲストは、取得したコミットを dist/guests/<name>.commit に記録する。nano は tarball から
+# ビルドするので .commit はなく、版と確かめた SHA-256 を dist/guests/nano.build-info に記録する。
 # ビルド後、dist/guests/ にあるすべてのゲストが x86-64 の static な ELF であることを確かめる。
 # runtime/registry.js の GUESTS にあるゲストは、すべて下の guests に含める
 # （tests/node/runner.test.js で確かめる）。
