@@ -4,7 +4,6 @@ import {
   candidateVersion,
   dispatchedCandidateContext,
   releaseCandidateContext,
-  selectedCandidateVersion,
   taggedCandidateContext,
   validateReleaseCandidateContext,
 } from '../../scripts/ci/release-candidate.js';
@@ -48,8 +47,8 @@ for (const input of [
       /observed pull request/,
     ));
 
-test('stable and RC versions are read from package.json without a frozen baseline', () => {
-  for (const version of ['0.1.0', '0.2.0', '1.0.0', '0.2.0-rc.1'])
+test('stable versions are read from package.json without a frozen baseline', () => {
+  for (const version of ['0.1.0', '0.2.0', '1.0.0'])
     assert.equal(candidateVersion(version), version);
   for (const version of [
     'latest',
@@ -57,6 +56,7 @@ test('stable and RC versions are read from package.json without a frozen baselin
     '00.2.0',
     '0.2.0\n',
     '0.2.0-rc.0',
+    '0.2.0-rc.1',
     '../package',
     undefined,
   ])
@@ -268,25 +268,7 @@ test('main dispatch binds the actual source and rejects forks, tags and push eve
   );
 });
 
-test('RC override cannot replace the stable base or enter PR builds', () => {
-  assert.equal(selectedCandidateVersion('0.2.0', '', 'pull_request'), '0.2.0');
-  assert.equal(
-    selectedCandidateVersion('0.2.0', '0.2.0-rc.1', 'workflow_dispatch'),
-    '0.2.0-rc.1',
-  );
-  for (const [base, version, event] of [
-    ['0.2.0', '0.3.0-rc.1', 'workflow_dispatch'],
-    ['0.2.0', '0.2.0', 'workflow_dispatch'],
-    ['0.2.0', '0.2.0-rc.1', 'pull_request'],
-    ['0.2.0-rc.1', '0.2.0-rc.2', 'workflow_dispatch'],
-  ])
-    assert.throws(
-      () => selectedCandidateVersion(base, version, event),
-      /must match/,
-    );
-});
-
-test('dispatch, tags and the release PR select candidate verification and forward only the observed source and RC input', async () => {
+test('dispatch, tags and the release PR select candidate verification and forward only the observed source', async () => {
   const { readFile } = await import('node:fs/promises');
   const { spawnSync } = await import('node:child_process');
   const { parse } = await import('yaml');
@@ -330,29 +312,23 @@ test('dispatch, tags and the release PR select candidate verification and forwar
     /quality=true\nproduct=true\ncandidate=false/,
   );
   await rm(directory, { recursive: true });
-  assert.equal(
-    ci.on.workflow_dispatch.inputs['candidate-version'].required,
-    false,
-  );
+  assert.equal(ci.on.workflow_dispatch, null);
   assert.equal(
     ci.jobs['release-candidate'].with['source-sha'],
     '${{ github.event.pull_request.head.sha || github.sha }}',
   );
-  assert.equal(
-    ci.jobs['release-candidate'].with['candidate-version'],
-    "${{ github.event_name == 'workflow_dispatch' && inputs.candidate-version || '' }}",
-  );
+  assert.deepEqual(Object.keys(ci.jobs['release-candidate'].with), [
+    'source-sha',
+  ]);
   const reusable = parse(
     await readFile('.github/workflows/release-candidate.yml', 'utf8'),
   );
-  for (const job of ['prepare', 'check', 'verify'])
-    assert.equal(
-      reusable.jobs[job].env.CANDIDATE_VERSION,
-      '${{ inputs.candidate-version }}',
-    );
+  assert.deepEqual(Object.keys(reusable.on.workflow_call.inputs), [
+    'source-sha',
+  ]);
 });
 
-test('stable tag measurement rejects RC, mismatched version, forks and unbound source', () => {
+test('tag measurement rejects a prerelease, mismatched version, forks and unbound source', () => {
   const context = {
     repository: 'aletheia-works/formicarium',
     commit: sha,
@@ -380,6 +356,6 @@ test('stable tag measurement rejects RC, mismatched version, forks and unbound s
         { ...context, ref: 'refs/tags/v0.2.1-rc.1' },
         '0.2.1-rc.1',
       ),
-    /upstream stable/,
+    /version invalid/,
   );
 });

@@ -7,7 +7,8 @@ description: formicarium の版が、リリース PR から npm に届くまで�
 公開は vivarium と同じく自動化しています。release-please が Conventional Commits からリリース PR を作り、
 必須のチェックが通った後にマージすると、対応する `v<version>` のタグと GitHub Release ができます。
 `publish.yml` が、検証したパッケージを trusted publishing（OIDC）で npm に公開します。
-安定版の公開に、RC の公開は要りません。
+vivarium や paludarium と同じく、プレリリースの版（RC）は出しません。どの版も安定版として npm の `latest` に
+公開します。CI の「リリース候補」は公開する tarball の検証のことで、プレリリースの版ではありません。
 
 ## 版と契機
 
@@ -32,7 +33,7 @@ Firefox・WebKit の回帰テスト、そしてリリース候補の検証です
 
 `publish.yml` は GitHub API を自分で読みます。同じリポジトリの `aletheia-works-bot` によるリリース PR がちょうど 1 つ
 マージされていること、`main` の上のそのマージ commit、その head の CI の成功を求めます。手動のタグ、fork、
-失敗した CI や古い CI、RC のタグは拒否します。
+失敗した CI や古い CI、`v0.2.0-rc.1` のようなプレリリースのタグは拒否します。
 
 その後、タグのソースで再利用可能な `ci.yml` を、同じビルド・回帰テスト・カバレッジでもう一度動かします。
 タグを付けた commit は PR の head とは別なので、PR の結果は使い回しません。パッケージは、この実行の wasm のビルド・

@@ -19,7 +19,7 @@ import {
 } from './pack.ts';
 import { SHOWCASE_ROOT, workLayout, writeJson } from './paths.ts';
 
-/** Only stable releases are distributed; release candidates stay on npm's next. */
+/** Only stable versions are released and distributed. */
 const STABLE = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 
 /**

@@ -36,9 +36,7 @@ export function releaseCandidateContext(event: {
 export function candidateVersion(version: unknown): string {
   if (
     typeof version !== 'string' ||
-    !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-rc\.[1-9]\d*)?$/.test(
-      version,
-    )
+    !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version)
   )
     throw Error('release candidate version invalid');
   return version;
@@ -70,7 +68,6 @@ export function taggedCandidateContext(
     context.repository !== 'aletheia-works/formicarium' ||
     context.event !== 'push' ||
     context.ref !== `refs/tags/v${candidateVersion(version)}` ||
-    version.includes('-') ||
     !/^[a-f0-9]{40}$/.test(context.commit)
   )
     throw Error(
@@ -79,30 +76,10 @@ export function taggedCandidateContext(
   return context;
 }
 
-export function selectedCandidateVersion(
-  packageVersion: string,
-  requested: string,
-  event: string,
-) {
-  const base = candidateVersion(packageVersion);
-  if (!requested) return base;
-  const version = candidateVersion(requested);
-  if (
-    event !== 'workflow_dispatch' ||
-    base.includes('-') ||
-    !version.startsWith(`${base}-rc.`)
-  )
-    throw Error('RC candidate must match the dispatched package version');
-  return version;
-}
-
+/** Every release is stable; the candidate is package.json's version. */
 async function selectedVersion(root: string) {
   const pkg = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'));
-  return selectedCandidateVersion(
-    pkg.version,
-    process.env.CANDIDATE_VERSION ?? '',
-    process.env.GITHUB_EVENT_NAME ?? '',
-  );
+  return candidateVersion(pkg.version);
 }
 
 /** Bind PR execution to its actual head; the publication validator is unchanged. */
@@ -166,7 +143,7 @@ async function preparePublic(root: string) {
     sourceCommit: context.commit,
     version,
     tag: `v${version}`,
-    distTag: version.includes('-') ? ('next' as const) : ('latest' as const),
+    distTag: 'latest' as const,
   };
   const out = resolve(root, '.artifacts/release-candidate');
   await preparePublication({

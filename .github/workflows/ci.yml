@@ -10,12 +10,7 @@ name: 'CI'
         value: ${{ jobs.release-candidate.outputs.dist-tag }}
       candidate-artifact:
         value: ${{ jobs.release-candidate.outputs.artifact }}
-  workflow_dispatch:
-    inputs:
-      candidate-version:
-        description: 'Optional RC version matching package.json (for example 0.2.0-rc.1); never publishes'
-        required: false
-        type: string
+  workflow_dispatch: null
   pull_request: null
   push:
     branches:
@@ -496,7 +491,6 @@ jobs:
     uses: ./.github/workflows/release-candidate.yml
     with:
       source-sha: ${{ github.event.pull_request.head.sha || github.sha }}
-      candidate-version: ${{ github.event_name == 'workflow_dispatch' && inputs.candidate-version || '' }}
   commit-format:
     runs-on: 'ubuntu-latest'
     timeout-minutes: 10

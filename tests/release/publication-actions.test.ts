@@ -13,7 +13,7 @@ const workflow = parse(await readFile('.github/workflows/publish.yml', 'utf8'));
 // Run the actual YAML shell steps. Only npm/GitHub network writes are replaced.
 async function fixtureActions(
   t: TestContext,
-  stable = false,
+  stable = true,
   existingRelease = false,
 ) {
   const f = stable ? await stableBundle(t) : await bundle(t);
@@ -90,29 +90,31 @@ async function fixtureActions(
   return { ...f, calls, run };
 }
 
-test('actual YAML publishes the same RC/stable tarball with correct npm flags', async (t) => {
-  for (const stable of [false, true]) {
-    const f = await fixtureActions(t, stable);
-    await f.run('publish');
-    const calls = await f.calls();
-    assert.equal(calls.length, 1);
-    assert.deepEqual(calls[0], {
-      name: 'bunx',
-      args: [
-        'npm@latest',
-        'publish',
-        './candidate.tgz',
-        '--provenance',
-        '--access',
-        'public',
-        '--registry',
-        'https://registry.npmjs.org/',
-        '--tag',
-        stable ? 'latest' : 'next',
-        '--ignore-scripts',
-      ],
-    });
-  }
+test('actual YAML publishes the stable tarball under latest and refuses an RC', async (t) => {
+  const f = await fixtureActions(t);
+  await f.run('publish');
+  const calls = await f.calls();
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0], {
+    name: 'bunx',
+    args: [
+      'npm@latest',
+      'publish',
+      './candidate.tgz',
+      '--provenance',
+      '--access',
+      'public',
+      '--registry',
+      'https://registry.npmjs.org/',
+      '--tag',
+      'latest',
+      '--ignore-scripts',
+    ],
+  });
+  // The stored 0.1.0 evidence still describes an RC on next; no release is.
+  const rc = await fixtureActions(t, false);
+  await assert.rejects(rc.run('publish'), /dist-tag must be latest, got next/);
+  assert.equal((await rc.calls()).length, 0);
 });
 test('actual YAML rejects modified downloads before either external writer', async (t) => {
   for (const mode of ['publish', 'release'] as const) {
@@ -150,7 +152,7 @@ test('missing candidate approval and stable adoption emit no artifact and invoke
     );
   }
 });
-test('Release YAML requires its approval and marks only RC as prerelease', async (t) => {
+test('Release YAML requires its approval and never marks a prerelease', async (t) => {
   for (const stable of [false, true]) {
     const f = await fixtureActions(t, stable);
     assert.equal(await f.run('release'), 'skipped');
@@ -178,7 +180,7 @@ test('Release YAML requires its approval and marks only RC as prerelease', async
       f.request.identity.repository,
     ]);
     assert.ok(call.args.includes('--verify-tag'));
-    assert.equal(call.args.includes('--prerelease'), !stable);
+    assert.ok(!call.args.includes('--prerelease'));
   }
 });
 test('unknown npm result fails once and cannot automatically resend', async (t) => {

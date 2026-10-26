@@ -7,8 +7,10 @@ description: How a formicarium version goes from a release PR to npm.
 Releases are automated as in vivarium. release-please prepares a release PR from
 Conventional Commits; merging it after the required checks creates the matching
 `v<version>` tag and GitHub Release, and `publish.yml` publishes the verified
-package to npm with trusted publishing (OIDC). A release candidate is not a
-prerequisite for a stable release.
+package to npm with trusted publishing (OIDC). As in vivarium and paludarium,
+there are no prerelease versions: every version is stable and goes to npm's
+`latest` dist-tag. The CI job named release candidate checks the tarball that
+will be published; it is not a prerelease.
 
 ## Version and triggers
 
@@ -41,7 +43,7 @@ counts a part only if it measured the same inputs and instrumentation.
 `publish.yml` reads the GitHub API itself. It requires exactly one merged
 release-please PR from `aletheia-works-bot` in the same repository, its exact
 merge commit on `main`, and successful CI for its head. Manual tags, forks,
-failed or stale CI and release-candidate tags are refused.
+failed or stale CI and prerelease tags such as `v0.2.0-rc.1` are refused.
 
 After that, the tag's source runs the reusable `ci.yml` again with the same
 build, regression and coverage. The tagged commit differs from the PR head, so
