@@ -15,10 +15,11 @@ batch programs could run. paludarium already accepts a guest stdin stream and a
 terminal size (`tty: { columns, rows }`): with it, the guest sees a terminal
 (`isatty`, `TCGETS`, `TIOCGWINSZ`) and gets every key byte as it is sent,
 because the core has no line discipline. Switching to raw mode (`TCSETS`) fails
-with `ENOTTY`, which nano tolerates. Two limits remain in the core: stdin is
-always reported readable by `poll` and `select`, which keeps nano from redrawing
-while keys arrive (a fix is requested from paludarium), and the terminal size
-cannot change after the guest starts.
+with `ENOTTY`, which nano tolerates. paludarium 0.4.0 also reported stdin as
+always readable by `poll` and `select`, which kept nano from redrawing while
+keys arrived; 0.5.0 reports it readable only with pending input or at its end.
+One limit remains in the core: the terminal size cannot change after the guest
+starts.
 
 ## Decision
 
@@ -44,8 +45,8 @@ cannot change after the guest starts.
 - The showcase terminal can forward keys to a guest and stop it with its own
   control, since Ctrl-C belongs to the editor.
 - The terminal size is fixed for a run.
-- nano works end to end only once paludarium reports stdin readiness
-  accurately; until then the runtime is tested with the `ttyecho` guest.
+- nano needs paludarium 0.5.0 or later, which reports stdin readiness
+  accurately; the runtime itself is tested with the `ttyecho` guest.
 
 ## Alternatives rejected
 
