@@ -31,7 +31,8 @@ Shift+Tab move the focus out of the terminal.
 
 A tool marked interactive in the catalog takes the keyboard while it runs:
 every key, Enter and Ctrl-C included, goes to the tool, which sees a terminal
-of the page's current size. A Stop button below the terminal ends the run
+of the size the page's terminal has when the tool starts (it does not follow
+later resizes). A Stop button below the terminal ends the run
 (`ABORTED`).
 
 ## Limits
