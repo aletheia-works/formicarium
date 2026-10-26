@@ -74,9 +74,10 @@ different version needs its digest too (`NANO_SHA256`, `NCURSES_SHA256`).
 ncurses is built with the xterm-256color definition compiled in, so nano needs
 no terminfo files, only `TERM=xterm-256color`. Upstream sources are not
 patched. The native baselines in `fixtures/baseline/` are the expected
-transcripts; the emulator must produce the same output. Guests, their environment and the session scripts are listed
-only in `runtime/registry.ts`. To add a guest, add it there and add its build
-target, fixtures, baseline and tests. `mise run pitchfork-probe-paths` shows,
+transcripts; the emulator must produce the same output. Guests, their
+environment and the session scripts are listed only in `runtime/registry.ts`.
+To add a guest, add it there and add its build target, fixtures, baseline and
+tests. `mise run pitchfork-probe-paths` shows,
 natively, which paths each pitchfork command writes.
 
 ## Tests
