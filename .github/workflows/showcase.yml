@@ -98,6 +98,7 @@ jobs:
             showcase/.work/resolutions.json
             showcase/.work/licenses/
             showcase/.work/pack/
+            showcase/.work/tarballs/
   acquire:
     needs: resolve
     runs-on: ubuntu-24.04
@@ -140,7 +141,7 @@ jobs:
           install: false
           cache: false
       - name: Install native build dependencies
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq musl-tools
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq musl-tools linux-libc-dev
       # Upstream build scripts run here: no token is passed to this step.
       - name: Source build without token in its own process group
         run: node showcase/scripts/build.ts compile
@@ -225,7 +226,7 @@ jobs:
           node node_modules/@biomejs/biome/bin/biome check showcase biome.json
           node node_modules/typescript/bin/tsc -p showcase/tsconfig.json
       - name: Showcase unit tests with 80% line coverage of showcase/scripts
-        run: node --test --test-concurrency=1 --experimental-test-coverage --test-coverage-include='showcase/scripts/**' --test-coverage-lines=80 showcase/tests/runner-ready.test.ts showcase/tests/config.test.ts showcase/tests/resolve.test.ts showcase/tests/acquire.test.ts showcase/tests/archive.test.ts showcase/tests/build-key.test.ts showcase/tests/build.test.ts showcase/tests/reuse.test.ts showcase/tests/catalog.test.ts showcase/tests/pack.test.ts showcase/tests/candidate.test.ts showcase/tests/boundary.test.ts showcase/tests/mode.test.ts showcase/tests/workflow.test.ts
+        run: node --test --test-concurrency=1 --experimental-test-coverage --test-coverage-include='showcase/scripts/**' --test-coverage-lines=80 showcase/tests/runner-ready.test.ts showcase/tests/config.test.ts showcase/tests/resolve.test.ts showcase/tests/gnu.test.ts showcase/tests/acquire.test.ts showcase/tests/archive.test.ts showcase/tests/build-key.test.ts showcase/tests/build.test.ts showcase/tests/reuse.test.ts showcase/tests/catalog.test.ts showcase/tests/pack.test.ts showcase/tests/candidate.test.ts showcase/tests/boundary.test.ts showcase/tests/mode.test.ts showcase/tests/workflow.test.ts
       - name: Public import boundary
         run: node showcase/scripts/boundary.ts
       - name: Create a job-only localhost CA and leaf (CA key deleted at once)

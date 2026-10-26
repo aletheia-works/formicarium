@@ -46,7 +46,7 @@ test('SHOWCASE_SITE_DATA selects the file when no path is given', async () => {
   const previous = process.env.SHOWCASE_SITE_DATA;
   process.env.SHOWCASE_SITE_DATA = join(root, 'site-data.json');
   try {
-    assert.equal(loadSiteData().tools.length, 3);
+    assert.equal(loadSiteData().tools.length, 4);
   } finally {
     if (previous === undefined) delete process.env.SHOWCASE_SITE_DATA;
     else process.env.SHOWCASE_SITE_DATA = previous;

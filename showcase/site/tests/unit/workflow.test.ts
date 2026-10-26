@@ -530,7 +530,7 @@ test('timeouts, pinned actions, credentials and artifacts follow the infrastruct
   );
 });
 
-test('accept-safari runs the 16 tests in real Safari on macOS and removes the job CA', () => {
+test('accept-safari runs the 20 tests in real Safari on macOS and removes the job CA', () => {
   const job = table.get('accept-safari')!;
   assert.match(job, /runs-on: macos-latest/);
   assert.match(

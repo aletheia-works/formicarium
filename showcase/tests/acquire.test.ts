@@ -29,6 +29,7 @@ import {
   releaseRoutes,
   sha,
 } from './fixtures/github.ts';
+import { gnuOptions, ncursesTagRoutes } from './fixtures/gnu.ts';
 import { tgz } from './fixtures/tar.ts';
 import { MAIN_ALLOWED, readMain, withLayout } from './fixtures/work.ts';
 
@@ -225,6 +226,7 @@ function siteRoutes() {
       commit: commit('biome'),
       assets: [{ name: 'biome-linux-x64-musl', bytes: biomeElf }],
     }),
+    ...ncursesTagRoutes(),
   };
 }
 
@@ -235,6 +237,7 @@ test('the acquire job stores verified copies and never builds a release-asset to
       api: createGitHubApi({ fetchImpl: fakeFetch(routes) }),
       readMain,
       layout,
+      gnu: gnuOptions(),
     });
     const records = await runAcquireOfficialJob({
       validate: validateGuest,
@@ -261,6 +264,7 @@ test('the acquire job stores verified copies and never builds a release-asset to
       api: createGitHubApi({ fetchImpl: fakeFetch(routes) }),
       readMain,
       layout,
+      gnu: gnuOptions(),
     });
     const missing: Record<string, unknown> = { ...routes };
     delete missing[

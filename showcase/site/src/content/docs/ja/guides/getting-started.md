@@ -10,7 +10,7 @@ description: formicarium の showcase の端末の使い方と制限。
 準備完了・実行中・エラー）を文字で示します。
 
 [空の端末](/formicarium/ja/terminal/)は何も導入していない状態で始まります。
-`install aube`・`install pitchfork`・`install biome` を打ってから、たとえば
+`install aube`・`install pitchfork`・`install biome`・`install nano` を打ってから、たとえば
 `biome --version` を実行します。
 
 ## command

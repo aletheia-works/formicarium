@@ -45,6 +45,11 @@ export const STRINGS = {
         summary:
           'A formatter and linter for web projects. The sample project has a biome.json and two scripts.',
       },
+      nano: {
+        label: 'nano',
+        summary:
+          'A small text editor for the terminal. The sample project has a note to edit; save with Ctrl-O and leave with Ctrl-X.',
+      },
       pitchfork: {
         label: 'pitchfork',
         summary:
@@ -91,6 +96,11 @@ export const STRINGS = {
         summary:
           'web の project の formatter と linter。試しの project に biome.json と2つの script があります。',
       },
+      nano: {
+        label: 'nano',
+        summary:
+          '端末で使う小さなテキストエディタ。試しの project に編集できるメモがあります。Ctrl-O で保存し、Ctrl-X で終わります。',
+      },
       pitchfork: {
         label: 'pitchfork',
         summary:
@@ -111,6 +121,7 @@ export const HINTS: Readonly<Record<string, readonly string[]>> = Object.freeze(
       'aube --help',
     ],
     biome: ['biome --version', 'ls', 'cat example.js', 'biome --help'],
+    nano: ['nano --version', 'ls', 'cat note.txt', 'nano note.txt'],
     pitchfork: [
       'pitchfork --version',
       'ls',

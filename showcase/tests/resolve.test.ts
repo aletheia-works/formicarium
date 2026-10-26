@@ -22,6 +22,7 @@ import {
   type Route,
   releaseRoutes,
 } from './fixtures/github.ts';
+import { gnuOptions, ncursesTagRoutes } from './fixtures/gnu.ts';
 import { MAIN_ALLOWED, readMain, withLayout } from './fixtures/work.ts';
 
 const tools = validateToolsConfig(
@@ -57,6 +58,7 @@ const all = () => ({
     assets: [biomeAsset],
     annotated: true,
   }),
+  ...ncursesTagRoutes(),
 });
 const api = (routes: Record<string, Route>) =>
   createGitHubApi({ token: 'test-token', fetchImpl: fakeFetch(routes) });
@@ -71,6 +73,7 @@ test('resolves every tool once, peels annotated tags and writes resolutions once
       readMain,
       layout,
       now: () => new Date('2026-10-18T00:00:00Z'),
+      gnu: gnuOptions(),
     });
     assert.deepEqual(
       resolutions.tools.map((item) => [item.tool, item.version, item.commit]),
@@ -78,6 +81,7 @@ test('resolves every tool once, peels annotated tags and writes resolutions once
         ['aube', '2.7.0', commit('aube')],
         ['pitchfork', '2.30.0', commit('pitchfork')],
         ['biome', '2.5.15', commit('biome')],
+        ['nano', '9.3', commit('nano')],
       ],
     );
     assert.equal(resolutions.tools[1]!.asset, null);
@@ -91,7 +95,7 @@ test('resolves every tool once, peels annotated tags and writes resolutions once
       'MIT License\n',
     );
     await rejects(
-      runResolveJob({ api: api(all()), readMain, layout }),
+      runResolveJob({ api: api(all()), readMain, layout, gnu: gnuOptions() }),
       'output-exists',
     );
   });

@@ -41,6 +41,53 @@
         "asset": "biome-linux-x64-musl",
         "format": "elf"
       }
+    },
+    {
+      "tool": "nano",
+      "repository": "https://git.savannah.gnu.org/git/nano.git",
+      "tagPattern": "^v(\\d+\\.\\d+(?:\\.\\d+)?)$",
+      "fixture": "nano-basic",
+      "interactive": true,
+      "acquire": {
+        "kind": "gnu-source",
+        "builder": "autotools",
+        "package": "nano",
+        "tag": "v{version}",
+        "signers": ["168E6F4297BFD7A79AFD4496514BBE2EB8E1961F"],
+        "spdx": "GPL-3.0-or-later",
+        "configure": [
+          "--disable-nls",
+          "--disable-libmagic",
+          "--disable-speller",
+          "--enable-utf8",
+          "NCURSESW_CFLAGS=-I{prefix}/include/ncursesw",
+          "NCURSESW_LIBS=-lncursesw"
+        ],
+        "binary": "nano",
+        "output": "src/nano",
+        "libraries": [
+          {
+            "package": "ncurses",
+            "repository": "https://github.com/ThomasDickey/ncurses-snapshots",
+            "tag": "v{major}_{minor}",
+            "signers": ["19882D92DDA4C400C22C0D56CC2AF4472167BE03"],
+            "spdx": "X11",
+            "configure": [
+              "--without-shared",
+              "--without-cxx",
+              "--without-cxx-binding",
+              "--without-ada",
+              "--without-manpages",
+              "--without-tests",
+              "--without-progs",
+              "--enable-widec",
+              "--disable-database",
+              "--with-fallbacks=xterm-256color",
+              "--with-build-cc=gcc"
+            ]
+          }
+        ]
+      }
     }
   ]
 }

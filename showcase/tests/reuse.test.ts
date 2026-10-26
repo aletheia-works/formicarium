@@ -23,6 +23,7 @@ const trusted = validateTrustedCallers(
 );
 const elf = staticElf(180, 4);
 const plan: BuildPlan = {
+  builder: 'cargo',
   tool: 'pitchfork',
   version: '2.30.0',
   tag: 'v2.30.0',
@@ -44,6 +45,7 @@ const plan: BuildPlan = {
   nodeBin: null,
   nodeVersion: null,
   runner: null,
+  gnu: null,
   dependencies: [
     {
       tool: 'cargo-lock',

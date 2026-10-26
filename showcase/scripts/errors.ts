@@ -31,6 +31,7 @@ export const CAUSE_CODES = Object.freeze([
   'acceptance-row-missing',
   'mode-rejected',
   'output-exists',
+  'signature-invalid',
 ] as const);
 export type CauseCode = (typeof CAUSE_CODES)[number];
 

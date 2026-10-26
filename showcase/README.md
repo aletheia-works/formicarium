@@ -1,6 +1,6 @@
 # showcase
 
-最新の安定版の aube・pitchfork・Biome を、formicarium の**公開 export だけ**で
+最新の安定版の aube・pitchfork・Biome・nano を、formicarium の**公開 export だけ**で
 受入し、showcase の候補（`ShowcaseCandidateManifest`、catalog、guest）を作る。
 配布（Pages）は showcase site（`site/`、`showcase-site.yml`）が、この候補を受け取って
 行う。showcase は候補を長期保存しない。
@@ -10,6 +10,7 @@
 run 39412286499）。macOS の実機 Safari の 3 行も受入に加え（`accept-safari` job）、
 15 行がそろわないと候補を作らない（15 行がそろった最初の main の run は 40151083995、
 `82a01c27`、Safari 26.6.2）。WebKit の結果を Safari の代わりにはしない。
+nano を加えて 4 ツールになったので、今は 20 行（4 ツール × 5 環境）がそろうまで候補を作らない。
 
 ## 構成
 
@@ -23,6 +24,8 @@ showcase/
 ├── formicarium-release.json  # distribute が使う npm の版（版・integrity・タグのコミット）
 ├── fixtures/                 # demo fixture（showcase site が使う。回帰用の fixtures/ とは別）
 ├── builders/cargo.sh         # cargo を絶対 path で呼ぶ builder
+├── builders/autotools.sh     # GNU の tarball を musl-gcc で configure・make する builder
+├── keys/                     # GNU の tarball の署名を確かめる、作者の公開鍵（package ごと）
 ├── scripts/                  # 解決・取得・build・再利用・catalog・pack・候補・受入・境界
 └── tests/                    # node:test の単体試験、Playwright の受入、違反 fixture
 ```
@@ -47,8 +50,8 @@ fixture の共有は `scripts/boundary.ts` と Biome の `noRestrictedImports` �
 | source build | `scripts/build.ts`、`builders/cargo.sh`                                    | `prepare`：tag と commit の一致、codeload の source、toolchain の選択、buildKey。`compile`：token なしの独立した process group で build                      |
 | 再利用       | `scripts/reuse.ts`                                                         | main の信頼した workflow の成功 run の `showcase-candidate` から、buildKey・ELF・build-info を照合して再利用                                                 |
 | catalog      | `scripts/catalog.ts`                                                       | `GuestCatalog`（same-origin の相対 URL）。公開 `createInstaller` で受理を確かめる                                                                            |
-| 受入         | `scripts/accept-node.ts`、`tests/accept.spec.ts`、`tests/accept-safari.ts` | `install <tool>` と `<tool> --version`。3 ツール × Node・Chromium・Firefox・WebKit・実機 Safari の 15 行                                                     |
-| 候補         | `scripts/candidate.ts`                                                     | 15 行がすべて合格したときだけ manifest を作る。`verify` は常に `distributable: false`                                                                        |
+| 受入         | `scripts/accept-node.ts`、`tests/accept.spec.ts`、`tests/accept-safari.ts` | `install <tool>` と `<tool> --version`。4 ツール × Node・Chromium・Firefox・WebKit・実機 Safari の 20 行                                                     |
+| 候補         | `scripts/candidate.ts`                                                     | 20 行がすべて合格したときだけ manifest を作る。`verify` は常に `distributable: false`                                                                        |
 
 toolchain は upstream の宣言（`rust-toolchain.toml`・`rust-toolchain`、UI の
 Node は `.node-version`・`mise.toml`・`.tool-versions` の正確な版）に従い、
@@ -94,12 +97,18 @@ Safari の job は macOS の System keychain に job CA を信頼させ、leaf �
    （許可一覧は main の定義だけが効く）。
 3. `tools.json` に条件を加える。公式資産があれば `release-asset`
    （`asset` の名前、`format`、tar.gz なら `archiveEntry`）、なければ
-   `source-build`（`builder: "cargo"`、`binary`）。script に分岐は書かない。
+   `source-build`（`builder: "cargo"`、`binary`）。GitHub ではなく GNU の tarball で
+   公開されるものは `gnu-source`（`builder: "autotools"`、`package`、`tag`、`signers`、
+   `spdx`、`configure`、`binary`、`output`、`libraries`）。script に分岐は書かない。
    全画面で動くツールには `interactive: true` を足す。端末の page がキー入力と
    端末の大きさをそのツールに渡し、「停止」ボタンを出す。
 4. `fixtures/` に demo fixture を加える。
-5. manifest の `resolvedTools[].tool` の型は今は 3 ツールに限られるので、4 つ目を
-   加えるときは契約の変更をレビューに出す。
+5. `gnu-source` では、`ftp.gnu.org` の一覧の最も新しい版の `.sig` を
+   `keys/<package>.gpg` で `gpgv` が確かめ、`signers` の主鍵の署名だけを受け入れる。
+   鍵は作者が公開しているものを書き出し、fingerprint を確かめてから置く。nano の鍵は
+   GNU の keyring から、ncurses の鍵は GNU の keyring の写しが期限切れなので作者の
+   サイトの最新のものから取った（どちらも 2029 年に期限が切れるので、その前に入れ替える）。
+   ゲストの横の `sources/<tool>/` に tarball と `.sig` を置き、GPL の対応する source とする。
 
 ## mode と showcase site
 

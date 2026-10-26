@@ -1,0 +1,1 @@
+Edit this note with nano, then save it with Ctrl-O and leave with Ctrl-X.

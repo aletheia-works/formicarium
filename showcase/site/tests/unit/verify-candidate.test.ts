@@ -145,6 +145,7 @@ test('(4) a log without the real Safari rows fails; WebKit does not stand in', a
     [
       'acceptance-log.json#aube/safari',
       'acceptance-log.json#biome/safari',
+      'acceptance-log.json#nano/safari',
       'acceptance-log.json#pitchfork/safari',
     ],
   );
@@ -152,7 +153,12 @@ test('(4) a log without the real Safari rows fails; WebKit does not stand in', a
 
 test('(5) a catalog default that is not the accepted version fails', async () => {
   const { candidateDir, fixturesDir } = await setup({
-    catalogDefaults: { aube: '2.7.1', biome: '2.5.15', pitchfork: '2.32.0' },
+    catalogDefaults: {
+      aube: '2.7.1',
+      biome: '2.5.15',
+      nano: '9.3',
+      pitchfork: '2.32.0',
+    },
   });
   const result = await verifyCandidate({
     mode: 'verify',

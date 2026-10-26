@@ -295,7 +295,7 @@ test('prepare fixes source, toolchain, dependencies and buildKey before any comp
       fetchImpl: fakeFetch({ [codeload]: bytes(sourceTgz()) }),
       exec,
     });
-    assert.equal(plan.toolchain.rustChannel, 'stable');
+    assert.equal(plan.toolchain?.rustChannel, 'stable');
     assert.deepEqual(
       plan.dependencies.map((item) => item.tool),
       ['cargo-lock', 'aube'],
@@ -329,6 +329,7 @@ test('compile runs the builder without a token and validates through the public 
     );
     await chmod(cargo, 0o755);
     const plan: BuildPlan = {
+      builder: 'cargo',
       tool: 'pitchfork',
       version: '2.30.0',
       tag: 'v2.30.0',
@@ -350,6 +351,7 @@ test('compile runs the builder without a token and validates through the public 
       nodeBin: null,
       nodeVersion: null,
       runner: null,
+      gnu: null,
       dependencies: [
         {
           tool: 'cargo-lock',
@@ -379,5 +381,205 @@ test('compile runs the builder without a token and validates through the public 
       ),
       'build-failed',
     );
+  });
+});
+
+/** GNU tarballs whose configure writes a Makefile; the program copies an ELF. */
+function gnuBuildTarball(name: string, elfPath: string | null) {
+  const make = elfPath
+    ? `all:\n\tmkdir -p src && cp '${elfPath}' src/${name}\n`
+    : 'all:\n\ttrue\ninstall:\n\ttrue\n';
+  return tgz([
+    { name: `${name}-1.0`, type: '5' },
+    { name: `${name}-1.0/COPYING`, body: 'license\n' },
+    {
+      name: `${name}-1.0/configure`,
+      mode: 0o755,
+      body:
+        '#!/bin/sh\nset -e\ntest -z "$GITHUB_TOKEN"\ntest "$CC" = musl-gcc\n' +
+        'for a in "$@"; do echo "$a" >> configure.args; done\n' +
+        `printf '%s' '${make.replaceAll("'", "'\\''")}' > Makefile\n`,
+    },
+  ]);
+}
+
+async function gnuResolution(layout: { tarballs: string; root: string }) {
+  const elf = staticElf(170, 7);
+  await mkdir(layout.root, { recursive: true });
+  await writeFile(join(layout.root, 'nano.elf'), elf);
+  await mkdir(layout.tarballs, { recursive: true });
+  const tarball = async (name: string, elfPath: string | null) => {
+    const body = gnuBuildTarball(name, elfPath);
+    const file = `${name}-1.0.tar.gz`;
+    await writeFile(join(layout.tarballs, file), body);
+    return {
+      name: file,
+      url: `https://ftp.gnu.org/gnu/${name}/${file}`,
+      sha256: sha(body),
+      size: body.length,
+      signatureUrl: `https://ftp.gnu.org/gnu/${name}/${file}.sig`,
+      signatureSha256: sha('sig'),
+      signer: 'A'.repeat(40),
+    };
+  };
+  const license = (name: string) => ({
+    path: 'COPYING',
+    file: `${name}-COPYING`,
+    sha256: sha('license\n'),
+    spdx: 'X11',
+  });
+  const nanoResolution: ToolResolution = {
+    tool: 'nano',
+    repository: 'https://git.savannah.gnu.org/git/nano.git',
+    tag: 'v9.3',
+    version: '9.3',
+    commit: commit('nano'),
+    asset: null,
+    attestation: null,
+    license: license('nano'),
+    gnu: {
+      tarball: await tarball('nano', join(layout.root, 'nano.elf')),
+      libraries: [
+        {
+          package: 'ncurses',
+          repository: 'https://github.com/ThomasDickey/ncurses-snapshots',
+          tag: 'v6_6',
+          version: '6.6',
+          commit: commit('ncurses'),
+          tarball: await tarball('ncurses', null),
+          license: license('ncurses'),
+        },
+      ],
+    },
+  };
+  return { elf, resolution: nanoResolution };
+}
+
+const nanoConfig = tools.tools.find((item) => item.tool === 'nano')!;
+const ncursesApi = () =>
+  createGitHubApi({
+    fetchImpl: fakeFetch({
+      'https://api.github.com/repos/ThomasDickey/ncurses-snapshots/git/ref/tags/v6_6':
+        json({
+          ref: 'refs/tags/v6_6',
+          object: { type: 'commit', sha: commit('ncurses') },
+        }),
+    }),
+  });
+const gnuExecFor =
+  (libc: string) => (file: string, args: readonly string[]) => {
+    if (file === 'git') return `${commit('nano')}\trefs/tags/v9.3^{}`;
+    if (file === 'musl-gcc' && args[0] === '--version')
+      return 'gcc (Ubuntu 13.3.0) 13.3.0\nCopyright';
+    if (file === 'musl-gcc') return libc;
+    throw Error(`unexpected ${file}`);
+  };
+
+test('a gnu-source plan unpacks the checked tarballs, libraries first', async () => {
+  await withLayout(async (layout) => {
+    const { resolution: nanoResolution } = await gnuResolution(layout);
+    const libc = join(layout.root, 'libc.a');
+    await writeFile(libc, 'musl libc');
+    const plan = await prepareBuild({
+      config: nanoConfig,
+      resolution: nanoResolution,
+      layout,
+      api: ncursesApi(),
+      acquired: [],
+      exec: gnuExecFor(libc),
+    });
+    assert.equal(plan.builder, 'autotools');
+    assert.equal(plan.rustcVersion, null);
+    assert.deepEqual(
+      plan.gnu?.steps.map((step) => step.package),
+      ['ncurses', 'nano'],
+    );
+    assert.deepEqual(plan.gnu?.cc, {
+      compiler: 'gcc (Ubuntu 13.3.0) 13.3.0',
+      muslLibcSha256: sha('musl libc'),
+    });
+    assert.deepEqual(
+      plan.dependencies.map((item) => [item.tool, item.commit, item.digest]),
+      [
+        [
+          'ncurses',
+          commit('ncurses'),
+          nanoResolution.gnu!.libraries[0]!.tarball.sha256,
+        ],
+        ['source-tarball', commit('nano'), nanoResolution.gnu!.tarball.sha256],
+      ],
+    );
+    await access(join(plan.gnu!.steps[1]!.sourceDir, 'configure'));
+    const info = sourceBuildInfo(plan, '0'.repeat(64));
+    assert.equal(info.rustc, null);
+    assert.equal((info.provenance as { builder: string }).builder, 'autotools');
+    // A moved tag, a changed tarball and a missing toolchain stop prepare.
+    for (const [changes, code] of [
+      [
+        { exec: () => `${commit('moved')}\trefs/tags/v9.3` },
+        'commit-unreachable',
+      ],
+      [
+        {
+          resolution: {
+            ...nanoResolution,
+            gnu: {
+              ...nanoResolution.gnu!,
+              tarball: {
+                ...nanoResolution.gnu!.tarball,
+                sha256: 'f'.repeat(64),
+              },
+            },
+          },
+        },
+        'checksum-mismatch',
+      ],
+      [
+        {
+          exec: (file: string, args: readonly string[]) => {
+            if (file === 'musl-gcc') throw Error('not installed');
+            return gnuExecFor(libc)(file, args);
+          },
+        },
+        'toolchain-unavailable',
+      ],
+    ] as const)
+      await rejects(
+        prepareBuild({
+          config: nanoConfig,
+          resolution: nanoResolution,
+          layout: { ...layout, sources: join(layout.root, `s-${code}`) },
+          api: ncursesApi(),
+          acquired: [],
+          exec: gnuExecFor(libc),
+          ...changes,
+        } as never),
+        code,
+      );
+  });
+});
+
+test('an autotools compile builds each package without a token and validates the ELF', async () => {
+  await withLayout(async (layout) => {
+    const { elf, resolution: nanoResolution } = await gnuResolution(layout);
+    const libc = join(layout.root, 'libc.a');
+    await writeFile(libc, 'musl libc');
+    const plan = await prepareBuild({
+      config: nanoConfig,
+      resolution: nanoResolution,
+      layout,
+      api: ncursesApi(),
+      acquired: [],
+      exec: gnuExecFor(libc),
+    });
+    const record = await compilePlan(plan, { layout, validate: validateGuest });
+    assert.equal(record.elfSha256, sha(elf));
+    assert.equal(record.buildInfo.rustc, null);
+    const args = await readFile(
+      join(plan.gnu!.steps[1]!.sourceDir, 'configure.args'),
+      'utf8',
+    );
+    assert.match(args, /^--prefix=\/.+\/prefix\n--disable-nls\n/);
+    assert.match(args, /NCURSESW_CFLAGS=-I\/.+\/prefix\/include\/ncursesw\n/);
   });
 });

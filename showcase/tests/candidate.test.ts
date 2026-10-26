@@ -12,7 +12,7 @@ import {
   requireAllRows,
 } from '../scripts/acceptance.ts';
 import { storeAcquired } from '../scripts/acquire.ts';
-import { canonicalJson } from '../scripts/build-key.ts';
+import { canonicalJson, sha256 } from '../scripts/build-key.ts';
 import {
   assembleCandidate,
   type CandidateManifest,
@@ -250,6 +250,97 @@ test('verify assembles a non-distributable candidate whose id matches its manife
         '2.7.0',
         'build-info.json',
       ),
+    );
+  });
+});
+
+/** biome's resolution as if built from a signed GNU tarball with one library. */
+async function withGnuSources(layout: WorkLayout, tarballBody = 'tarball') {
+  const resolutions = resolutionsOf(fixtures);
+  const biome = resolutions.tools.find((item) => item.tool === 'biome')!;
+  const tarball = (name: string) => ({
+    name: `${name}-1.0.tar.gz`,
+    url: `https://ftp.gnu.org/gnu/${name}/${name}-1.0.tar.gz`,
+    sha256: sha256('tarball'),
+    size: 7,
+    signatureUrl: `https://ftp.gnu.org/gnu/${name}/${name}-1.0.tar.gz.sig`,
+    signatureSha256: sha256('sig'),
+    signer: 'A'.repeat(40),
+  });
+  biome.gnu = {
+    tarball: tarball('biome'),
+    libraries: [
+      {
+        package: 'ncurses',
+        repository: 'https://github.com/ThomasDickey/ncurses-snapshots',
+        tag: 'v6_6',
+        version: '6.6',
+        commit: commit('ncurses'),
+        tarball: tarball('ncurses'),
+        license: {
+          path: 'COPYING',
+          file: 'ncurses-COPYING',
+          sha256: sha256('X11\n'),
+          spdx: 'X11',
+        },
+      },
+    ],
+  };
+  await writeJson(layout.resolutions, resolutions);
+  await writeFile(join(layout.licenses, 'ncurses-COPYING'), 'X11\n');
+  await mkdir(layout.tarballs, { recursive: true });
+  for (const name of ['biome', 'ncurses']) {
+    await writeFile(join(layout.tarballs, `${name}-1.0.tar.gz`), tarballBody);
+    await writeFile(join(layout.tarballs, `${name}-1.0.tar.gz.sig`), 'sig');
+  }
+  return resolutions;
+}
+
+test('a GNU guest brings its library license and its signed sources', async () => {
+  await withLayout(async (layout) => {
+    const { packageRoot, pack } = await seed(layout);
+    const resolutions = await withGnuSources(layout);
+    await assembleCandidate({
+      layout,
+      mode: 'verify',
+      sourceCommit,
+      pack,
+      log: logOf(rowsFor()),
+      packageRoot,
+    });
+    const site = join(layout.candidate, 'site');
+    for (const path of [
+      'licenses/ncurses-COPYING',
+      'sources/biome/biome-1.0.tar.gz',
+      'sources/biome/biome-1.0.tar.gz.sig',
+      'sources/biome/ncurses-1.0.tar.gz',
+      'sources/biome/ncurses-1.0.tar.gz.sig',
+    ])
+      await access(join(site, path));
+    const notices = noticesText(resolutions);
+    assert.equal(await readFile(join(site, 'NOTICES.md'), 'utf8'), notices);
+    assert.match(
+      notices,
+      / {2}- with ncurses 6\.6 .+ X11 — licenses\/ncurses-COPYING/,
+    );
+    assert.match(
+      notices,
+      / {2}- source: sources\/biome\/ncurses-1\.0\.tar\.gz /,
+    );
+  });
+  await withLayout(async (layout) => {
+    const { packageRoot, pack } = await seed(layout);
+    await withGnuSources(layout, 'changed');
+    await assert.rejects(
+      assembleCandidate({
+        layout,
+        mode: 'verify',
+        sourceCommit,
+        pack,
+        log: logOf(rowsFor()),
+        packageRoot,
+      }),
+      (error) => causeOf(error) === 'checksum-mismatch',
     );
   });
 });

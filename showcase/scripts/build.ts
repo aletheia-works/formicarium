@@ -17,7 +17,12 @@ import {
 } from './acquire.ts';
 import { gunzipBounded, readTar, singleRoot, writeTree } from './archive.ts';
 import { builderHash, buildKey, sha256 } from './build-key.ts';
-import type { SourceBuildAcquire, ToolConfig, UiBuild } from './config.ts';
+import type {
+  GnuSourceAcquire,
+  SourceBuildAcquire,
+  ToolConfig,
+  UiBuild,
+} from './config.ts';
 import { fail, runCli, ShowcaseError } from './errors.ts';
 import {
   createGitHubApi,
@@ -44,6 +49,7 @@ import {
   resolutionFor,
   resolveTagCommit,
   type ToolResolution,
+  tagCommit,
 } from './resolve.ts';
 
 export interface ToolchainSelection {
@@ -52,7 +58,19 @@ export interface ToolchainSelection {
   nodeVersion: string | null;
   nodeDeclaredBy: string | null;
 }
+/** One configure-and-make run of an autotools build, in build order. */
+export interface GnuBuildStep {
+  package: string;
+  sourceDir: string;
+  configure: string[];
+}
+/** The C toolchain of an autotools build: its compiler and musl's libc.a. */
+export interface CToolchain {
+  compiler: string;
+  muslLibcSha256: string;
+}
 export interface BuildPlan {
+  builder: 'cargo' | 'autotools';
   tool: string;
   version: string;
   tag: string;
@@ -62,10 +80,13 @@ export interface BuildPlan {
   binary: string;
   package: string | null;
   ui: UiBuild | null;
-  toolchain: ToolchainSelection;
-  cargo: string;
-  rustc: string;
-  rustcVersion: string;
+  /** cargo only. */
+  toolchain: ToolchainSelection | null;
+  cargo: string | null;
+  rustc: string | null;
+  rustcVersion: string | null;
+  /** autotools only: libraries first, the program last. */
+  gnu: { steps: GnuBuildStep[]; output: string; cc: CToolchain } | null;
   nodeBin: string | null;
   nodeVersion: string | null;
   runner: { tool: string; elfPath: string; elfSha256: string } | null;
@@ -391,6 +412,7 @@ export async function prepareBuild(
   options: PrepareOptions,
 ): Promise<BuildPlan> {
   const { config, resolution, layout } = options;
+  if (config.acquire.kind === 'gnu-source') return prepareGnuBuild(options);
   if (config.acquire.kind !== 'source-build')
     fail(
       'config-invalid',
@@ -444,6 +466,7 @@ export async function prepareBuild(
     node: node?.nodeVersion ?? null,
   });
   const plan: BuildPlan = {
+    builder: 'cargo',
     tool: config.tool,
     version: resolution.version,
     tag: resolution.tag,
@@ -460,14 +483,126 @@ export async function prepareBuild(
     nodeBin: node?.nodeBin ?? null,
     nodeVersion: node?.nodeVersion ?? null,
     runner,
+    gnu: null,
     dependencies,
     builderHash: hash,
     buildKey: '',
   };
+  return writePlan(layout, plan);
+}
+
+async function writePlan(layout: WorkLayout, plan: BuildPlan) {
   // buildKey excludes elfSha256, so a placeholder digest gives the same key.
   plan.buildKey = sourceBuildInfo(plan, '0'.repeat(64)).buildKey;
-  await writeJson(join(layout.plans, `${config.tool}.json`), plan);
+  await writeJson(join(layout.plans, `${plan.tool}.json`), plan);
   return plan;
+}
+
+/** musl-gcc's compiler identity and the SHA256 of the libc.a it links. */
+export async function cToolchain(
+  exec: Exec = defaultExec,
+): Promise<CToolchain> {
+  try {
+    const compiler = exec('musl-gcc', ['--version']).split('\n')[0]!.trim();
+    const libc = exec('musl-gcc', ['-print-file-name=libc.a']);
+    if (!compiler || !isAbsolute(libc))
+      fail('toolchain-unavailable', 'musl-gcc did not report its libc.a');
+    return { compiler, muslLibcSha256: sha256(await readFile(libc)) };
+  } catch (error) {
+    if (error instanceof ShowcaseError) throw error;
+    return fail('toolchain-unavailable', 'musl-gcc unavailable', error);
+  }
+}
+
+/**
+ * gnu-source: the tarballs resolve.ts verified by signature are checked by
+ * SHA256 again and unpacked; each tag must still name its commit.
+ */
+export async function prepareGnuBuild(
+  options: PrepareOptions,
+): Promise<BuildPlan> {
+  const { config, resolution, layout } = options;
+  const acquire = config.acquire as GnuSourceAcquire;
+  if (!resolution.gnu)
+    fail('config-invalid', `${config.tool} has no resolved GNU tarballs`);
+  const own = {
+    package: acquire.package,
+    repository: resolution.repository,
+    tag: resolution.tag,
+    commit: resolution.commit,
+    tarball: resolution.gnu.tarball,
+  };
+  const configured = new Map(
+    [acquire, ...acquire.libraries].map((item) => [
+      item.package,
+      item.configure,
+    ]),
+  );
+  const sourceDir = join(layout.sources, `${config.tool}-${resolution.commit}`);
+  const steps: GnuBuildStep[] = [];
+  const dependencies: GuestBuildInfo['dependencies'][number][] = [];
+  for (const item of [...resolution.gnu.libraries, own]) {
+    const commit = await tagCommit(
+      options.api,
+      item.repository,
+      item.tag,
+      options.exec,
+    );
+    if (commit !== item.commit)
+      fail('commit-unreachable', `${item.tag} no longer names the commit`);
+    let bytes: Uint8Array;
+    try {
+      bytes = await readFile(join(layout.tarballs, item.tarball.name));
+    } catch (error) {
+      return fail('config-invalid', `${item.tarball.name} missing`, error);
+    }
+    if (sha256(bytes) !== item.tarball.sha256)
+      fail('checksum-mismatch', `${item.tarball.name} differs from resolve`);
+    const tar = await gunzipBounded(
+      bytes,
+      SOURCE_ARCHIVE_LIMITS.maxExpandedBytes,
+    );
+    const { entries } = readTar(tar, SOURCE_ARCHIVE_LIMITS);
+    const directory = join(sourceDir, item.package);
+    await writeTree(entries, directory, singleRoot(entries));
+    const configure = configured.get(item.package);
+    if (!configure) fail('config-invalid', `${item.package} is not configured`);
+    steps.push({ package: item.package, sourceDir: directory, configure });
+    dependencies.push({
+      tool: item === own ? 'source-tarball' : item.package,
+      repository: item.repository,
+      commit: item.commit,
+      digest: item.tarball.sha256,
+    });
+  }
+  const cc = await cToolchain(options.exec);
+  const plan: BuildPlan = {
+    builder: 'autotools',
+    tool: config.tool,
+    version: resolution.version,
+    tag: resolution.tag,
+    repository: resolution.repository,
+    commit: resolution.commit,
+    sourceDir,
+    binary: acquire.binary,
+    package: null,
+    ui: null,
+    toolchain: null,
+    cargo: null,
+    rustc: null,
+    rustcVersion: null,
+    nodeBin: null,
+    nodeVersion: null,
+    runner: null,
+    gnu: { steps, output: acquire.output, cc },
+    dependencies,
+    builderHash: builderHash(await builderInventory(), {
+      compiler: cc.compiler,
+      muslLibc: cc.muslLibcSha256,
+    }),
+    buildKey: '',
+  };
+  return writePlan(layout, plan);
 }
 
 /** Guest metadata of a source build; extra fields record the toolchain. */
@@ -487,15 +622,24 @@ export function sourceBuildInfo(
     builderHash: plan.builderHash,
     buildKey: '',
     elfSha256,
-    provenance: {
-      kind: 'source-build',
-      releaseTag: plan.tag,
-      rustChannel: plan.toolchain.rustChannel,
-      rustDeclaredBy: plan.toolchain.rustDeclaredBy,
-      node: plan.nodeVersion,
-      nodeDeclaredBy: plan.toolchain.nodeDeclaredBy,
-      note: PROVENANCE_NOTE,
-    },
+    provenance: plan.gnu
+      ? {
+          kind: 'source-build',
+          releaseTag: plan.tag,
+          builder: 'autotools',
+          compiler: plan.gnu.cc.compiler,
+          muslLibcSha256: plan.gnu.cc.muslLibcSha256,
+          note: PROVENANCE_NOTE,
+        }
+      : {
+          kind: 'source-build',
+          releaseTag: plan.tag,
+          rustChannel: plan.toolchain?.rustChannel ?? null,
+          rustDeclaredBy: plan.toolchain?.rustDeclaredBy ?? null,
+          node: plan.nodeVersion,
+          nodeDeclaredBy: plan.toolchain?.nodeDeclaredBy ?? null,
+          note: PROVENANCE_NOTE,
+        },
   };
   info.buildKey = buildKey(info);
   return info;
@@ -521,6 +665,32 @@ export async function compilePlan(
     const out = join(staging, 'out');
     await mkdir(bin, { recursive: true });
     await mkdir(out, { recursive: true });
+    if (plan.gnu) {
+      const prefix = join(staging, 'prefix');
+      const env = buildEnvironment({});
+      const steps = plan.gnu.steps;
+      for (const [index, step] of steps.entries()) {
+        const program = index === steps.length - 1;
+        await runInGroup({
+          command: '/bin/bash',
+          args: [
+            join(SHOWCASE_ROOT, 'builders', 'autotools.sh'),
+            program ? 'program' : 'library',
+            step.sourceDir,
+            prefix,
+            ...(program ? [plan.gnu.output, join(out, plan.binary)] : []),
+            ...step.configure,
+          ],
+          cwd: step.sourceDir,
+          env,
+          deadlineMs: remaining(),
+          signal: options.signal,
+        });
+      }
+      return finishCompile(plan, out, options, started);
+    }
+    if (!plan.cargo || !plan.rustc)
+      fail('config-invalid', `${plan.tool} plan has no Rust toolchain`);
     const path = [
       bin,
       dirname(plan.cargo),
@@ -570,18 +740,28 @@ export async function compilePlan(
       deadlineMs: remaining(),
       signal: options.signal,
     });
-    const elf = new Uint8Array(await readFile(join(out, plan.binary)));
-    if (elf.length > TRANSFER_POLICY.maxElfBytes)
-      fail('size-limit', `${plan.tool} ELF exceeds the ELF limit`);
-    const info = sourceBuildInfo(plan, sha256(elf));
-    if (info.buildKey !== plan.buildKey)
-      fail('build-failed', 'buildKey changed while compiling');
-    const buildInfoSha256 = validateWithPublicApi(options.validate, elf, info);
-    const record = sourceRecord(plan, elf, info, buildInfoSha256, null);
-    record.timing.fetchMs = Math.round(performance.now() - started);
-    await storeAcquired(options.layout, record, elf, elf);
-    return record;
+    return finishCompile(plan, out, options, started);
   });
+}
+
+/** The built ELF is validated through the public API and stored. */
+async function finishCompile(
+  plan: BuildPlan,
+  out: string,
+  options: CompileOptions,
+  started: number,
+): Promise<AcquiredTool> {
+  const elf = new Uint8Array(await readFile(join(out, plan.binary)));
+  if (elf.length > TRANSFER_POLICY.maxElfBytes)
+    fail('size-limit', `${plan.tool} ELF exceeds the ELF limit`);
+  const info = sourceBuildInfo(plan, sha256(elf));
+  if (info.buildKey !== plan.buildKey)
+    fail('build-failed', 'buildKey changed while compiling');
+  const buildInfoSha256 = validateWithPublicApi(options.validate, elf, info);
+  const record = sourceRecord(plan, elf, info, buildInfoSha256, null);
+  record.timing.fetchMs = Math.round(performance.now() - started);
+  await storeAcquired(options.layout, record, elf, elf);
+  return record;
 }
 
 export function sourceRecord(
@@ -621,7 +801,7 @@ export async function loadPlans(
 ) {
   const plans: BuildPlan[] = [];
   for (const config of tools)
-    if (config.acquire.kind === 'source-build')
+    if (config.acquire.kind !== 'release-asset')
       plans.push(
         (await readJson(
           join(layout.plans, `${config.tool}.json`),
@@ -638,7 +818,7 @@ async function main(verb: string | undefined) {
     const api = createGitHubApi({ token: process.env.GITHUB_TOKEN });
     const acquired = await loadAcquired(layout);
     for (const config of tools.tools)
-      if (config.acquire.kind === 'source-build')
+      if (config.acquire.kind !== 'release-asset')
         console.log(
           `${config.tool} buildKey ${(await prepareBuild({ config, resolution: resolutionFor(resolutions, config.tool), layout, api, acquired })).buildKey}`,
         );

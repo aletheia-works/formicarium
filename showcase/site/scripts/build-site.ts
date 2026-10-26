@@ -45,6 +45,7 @@ export const GENERATED_PUBLIC = [
   '_formicarium',
   'guests',
   'licenses',
+  'sources',
   'demo-fixtures',
   'catalog.json',
   'NOTICES.md',

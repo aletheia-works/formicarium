@@ -9,6 +9,7 @@ const SHA = 'a'.repeat(64);
 export const TEST_TOOLS = [
   { tool: 'aube', version: '2.7.2', fixture: 'aube-local-deps' },
   { tool: 'biome', version: '2.5.15', fixture: 'biome-basic' },
+  { tool: 'nano', version: '9.3', fixture: 'nano-basic' },
   { tool: 'pitchfork', version: '2.32.0', fixture: 'pitchfork-basic' },
 ];
 

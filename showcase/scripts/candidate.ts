@@ -112,18 +112,38 @@ export function resolvedTools(
 /** Deterministic third-party notice index; no times or run data. */
 export function noticesText(resolutions: Resolutions): string {
   const lines = ['# Showcase guest notices', ''];
-  for (const tool of resolutions.tools)
+  for (const tool of resolutions.tools) {
     lines.push(
       `- ${tool.tool} ${tool.version} (${tool.repository} @ ${tool.commit}): ` +
         `${tool.license.spdx ?? 'license file'} — licenses/${tool.license.file} ` +
         `(sha256 ${tool.license.sha256})`,
     );
+    if (!tool.gnu) continue;
+    for (const library of tool.gnu.libraries)
+      lines.push(
+        `  - with ${library.package} ${library.version} ` +
+          `(${library.repository} @ ${library.commit}): ` +
+          `${library.license.spdx} — licenses/${library.license.file} ` +
+          `(sha256 ${library.license.sha256})`,
+      );
+    for (const tarball of gnuTarballs(tool))
+      lines.push(
+        `  - source: sources/${tool.tool}/${tarball.name} and its .sig ` +
+          `(sha256 ${tarball.sha256}, from ${tarball.url})`,
+      );
+  }
   lines.push(
     '- formicarium: licenses/formicarium-LICENSE, licenses/formicarium-THIRD_PARTY_NOTICES.md',
     '',
   );
   return lines.join('\n');
 }
+
+/** The signed tarballs a gnu-source guest was built from, in build order. */
+const gnuTarballs = (tool: Resolutions['tools'][number]) =>
+  tool.gnu
+    ? [...tool.gnu.libraries.map((item) => item.tarball), tool.gnu.tarball]
+    : [];
 
 export interface AssembleOptions {
   layout: WorkLayout;
@@ -163,11 +183,29 @@ export async function assembleCandidate(
     options.packageRoot ??
     join(SHOWCASE_ROOT, 'node_modules', '@aletheia-works', 'formicarium');
   await mkdir(join(site, 'licenses'), { recursive: true });
-  for (const tool of resolutions.tools)
-    await copyFile(
-      join(layout.licenses, tool.license.file),
-      join(site, 'licenses', tool.license.file),
-    );
+  for (const tool of resolutions.tools) {
+    for (const license of [
+      tool.license,
+      ...(tool.gnu?.libraries.map((item) => item.license) ?? []),
+    ])
+      await copyFile(
+        join(layout.licenses, license.file),
+        join(site, 'licenses', license.file),
+      );
+    // The corresponding source of a GPL guest is served beside it.
+    for (const tarball of gnuTarballs(tool)) {
+      await mkdir(join(site, 'sources', tool.tool), { recursive: true });
+      for (const [file, digest] of [
+        [tarball.name, tarball.sha256],
+        [`${tarball.name}.sig`, tarball.signatureSha256],
+      ] as const) {
+        const bytes = await readFile(join(layout.tarballs, file));
+        if (sha256(bytes) !== digest)
+          fail('checksum-mismatch', `${file} differs from resolve`);
+        await writeOnce(join(site, 'sources', tool.tool, file), bytes);
+      }
+    }
+  }
   await copyFile(
     join(packageRoot, 'LICENSE'),
     join(site, 'licenses', 'formicarium-LICENSE'),

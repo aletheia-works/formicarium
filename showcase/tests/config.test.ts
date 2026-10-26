@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 import {
   assetName,
+  gnuTag,
   readConfigFile,
   validateAllowedSources,
   validateFormicariumRelease,
@@ -14,6 +15,7 @@ import { causeOf } from '../scripts/errors.ts';
 import { MAIN_ALLOWED, withLayout } from './fixtures/work.ts';
 
 const allowed = validateAllowedSources(JSON.parse(MAIN_ALLOWED));
+const SIGNER = '168E6F4297BFD7A79AFD4496514BBE2EB8E1961F';
 type ToolJson = Record<string, unknown> & { acquire: Record<string, unknown> };
 const current = async () =>
   structuredClone(await readConfigFile('tools.json')) as { tools: ToolJson[] };
@@ -28,6 +30,7 @@ test('the committed tools.json, allow list, callers and release pin are valid', 
       ['aube', 'release-asset'],
       ['pitchfork', 'source-build'],
       ['biome', 'release-asset'],
+      ['nano', 'gnu-source'],
     ],
   );
   assert.deepEqual(
@@ -93,6 +96,49 @@ test('a repository outside the main allow list is refused', async () => {
   const config = await current();
   config.tools[2]!.repository = 'https://github.com/someone/biome';
   rejects(() => validateToolsConfig(config, allowed), 'source-not-allowed');
+});
+
+test('a gnu-source tool needs pinned signers, a version tag and allowed libraries', async () => {
+  const nano = (config: { tools: ToolJson[] }) =>
+    config.tools.find((item) => item.tool === 'nano')!;
+  const ncurses = (config: { tools: ToolJson[] }) =>
+    (nano(config).acquire.libraries as Record<string, unknown>[])[0]!;
+  const parsed = validateToolsConfig(await current(), allowed).tools.find(
+    (item) => item.tool === 'nano',
+  );
+  assert.equal(parsed?.acquire.kind, 'gnu-source');
+  assert.equal(parsed?.interactive, true);
+  assert.equal(gnuTag('v{major}_{minor}', '6.6'), 'v6_6');
+  assert.equal(gnuTag('v{version}.{patch}', '9.3'), 'v9.3.0');
+  const refused: [(config: { tools: ToolJson[] }) => void, string][] = [
+    [(config) => (nano(config).acquire.builder = 'meson'), 'config-invalid'],
+    [(config) => (nano(config).acquire.signers = ['abc']), 'config-invalid'],
+    [
+      (config) => (nano(config).acquire.signers = [SIGNER, SIGNER]),
+      'config-invalid',
+    ],
+    [(config) => (nano(config).acquire.tag = 'v9.3'), 'config-invalid'],
+    [(config) => (nano(config).acquire.package = 'Nano'), 'config-invalid'],
+    [(config) => (nano(config).acquire.configure = '--x'), 'config-invalid'],
+    [
+      (config) => (nano(config).acquire.configure = ['--x; rm -rf /']),
+      'config-invalid',
+    ],
+    [(config) => (nano(config).acquire.output = '../nano'), 'config-invalid'],
+    [(config) => (nano(config).acquire.libraries = {}), 'config-invalid'],
+    [(config) => (ncurses(config).package = 'nano'), 'config-invalid'],
+    [(config) => (ncurses(config).extra = true), 'config-invalid'],
+    [
+      (config) =>
+        (ncurses(config).repository = 'https://github.com/someone/ncurses'),
+      'source-not-allowed',
+    ],
+  ];
+  for (const [change, code] of refused) {
+    const config = await current();
+    change(config);
+    rejects(() => validateToolsConfig(config, allowed), code);
+  }
 });
 
 test('the allow list takes GitHub and Savannah git repositories only', () => {

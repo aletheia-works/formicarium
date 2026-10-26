@@ -10,8 +10,8 @@ before the prompt appears. The status line above the terminal tells you what
 is happening (isolation, loading, installing, ready, running or an error).
 
 The [empty terminal](/formicarium/terminal/) starts with nothing installed.
-Type `install aube`, `install pitchfork` or `install biome`, then run the tool,
-for example `biome --version`.
+Type `install aube`, `install pitchfork`, `install biome` or `install nano`,
+then run the tool, for example `biome --version`.
 
 ## Commands
 

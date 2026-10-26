@@ -34,17 +34,17 @@ import {
 
 export type Stage = 'pre' | 'deployed';
 export const BROWSERS = ['chromium', 'firefox', 'webkit', 'safari'] as const;
-/** Playwright tests behind each browser row (16 per browser). */
+/** Playwright tests behind each browser row (20 per browser). */
 export const ACCEPT_ROWS: Readonly<
   Record<string, { tag: string; count: number }[]>
 > = Object.freeze({
-  'empty-terminal-install': [{ tag: '[empty-terminal-install]', count: 6 }],
+  'empty-terminal-install': [{ tag: '[empty-terminal-install]', count: 8 }],
   'ui-states-keyboard': [
     { tag: '[ui-states-keyboard]', count: 2 },
     { tag: '[adversarial-output]', count: 1 },
   ],
   'browser-coi': [
-    { tag: '[tool-page]', count: 6 },
+    { tag: '[tool-page]', count: 8 },
     { tag: '[documents-after-terminal]', count: 1 },
   ],
 });

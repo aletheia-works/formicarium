@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { COMMIT_PATTERN, parseUniqueJson, sha256 } from './build-key.ts';
 import {
   assetName,
+  type GnuPackage,
   readConfigFile,
   type ToolConfig,
   type ToolsConfig,
@@ -14,9 +15,17 @@ import { fail, runCli } from './errors.ts';
 import {
   createGitHubApi,
   encodeTag,
+  type FetchLike,
   type GitHubApi,
   repositorySlug,
 } from './github.ts';
+import {
+  copyingOf,
+  type Exec,
+  lsRemoteCommit,
+  resolveGnuPackage,
+  type SignedTarball,
+} from './gnu.ts';
 import { TRANSFER_POLICY } from './limits.ts';
 import {
   REPOSITORY_ROOT,
@@ -37,6 +46,16 @@ export interface LicenseRecord {
   sha256: string;
   spdx: string | null;
 }
+/** One signed GNU tarball, identified by the tag commit of its repository. */
+export interface GnuPackageResolution {
+  package: string;
+  repository: string;
+  tag: string;
+  version: string;
+  commit: string;
+  tarball: SignedTarball;
+  license: LicenseRecord;
+}
 export interface ToolResolution {
   tool: string;
   repository: string;
@@ -46,6 +65,8 @@ export interface ToolResolution {
   asset: AssetRecord | null;
   attestation: 'present' | 'absent' | null;
   license: LicenseRecord;
+  /** gnu-source only: the tool's own tarball and its libraries, in build order. */
+  gnu?: { tarball: SignedTarball; libraries: GnuPackageResolution[] };
 }
 export interface Resolutions {
   schemaVersion: 1;
@@ -171,6 +192,111 @@ async function license(
   };
 }
 
+export interface GnuResolveOptions {
+  fetchImpl?: FetchLike;
+  exec?: Exec;
+  keys?: string;
+}
+type Resolved = {
+  resolution: ToolResolution;
+  /** License files by name; the tarballs are kept for the build and the site. */
+  files: [string, Uint8Array][];
+};
+
+/** A tag commit on GitHub (peeled through the API) or in a Savannah repository. */
+export async function tagCommit(
+  api: GitHubApi,
+  repository: string,
+  tag: string,
+  exec?: Exec,
+): Promise<string> {
+  return repository.startsWith('https://github.com/')
+    ? resolveTagCommit(api, repositorySlug(repository), tag)
+    : lsRemoteCommit(repository, tag, exec);
+}
+
+async function gnuPackage(
+  api: GitHubApi,
+  pkg: GnuPackage,
+  repository: string,
+  options: GnuResolveOptions,
+) {
+  const found = await resolveGnuPackage(pkg, options);
+  const copying = await copyingOf(found.bytes);
+  const resolution: GnuPackageResolution = {
+    package: pkg.package,
+    repository,
+    tag: found.tag,
+    version: found.version,
+    commit: await tagCommit(api, repository, found.tag, options.exec),
+    tarball: found.record,
+    license: {
+      path: 'COPYING',
+      file: `${pkg.package}-COPYING`,
+      sha256: sha256(copying),
+      spdx: pkg.spdx,
+    },
+  };
+  const files: [string, Uint8Array][] = [[resolution.license.file, copying]];
+  return {
+    resolution,
+    files,
+    tarball: found.bytes,
+    signature: found.signature,
+  };
+}
+
+/**
+ * gnu-source: the latest signed tarball of the tool and of each library.
+ * The tool's tag must match tagPattern and name the same version.
+ */
+export async function resolveGnuTool(
+  api: GitHubApi,
+  config: ToolConfig,
+  options: GnuResolveOptions = {},
+): Promise<Resolved & { tarballs: [string, Uint8Array][] }> {
+  if (config.acquire.kind !== 'gnu-source')
+    fail('config-invalid', `${config.tool} is not a gnu-source tool`);
+  const acquire = config.acquire;
+  const packages = [];
+  for (const [pkg, repository] of [
+    [acquire, config.repository] as const,
+    ...acquire.libraries.map((item) => [item, item.repository] as const),
+  ])
+    packages.push(await gnuPackage(api, pkg, repository, options));
+  const [own, ...libraries] = packages;
+  const version = new RegExp(config.tagPattern).exec(own!.resolution.tag)?.[1];
+  if (version !== own!.resolution.version)
+    fail(
+      'tag-mismatch',
+      `${config.tool} tag ${own!.resolution.tag} has no match`,
+    );
+  return {
+    resolution: {
+      tool: config.tool,
+      repository: config.repository,
+      tag: own!.resolution.tag,
+      version,
+      commit: own!.resolution.commit,
+      asset: null,
+      attestation: null,
+      license: own!.resolution.license,
+      gnu: {
+        tarball: own!.resolution.tarball,
+        libraries: libraries.map((item) => item.resolution),
+      },
+    },
+    files: packages.flatMap((item) => item.files),
+    tarballs: packages.flatMap((item) => [
+      [item.resolution.tarball.name, item.tarball] as [string, Uint8Array],
+      [`${item.resolution.tarball.name}.sig`, item.signature] as [
+        string,
+        Uint8Array,
+      ],
+    ]),
+  };
+}
+
 /** One latest-stable resolution per tool; the result is fixed for the run. */
 export async function resolveTool(
   api: GitHubApi,
@@ -244,12 +370,21 @@ export async function runResolveJob(options: {
   readMain?: (path: string) => string;
   layout?: WorkLayout;
   now?: () => Date;
+  gnu?: GnuResolveOptions;
 }): Promise<Resolutions> {
   const layout = options.layout ?? workLayout();
   const tools = await loadVerifiedTools(options.readMain);
   const resolved: ToolResolution[] = [];
   const licenses: [string, Uint8Array][] = [];
+  const tarballs: [string, Uint8Array][] = [];
   for (const config of tools.tools) {
+    if (config.acquire.kind === 'gnu-source') {
+      const found = await resolveGnuTool(options.api, config, options.gnu);
+      resolved.push(found.resolution);
+      licenses.push(...found.files);
+      tarballs.push(...found.tarballs);
+      continue;
+    }
     const { resolution, licenseBytes } = await resolveTool(options.api, config);
     resolved.push(resolution);
     licenses.push([resolution.license.file, licenseBytes]);
@@ -265,6 +400,8 @@ export async function runResolveJob(options: {
   );
   for (const [file, bytes] of licenses)
     await writeOnce(join(layout.licenses, file), bytes);
+  for (const [file, bytes] of tarballs)
+    await writeOnce(join(layout.tarballs, file), bytes);
   return resolutions;
 }
 

@@ -8,7 +8,7 @@ import {
   stringsFor,
 } from '../../src/i18n/strings.ts';
 
-const TOOLS = ['aube', 'biome', 'pitchfork'];
+const TOOLS = ['aube', 'biome', 'nano', 'pitchfork'];
 
 test('the shipped strings have the same keys in en and ja and name the candidate tools', () => {
   assert.deepEqual(checkStrings(TOOLS), []);
@@ -38,7 +38,7 @@ test('a candidate tool without strings or hints, or strings for another tool, fa
     'strings lack the candidate tool deno',
     'hints lack the candidate tool deno',
   ]);
-  assert.deepEqual(checkStrings(['aube', 'biome']), [
+  assert.deepEqual(checkStrings(['aube', 'biome', 'nano']), [
     'strings name pitchfork, which is not in the candidate',
     'hints name pitchfork, which is not in the candidate',
   ]);

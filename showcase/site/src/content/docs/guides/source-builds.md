@@ -16,10 +16,18 @@ commit for the rest of the run.
   tagged source with Cargo for `x86_64-unknown-linux-musl`, without network
   tokens in the build step. A build with the same `buildKey` from an earlier
   trusted main run is reused instead of compiling again.
+- **Signed GNU tarballs.** nano is released as GNU tarballs, not on GitHub.
+  The showcase picks the highest version in the `ftp.gnu.org` listing, checks
+  its detached signature with `gpgv` against the maintainer key committed in
+  `showcase/keys/`, and does the same for ncurses. The commits of the tags in
+  nano's Savannah repository and ncurses' snapshot repository identify the
+  sources. Both are built with musl-gcc as static libraries and a static
+  program, and the signed tarballs are published beside the guest under
+  `sources/` as its corresponding source.
 
 The run then writes the catalog, installs and runs each tool with
 `--version` through the public API in Node, Chromium, Firefox, WebKit and real
-Safari on macOS, and assembles the candidate only when all fifteen checks pass. This site is built
+Safari on macOS, and assembles the candidate only when all twenty checks pass. This site is built
 from that candidate and never resolves `latest` again.
 
 Adding a tool needs an entry in `tools.json`, a demo fixture in

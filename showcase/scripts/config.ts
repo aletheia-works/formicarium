@@ -26,12 +26,37 @@ export interface SourceBuildAcquire {
   package?: string;
   ui?: UiBuild;
 }
+/** A GNU package built from its signed ftp.gnu.org tarball. */
+export interface GnuPackage {
+  /** GNU package name: ftp.gnu.org/gnu/<package>/<package>-<version>.tar.gz. */
+  package: string;
+  /** Tag of the release in the repository; `{version}`, `{major}`, `{minor}`, `{patch}`. */
+  tag: string;
+  /** Primary key fingerprints in showcase/keys/<package>.gpg that may sign. */
+  signers: string[];
+  /** SPDX identifier of the tarball's COPYING. */
+  spdx: string;
+  /** configure arguments; the builder adds --prefix, CC and the search paths. */
+  configure: string[];
+}
+export interface GnuLibrary extends GnuPackage {
+  repository: string;
+}
+export interface GnuSourceAcquire extends GnuPackage {
+  kind: 'gnu-source';
+  builder: 'autotools';
+  /** Guest file name, and the built program's path in the source tree. */
+  binary: string;
+  output: string;
+  /** Static libraries built first, in order, into one prefix. */
+  libraries: GnuLibrary[];
+}
 export interface ToolConfig {
   tool: string;
   repository: string;
   tagPattern: string;
   fixture: string;
-  acquire: ReleaseAssetAcquire | SourceBuildAcquire;
+  acquire: ReleaseAssetAcquire | SourceBuildAcquire | GnuSourceAcquire;
   /** The terminal pages pass keystrokes to this tool and give it a terminal. */
   interactive?: true;
 }
@@ -63,6 +88,13 @@ const REPOSITORY =
   /^https:\/\/(?:github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+|git\.savannah\.gnu\.org\/git\/[a-z0-9][a-z0-9_-]*\.git)$/;
 const IDENTIFIER = /^[A-Za-z0-9_-]{1,128}$/;
 const ASSET = /^[A-Za-z0-9._@+-]+$/;
+const GNU_PACKAGE = /^[a-z][a-z0-9-]{0,63}$/;
+const FINGERPRINT = /^[0-9A-F]{40}$/;
+const SPDX = /^[A-Za-z0-9.+-]{1,64}$/;
+const TAG_TEMPLATE = /^[A-Za-z0-9._{}-]{1,128}$/;
+/** `--option[=value]` or `VARIABLE=value`; `{prefix}` is the build prefix. */
+const CONFIGURE_ARGUMENT =
+  /^(?:--[a-z0-9][a-z0-9-]*(?:=[A-Za-z0-9._,+/{}-]*)?|[A-Z][A-Z0-9_]*=[A-Za-z0-9._,+/{} -]*)$/;
 const WORKFLOW = /^\.github\/workflows\/[A-Za-z0-9_.-]+\.ya?ml$/;
 export const SHOWCASE_WORKFLOW = '.github/workflows/showcase.yml';
 
@@ -172,6 +204,67 @@ function sourceBuild(value: Json, where: string): SourceBuildAcquire {
   return result;
 }
 
+function gnuPackage(value: Json, where: string): GnuPackage {
+  const tag = text(value.tag, `${where}.tag`, TAG_TEMPLATE);
+  if (!tag.includes('{'))
+    fail('config-invalid', `${where}.tag must name the version`);
+  const signers = strings(value.signers, `${where}.signers`).map((item) =>
+    text(item, `${where}.signers`, FINGERPRINT),
+  );
+  if (new Set(signers).size !== signers.length)
+    fail('config-invalid', `${where}.signers has duplicates`);
+  return {
+    package: text(value.package, `${where}.package`, GNU_PACKAGE),
+    tag,
+    signers,
+    spdx: text(value.spdx, `${where}.spdx`, SPDX),
+    configure: Array.isArray(value.configure)
+      ? value.configure.map((item, index) =>
+          text(item, `${where}.configure[${index}]`, CONFIGURE_ARGUMENT),
+        )
+      : fail('config-invalid', `${where}.configure must be an array`),
+  };
+}
+
+const GNU_PACKAGE_KEYS = ['package', 'tag', 'signers', 'spdx', 'configure'];
+
+function gnuSource(
+  value: Json,
+  where: string,
+  allowed: Set<string>,
+): GnuSourceAcquire {
+  only(
+    value,
+    ['kind', 'builder', 'binary', 'output', 'libraries', ...GNU_PACKAGE_KEYS],
+    where,
+  );
+  if (value.builder !== 'autotools')
+    fail('config-invalid', `${where}.builder is an unknown build kind`);
+  if (!Array.isArray(value.libraries))
+    fail('config-invalid', `${where}.libraries must be an array`);
+  const libraries = value.libraries.map((item, index) => {
+    const at = `${where}.libraries[${index}]`;
+    const raw = record(item, at);
+    only(raw, ['repository', ...GNU_PACKAGE_KEYS], at);
+    const repository = text(raw.repository, `${at}.repository`, REPOSITORY);
+    if (!allowed.has(repository))
+      fail('source-not-allowed', `${repository} is not in the main allow list`);
+    return { ...gnuPackage(raw, at), repository };
+  });
+  const result: GnuSourceAcquire = {
+    kind: 'gnu-source',
+    builder: 'autotools',
+    ...gnuPackage(value, where),
+    binary: text(value.binary, `${where}.binary`, IDENTIFIER),
+    output: relativePath(value.output, `${where}.output`),
+    libraries,
+  };
+  const names = [result.package, ...libraries.map((item) => item.package)];
+  if (new Set(names).size !== names.length)
+    fail('config-invalid', `${where} names a package twice`);
+  return result;
+}
+
 function tool(value: unknown, index: number, allowed: Set<string>): ToolConfig {
   const where = `tools[${index}]`;
   const raw = record(value, where);
@@ -202,7 +295,9 @@ function tool(value: unknown, index: number, allowed: Set<string>): ToolConfig {
         ? releaseAsset(acquire, `${where}.acquire`)
         : acquire.kind === 'source-build'
           ? sourceBuild(acquire, `${where}.acquire`)
-          : fail('config-invalid', `${where}.acquire.kind is unknown`),
+          : acquire.kind === 'gnu-source'
+            ? gnuSource(acquire, `${where}.acquire`, allowed)
+            : fail('config-invalid', `${where}.acquire.kind is unknown`),
     ...(raw.interactive === true ? { interactive: true as const } : {}),
   };
 }
@@ -313,6 +408,16 @@ export async function readConfigFile(
   } catch (error) {
     return fail('config-invalid', `${name} is not unique JSON`, error);
   }
+}
+
+/** Expands a GNU tag template for one version (missing parts are 0). */
+export function gnuTag(template: string, version: string): string {
+  const [major = '0', minor = '0', patch = '0'] = version.split('.');
+  return template
+    .replaceAll('{version}', version)
+    .replaceAll('{major}', major)
+    .replaceAll('{minor}', minor)
+    .replaceAll('{patch}', patch);
 }
 
 /** Expands an asset name template for one resolved release. */

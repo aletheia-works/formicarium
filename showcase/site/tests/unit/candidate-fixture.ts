@@ -14,6 +14,7 @@ const sha = (bytes: string | Uint8Array) =>
 export const TOOLS = [
   { tool: 'aube', version: '2.7.2', fixture: 'aube-local-deps' },
   { tool: 'biome', version: '2.5.15', fixture: 'biome-basic' },
+  { tool: 'nano', version: '9.3', fixture: 'nano-basic' },
   { tool: 'pitchfork', version: '2.32.0', fixture: 'pitchfork-basic' },
 ] as const;
 const ENVIRONMENTS = ['chromium', 'firefox', 'node', 'safari', 'webkit'];
@@ -25,6 +26,7 @@ export const FIXTURE_FILES: Record<string, string> = {
     '{"name":"app","dependencies":{"linked":"link:../outside/linked"}}\n',
   'aube-local-deps/outside/linked/package.json': '{"name":"linked"}\n',
   'biome-basic/app/index.js': 'console.log(1)\n',
+  'nano-basic/app/note.txt': 'note\n',
   'pitchfork-basic/app/pitchfork.toml': '[daemons]\n',
 };
 
