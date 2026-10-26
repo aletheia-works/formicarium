@@ -6,6 +6,8 @@ export interface TarSpec {
   body?: Uint8Array | string;
   linkname?: string;
   mode?: number;
+  /** v7: the pre-POSIX header without magic (nano's release tarballs). */
+  format?: 'v7';
 }
 const encoder = new TextEncoder();
 const bytesOf = (value: Uint8Array | string | undefined) =>
@@ -38,8 +40,10 @@ export function header(spec: TarSpec, size: number): Uint8Array {
   put(block, 148, 8, '        ');
   put(block, 156, 1, spec.type ?? '0');
   if (spec.linkname) put(block, 157, 100, spec.linkname);
-  put(block, 257, 6, 'ustar\0');
-  put(block, 263, 2, '00');
+  if (spec.format !== 'v7') {
+    put(block, 257, 6, 'ustar\0');
+    put(block, 263, 2, '00');
+  }
   let sum = 0;
   for (const byte of block) sum += byte;
   put(block, 148, 8, `${sum.toString(8).padStart(6, '0')}\0 `);

@@ -562,7 +562,10 @@ export async function prepareGnuBuild(
       bytes,
       SOURCE_ARCHIVE_LIMITS.maxExpandedBytes,
     );
-    const { entries } = readTar(tar, SOURCE_ARCHIVE_LIMITS);
+    const { entries } = readTar(tar, {
+      ...SOURCE_ARCHIVE_LIMITS,
+      allowV7Header: true,
+    });
     const directory = join(sourceDir, item.package);
     await writeTree(entries, directory, singleRoot(entries));
     const configure = configured.get(item.package);

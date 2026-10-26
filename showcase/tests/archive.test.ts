@@ -144,6 +144,22 @@ test('broken headers, truncation, special entries and a non-file selection fail'
   );
 });
 
+test('a v7 header is read only when the caller allows it', () => {
+  const v7 = tar([
+    { name: 'root/', type: '5', format: 'v7' },
+    { name: 'root/file', type: '\0' as never, body: 'x', format: 'v7' },
+  ]);
+  assert.throws(
+    () => readTar(v7, ASSET_ARCHIVE_LIMITS),
+    (error) => causeOf(error) === 'archive-invalid',
+  );
+  const { entries } = readTar(v7, {
+    ...ASSET_ARCHIVE_LIMITS,
+    allowV7Header: true,
+  });
+  assert.equal(entries.get('root/file')?.kind, 'file');
+});
+
 test('a git archive tree keeps its commit comment and is written without its root', async () => {
   const source = tar([
     {

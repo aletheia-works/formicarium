@@ -126,6 +126,23 @@ test('the license is the COPYING at the tarball root', async () => {
     copyingOf(tgz([{ name: 'nano-9.3', type: '5' }])),
     'release-invalid',
   );
+  // nano's own release tarballs use the pre-POSIX v7 header.
+  assert.equal(
+    new TextDecoder().decode(
+      await copyingOf(
+        tgz([
+          { name: 'nano-9.3/', type: '5', format: 'v7' },
+          {
+            name: 'nano-9.3/COPYING',
+            type: '\0' as never,
+            body: 'GPL\n',
+            format: 'v7',
+          },
+        ]),
+      ),
+    ),
+    'GPL\n',
+  );
 });
 
 test('a gnu-source tool resolves its tarball and libraries with their commits', async () => {

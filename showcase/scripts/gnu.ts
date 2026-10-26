@@ -224,7 +224,10 @@ export async function copyingOf(tarball: Uint8Array): Promise<Uint8Array> {
     tarball,
     SOURCE_ARCHIVE_LIMITS.maxExpandedBytes,
   );
-  const { entries } = readTar(tar, SOURCE_ARCHIVE_LIMITS);
+  const { entries } = readTar(tar, {
+    ...SOURCE_ARCHIVE_LIMITS,
+    allowV7Header: true,
+  });
   try {
     return selectEntry(
       entries,

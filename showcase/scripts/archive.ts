@@ -19,6 +19,8 @@ export interface TarEntry {
 export interface TarOptions extends ArchiveLimits {
   /** git archive (codeload) writes one global PAX header with the commit. */
   allowGlobalHeader?: boolean;
+  /** GNU release tarballs (nano's) may use the pre-POSIX v7 header. */
+  allowV7Header?: boolean;
 }
 export interface TarResult {
   entries: Map<string, TarEntry>;
@@ -185,7 +187,8 @@ export function readTar(tar: Uint8Array, options: TarOptions): TarResult {
     const version = text(header.subarray(263, 265));
     if (
       !(magic === 'ustar\0' && version === '00') &&
-      !(magic === 'ustar ' && version === ' \0')
+      !(magic === 'ustar ' && version === ' \0') &&
+      !(options.allowV7Header && magic === '\0'.repeat(6) && version === '\0\0')
     )
       bad('archive header format unsupported');
     const size = octal(header, 124, 12);
