@@ -121,7 +121,7 @@ async function assetLines(
   return lines;
 }
 
-/** (4) the 15 rows: 3 tools x node, 3 browsers and Safari, all passed, accepted versions. */
+/** (4) every tool x node, 3 browsers and Safari, all passed, accepted versions. */
 function logLines(log: unknown, manifest: CandidateManifest): CheckLine[] {
   const rows = (log as { rows?: LogRow[] } | null)?.rows;
   if (!Array.isArray(rows))
