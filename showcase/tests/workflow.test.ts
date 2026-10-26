@@ -148,7 +148,7 @@ test('PR runs cancel older revisions only; the candidate is uploaded once at the
   );
   assert.match(
     workflow,
-    /group: showcase-\$\{\{ github\.event_name \}\}-\$\{\{ github\.event\.pull_request\.number \|\| github\.run_id \}\}/,
+    /group: showcase-\$\{\{ github\.workflow \}\}-\$\{\{ github\.event_name \}\}-\$\{\{ github\.event\.pull_request\.number \|\| github\.run_id \}\}/,
   );
   assert.equal(workflow.split('name: showcase-candidate').length - 1, 1);
   const candidate = steps(jobs().get('candidate')!);

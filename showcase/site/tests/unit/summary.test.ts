@@ -101,6 +101,29 @@ test('the required check passes a PR without site changes once the detection suc
   }
 });
 
+test('a PR that changes the guests needs its own candidate, not main', () => {
+  const own = results(REQUIRED_JOBS['verify-pr-candidate']);
+  const checked = requiredCheck({
+    distribute: false,
+    site: 'true',
+    guests: 'true',
+    jobs: [...own, { name: 'fetch-candidate', result: 'skipped' }],
+  });
+  assert.equal(checked.ok, true);
+  assert.match(checked.markdown, /mode: verify（この PR の候補）/);
+  // main's candidate does not stand in for this PR's own.
+  const fetched = requiredCheck({
+    distribute: false,
+    site: 'true',
+    guests: 'true',
+    jobs: [
+      ...results(REQUIRED_JOBS.verify),
+      { name: 'pr-candidate', result: 'skipped' },
+    ],
+  });
+  assert.deepEqual(fetched.missing, ['pr-candidate']);
+});
+
 test('a verify run passes only when every verify job succeeded; a skip fails it', () => {
   const all = results(REQUIRED_JOBS.verify);
   assert.equal(

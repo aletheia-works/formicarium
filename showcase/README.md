@@ -119,6 +119,13 @@ Safari の job は macOS の System keychain に job CA を信頼させ、leaf �
 拒否する。showcase site は日次の実行をやめた）。showcase site は `candidate`
 job が成功し、出力 `distributable` が `true` のときだけ配布を始める。
 
+PR の showcase site は、ふだんは main の `showcase.yml` が最後に作った verify の候補で
+サイトを確かめる。PR が `tools.json` か `fixtures/` を変えると、その候補は PR の
+fixture と合わない。そのため、その PR では `pr-candidate` job が `showcase.yml` を
+`mode: verify` で呼び、その PR 自身の候補からサイトを作る（配布はしない）。このとき
+PR 自身の `showcase.yml` の run と合わせて受入を 2 回動かす。呼ばれた run は呼び出し元の
+workflow の名前で concurrency の group を分けるので、互いを取り消さない。
+
 ## npm で公開された版
 
 `distribute` は `formicarium-release.json` が指す npm の版

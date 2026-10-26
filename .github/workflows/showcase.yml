@@ -35,7 +35,9 @@ permissions:
   contents: read
 concurrency:
   # PR runs cancel older revisions; every other run and call is independent.
-  group: showcase-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  # A call takes its caller's name, so showcase-site's call on a PR does not
+  # cancel this PR's own showcase run.
+  group: showcase-${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   resolve:

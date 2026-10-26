@@ -71,6 +71,19 @@ export const REQUIRED_JOBS = Object.freeze({
     'coverage',
     'evidence',
   ],
+  /** A PR that changes the guests builds from its own showcase candidate. */
+  'verify-pr-candidate': [
+    'changes',
+    'pr-candidate',
+    'verify-pack',
+    'build',
+    'accept-chromium',
+    'accept-firefox',
+    'accept-webkit',
+    'accept-safari',
+    'coverage',
+    'evidence',
+  ],
   distribute: [
     'changes',
     'candidate',
@@ -104,6 +117,8 @@ export function requiredCheck(input: {
   distribute: boolean;
   /** `needs.changes.outputs.site`: 'true' or 'false'; anything else fails. */
   site: string;
+  /** `needs.changes.outputs.guests`: 'true' when the PR changes the guests. */
+  guests?: string;
   jobs: readonly JobResult[];
 }): RequiredCheck {
   const results = new Map(input.jobs.map((job) => [job.name, job.result]));
@@ -118,13 +133,17 @@ export function requiredCheck(input: {
     ? []
     : !input.distribute && changes && input.site !== 'true'
       ? ['changes']
-      : REQUIRED_JOBS[mode === 'distribute' ? 'distribute' : 'verify'].filter(
-          (name) => results.get(name) !== 'success',
-        );
+      : REQUIRED_JOBS[
+          mode === 'distribute'
+            ? 'distribute'
+            : input.guests === 'true'
+              ? 'verify-pr-candidate'
+              : 'verify'
+        ].filter((name) => results.get(name) !== 'success');
   const markdown = [
     '## showcase site required check',
     '',
-    `- mode: ${mode}`,
+    `- mode: ${mode}${mode === 'verify' && input.guests === 'true' ? '（この PR の候補）' : ''}`,
     `- 成功していない必須の job: ${missing.length ? missing.join(', ') : 'なし'}`,
     '',
   ].join('\n');
@@ -136,6 +155,7 @@ if (import.meta.main && process.argv.includes('--required'))
     const result = requiredCheck({
       distribute: process.env.SHOWCASE_DIST === 'true',
       site: process.env.SHOWCASE_SITE ?? '',
+      guests: process.env.SHOWCASE_GUESTS ?? '',
       jobs: jobResults(process.env.SHOWCASE_NEEDS ?? '{}'),
     });
     await summary(result.markdown);

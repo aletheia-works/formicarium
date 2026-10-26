@@ -146,9 +146,10 @@ function runs(
   ref = 'refs/heads/main',
   site = 'true',
   repository = UPSTREAM,
+  guests = 'false',
 ): string[] {
   const results: Record<string, string> = {};
-  const outputs = { 'changes.site': site };
+  const outputs = { 'changes.site': site, 'changes.guests': guests };
   const ran: string[] = [];
   for (const name of table.keys()) {
     const condition = field(name, 'if');
@@ -174,6 +175,7 @@ function runs(
 const ALL = [
   'changes',
   'candidate',
+  'pr-candidate',
   'fetch-candidate',
   'verify-pack',
   'build',
@@ -202,6 +204,10 @@ const VERIFY_RUN = [
   'summary',
   'required',
 ];
+/** A PR that changes tools.json or a fixture: this PR's candidate, not main's. */
+const GUESTS_RUN = VERIFY_RUN.map((name) =>
+  name === 'fetch-candidate' ? 'pr-candidate' : name,
+);
 const DIST =
   "(github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'";
 
@@ -233,11 +239,18 @@ test('triggers: manual, every PR, and push on the site paths and the pinned rele
 test('each event runs its jobs, and nothing after build is skipped by mistake', () => {
   assert.deepEqual(
     runs('push'),
-    ALL.filter((name) => !['fetch-candidate', 'verify-pack'].includes(name)),
+    ALL.filter(
+      (name) =>
+        !['pr-candidate', 'fetch-candidate', 'verify-pack'].includes(name),
+    ),
   );
   assert.deepEqual(runs('workflow_dispatch'), runs('push'));
   assert.deepEqual(runs('workflow_dispatch', 'refs/heads/feature'), VERIFY_RUN);
   assert.deepEqual(runs('pull_request', 'refs/pull/7/merge'), VERIFY_RUN);
+  assert.deepEqual(
+    runs('pull_request', 'refs/pull/7/merge', 'true', UPSTREAM, 'true'),
+    GUESTS_RUN,
+  );
   // A schedule is not a trigger any more; were one added, it would not deploy.
   assert.deepEqual(runs('schedule'), VERIFY_RUN);
   assert.deepEqual(runs('pull_request', 'refs/pull/7/merge', 'false'), [
@@ -260,7 +273,13 @@ test('a fork runs no job: its main has no release tags or Pages to deploy', () =
 test('every job after the entry jobs has a status function, so the other path cannot skip it', () => {
   for (const name of ALL.filter(
     (job) =>
-      !['changes', 'candidate', 'fetch-candidate', 'verify-pack'].includes(job),
+      ![
+        'changes',
+        'candidate',
+        'pr-candidate',
+        'fetch-candidate',
+        'verify-pack',
+      ].includes(job),
   ))
     assert.match(field(name, 'if') ?? '', STATUS_FUNCTION, name);
   for (const name of ['fetch-candidate', 'verify-pack']) {
@@ -291,6 +310,10 @@ test('showcase-site-required needs every job but the summary and always reports'
   assert.match(
     body,
     /SHOWCASE_SITE: \$\{\{ needs\.changes\.outputs\.site \}\}/,
+  );
+  assert.match(
+    body,
+    /SHOWCASE_GUESTS: \$\{\{ needs\.changes\.outputs\.guests \}\}/,
   );
   assert.match(body, /SHOWCASE_NEEDS: \$\{\{ toJSON\(needs\) \}\}/);
   assert.match(body, /node showcase\/site\/scripts\/summary\.ts --required/);
@@ -418,33 +441,51 @@ test('pages write, id-token write and deploy-pages exist only in the deploy job'
   );
 });
 
-test("the candidate job holds every permission showcase.yml's jobs ask for", () => {
+test("the candidate jobs hold every permission showcase.yml's jobs ask for", () => {
   const asked = new Set<string>(['contents: read']);
   for (const body of jobs(showcase).values())
     for (const line of permissions(body).split('\n'))
       if (line.trim()) asked.add(line.trim());
-  const granted = new Set(
-    permissions(table.get('candidate')!)
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean),
+  for (const [name, mode] of [
+    ['candidate', 'distribute'],
+    ['pr-candidate', 'verify'],
+  ] as const) {
+    const granted = new Set(
+      permissions(table.get(name)!)
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean),
+    );
+    for (const permission of asked)
+      assert.ok(granted.has(permission), `${name} ${permission}`);
+    assert.match(
+      table.get(name)!,
+      new RegExp(
+        `uses: \\./\\.github/workflows/showcase\\.yml\\n {4}with:\\n {6}mode: ${mode}$`,
+      ),
+    );
+  }
+  assert.equal(
+    field('pr-candidate', 'if'),
+    `\${{ github.event_name == 'pull_request' && needs.changes.outputs.guests == 'true' }}`,
   );
-  for (const permission of asked)
-    assert.ok(granted.has(permission), permission);
-  assert.match(
-    table.get('candidate')!,
-    /uses: \.\/\.github\/workflows\/showcase\.yml\n {4}with:\n {6}mode: distribute/,
+  // The changes job marks a PR that changes tools.json or a fixture.
+  assert.ok(
+    table
+      .get('changes')!
+      .includes("grep -qE '^(showcase/tools\\.json$|showcase/fixtures/)'"),
   );
 });
 
-test('PR runs and manual runs of another branch never call showcase.yml and never deploy', () => {
+test('PR runs and manual runs of another branch never distribute and never deploy', () => {
   for (const [event, ref] of [
     ['pull_request', 'refs/pull/7/merge'],
     ['workflow_dispatch', 'refs/heads/feature'],
-  ] as const) {
-    const ran = runs(event, ref);
-    assert.ok(!ran.includes('candidate') && !ran.includes('deploy'), event);
-  }
+  ] as const)
+    for (const guests of ['false', 'true']) {
+      const ran = runs(event, ref, 'true', UPSTREAM, guests);
+      assert.ok(!ran.includes('candidate') && !ran.includes('deploy'), event);
+    }
   const summary = table.get('summary')!;
   assert.equal(
     field('summary', 'if'),
@@ -475,7 +516,7 @@ test('PR runs and manual runs of another branch never call showcase.yml and neve
 test('timeouts, pinned actions, credentials and artifacts follow the infrastructure design', () => {
   const timeouts = Object.fromEntries(
     [...table.keys()]
-      .filter((name) => name !== 'candidate')
+      .filter((name) => !['candidate', 'pr-candidate'].includes(name))
       .map((name) => [name, Number(field(name, 'timeout-minutes'))]),
   );
   assert.deepEqual(timeouts, {
