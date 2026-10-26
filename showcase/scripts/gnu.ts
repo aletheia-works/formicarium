@@ -69,12 +69,32 @@ const fetchGnu = (url: string, maxBytes: number, options: GnuTransferOptions) =>
     options.retryDelaysMs,
   );
 
-const defaultExec: Exec = (file, args) =>
-  execFileSync(file, args, {
-    encoding: 'utf8',
-    maxBuffer: TRANSFER_POLICY.maxMetadataBytes,
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
+/**
+ * Runs a command and kills it after timeoutMs, so that a server which stops
+ * answering (git ls-remote has no deadline of its own) fails like a fetch.
+ */
+export const processExec =
+  (timeoutMs: number): Exec =>
+  (file, args) => {
+    try {
+      return execFileSync(file, args, {
+        encoding: 'utf8',
+        maxBuffer: TRANSFER_POLICY.maxMetadataBytes,
+        stdio: ['ignore', 'pipe', 'pipe'],
+        timeout: timeoutMs,
+        killSignal: 'SIGKILL',
+      });
+    } catch (error) {
+      if ((error as { code?: unknown }).code === 'ETIMEDOUT')
+        fail(
+          'deadline',
+          `${file} ${args.join(' ')} did not finish within ${timeoutMs} ms`,
+          error,
+        );
+      throw error;
+    }
+  };
+const defaultExec = processExec(TRANSFER_POLICY.fetchDeadlineMs);
 
 const VERSION = /^\d{1,4}(?:\.\d{1,4}){1,2}$/;
 const compareVersions = (a: string, b: string) => {
@@ -195,6 +215,7 @@ export async function lsRemoteCommit(
           `refs/tags/${tag}^{}`,
         ]);
       } catch (error) {
+        if (error instanceof ShowcaseError) throw error;
         return fail(
           'offline',
           `git ls-remote ${repository} failed${gitMessage(error)}`,

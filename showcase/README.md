@@ -111,7 +111,8 @@ Safari の job は macOS の System keychain に job CA を信頼させ、leaf �
    ゲストの横の `sources/<tool>/` に tarball と `.sig` を置き、GPL の対応する source とする。
    ftp.gnu.org と Savannah は CI の runner からの接続をときどき落とすので、その取得と
    `git ls-remote` の通信の失敗だけは 10 秒・30 秒あけて 2 回までやり直す（GitHub API と、
-   状態・大きさ・署名の誤りはやり直さない）。
+   状態・大きさ・署名の誤りはやり直さない）。`git ls-remote` は取得と同じ 120 秒で打ち切る
+   （git には期限がなく、TLS の握手で止まると job の時間を使い切る）。
 
 ## mode と showcase site
 

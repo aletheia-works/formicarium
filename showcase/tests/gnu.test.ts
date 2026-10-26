@@ -7,6 +7,7 @@ import {
   copyingOf,
   latestVersion,
   lsRemoteCommit,
+  processExec,
   verifySignature,
 } from '../scripts/gnu.ts';
 import { resolveGnuTool } from '../scripts/resolve.ts';
@@ -138,6 +139,28 @@ test('git ls-remote gives the peeled commit of a Savannah tag', async () => {
     ),
     commit('nano'),
   );
+});
+
+test('a git ls-remote that stalls is stopped at its deadline and retried', async () => {
+  // The child keeps a grandchild holding its output open, as git does with
+  // git-remote-https while a TLS handshake hangs.
+  let runs = 0;
+  const stalled = () => {
+    runs++;
+    return processExec(300)('sh', ['-c', 'sleep 30 & sleep 30']);
+  };
+  const started = Date.now();
+  await assert.rejects(
+    lsRemoteCommit(
+      'https://git.savannah.gnu.org/git/nano.git',
+      'v9.3',
+      stalled,
+      [0, 0],
+    ),
+    /deadline: sh -c .+ did not finish within 300 ms$/,
+  );
+  assert.equal(runs, 3);
+  assert.ok(Date.now() - started < 10_000);
 });
 
 test('a transport failure of a GNU request is retried; a bad answer is not', async () => {
