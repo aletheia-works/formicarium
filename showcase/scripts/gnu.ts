@@ -25,6 +25,49 @@ export interface SignedTarball {
   signer: string;
 }
 export type Exec = (file: string, args: readonly string[]) => string;
+export interface GnuTransferOptions {
+  fetchImpl?: FetchLike;
+  exec?: Exec;
+  keys?: string;
+  /** Waits before each retry of a GNU server request (tests pass zeros). */
+  retryDelaysMs?: readonly number[];
+}
+
+/**
+ * ftp.gnu.org and Savannah drop some connections from CI runners, so a
+ * transport failure of a request to them is retried twice. The GitHub API
+ * stays unretried, and a bad answer (status, size, signature) never is.
+ */
+export const GNU_RETRY_DELAYS_MS = Object.freeze([10_000, 30_000]);
+
+async function retrying<T>(
+  run: () => Promise<T>,
+  transient: (error: unknown) => boolean,
+  delays: readonly number[] = GNU_RETRY_DELAYS_MS,
+): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await run();
+    } catch (error) {
+      if (!transient(error) || attempt >= delays.length) throw error;
+      console.warn(
+        `${error instanceof Error ? error.message : 'failed'}; retry ${attempt + 1} in ${delays[attempt]} ms`,
+      );
+      await new Promise((done) => setTimeout(done, delays[attempt]));
+    }
+  }
+}
+const transportError = (error: unknown) =>
+  error instanceof ShowcaseError &&
+  (error.code === 'offline' || error.code === 'deadline');
+
+/** fetchBounded for a GNU server, with the transport retries above. */
+const fetchGnu = (url: string, maxBytes: number, options: GnuTransferOptions) =>
+  retrying(
+    () => fetchBounded(url, { maxBytes, fetchImpl: options.fetchImpl }),
+    transportError,
+    options.retryDelaysMs,
+  );
 
 const defaultExec: Exec = (file, args) =>
   execFileSync(file, args, {
@@ -121,28 +164,47 @@ export async function verifySignature(
   }
 }
 
-/** The tag's commit in a Savannah git repository, peeled like resolveTagCommit. */
-export function lsRemoteCommit(
+/** git's first stderr line (it carries no token: no credential is used). */
+function gitMessage(error: unknown): string {
+  const stderr = String((error as { stderr?: unknown }).stderr ?? '');
+  const line = stderr
+    .split('\n')
+    .map((item) => item.trim())
+    .find(Boolean);
+  return line ? `: ${line.slice(0, 200)}` : '';
+}
+
+/**
+ * The tag's commit in a Savannah git repository, peeled like
+ * resolveTagCommit. A failed git run is retried like a GNU transfer.
+ */
+export async function lsRemoteCommit(
   repository: string,
   tag: string,
   exec: Exec = defaultExec,
-): string {
-  let output: string;
-  try {
-    output = exec('git', [
-      'ls-remote',
-      '--tags',
-      repository,
-      `refs/tags/${tag}`,
-      `refs/tags/${tag}^{}`,
-    ]);
-  } catch (error) {
-    return fail(
-      'commit-unreachable',
-      `git ls-remote ${repository} failed`,
-      error,
-    );
-  }
+  retryDelaysMs?: readonly number[],
+): Promise<string> {
+  const output = await retrying(
+    async () => {
+      try {
+        return exec('git', [
+          'ls-remote',
+          '--tags',
+          repository,
+          `refs/tags/${tag}`,
+          `refs/tags/${tag}^{}`,
+        ]);
+      } catch (error) {
+        return fail(
+          'offline',
+          `git ls-remote ${repository} failed${gitMessage(error)}`,
+          error,
+        );
+      }
+    },
+    transportError,
+    retryDelaysMs,
+  );
   const refs = new Map(
     output
       .split('\n')
@@ -163,7 +225,7 @@ export function lsRemoteCommit(
 export async function fetchSignedTarball(
   pkg: GnuPackage,
   version: string,
-  options: { fetchImpl?: FetchLike; exec?: Exec; keys?: string } = {},
+  options: GnuTransferOptions = {},
 ): Promise<{
   record: SignedTarball;
   bytes: Uint8Array;
@@ -171,14 +233,16 @@ export async function fetchSignedTarball(
 }> {
   const name = `${pkg.package}-${version}.tar.gz`;
   const url = `${GNU_MIRROR}/${pkg.package}/${name}`;
-  const fetched = await fetchBounded(url, {
-    maxBytes: SOURCE_ARCHIVE_LIMITS.maxDownloadBytes,
-    fetchImpl: options.fetchImpl,
-  });
-  const signature = await fetchBounded(`${url}.sig`, {
-    maxBytes: TRANSFER_POLICY.maxMetadataBytes,
-    fetchImpl: options.fetchImpl,
-  });
+  const fetched = await fetchGnu(
+    url,
+    SOURCE_ARCHIVE_LIMITS.maxDownloadBytes,
+    options,
+  );
+  const signature = await fetchGnu(
+    `${url}.sig`,
+    TRANSFER_POLICY.maxMetadataBytes,
+    options,
+  );
   const signer = await verifySignature(pkg, fetched.bytes, signature.bytes, {
     exec: options.exec,
     keys: options.keys,
@@ -201,12 +265,13 @@ export async function fetchSignedTarball(
 /** The latest signed release of one GNU package. */
 export async function resolveGnuPackage(
   pkg: GnuPackage,
-  options: { fetchImpl?: FetchLike; exec?: Exec; keys?: string } = {},
+  options: GnuTransferOptions = {},
 ) {
-  const listing = await fetchBounded(`${GNU_MIRROR}/${pkg.package}/`, {
-    maxBytes: TRANSFER_POLICY.maxMetadataBytes,
-    fetchImpl: options.fetchImpl,
-  });
+  const listing = await fetchGnu(
+    `${GNU_MIRROR}/${pkg.package}/`,
+    TRANSFER_POLICY.maxMetadataBytes,
+    options,
+  );
   const version = latestVersion(
     new TextDecoder().decode(listing.bytes),
     pkg.package,

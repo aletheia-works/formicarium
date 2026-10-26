@@ -90,4 +90,5 @@ export function gnuExec(
 export const gnuOptions = (exec: Exec = gnuExec()) => ({
   fetchImpl: fakeFetch(gnuRoutes()),
   exec,
+  retryDelaysMs: [0, 0],
 });

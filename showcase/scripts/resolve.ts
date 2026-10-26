@@ -15,13 +15,13 @@ import { fail, runCli } from './errors.ts';
 import {
   createGitHubApi,
   encodeTag,
-  type FetchLike,
   type GitHubApi,
   repositorySlug,
 } from './github.ts';
 import {
   copyingOf,
   type Exec,
+  type GnuTransferOptions,
   lsRemoteCommit,
   resolveGnuPackage,
   type SignedTarball,
@@ -192,11 +192,7 @@ async function license(
   };
 }
 
-export interface GnuResolveOptions {
-  fetchImpl?: FetchLike;
-  exec?: Exec;
-  keys?: string;
-}
+export type GnuResolveOptions = GnuTransferOptions;
 type Resolved = {
   resolution: ToolResolution;
   /** License files by name; the tarballs are kept for the build and the site. */
@@ -209,10 +205,11 @@ export async function tagCommit(
   repository: string,
   tag: string,
   exec?: Exec,
+  retryDelaysMs?: readonly number[],
 ): Promise<string> {
   return repository.startsWith('https://github.com/')
     ? resolveTagCommit(api, repositorySlug(repository), tag)
-    : lsRemoteCommit(repository, tag, exec);
+    : lsRemoteCommit(repository, tag, exec, retryDelaysMs);
 }
 
 async function gnuPackage(
@@ -228,7 +225,13 @@ async function gnuPackage(
     repository,
     tag: found.tag,
     version: found.version,
-    commit: await tagCommit(api, repository, found.tag, options.exec),
+    commit: await tagCommit(
+      api,
+      repository,
+      found.tag,
+      options.exec,
+      options.retryDelaysMs,
+    ),
     tarball: found.record,
     license: {
       path: 'COPYING',

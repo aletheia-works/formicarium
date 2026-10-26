@@ -109,6 +109,9 @@ Safari の job は macOS の System keychain に job CA を信頼させ、leaf �
    GNU の keyring から、ncurses の鍵は GNU の keyring の写しが期限切れなので作者の
    サイトの最新のものから取った（どちらも 2029 年に期限が切れるので、その前に入れ替える）。
    ゲストの横の `sources/<tool>/` に tarball と `.sig` を置き、GPL の対応する source とする。
+   ftp.gnu.org と Savannah は CI の runner からの接続をときどき落とすので、その取得と
+   `git ls-remote` の通信の失敗だけは 10 秒・30 秒あけて 2 回までやり直す（GitHub API と、
+   状態・大きさ・署名の誤りはやり直さない）。
 
 ## mode と showcase site
 

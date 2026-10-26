@@ -93,28 +93,78 @@ test('a signature counts only as one good signature by a pinned primary key', as
   );
 });
 
-test('git ls-remote gives the peeled commit of a Savannah tag', () => {
+test('git ls-remote gives the peeled commit of a Savannah tag', async () => {
   const repository = 'https://git.savannah.gnu.org/git/nano.git';
-  assert.equal(lsRemoteCommit(repository, 'v9.3', gnuExec()), commit('nano'));
   assert.equal(
-    lsRemoteCommit(
+    await lsRemoteCommit(repository, 'v9.3', gnuExec()),
+    commit('nano'),
+  );
+  assert.equal(
+    await lsRemoteCommit(
       repository,
       'v9.3',
       () => `${commit('light')}\trefs/tags/v9.3\n`,
     ),
     commit('light'),
   );
-  for (const exec of [
-    () => '',
-    () => 'not-a-commit\trefs/tags/v9.3\n',
-    () => {
-      throw Error('offline');
-    },
-  ])
-    assert.throws(
-      () => lsRemoteCommit(repository, 'v9.3', exec),
-      (error) => causeOf(error) === 'commit-unreachable',
+  for (const exec of [() => '', () => 'not-a-commit\trefs/tags/v9.3\n'])
+    await rejects(
+      lsRemoteCommit(repository, 'v9.3', exec),
+      'commit-unreachable',
     );
+  // A failed git run is retried twice and reports git's own message.
+  let runs = 0;
+  const offline = () => {
+    runs++;
+    throw Object.assign(new Error('git exited with 128'), {
+      stderr: '\nfatal: unable to access the repository: Connection reset\n',
+    });
+  };
+  await assert.rejects(
+    lsRemoteCommit(repository, 'v9.3', offline, [0, 0]),
+    /offline: git ls-remote .+ failed: fatal: unable to access the repository: Connection reset$/,
+  );
+  assert.equal(runs, 3);
+  let flaky = 0;
+  assert.equal(
+    await lsRemoteCommit(
+      repository,
+      'v9.3',
+      (file, args) => {
+        if (flaky++ === 0) throw Error('reset');
+        return gnuExec()(file, args);
+      },
+      [0, 0],
+    ),
+    commit('nano'),
+  );
+});
+
+test('a transport failure of a GNU request is retried; a bad answer is not', async () => {
+  const routes = gnuRoutes();
+  const listing = 'https://ftp.gnu.org/gnu/nano/';
+  let attempts = 0;
+  const once = routes[listing]!;
+  routes[listing] = () => {
+    attempts++;
+    if (attempts === 1) throw new TypeError('fetch failed');
+    return typeof once === 'function' ? once() : once;
+  };
+  const found = await resolveGnuTool(api(), nano, {
+    ...gnuOptions(),
+    fetchImpl: fakeFetch(routes),
+  });
+  assert.equal(found.resolution.version, '9.3');
+  assert.equal(attempts, 2);
+  const missing = fakeFetch({
+    ...gnuRoutes(),
+    [listing]: () => new Response('gone', { status: 404 }),
+  });
+  await rejects(
+    resolveGnuTool(api(), nano, { ...gnuOptions(), fetchImpl: missing }),
+    'http-status',
+  );
+  assert.equal(missing.calls.filter((call) => call.url === listing).length, 1);
 });
 
 test('the license is the COPYING at the tarball root', async () => {
