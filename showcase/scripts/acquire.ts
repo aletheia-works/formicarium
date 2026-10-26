@@ -90,8 +90,11 @@ export async function fetchBounded(
     timedOut = true;
     controller.abort();
   }, options.deadlineMs ?? TRANSFER_POLICY.fetchDeadlineMs);
+  // The hop being fetched, for the failure message (never its query).
+  let current: string | undefined;
   try {
     let url = checkTransferUrl(raw);
+    current = withoutQuery(url);
     const visited = new Set<string>();
     let response: Response;
     for (let hops = 0; ; hops++) {
@@ -109,6 +112,7 @@ export async function fetchBounded(
       const location = response.headers.get('location');
       if (!location) fail('redirect', 'redirect without location');
       url = checkTransferUrl(location, url.href);
+      current = withoutQuery(url);
     }
     if (!response.ok) {
       discardBody(response);
@@ -138,7 +142,7 @@ export async function fetchBounded(
       fail('size-mismatch', 'asset size differs from its declared size');
     return { bytes, finalUrl: withoutQuery(url), elapsedMs: clock() - started };
   } catch (error) {
-    return transportFailure(error, timedOut);
+    return transportFailure(error, timedOut, current);
   } finally {
     clearTimeout(timer);
   }

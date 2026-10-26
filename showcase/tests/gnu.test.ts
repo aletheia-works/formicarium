@@ -194,6 +194,19 @@ test('a tag outside tagPattern, or a failed signature, stops the resolution', as
     resolveGnuTool(api(), nano, gnuOptions(gnuExec({ status: '' }))),
     'signature-invalid',
   );
+  // A transport failure names the request and the system code, never a query.
+  const reset = Object.assign(new TypeError('fetch failed'), {
+    cause: Object.assign(new Error('socket'), { code: 'ECONNRESET' }),
+  });
+  await assert.rejects(
+    resolveGnuTool(api(), nano, {
+      ...gnuOptions(),
+      fetchImpl: (async () => {
+        throw reset;
+      }) as never,
+    }),
+    /offline: network request failed \(https:\/\/ftp\.gnu\.org\/gnu\/nano\/, ECONNRESET\)/,
+  );
   const routes = gnuRoutes();
   delete routes['https://ftp.gnu.org/gnu/nano/nano-9.3.tar.gz.sig'];
   await rejects(

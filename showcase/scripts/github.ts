@@ -18,11 +18,31 @@ export interface GitHubApiOptions {
   deadlineMs?: number;
 }
 
-/** Maps a transport exception without echoing request headers or bodies. */
-export function transportFailure(error: unknown, timedOut: boolean): never {
+/** The system error code under a fetch failure (ECONNRESET, UND_ERR_*). */
+function systemCode(error: unknown): string | null {
+  for (let item = error, depth = 0; item && depth < 4; depth++) {
+    const code = (item as { code?: unknown }).code;
+    if (typeof code === 'string' && /^[A-Z][A-Z0-9_]{1,63}$/.test(code))
+      return code;
+    item = (item as { cause?: unknown }).cause;
+  }
+  return null;
+}
+
+/**
+ * Maps a transport exception without echoing request headers or bodies.
+ * `where` is the request without its query (signed URLs carry tokens).
+ */
+export function transportFailure(
+  error: unknown,
+  timedOut: boolean,
+  where?: string,
+): never {
   if (error instanceof ShowcaseError) throw error;
-  if (timedOut) fail('deadline', 'request deadline exceeded');
-  return fail('offline', 'network request failed', error);
+  const detail = [where, systemCode(error)].filter(Boolean).join(', ');
+  const suffix = detail ? ` (${detail})` : '';
+  if (timedOut) fail('deadline', `request deadline exceeded${suffix}`);
+  return fail('offline', `network request failed${suffix}`, error);
 }
 
 export function statusCause(response: Response): CauseCode {
@@ -122,7 +142,7 @@ export function createGitHubApi(options: GitHubApiOptions = {}): GitHubApi {
         body: await readBounded(response, MAX_API_BODY_BYTES),
       };
     } catch (error) {
-      return transportFailure(error, timedOut);
+      return transportFailure(error, timedOut, `${base}/${path.split('?')[0]}`);
     } finally {
       clearTimeout(timer);
     }
