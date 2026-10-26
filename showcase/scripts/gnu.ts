@@ -157,6 +157,7 @@ export async function verifySignature(
         dataPath,
       ]);
     } catch (error) {
+      if (error instanceof ShowcaseError) throw error;
       return fail(
         'signature-invalid',
         `${pkg.package} signature did not verify`,

@@ -92,6 +92,14 @@ test('a signature counts only as one good signature by a pinned primary key', as
     }),
     'signature-invalid',
   );
+  // A gpgv that stalls keeps its deadline instead of reading as a bad
+  // signature.
+  await rejects(
+    verifySignature(pkg, data, data, {
+      exec: () => processExec(300)('sh', ['-c', 'sleep 30']),
+    }),
+    'deadline',
+  );
 });
 
 test('git ls-remote gives the peeled commit of a Savannah tag', async () => {
