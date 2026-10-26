@@ -386,7 +386,7 @@ export function validateFormicariumRelease(
     version: text(
       raw.version,
       'version',
-      /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-rc\.[1-9]\d*)?$/,
+      /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/,
     ),
     integrity: text(raw.integrity, 'integrity', /^sha512-[A-Za-z0-9+/]{86}==$/),
     sourceCommit: text(raw.sourceCommit, 'sourceCommit', /^[a-f0-9]{40}$/),

@@ -152,7 +152,7 @@ test('missing candidate approval and stable adoption emit no artifact and invoke
     );
   }
 });
-test('Release YAML requires its approval and never marks a prerelease', async (t) => {
+test('Release YAML requires its approval, refuses an RC and never marks a prerelease', async (t) => {
   for (const stable of [false, true]) {
     const f = await fixtureActions(t, stable);
     assert.equal(await f.run('release'), 'skipped');
@@ -167,6 +167,14 @@ test('Release YAML requires its approval and never marks a prerelease', async (t
     // A fresh simulated run has a fresh artifact directory, as in Actions.
     const { rm } = await import('node:fs/promises');
     await rm(join(f.root, 'out-release'), { recursive: true });
+    if (!stable) {
+      await assert.rejects(
+        f.run('release'),
+        /dist-tag must be latest, got next/,
+      );
+      assert.equal((await f.calls()).length, 0);
+      continue;
+    }
     await f.run('release');
     const [view, call] = await f.calls();
     assert.equal(view.args[1], 'view');

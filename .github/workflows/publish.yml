@@ -168,6 +168,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          [[ "$DIST_TAG" == latest ]] || { echo "dist-tag must be latest, got $DIST_TAG" >&2; exit 1; }
           if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
             gh release upload "$RELEASE_TAG" ./candidate.tgz --repo "$GITHUB_REPOSITORY"
           else

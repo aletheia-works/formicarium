@@ -179,6 +179,14 @@ export function validatePublishWorkflow(text: string) {
         ),
       'unvalidated publication command',
     );
+    // Every release is stable (no RCs); the stored 0.1.0 evidence still
+    // types next, so both writers refuse any other dist-tag themselves.
+    requireCondition(
+      writer.run.includes(
+        '[[ "$DIST_TAG" == latest ]] || { echo "dist-tag must be latest, got $DIST_TAG" >&2; exit 1; }',
+      ),
+      'latest-only guard missing',
+    );
     for (const step of job.steps) {
       requireCondition(
         !step['continue-on-error'],

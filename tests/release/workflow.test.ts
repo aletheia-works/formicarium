@@ -102,6 +102,20 @@ test('new YAML refuses bypassed authorization, cross-run packages and token fall
     assert.throws(() => validatePublishWorkflow(alter(change)));
 });
 
+test('both writers keep the latest-only dist-tag guard', () => {
+  for (const name of ['publish', 'release'])
+    assert.throws(
+      () =>
+        validatePublishWorkflow(
+          alter((w: any) => {
+            const writer = w.jobs[name].steps.at(-1);
+            writer.run = writer.run.replace(/^.*DIST_TAG" == latest.*\n/m, '');
+          }),
+        ),
+      /latest-only guard missing/,
+    );
+});
+
 test('read-only preflight accepts only the exact upstream main candidate and package version', () => {
   const preflight = {
     ...context,

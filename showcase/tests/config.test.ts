@@ -204,11 +204,8 @@ test('formicarium-release.json must be all null or a full npm version, integrity
     }),
     null,
   );
-  assert.equal(
-    validateFormicariumRelease({ ...release, version: '1.0.0-rc.2' })?.version,
-    '1.0.0-rc.2',
-  );
   for (const change of [
+    { version: '1.0.0-rc.2' },
     { version: 'v0.4.0' },
     { version: '0.4' },
     { integrity: 'sha256-abc' },
