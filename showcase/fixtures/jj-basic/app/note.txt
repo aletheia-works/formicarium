@@ -1,0 +1,1 @@
+Record this note in a new repository with jj git init, then describe it and read the log.

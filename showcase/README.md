@@ -1,6 +1,6 @@
 # showcase
 
-最新の安定版の aube・pitchfork・Biome・nano を、formicarium の**公開 export だけ**で
+最新の安定版の aube・pitchfork・Biome・nano・jj を、formicarium の**公開 export だけ**で
 受入し、showcase の候補（`ShowcaseCandidateManifest`、catalog、guest）を作る。
 配布（Pages）は showcase site（`site/`、`showcase-site.yml`）が、この候補を受け取って
 行う。showcase は候補を長期保存しない。
@@ -10,7 +10,8 @@
 run 39412286499）。macOS の実機 Safari の 3 行も受入に加え（`accept-safari` job）、
 15 行がそろわないと候補を作らない（15 行がそろった最初の main の run は 40151083995、
 `82a01c27`、Safari 26.6.2）。WebKit の結果を Safari の代わりにはしない。
-nano を加えて 4 ツールになったので、今は 20 行（4 ツール × 5 環境）がそろうまで候補を作らない。
+nano を加えて 4 ツール、jj を加えて 5 ツールになったので、今は 25 行（5 ツール × 5 環境）が
+そろうまで候補を作らない。
 
 ## 構成
 
@@ -50,8 +51,8 @@ fixture の共有は `scripts/boundary.ts` と Biome の `noRestrictedImports` �
 | source build | `scripts/build.ts`、`builders/cargo.sh`                                    | `prepare`：tag と commit の一致、codeload の source、toolchain の選択、buildKey。`compile`：token なしの独立した process group で build                      |
 | 再利用       | `scripts/reuse.ts`                                                         | main の信頼した workflow の成功 run の `showcase-candidate` から、buildKey・ELF・build-info を照合して再利用                                                 |
 | catalog      | `scripts/catalog.ts`                                                       | `GuestCatalog`（same-origin の相対 URL）。公開 `createInstaller` で受理を確かめる                                                                            |
-| 受入         | `scripts/accept-node.ts`、`tests/accept.spec.ts`、`tests/accept-safari.ts` | `install <tool>` と `<tool> --version`。4 ツール × Node・Chromium・Firefox・WebKit・実機 Safari の 20 行                                                     |
-| 候補         | `scripts/candidate.ts`                                                     | 20 行がすべて合格したときだけ manifest を作る。`verify` は常に `distributable: false`                                                                        |
+| 受入         | `scripts/accept-node.ts`、`tests/accept.spec.ts`、`tests/accept-safari.ts` | `install <tool>` と `<tool> --version`。5 ツール × Node・Chromium・Firefox・WebKit・実機 Safari の 25 行                                                     |
+| 候補         | `scripts/candidate.ts`                                                     | 25 行がすべて合格したときだけ manifest を作る。`verify` は常に `distributable: false`                                                                        |
 
 toolchain は upstream の宣言（`rust-toolchain.toml`・`rust-toolchain`、UI の
 Node は `.node-version`・`mise.toml`・`.tool-versions` の正確な版）に従い、

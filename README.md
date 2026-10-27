@@ -9,7 +9,7 @@ API: give it a static Linux executable and some files, run it, and get back the
 exit code, the output and the files it wrote. The goal is to let a CLI bug
 reproduction run as-is in a web page.
 - **Try it:** the [showcase site](https://aletheia-works.github.io/formicarium/)
-  has terminals that install and run aube, pitchfork, Biome and nano in your
+  has terminals that install and run aube, pitchfork, Biome, nano and jj in your
   browser.
 - **Package:** [`@aletheia-works/formicarium`](https://www.npmjs.com/package/@aletheia-works/formicarium)
   on npm.

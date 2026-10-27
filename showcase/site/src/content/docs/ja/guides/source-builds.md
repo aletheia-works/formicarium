@@ -8,7 +8,7 @@ showcase のツールは
 [`showcase/tools.json`](https://github.com/aletheia-works/formicarium/blob/main/showcase/tools.json)
 で定義します。`showcase.yml` の run は、各ツールの repository の tag の形から最新の
 安定版を1回だけ解決し、その tag と完全な commit を run の最後まで使います。
-- **release の資産。** aube と Biome は static な x86-64 musl の binary を公開して
+- **release の資産。** aube・Biome・jj は static な x86-64 musl の binary を公開して
   います。showcase は release の資産を取得し、公開された SHA256 と大きさを確かめ、
   公開の `validateGuest` で ELF を検証します。
 - **source build。** pitchfork には musl の資産が無いので、showcase は tag の
@@ -23,7 +23,7 @@ showcase のツールは
   署名された tarball を、対応する source としてゲストの横の `sources/` に置きます。
 
 その後、run は catalog を書き、Node・Chromium・Firefox・WebKit・macOS の実機の Safari で
-公開 API を通して各ツールを導入して `--version` を実行し、20件の確認がすべて通ったときだけ候補を
+公開 API を通して各ツールを導入して `--version` を実行し、25件の確認がすべて通ったときだけ候補を
 作ります。このサイトはその候補から作り、`latest` を解決し直しません。
 
 ツールを足すには、`tools.json` の entry、`showcase/fixtures/<名前>/app` の demo の

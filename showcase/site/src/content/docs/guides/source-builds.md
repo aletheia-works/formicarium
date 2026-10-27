@@ -9,7 +9,7 @@ The showcase tools are defined in
 Each run of `showcase.yml` resolves the latest stable release of every tool
 once, from the tag pattern of its repository, and keeps that tag and its full
 commit for the rest of the run.
-- **Release assets.** aube and Biome publish static x86-64 musl binaries. The
+- **Release assets.** aube, Biome and jj publish static x86-64 musl binaries. The
   showcase downloads the release asset, checks the published SHA256 and size,
   and validates the ELF with the public `validateGuest`.
 - **Source builds.** pitchfork has no musl asset, so the showcase compiles the
@@ -27,7 +27,7 @@ commit for the rest of the run.
 
 The run then writes the catalog, installs and runs each tool with
 `--version` through the public API in Node, Chromium, Firefox, WebKit and real
-Safari on macOS, and assembles the candidate only when all twenty checks pass. This site is built
+Safari on macOS, and assembles the candidate only when all twenty-five checks pass. This site is built
 from that candidate and never resolves `latest` again.
 
 Adding a tool needs an entry in `tools.json`, a demo fixture in

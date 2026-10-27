@@ -65,7 +65,7 @@ const ALL: readonly EnvironmentId[] = ['node', ...BROWSERS];
 const ENVIRONMENTS: readonly EnvironmentId[] = [...ALL, 'host'];
 const STATUSES: readonly CheckStatus[] = ['passed', 'failed', 'unverified'];
 
-/** Site acceptance profile: the 38 required (name, environment) rows. */
+/** Site acceptance profile: the 43 required (name, environment) rows. */
 export const REQUIRED_ROWS: readonly {
   name: string;
   environment: EnvironmentId;
@@ -75,6 +75,7 @@ export const REQUIRED_ROWS: readonly {
     'tool-pitchfork-version',
     'tool-biome-version',
     'tool-nano-version',
+    'tool-jj-version',
   ].flatMap((name) => ALL.map((environment) => ({ name, environment }))),
   ...['empty-terminal-install', 'ui-states-keyboard', 'browser-coi'].flatMap(
     (name) => BROWSERS.map((environment) => ({ name, environment })),

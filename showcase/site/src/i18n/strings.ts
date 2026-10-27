@@ -47,6 +47,11 @@ export const STRINGS = {
         summary:
           'A formatter and linter for web projects. The sample project has a biome.json and two scripts.',
       },
+      jj: {
+        label: 'jj',
+        summary:
+          'Jujutsu, a version control system that works with Git repositories. The sample project has a note to record. Give each message with -m; fetch and push need a network, so they do not work here.',
+      },
       nano: {
         label: 'nano',
         summary:
@@ -100,6 +105,11 @@ export const STRINGS = {
         summary:
           'web の project の formatter と linter。試しの project に biome.json と2つの script があります。',
       },
+      jj: {
+        label: 'jj',
+        summary:
+          'Git の repository で使える version control system の Jujutsu。試しの project に記録するメモがあります。message は -m で渡します。network が無いので fetch と push はできません。',
+      },
       nano: {
         label: 'nano',
         summary:
@@ -125,6 +135,14 @@ export const HINTS: Readonly<Record<string, readonly string[]>> = Object.freeze(
       'aube --help',
     ],
     biome: ['biome --version', 'ls', 'cat example.js', 'biome --help'],
+    jj: [
+      'jj --version',
+      'ls',
+      'cat note.txt',
+      'jj git init',
+      'jj describe -m "first"',
+      'jj log',
+    ],
     nano: ['nano --version', 'ls', 'cat note.txt', 'nano note.txt'],
     pitchfork: [
       'pitchfork --version',

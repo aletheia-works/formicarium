@@ -38,6 +38,7 @@ const LOCALES = [
 const FIXTURE_FILES: Record<string, [string, string]> = {
   aube: ['package.json', '"linked": "link:../outside/linked"'],
   biome: ['example.js', 'Hello, terrarium!'],
+  jj: ['note.txt', 'with jj git init'],
   nano: ['note.txt', 'save it with Ctrl-O'],
   pitchfork: ['pitchfork.toml', '[daemons.api]'],
 };

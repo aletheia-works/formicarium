@@ -89,6 +89,18 @@
           }
         ]
       }
+    },
+    {
+      "tool": "jj",
+      "repository": "https://github.com/jj-vcs/jj",
+      "tagPattern": "^v(\\d+\\.\\d+\\.\\d+)$",
+      "fixture": "jj-basic",
+      "acquire": {
+        "kind": "release-asset",
+        "asset": "jj-{tag}-x86_64-unknown-linux-musl.tar.gz",
+        "format": "tar.gz",
+        "archiveEntry": "jj"
+      }
     }
   ]
 }

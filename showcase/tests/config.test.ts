@@ -31,6 +31,7 @@ test('the committed tools.json, allow list, callers and release pin are valid', 
       ['pitchfork', 'source-build'],
       ['biome', 'release-asset'],
       ['nano', 'gnu-source'],
+      ['jj', 'release-asset'],
     ],
   );
   assert.deepEqual(

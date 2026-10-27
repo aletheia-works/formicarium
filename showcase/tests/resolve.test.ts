@@ -39,6 +39,10 @@ const biomeAsset = {
   name: 'biome-linux-x64-musl',
   bytes: new Uint8Array([4, 5]),
 };
+const jjAsset = {
+  name: 'jj-v0.46.0-x86_64-unknown-linux-musl.tar.gz',
+  bytes: new Uint8Array([6, 7]),
+};
 const all = () => ({
   ...releaseRoutes({
     slug: 'aubepkg/aube',
@@ -59,6 +63,12 @@ const all = () => ({
     annotated: true,
   }),
   ...ncursesTagRoutes(),
+  ...releaseRoutes({
+    slug: 'jj-vcs/jj',
+    tag: 'v0.46.0',
+    commit: commit('jj'),
+    assets: [jjAsset],
+  }),
 });
 const api = (routes: Record<string, Route>) =>
   createGitHubApi({ token: 'test-token', fetchImpl: fakeFetch(routes) });
@@ -82,6 +92,7 @@ test('resolves every tool once, peels annotated tags and writes resolutions once
         ['pitchfork', '2.30.0', commit('pitchfork')],
         ['biome', '2.5.15', commit('biome')],
         ['nano', '9.3', commit('nano')],
+        ['jj', '0.46.0', commit('jj')],
       ],
     );
     assert.equal(resolutions.tools[1]!.asset, null);

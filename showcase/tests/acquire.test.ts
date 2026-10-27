@@ -49,6 +49,9 @@ const aubeTar = tgz([
 ]);
 const aubeName = 'aube-v2.7.0-x86_64-unknown-linux-musl.tar.gz';
 const biomeElf = staticElf(300, 2);
+// jj's release archive names its entries with a leading ./ (./jj).
+const jjElf = staticElf(320, 3);
+const jjTar = tgz([{ name: './jj', body: jjElf, mode: 0o755 }]);
 
 test('the download limit accepts its value and refuses one byte more', async () => {
   const fetchImpl = fakeFetch({ [url]: bytes(body) });
@@ -227,6 +230,14 @@ function siteRoutes() {
       assets: [{ name: 'biome-linux-x64-musl', bytes: biomeElf }],
     }),
     ...ncursesTagRoutes(),
+    ...releaseRoutes({
+      slug: 'jj-vcs/jj',
+      tag: 'v0.46.0',
+      commit: commit('jj'),
+      assets: [
+        { name: 'jj-v0.46.0-x86_64-unknown-linux-musl.tar.gz', bytes: jjTar },
+      ],
+    }),
   };
 }
 
@@ -247,15 +258,19 @@ test('the acquire job stores verified copies and never builds a release-asset to
     });
     assert.deepEqual(
       records.map((record) => record.tool),
-      ['aube', 'biome'],
+      ['aube', 'biome', 'jj'],
     );
     assert.deepEqual(
       (await loadAcquired(layout)).map((record) => record.tool),
-      ['aube', 'biome'],
+      ['aube', 'biome', 'jj'],
     );
     assert.deepEqual(
       new Uint8Array(await readFile(join(layout.acquired, 'aube', 'guest'))),
       aubeElf,
+    );
+    assert.deepEqual(
+      new Uint8Array(await readFile(join(layout.acquired, 'jj', 'guest'))),
+      jjElf,
     );
   });
   await withLayout(async (layout) => {
