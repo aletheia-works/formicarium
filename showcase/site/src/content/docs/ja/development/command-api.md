@@ -46,7 +46,7 @@ cross-origin isolation・Worker・資産・CSP の要件を満たしてくださ
 `stdin`（`ReadableStream<Uint8Array>`）と `terminal`（`{ columns, rows }`、1〜65535）は、Session の `run` と同じく
 ゲストの実行にだけ渡します（[ADR 0013](/formicarium/ja/development/decisions/0013-interactive-guest-runs/)）。
 ゲストは stream を stdin として読み、その大きさの端末を見ます。端末を付けた実行には `TERM=xterm-256color` も渡します。
-表示する端末は xterm 互換で、`TERM` がないと nano は `vt220` だとみなすからです。builtin と `install` は読みません。ロックされていない
+表示する端末は xterm 互換で、`TERM` がないと curses のゲストは知らない端末だとみなすことがあるからです。builtin と `install` は読みません。ロックされていない
 `ReadableStream` でない `stdin` や、形の違う `terminal` は、予約の前に `INVALID_INPUT` です。
 
 ## 構文

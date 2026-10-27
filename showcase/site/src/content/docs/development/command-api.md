@@ -53,9 +53,10 @@ runs one command. `stdin` (a `ReadableStream<Uint8Array>`) and `terminal`
 `run` ([ADR 0013](/formicarium/development/decisions/0013-interactive-guest-runs/)):
 the guest reads the stream as its stdin and sees a terminal of that size. A
 run with a terminal also gets `TERM=xterm-256color`, since the terminal that
-shows it is xterm-compatible; without it, nano assumes `vt220`. Builtins and `install` never read them. A stream that is not an unlocked
-`ReadableStream`, or a malformed `terminal`, is `INVALID_INPUT` before the
-reservation.
+shows it is xterm-compatible; without `TERM`, a curses guest may assume a
+terminal it does not know. Builtins and `install` never read them. A stream
+that is not an unlocked `ReadableStream`, or a malformed `terminal`, is
+`INVALID_INPUT` before the reservation.
 
 ## Syntax
 

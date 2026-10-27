@@ -34,7 +34,9 @@ const EMPTY = new Uint8Array();
 const encoder = new TextEncoder();
 /**
  * A terminal run is shown by an xterm-compatible terminal. Without TERM a
- * curses guest such as nano assumes vt220, which it may not know.
+ * curses guest such as nano assumes vt220, which it may not know. TERM
+ * follows the terminal, not the guest, so it is set here: runtime/registry.ts
+ * describes only this repository's test guests and is not in the package.
  */
 const TERMINAL_ENV = Object.freeze({ TERM: 'xterm-256color' });
 
