@@ -104,7 +104,8 @@ for (const [tool, version] of TOOLS)
         await site.type(`nano ${file}`);
         await site.press('Enter');
         await poll(() => terminalText(site)).toContain(`GNU nano ${version}`);
-        expect(await terminalText(site)).toContain(line);
+        // nano draws the file after its title, status and help rows.
+        await poll(() => terminalText(site)).toContain(line);
         await site.press('Control+x');
         await waitState(site, ['ready']);
         expect(await terminalText(site)).not.toContain('cannot initialize');
