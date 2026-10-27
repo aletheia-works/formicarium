@@ -97,6 +97,18 @@ for (const [tool, version] of TOOLS)
       expect(occurrences(await run(site, `${tool} --version`), version)).toBe(
         1,
       );
+      // nano opens its editor on the fixture, which needs a terminal type it
+      // knows, and quits on Ctrl-X.
+      if (tool === 'nano') {
+        await focusTerminal(site);
+        await site.type(`nano ${file}`);
+        await site.press('Enter');
+        await poll(() => terminalText(site)).toContain(`GNU nano ${version}`);
+        expect(await terminalText(site)).toContain(line);
+        await site.press('Control+x');
+        await waitState(site, ['ready']);
+        expect(await terminalText(site)).not.toContain('cannot initialize');
+      }
       // aube's link target lies beside app/ (paths with `..` are refused by the builtins).
       if (tool === 'aube')
         expect(

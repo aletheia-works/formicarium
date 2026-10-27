@@ -693,6 +693,16 @@ test('stdin and terminal reach guest runs only, and lift the default timeout', a
   assert.equal(unread.locked, false);
   assert.equal(value.requests.length, 1);
 });
+test('a guest run with a terminal gets TERM=xterm-256color; one without gets no TERM', async (t) => {
+  const value = harness();
+  t.after(() => value.session.dispose());
+  await value.register();
+  const shell = command(value);
+  await shell.execute('fixture', { terminal: { columns: 80, rows: 24 } });
+  assert.equal(value.requests.at(-1)?.env?.TERM, 'xterm-256color');
+  await shell.execute('fixture');
+  assert.equal(value.requests.at(-1)?.env?.TERM, undefined);
+});
 test('a malformed stdin or terminal is INVALID_INPUT before the reservation', async (t) => {
   const value = harness();
   t.after(() => value.session.dispose());

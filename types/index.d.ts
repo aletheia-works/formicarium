@@ -90,7 +90,8 @@ export declare function createInstaller(
  *   means unknown and is distinct from `0`.
  * - `onOutput`: forwarded unchanged from the guest run.
  * - `stdin` and `terminal`: forwarded to guest runs only, as in
- *   {@link RunOptions}. Builtins and `install` never read them.
+ *   {@link RunOptions}. A run with `terminal` also gets
+ *   `TERM=xterm-256color`. Builtins and `install` never read them.
  *
  * There is no timeout option: guest runs use the session run default
  * (600000 ms, none with `stdin`) and install keeps its own 120 s fetch / 180 s

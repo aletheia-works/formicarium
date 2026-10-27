@@ -32,6 +32,11 @@ export const RESERVED_COMMANDS = Object.freeze([
 ] as const);
 const EMPTY = new Uint8Array();
 const encoder = new TextEncoder();
+/**
+ * A terminal run is shown by an xterm-compatible terminal. Without TERM a
+ * curses guest such as nano assumes vt220, which it may not know.
+ */
+const TERMINAL_ENV = Object.freeze({ TERM: 'xterm-256color' });
 
 interface CheckedOptions {
   signal?: AbortSignal;
@@ -197,7 +202,8 @@ async function runInstall(
 
 /**
  * GuestRunAdapter: one run reservation; Session.run's default timeout applies.
- * Only guest runs receive stdin and terminal.
+ * Only guest runs receive stdin and terminal, and a terminal run gets
+ * TERM=xterm-256color.
  */
 async function runGuest(
   port: SessionPort,
@@ -211,7 +217,9 @@ async function runGuest(
       ...(options.signal ? { signal: options.signal } : {}),
       ...(options.onOutput ? { onOutput: options.onOutput } : {}),
       ...(options.stdin ? { stdin: options.stdin } : {}),
-      ...(options.terminal ? { terminal: options.terminal } : {}),
+      ...(options.terminal
+        ? { terminal: options.terminal, env: TERMINAL_ENV }
+        : {}),
     };
     const run = await port.runInstalled(
       reservation,

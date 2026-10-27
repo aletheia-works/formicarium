@@ -10,7 +10,7 @@ import { createSession, webdriver } from '../../../tests/webdriver.ts';
 import { SITE_ROOT } from '../../scripts/common.ts';
 
 /** Keys the tests press. */
-export type Key = 'Enter' | 'Tab' | 'Alt+Tab' | 'Control+c' | 'q';
+export type Key = 'Enter' | 'Tab' | 'Alt+Tab' | 'Control+c' | 'Control+x' | 'q';
 
 /**
  * One browser tab as the site acceptance sees it. Playwright drives Chromium,
