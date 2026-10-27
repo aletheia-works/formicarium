@@ -2,8 +2,8 @@
 // safaridriver (W3C WebDriver over HTTP, no extra dependency). Playwright's
 // WebKit is a separate WebKit build, so this is the check against the Safari
 // that ships with macOS, or with FORMICARIUM_SAFARI_PLATFORM=ios the Safari of
-// the booted iOS Simulator. It runs one session at a time with no retries, like
-// the Playwright suites.
+// the booted iOS Simulator. It runs one session at a time with no test retries,
+// like the Playwright suites.
 // Requires: bun run build, the probe guests (probe, hello, exit3) in dist/guests,
 // `safaridriver --port <port>` already running (FORMICARIUM_SAFARIDRIVER), and,
 // for the install tests only, openssl and tar for the HTTPS guest server.
@@ -26,6 +26,8 @@ const port = Number(process.env.FORMICARIUM_PORT ?? 8787);
 const origin = `http://127.0.0.1:${port}`;
 /** The same per-run limit as the Playwright probe test. */
 const RUN_TIMEOUT_MS = 10 * 60 * 1000;
+/** How many times the iOS Simulator's Safari is asked for a session. */
+const IOS_SESSION_ATTEMPTS = 3;
 const CHECKS = [
   'tokio-timer',
   'unix-stream-pair',
@@ -145,6 +147,56 @@ async function serveGuests(files: Record<string, Uint8Array>) {
   }
 }
 
+/**
+ * Open the WebDriver session. In the iOS Simulator, safaridriver sometimes
+ * times out waiting for Safari's RWIApplication ("session not created"); after
+ * any failed attempt Safari is relaunched and the session is asked for again, a
+ * set number of times. This retries only the connection to Safari, never a test.
+ */
+async function createSession() {
+  const request = () =>
+    webdriver('POST', '/session', {
+      capabilities: {
+        alwaysMatch: {
+          browserName: 'safari',
+          acceptInsecureCerts: true,
+          // Safari on iOS: the booted iOS Simulator, which shares the host's
+          // 127.0.0.1.
+          ...(ios ? { platformName: 'iOS', 'safari:useSimulator': true } : {}),
+        },
+      },
+    }) as Promise<{ sessionId: string; capabilities: Record<string, unknown> }>;
+  if (!ios) return request();
+  for (let attempt = 1; ; attempt++) {
+    const started = Date.now();
+    try {
+      return await request();
+    } catch (error) {
+      // The time tells whether a later failure needs a longer wait after launch.
+      console.log(
+        `iOS Safari session attempt ${attempt} failed after ${Date.now() - started} ms: ${error}`,
+      );
+      if (attempt >= IOS_SESSION_ATTEMPTS) throw error;
+      // terminate fails when Safari is not running; launch then starts it anyway.
+      try {
+        execFileSync('xcrun', [
+          'simctl',
+          'terminate',
+          'booted',
+          'com.apple.mobilesafari',
+        ]);
+      } catch {}
+      execFileSync('xcrun', [
+        'simctl',
+        'launch',
+        'booted',
+        'com.apple.mobilesafari',
+      ]);
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+    }
+  }
+}
+
 before(async () => {
   server = spawn(
     process.execPath,
@@ -169,17 +221,7 @@ before(async () => {
     if (attempt > 100) throw new Error(`safaridriver is not ready: ${driver}`);
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  const created = (await webdriver('POST', '/session', {
-    capabilities: {
-      alwaysMatch: {
-        browserName: 'safari',
-        acceptInsecureCerts: true,
-        // Safari on iOS: the booted iOS Simulator, which shares the host's
-        // 127.0.0.1.
-        ...(ios ? { platformName: 'iOS', 'safari:useSimulator': true } : {}),
-      },
-    },
-  })) as { sessionId: string; capabilities: Record<string, unknown> };
+  const created = await createSession();
   session = created.sessionId;
   await webdriver('POST', `/session/${session}/timeouts`, {
     script: RUN_TIMEOUT_MS,

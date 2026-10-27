@@ -435,6 +435,8 @@ jobs:
           xcrun simctl launch "$device" com.apple.mobilesafari
       - name: 'Allow safaridriver to drive Safari'
         run: 'sudo safaridriver --enable'
+      # One session and no test retries; only the session creation is retried,
+      # relaunching Safari, when safaridriver cannot reach the simulator's Safari.
       - name: 'Run the probe page and the install and command checks in iOS Safari'
         env:
           FORMICARIUM_SAFARI_PLATFORM: 'ios'
