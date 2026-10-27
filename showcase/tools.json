@@ -48,6 +48,7 @@
       "tagPattern": "^v(\\d+\\.\\d+(?:\\.\\d+)?)$",
       "fixture": "nano-basic",
       "interactive": true,
+      "onDemand": true,
       "acquire": {
         "kind": "gnu-source",
         "builder": "autotools",

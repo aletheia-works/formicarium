@@ -118,6 +118,8 @@ export class TerminalHost {
   readonly #encoder = new TextEncoder();
   /** The last tool an install command registered (shown in the ready text). */
   #installed: { tool: string; version: string } | null = null;
+  /** Every tool installed in this session (an on-demand tool is installed once). */
+  readonly #tools = new Set<string>();
 
   constructor(options: HostOptions) {
     this.#options = options;
@@ -307,8 +309,23 @@ export class TerminalHost {
           this.#clear();
           this.#prompt();
         } else if (action.line.trim() === '') this.#prompt();
-        else void this.#execute(action.line, false);
+        else void this.#submit(action.line);
     }
+  }
+
+  /**
+   * A typed command. An on-demand tool that this session lacks is installed
+   * first, so its command works on every page as a builtin does.
+   */
+  async #submit(line: string): Promise<void> {
+    const tool = line.trim().split(/[ \t]+/)[0] ?? '';
+    if (
+      this.#options.data.onDemand.includes(tool) &&
+      !this.#tools.has(tool) &&
+      !(await this.#execute(`install ${tool}`, false, false))
+    )
+      return;
+    await this.#execute(line, false);
   }
 
   /**
@@ -321,9 +338,18 @@ export class TerminalHost {
     this.#run?.abort();
   }
 
-  async #execute(line: string, automatic: boolean): Promise<void> {
+  /**
+   * Runs one line and reports whether it succeeded. With `last` false a
+   * successful run keeps the busy state and prints no prompt, because the
+   * typed command follows it.
+   */
+  async #execute(
+    line: string,
+    automatic: boolean,
+    last = true,
+  ): Promise<boolean> {
     const commands = this.#commands;
-    if (!commands) return;
+    if (!commands) return false;
     const words = line.trim().split(/[ \t]+/);
     const installing = words[0] === 'install' && words.length === 2;
     const target = installing ? (words[1] ?? '') : '';
@@ -373,6 +399,7 @@ export class TerminalHost {
         });
     };
     let failure: { code: string; message: string } | null = null;
+    let succeeded = false;
     try {
       const result = await commands.execute(line, {
         signal: run.signal,
@@ -385,7 +412,7 @@ export class TerminalHost {
             }
           : {}),
       });
-      if (this.state === 'disposed') return;
+      if (this.state === 'disposed') return false;
       if (run.signal.aborted) failure = this.#aborted();
       else {
         output.finish(result);
@@ -395,20 +422,25 @@ export class TerminalHost {
           result.kind === 'install' &&
           result.exitCode === 0 &&
           result.installation
-        )
+        ) {
           this.#installed = {
             tool: result.installation.tool,
             version: result.installation.versionOrName,
           };
+          this.#tools.add(result.installation.tool);
+        }
+        succeeded = result.exitCode === 0;
       }
     } catch (error) {
-      if (this.state === 'disposed') return;
+      if (this.state === 'disposed') return false;
       failure = run.signal.aborted ? this.#aborted() : output.fail(error);
     } finally {
       if (this.#run === run) this.#run = null;
       if (interactive) this.#endInput();
     }
+    if (!last && succeeded) return true;
     this.#finish(automatic, failure, output.wrote);
+    return succeeded;
   }
 
   /** running/installing -> ready (or ready_failed_install after the page's own install). */

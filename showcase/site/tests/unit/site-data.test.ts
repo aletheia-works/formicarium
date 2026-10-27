@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import { join } from 'node:path';
 import test from 'node:test';
-import { interactiveTools, loadSiteData, toolOf } from '../../src/site-data.ts';
+import {
+  interactiveTools,
+  loadSiteData,
+  onDemandTools,
+  toolOf,
+} from '../../src/site-data.ts';
 import { tempDir, writeFiles } from './helpers.ts';
 import { testSiteData } from './site-fixture.ts';
 
@@ -18,6 +23,13 @@ test('the interactive tools are the ones tools.json marks', () => {
   assert.deepEqual(interactiveTools(data), []);
   data.tools[1] = { ...data.tools[1]!, interactive: true };
   assert.deepEqual(interactiveTools(data), [data.tools[1]!.tool]);
+});
+
+test('the on-demand tools are the ones tools.json marks', () => {
+  const data = testSiteData();
+  assert.deepEqual(onDemandTools(data), []);
+  data.tools[2] = { ...data.tools[2]!, onDemand: true };
+  assert.deepEqual(onDemandTools(data), [data.tools[2]!.tool]);
 });
 
 test('missing or empty site data stops the build', async () => {

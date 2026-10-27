@@ -28,6 +28,8 @@ const catalog = JSON.parse(
 const TOOLS = Object.entries(catalog.defaults).sort(([a], [b]) =>
   a < b ? -1 : 1,
 );
+/** nano's version: tools.json marks it on demand, so every page can open it. */
+const NANO = catalog.defaults.nano;
 const LOCALES = [
   ['en', ''],
   ['ja', 'ja/'],
@@ -98,12 +100,12 @@ for (const [tool, version] of TOOLS)
         1,
       );
       // nano opens its editor on the fixture, which needs a terminal type it
-      // knows, and quits on Ctrl-X.
-      if (tool === 'nano') {
+      // knows, and quits on Ctrl-X. Every page installs it on its first run.
+      if (NANO) {
         await focusTerminal(site);
         await site.type(`nano ${file}`);
         await site.press('Enter');
-        await poll(() => terminalText(site)).toContain(`GNU nano ${version}`);
+        await poll(() => terminalText(site)).toContain(`GNU nano ${NANO}`);
         // nano draws the file after its title, status and help rows.
         await poll(() => terminalText(site)).toContain(line);
         await site.press('Control+x');

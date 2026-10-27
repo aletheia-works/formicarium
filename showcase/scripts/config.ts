@@ -59,6 +59,8 @@ export interface ToolConfig {
   acquire: ReleaseAssetAcquire | SourceBuildAcquire | GnuSourceAcquire;
   /** The terminal pages pass keystrokes to this tool and give it a terminal. */
   interactive?: true;
+  /** Every terminal page installs this tool the first time its command runs. */
+  onDemand?: true;
 }
 export interface ToolsConfig {
   schemaVersion: 1;
@@ -270,11 +272,20 @@ function tool(value: unknown, index: number, allowed: Set<string>): ToolConfig {
   const raw = record(value, where);
   only(
     raw,
-    ['tool', 'repository', 'tagPattern', 'fixture', 'acquire', 'interactive'],
+    [
+      'tool',
+      'repository',
+      'tagPattern',
+      'fixture',
+      'acquire',
+      'interactive',
+      'onDemand',
+    ],
     where,
   );
-  if (raw.interactive !== undefined && raw.interactive !== true)
-    fail('config-invalid', `${where}.interactive must be true when present`);
+  for (const flag of ['interactive', 'onDemand'])
+    if (raw[flag] !== undefined && raw[flag] !== true)
+      fail('config-invalid', `${where}.${flag} must be true when present`);
   const repository = text(raw.repository, `${where}.repository`, REPOSITORY);
   if (!allowed.has(repository))
     fail('source-not-allowed', `${repository} is not in the main allow list`);
@@ -299,6 +310,7 @@ function tool(value: unknown, index: number, allowed: Set<string>): ToolConfig {
             ? gnuSource(acquire, `${where}.acquire`, allowed)
             : fail('config-invalid', `${where}.acquire.kind is unknown`),
     ...(raw.interactive === true ? { interactive: true as const } : {}),
+    ...(raw.onDemand === true ? { onDemand: true as const } : {}),
   };
 }
 

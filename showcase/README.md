@@ -102,6 +102,8 @@ Safari の job は macOS の System keychain に job CA を信頼させ、leaf �
    `spdx`、`configure`、`binary`、`output`、`libraries`）。script に分岐は書かない。
    全画面で動くツールには `interactive: true` を足す。端末の page がキー入力と
    端末の大きさをそのツールに渡し、「停止」ボタンを出す。
+   どの page でも使えるようにするツールには `onDemand: true` を足す。端末の page は、
+   そのツールの command が初めて実行されたときに導入してから実行する。
 4. `fixtures/` に demo fixture を加える。
 5. `gnu-source` では、`ftp.gnu.org` の一覧の最も新しい版の `.sig` を
    `keys/<package>.gpg` で `gpgv` が確かめ、`signers` の主鍵の署名だけを受け入れる。

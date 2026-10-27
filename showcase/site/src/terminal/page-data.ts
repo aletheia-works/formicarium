@@ -26,6 +26,8 @@ export interface TerminalPageData {
   formicarium: FormicariumManifest;
   /** Tools whose runs get the keystrokes and a terminal (tools.json `interactive`). */
   interactive: string[];
+  /** Tools installed the first time their command runs (tools.json `onDemand`). */
+  onDemand: string[];
 }
 
 const SHA256 = /^[a-f0-9]{64}$/;
@@ -71,13 +73,14 @@ export function parsePageData(
     throw new Error('preinstalled page needs a tool and version');
   if (!value.formicarium || typeof value.formicarium !== 'object')
     throw new Error('page data formicarium missing');
-  if (
-    !Array.isArray(value.interactive) ||
-    !value.interactive.every(
-      (tool) => typeof tool === 'string' && TOOL.test(tool),
+  for (const name of ['interactive', 'onDemand'] as const) {
+    const tools = value[name];
+    if (
+      !Array.isArray(tools) ||
+      !tools.every((tool) => typeof tool === 'string' && TOOL.test(tool))
     )
-  )
-    throw new Error('page data interactive invalid');
+      throw new Error(`page data ${name} invalid`);
+  }
   return {
     mode: value.mode,
     locale: value.locale,
@@ -87,6 +90,7 @@ export function parsePageData(
     catalog: embedded(value.catalog, 'catalog'),
     fixture: preinstalled ? embedded(value.fixture, 'fixture') : null,
     formicarium: value.formicarium,
-    interactive: [...value.interactive],
+    interactive: [...value.interactive!],
+    onDemand: [...value.onDemand!],
   };
 }

@@ -73,6 +73,7 @@ function data(
       files: [],
     },
     interactive: [],
+    onDemand: [],
     ...overrides,
   };
 }
@@ -352,6 +353,81 @@ test('Stop ends an interactive run with ABORTED and closes its stdin', async () 
   type(h.host, 'install nano');
   await settle();
   assert.equal(seen[1]?.stdin, undefined);
+});
+
+test('an on-demand tool is installed on its first run only, on any page', async () => {
+  const seen: CommandOptions[] = [];
+  const h = harness(
+    'preinstalled',
+    async (line, options) => {
+      seen.push(options);
+      if (line.startsWith('install ')) return installed(line.slice(8));
+      return result('guest');
+    },
+    {
+      data: data('preinstalled', {
+        interactive: ['nano'],
+        onDemand: ['nano'],
+      }),
+    },
+  );
+  await h.host.start();
+  type(h.host, 'nano --version');
+  await settle();
+  type(h.host, 'nano note.txt');
+  await settle();
+  assert.deepEqual(h.lines, [
+    'install aube',
+    'install nano',
+    'nano --version',
+    'nano note.txt',
+  ]);
+  assert.equal(h.host.state, 'ready');
+  // The install between them gets no stdin; the tool's runs do.
+  assert.equal(seen[1]?.stdin, undefined);
+  assert.ok(seen[2]?.stdin);
+  // One prompt after the install and the run, not one each.
+  assert.match(
+    h.writes.join(''),
+    /\$ nano --version\ninstalled nano 2\.7\.2\n\/work\/app\$ nano note/,
+  );
+});
+
+test('a failed on-demand install skips the command; an installed tool is not installed again', async () => {
+  let fail = true;
+  const h = harness(
+    'empty',
+    async (line) => {
+      if (line === 'install nano' && fail)
+        throw Object.assign(new Error('HTTP 404'), { code: 'ASSET_LOAD' });
+      if (line.startsWith('install ')) return installed(line.slice(8));
+      return result('guest', 'ok\n');
+    },
+    { data: data('empty', { onDemand: ['nano'] }) },
+  );
+  await h.host.start();
+  type(h.host, 'nano --version');
+  await settle();
+  assert.deepEqual(h.lines, ['install nano']);
+  assert.equal(h.host.state, 'ready');
+  assert.equal(
+    h.status.textContent,
+    'The last command failed (ASSET_LOAD: HTTP 404).',
+  );
+  fail = false;
+  type(h.host, 'install nano');
+  await settle();
+  type(h.host, 'nano --version');
+  await settle();
+  // Tools that are not on demand run as typed.
+  type(h.host, 'aube --version');
+  await settle();
+  assert.deepEqual(h.lines, [
+    'install nano',
+    'install nano',
+    'nano --version',
+    'aube --version',
+  ]);
 });
 
 test('the empty terminal runs builtins once, follows cd and reports empty output', async () => {

@@ -21,6 +21,8 @@ then run the tool, for example `biome --version`.
 - `install <tool>` installs a tool of the showcase catalog. Only the accepted
   versions listed on the Tools page can be installed.
 - Any other first word runs the installed tool of that name.
+- A tool marked on demand in the catalog (nano) works on every page: the
+  first time its command runs, the page installs it and then runs the command.
 
 There is no shell: pipes, redirections, `$` expansion and globbing are refused
 with `INVALID_INPUT`. One line is limited to 65536 bytes. Use ↑ and ↓ for the

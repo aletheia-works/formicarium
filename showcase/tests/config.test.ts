@@ -77,6 +77,18 @@ test('interactive is kept only as true, and any other value is refused', async (
   }
 });
 
+test('onDemand is kept only as true, and any other value is refused', async () => {
+  const config = await current();
+  const tools = validateToolsConfig(config, allowed).tools;
+  assert.equal(tools.find((item) => item.tool === 'nano')?.onDemand, true);
+  assert.equal(Object.hasOwn(tools[0]!, 'onDemand'), false);
+  for (const value of [false, 'yes', 1, null]) {
+    const bad = await current();
+    bad.tools[0]!.onDemand = value;
+    rejects(() => validateToolsConfig(bad, allowed), 'config-invalid');
+  }
+});
+
 test('a duplicate tool is refused', async () => {
   const config = await current();
   config.tools.push(structuredClone(config.tools[0]!));

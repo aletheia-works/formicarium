@@ -20,6 +20,8 @@ description: formicarium の showcase の端末の使い方と制限。
 - `install <tool>` は showcase の catalog のツールを導入します。導入できるのは
   ツールの page にある受入済みの版だけです。
 - それ以外の最初の語は、その名前の導入済みのツールを実行します。
+- catalog で on demand と決めたツール（nano）は、どの page でも使えます。その
+  command を初めて実行したとき、page がツールを導入してから command を実行します。
 
 shell はありません。pipe・redirect・`$` の展開・glob は `INVALID_INPUT` で拒否
 されます。1行は 65536 bytes までです。↑・↓ でこの page の中の履歴を辿り、

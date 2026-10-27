@@ -15,6 +15,8 @@ export interface SiteTool {
   fixtureIndex: EmbeddedFile;
   /** tools.json `interactive`: the terminal passes keystrokes to this tool. */
   interactive?: true;
+  /** tools.json `onDemand`: every terminal page installs it on its first run. */
+  onDemand?: true;
 }
 export interface SiteData {
   schemaVersion: 1;
@@ -54,6 +56,10 @@ export function loadSiteData(
 /** The tools the terminal pages run interactively (page data `interactive`). */
 export const interactiveTools = (data: SiteData): string[] =>
   data.tools.filter((tool) => tool.interactive).map((tool) => tool.tool);
+
+/** The tools every terminal page installs on first use (page data `onDemand`). */
+export const onDemandTools = (data: SiteData): string[] =>
+  data.tools.filter((tool) => tool.onDemand).map((tool) => tool.tool);
 
 export const toolOf = (data: SiteData, tool: string): SiteTool => {
   const found = data.tools.find((item) => item.tool === tool);
