@@ -50,6 +50,7 @@ dist-ssr
 /showcase/site/public/guests/
 /showcase/site/public/licenses/
 /showcase/site/public/demo-fixtures/
+/showcase/site/public/sources/
 /showcase/site/public/catalog.json
 /showcase/site/public/NOTICES.md
 /showcase/site/public/coi-serviceworker.js
