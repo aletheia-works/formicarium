@@ -25,6 +25,7 @@ export const MAIN_ALLOWED = JSON.stringify({
     'https://github.com/biomejs/biome',
     'https://git.savannah.gnu.org/git/nano.git',
     'https://github.com/ThomasDickey/ncurses-snapshots',
+    'https://github.com/jj-vcs/jj',
   ],
 });
 /** Stand-in for `git show origin/main:<path>` in unit tests. */
