@@ -4,7 +4,7 @@ import type {
   RunRequest,
   Streams,
 } from './contracts.js';
-import { errorCode, isRecord } from './contracts.js';
+import { errorCode, INSTALLED_GUEST_DIRECTORY, isRecord } from './contracts.js';
 import { loadPackageCore } from './core.js';
 import { runGuest } from './guest-io.js';
 import { identity, workerErrorMessage } from './protocol.js';
@@ -106,6 +106,12 @@ export async function executeWorkerRequest(
           data: new Uint8Array(request.guest),
           mode: 0o755,
         },
+        ...request.tools.map(({ tool, bytes }) => ({
+          path: `${INSTALLED_GUEST_DIRECTORY}/${tool}`,
+          type: 'file' as const,
+          data: new Uint8Array(bytes),
+          mode: 0o755,
+        })),
       ],
       args: request.args,
       env: request.env,

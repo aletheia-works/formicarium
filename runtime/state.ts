@@ -154,6 +154,14 @@ export class SessionState {
     this.assertCurrent(reservation);
     this.#guests.set(tool, snapshot);
   }
+  /** Every installed guest, for the run that holds `reservation`. */
+  installedGuests(reservation: Reservation) {
+    this.assertCurrent(reservation);
+    return [...this.#guests].map(([tool, guest]) => ({
+      tool,
+      bytes: guest.bytes,
+    }));
+  }
   installedGuest(
     reservation: Reservation,
     tool: string,

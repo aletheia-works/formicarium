@@ -37,6 +37,7 @@ const request = (): RunRequest => ({
     buildInfoURL: 'file:///info',
   },
   guest: elfHeader(),
+  tools: [],
   args: [],
   env: { HOME: '/root' },
   cwd: '/work',
@@ -61,6 +62,31 @@ function adapter({
     cleanup,
   });
 }
+test('Worker execution places each installed guest in /usr/bin and never snapshots it', async () => {
+  const messages: TestMessage[] = [];
+  const runs: FakeRun[] = [];
+  const nano = new Uint8Array([1, 2, 3]);
+  await executeWorkerRequest(
+    { ...request(), tools: [{ tool: 'nano', bytes: nano }] },
+    {
+      post: (message) => messages.push(message as TestMessage),
+      loadCore: adapter({
+        run(run) {
+          runs.push(run);
+          return {};
+        },
+      }),
+    },
+  );
+  const placed = runs[0]!.files.get('/usr/bin/nano')!;
+  assert.equal(placed.mode, 0o100755);
+  assert.deepEqual(placed.content, nano);
+  assert.notEqual(placed.content, nano);
+  assert.equal(messages[0]!.type, 'done');
+  assert.ok(
+    messages[0]!.snapshot.every(({ path }) => !path.startsWith('/usr')),
+  );
+});
 test('Worker execution sends normal nonzero result and complete preRun snapshot', async () => {
   const messages: TestMessage[] = [];
   let cleaned = 0;

@@ -20,6 +20,13 @@ test('Node session creation validates options, assets and seed atomically', asyn
     null,
     [],
     { cwd: '/tmp' },
+    // The installed guests live in /usr/bin, so no root may hold it; / is
+    // never a root.
+    { cwd: '/' },
+    { home: '/' },
+    { cwd: '/usr/bin' },
+    { cwd: '/usr/bin/sub' },
+    { home: '/usr' },
     { entries: [fileEntry('/outside')] },
     { assets: {} },
   ])

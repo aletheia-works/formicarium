@@ -89,10 +89,18 @@ export interface Identity {
   runId: string;
   generation: number;
 }
+/**
+ * Where every run finds the session's installed guests, one file per tool.
+ * It is on the guest's default PATH and lies outside the persistence roots,
+ * so the files are placed again for each run and never snapshotted.
+ */
+export const INSTALLED_GUEST_DIRECTORY = '/usr/bin';
 export interface RunRequest extends Identity {
   type: 'run';
   assets: Assets;
   guest: Uint8Array;
+  /** The session's installed guests, placed at INSTALLED_GUEST_DIRECTORY/<tool>. */
+  tools: { tool: string; bytes: Uint8Array }[];
   args: string[];
   env: Record<string, string>;
   cwd: string;

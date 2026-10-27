@@ -274,6 +274,7 @@ export function createLifecycle(
   ): Promise<RunResult> {
     let input: ReturnType<typeof validateRun>;
     let entries: FsEntry[];
+    let tools: RunRequest['tools'];
     let reservation: Reservation;
     try {
       if (reserved) state.assertCurrent(reserved);
@@ -281,6 +282,7 @@ export function createLifecycle(
       input = validateRun(options, state.home);
       reservation = reserved ?? state.acquire('run');
       entries = state.snapshot(reservation);
+      tools = state.installedGuests(reservation);
       input.signal = input.signal
         ? AbortSignal.any([input.signal, reservation.signal])
         : reservation.signal;
@@ -329,6 +331,7 @@ export function createLifecycle(
         type: 'run',
         assets: { ...assets },
         guest: input.guest,
+        tools,
         args: input.args,
         env: input.env,
         cwd: state.cwd,

@@ -1,5 +1,5 @@
 import type { Assets, FsEntry, RunOptions } from './contracts.js';
-import { errorCode, isRecord } from './contracts.js';
+import { errorCode, INSTALLED_GUEST_DIRECTORY, isRecord } from './contracts.js';
 import { failure, invalid } from './errors.js';
 
 export function normalizePath(value: unknown): string {
@@ -24,8 +24,18 @@ export const copyEntry = (entry: FsEntry): FsEntry =>
 export function normalizeRoots(cwd: string, home: string) {
   const roots = [normalizePath(cwd), normalizePath(home)];
   for (const root of roots) {
+    // A root may not hold or lie in the installed guest directory either:
+    // its files would then be snapshotted and kept as the session's own.
     invalid(
-      root !== '/' && !inRoots(root, ['/guest', '/dev', '/proc', '/tmp']),
+      root !== '/' &&
+        !inRoots(root, [
+          '/guest',
+          '/dev',
+          '/proc',
+          '/tmp',
+          INSTALLED_GUEST_DIRECTORY,
+        ]) &&
+        !inRoots(INSTALLED_GUEST_DIRECTORY, [root]),
       'reserved persistence root',
     );
   }

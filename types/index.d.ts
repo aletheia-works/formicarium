@@ -164,6 +164,11 @@ export declare function runValidatedGuest(
   guest: GuestHandle,
   options?: Omit<RunOptions, 'guest'>,
 ): Promise<RunResult>;
+/**
+ * Registers a validated guest under `tool`. Every later run of the Session
+ * finds it as `/usr/bin/<tool>` (on the default PATH), placed for that run
+ * only and never part of the Session's files.
+ */
 export declare function registerValidatedGuest(
   session: Session,
   tool: string,

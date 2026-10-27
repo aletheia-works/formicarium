@@ -103,6 +103,14 @@ under one of these names (for example `install ls@x` registers a tool `ls`), but
 a command cannot run it, and `ls` stays the builtin. `pwd` is not a builtin; it
 is `NOT_FOUND` unless a guest is registered under that name.
 
+Every run of the Session, from a command or a direct `Session.run`, finds each
+registered guest as the file `/usr/bin/<tool>`. `/usr/bin` is on the guest's
+default `PATH`, so a guest can start another by name; for example, jj opens nano
+as its editor. These files are placed again for each run and are not the
+Session's files: `ls` and snapshots do not show them, and what a run writes
+there is dropped. So a `cwd` or `home` in `/usr/bin` or above it is
+`INVALID_INPUT`.
+
 Paths are guest paths; the Session normalizes and resolves them. The command
 API reads no host filesystem, URL or environment variable. A path that does not
 start with `/` resolves against the Session's current working directory (with

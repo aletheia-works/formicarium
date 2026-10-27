@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
 publish = false
-description = "formicarium の合格判定用ゲスト（static-musl x86-64）。probe・hello・exit3・ttyecho の 4 つのバイナリ。"
+description = "formicarium の合格判定用ゲスト（static-musl x86-64）。probe・hello・exit3・ttyecho・spawn の 5 つのバイナリ。"
 
 [[bin]]
 name = "probe"

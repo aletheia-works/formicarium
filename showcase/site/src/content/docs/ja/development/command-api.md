@@ -86,6 +86,11 @@ cross-origin isolation・Worker・資産・CSP の要件を満たしてくださ
 `ls` というツールを登録します）、command からは呼べず、`ls` は引き続き builtin として動きます。`pwd` は builtin ではなく、
 同じ名前のゲストを登録していなければ `NOT_FOUND` です。
 
+Session の実行は、command からでも `Session.run` からでも、登録したゲストをそれぞれ `/usr/bin/<tool>` のファイルとして
+見つけます。`/usr/bin` はゲストの既定の `PATH` にあるので、ゲストは別のゲストを名前で起動できます（たとえば jj は nano を
+エディタとして開きます）。これらのファイルは実行のたびに置き直し、Session のファイルではありません。`ls` や snapshot には
+現れず、実行がそこに書いたものは捨てます。そのため、`/usr/bin` の中やその上の `cwd`・`home` は `INVALID_INPUT` です。
+
 パスはゲストのパスとして扱い、正規化と解決は Session が行います。command API はホストのファイルシステム・URL・
 環境変数を読みません。`/` で始まらないパスは、Session の今の作業ディレクトリを基準に解決します
 （作業ディレクトリが `/work` なら、`cat a.txt` は `/work/a.txt`、`ls .` は `/work`）。`cat`・`cd`・`rm`・`cp`・`mv` は

@@ -3,7 +3,7 @@
 #MISE description="build guests"
 # usage: mise run build-guests [probe|aube|pitchfork|nano|all]
 # static-musl x86-64 のゲストをコンテナ（rust:alpine）でビルドし、dist/guests/ に置く。
-#   probe     : guest/probe の probe・hello・exit3・ttyecho
+#   probe     : guest/probe の probe・hello・exit3・ttyecho・spawn
 #   aube      : aubepkg/aube の AUBE_REF（既定 v2.6.1）
 #   pitchfork : jdx/pitchfork（公式リポジトリ）の PITCHFORK_REF（既定 v2.30.1）。ソースは変えない
 #   nano      : GNU nano NANO_VERSION（既定 9.3）。ncurses NCURSES_VERSION（既定 6.6）に
@@ -65,12 +65,12 @@ target=x86_64-unknown-linux-musl
 mkdir -p "$root/dist/guests"
 
 build_probe() {
-  echo "== probe・hello・exit3・ttyecho をビルド（${image}）"
+  echo "== probe・hello・exit3・ttyecho・spawn をビルド（${image}）"
   container_run "$image" dist/guests "
     apk add --no-cache musl-dev >/dev/null
     cargo build --release --locked --target $target \
       --manifest-path guest/probe/Cargo.toml --target-dir /cache/guests
-    for bin in probe hello exit3 ttyecho; do
+    for bin in probe hello exit3 ttyecho spawn; do
       cp /cache/guests/$target/release/\$bin /out/\$bin
     done
   " guest/probe/Cargo.toml guest/probe/Cargo.lock guest/probe/src
