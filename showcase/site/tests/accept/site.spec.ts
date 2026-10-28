@@ -114,7 +114,8 @@ for (const [tool, version] of TOOLS)
         expect(await terminalText(site)).not.toContain('cannot initialize');
       }
       // jj describe opens nano (installed in /usr/bin by the page) for the
-      // message; the home config the page writes keeps jj from asking for a pager.
+      // message; the home config the page writes keeps jj from asking for a
+      // pager and gives it a name and email, so it warns about neither.
       if (tool === 'jj' && NANO) {
         await run(site, 'jj git init');
         await focusTerminal(site);
@@ -133,6 +134,7 @@ for (const [tool, version] of TOOLS)
         const log = await run(site, 'jj log -r @ --no-graph -T description');
         expect(occurrences(log, 'Described in nano'), log).toBe(1);
         expect(log).not.toContain('pager');
+        expect(await terminalText(site)).not.toContain('not configured');
       }
       // aube's link target lies beside app/ (paths with `..` are refused by the builtins).
       if (tool === 'aube')

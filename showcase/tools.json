@@ -97,7 +97,7 @@
       "fixture": "jj-basic",
       "interactive": true,
       "homeFiles": {
-        ".config/jj/config.toml": "[ui]\npaginate = \"never\"\n"
+        ".config/jj/config.toml": "[ui]\npaginate = \"never\"\n\n[user]\nname = \"Showcase\"\nemail = \"showcase@example.com\"\n"
       },
       "acquire": {
         "kind": "release-asset",

@@ -95,7 +95,8 @@ test('homeFiles keeps small text files at plain relative paths', async () => {
   const config = await current();
   const tools = validateToolsConfig(config, allowed).tools;
   assert.deepEqual(tools.find((item) => item.tool === 'jj')?.homeFiles, {
-    '.config/jj/config.toml': '[ui]\npaginate = "never"\n',
+    '.config/jj/config.toml':
+      '[ui]\npaginate = "never"\n\n[user]\nname = "Showcase"\nemail = "showcase@example.com"\n',
   });
   assert.equal(Object.hasOwn(tools[0]!, 'homeFiles'), false);
   for (const value of [
