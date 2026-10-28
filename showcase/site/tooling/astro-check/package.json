@@ -2,11 +2,11 @@
   "name": "@aletheia-works/formicarium-showcase-site-astro-check",
   "version": "0.0.0",
   "private": true,
-  "description": "astro check の隔離した道具。@astrojs/check 0.9.10 の peer は TypeScript 5/6 で、TypeScript 7 には対応しない",
+  "description": "astro check の隔離した道具。@astrojs/check 0.9.12 の peer は TypeScript 5/6 で、TypeScript 7 には対応しない",
   "license": "Apache-2.0",
   "type": "module",
   "dependencies": {
-    "@astrojs/check": "0.9.10",
+    "@astrojs/check": "0.9.12",
     "typescript": "6.0.3"
   }
 }

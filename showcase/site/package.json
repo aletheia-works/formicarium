@@ -9,10 +9,10 @@
     "node": ">=26.12.0"
   },
   "dependencies": {
-    "@astrojs/starlight": "0.42.6",
+    "@astrojs/starlight": "0.42.7",
     "@xterm/addon-fit": "0.11.0",
     "@xterm/xterm": "6.0.0",
-    "astro": "7.4.0",
+    "astro": "7.4.2",
     "coi-serviceworker": "0.1.7"
   },
   "devDependencies": {
