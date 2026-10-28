@@ -7,7 +7,7 @@ description: 固定のカタログからゲストを取得・検証し、登録�
 `createInstaller` は、呼び出し元が用意したカタログからゲストを取得・検証し、既存の Session に登録します。
 root entry から、関連する型と一緒に公開しています。Session は、同じパッケージの Node.js 用か
 ブラウザ用の entry で作ります。公開カタログの自動探索、「最新」の解決、永続的なキャッシュはありません。
-登録した名前でゲストを実行するのは [command API](/formicarium/ja/development/command-api/) です。
+登録した名前でゲストを実行するのは [command API](/formicarium/ja/guides/command-api/) です。
 
 ## 使用例
 
@@ -57,7 +57,7 @@ cross-origin isolation・Worker・資産・CSP の要件を満たしてくださ
 ## install で得られるもの
 
 install が成功すると、ゲストはツールの名前で Session に登録され、`reset()` か
-`dispose()` まで残ります。[command session](/formicarium/ja/development/command-api/)
+`dispose()` まで残ります。[command session](/formicarium/ja/guides/command-api/)
 の `install <tool>` は、この install そのものです。登録の後は次のようになります。
 - command session で、ツールを名前で実行できます。
 - どのゲストの実行からも `/usr/bin/<tool>`（既定の PATH の上）として見えるので、

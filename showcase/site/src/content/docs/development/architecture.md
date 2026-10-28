@@ -11,11 +11,11 @@ kernel. This page describes the package (`@aletheia-works/formicarium`); the
 
 ## Entry points
 
-| Import                                | Provides                                                                                                                                                        |
-| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@aletheia-works/formicarium`         | Guest validation and registration, the [installer](/formicarium/development/install-api/), the [command session](/formicarium/development/command-api/), errors |
-| `@aletheia-works/formicarium/node`    | `createSession` for Node.js 24 or later                                                                                                                         |
-| `@aletheia-works/formicarium/browser` | `createSession` for browsers; the page must be cross-origin isolated (COOP/COEP)                                                                                |
+| Import                                | Provides                                                                                                                                              |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@aletheia-works/formicarium`         | Guest validation and registration, the [installer](/formicarium/guides/install-api/), the [command session](/formicarium/guides/command-api/), errors |
+| `@aletheia-works/formicarium/node`    | `createSession` for Node.js 24 or later                                                                                                               |
+| `@aletheia-works/formicarium/browser` | `createSession` for browsers; the page must be cross-origin isolated (COOP/COEP)                                                                      |
 
 ## How a run works
 

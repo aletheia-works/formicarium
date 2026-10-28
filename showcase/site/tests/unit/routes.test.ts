@@ -28,7 +28,7 @@ before(async () => {
     .filter((path) => path.endsWith('.html'));
 });
 
-test('every page exists in English and Japanese', () => {
+test('every page exists in English and Japanese', async () => {
   const expected = [
     'index.html',
     'tools/index.html',
@@ -37,6 +37,8 @@ test('every page exists in English and Japanese', () => {
     ...[
       'getting-started',
       'embedding',
+      'install-api',
+      'command-api',
       'source-builds',
       'releases',
       'architecture',
@@ -44,8 +46,6 @@ test('every page exists in English and Japanese', () => {
     ].map((name) => `guides/${name}/index.html`),
     ...[
       'architecture',
-      'install-api',
-      'command-api',
       'releases',
       'licenses',
       'decisions',
@@ -63,7 +63,20 @@ test('every page exists in English and Japanese', () => {
     assert.ok(html.includes(`ja/${page}`), `ja/${page}`);
   }
   assert.deepEqual(missingTranslations(html), []);
-  assert.equal(html.length, expected.length * 2 + 1); // and 404.html
+  // The API pages moved to the guides; their old URLs redirect there.
+  const moved = ['install-api', 'command-api'].flatMap((name) =>
+    ['', 'ja/'].map((locale): [string, string] => [
+      `${locale}development/${name}/index.html`,
+      `/formicarium/${locale}guides/${name}/`,
+    ]),
+  );
+  for (const [page, target] of moved)
+    assert.match(
+      await read(page),
+      new RegExp(`http-equiv="refresh" content="0;url=${target}"`),
+      page,
+    );
+  assert.equal(html.length, expected.length * 2 + moved.length + 1); // and 404.html
 });
 
 test('only the tool pages and /terminal/ are terminal pages, with their page data', async () => {

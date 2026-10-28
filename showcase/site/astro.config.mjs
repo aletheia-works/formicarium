@@ -45,6 +45,13 @@ export default defineConfig({
   base: '/formicarium',
   output: 'static',
   trailingSlash: 'always',
+  // The API pages moved from the Development group; keep the old links working.
+  redirects: {
+    '/development/install-api/': '/formicarium/guides/install-api/',
+    '/development/command-api/': '/formicarium/guides/command-api/',
+    '/ja/development/install-api/': '/formicarium/ja/guides/install-api/',
+    '/ja/development/command-api/': '/formicarium/ja/guides/command-api/',
+  },
   // The unit tests build a small site into their own directories.
   publicDir: process.env.SHOWCASE_SITE_PUBLIC ?? './public',
   outDir: process.env.SHOWCASE_SITE_OUT ?? './dist',
@@ -75,6 +82,14 @@ export default defineConfig({
             },
             { ...label('Embedding', '組込み'), link: '/guides/embedding/' },
             {
+              ...label('Install API', 'install API'),
+              link: '/guides/install-api/',
+            },
+            {
+              ...label('Command API', 'command API'),
+              link: '/guides/command-api/',
+            },
+            {
               ...label('Source builds', 'source build'),
               link: '/guides/source-builds/',
             },
@@ -95,14 +110,6 @@ export default defineConfig({
             {
               ...label('Runtime architecture', 'ランタイムの構成'),
               link: '/development/architecture/',
-            },
-            {
-              ...label('Install API', 'install API'),
-              link: '/development/install-api/',
-            },
-            {
-              ...label('Command API', 'command API'),
-              link: '/development/command-api/',
             },
             {
               ...label('Package releases', 'パッケージの公開'),

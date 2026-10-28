@@ -42,7 +42,7 @@ package README.
 
 `createCommandSession(session, { catalog }): CommandSession` synchronously
 checks that the Session comes from the same package instance and that the
-catalog follows the [install API](/formicarium/development/install-api/)
+catalog follows the [install API](/formicarium/guides/install-api/)
 rules. Otherwise it throws `INVALID_INPUT` and leaves the Session unchanged. It
 creates one installer internally; the returned object has only `execute` and
 never hands out the Session, the installer or the internal port.

@@ -14,8 +14,8 @@ reproduction run as-is in a web page.
 - **Package:** [`@aletheia-works/formicarium`](https://www.npmjs.com/package/@aletheia-works/formicarium)
   on npm.
 - **Documentation:** the [site](https://aletheia-works.github.io/formicarium/)
-  has guides and a Development section (runtime architecture, APIs, design
-  decisions), in English and Japanese.
+  has guides (including the install and command APIs) and a Development
+  section (runtime architecture, design decisions), in English and Japanese.
 
 ## Status
 
@@ -109,8 +109,8 @@ has a complete example.
   and every guest run finds it as `/usr/bin/<tool>`. Installing with
   `createInstaller` writes no output, so a page can have tools ready before the
   user types anything. See the
-  [install API](https://aletheia-works.github.io/formicarium/development/install-api/)
-  and [command API](https://aletheia-works.github.io/formicarium/development/command-api/).
+  [install API](https://aletheia-works.github.io/formicarium/guides/install-api/)
+  and [command API](https://aletheia-works.github.io/formicarium/guides/command-api/).
 
 ## Limits
 

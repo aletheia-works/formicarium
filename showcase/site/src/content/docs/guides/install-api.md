@@ -9,7 +9,7 @@ verifies it and registers it in an existing Session. The root entry exports it
 with its types. Create the Session with the Node.js or browser entry of the same
 package instance. There is no automatic discovery of public catalogs, no
 resolution of "latest" and no persistent cache. Running a registered guest by
-name is the [command API](/formicarium/development/command-api/).
+name is the [command API](/formicarium/guides/command-api/).
 
 ## Example
 
@@ -64,7 +64,7 @@ no implicit version search, retry or fallback.
 
 A successful install registers the guest in the Session under its tool name,
 until `reset()` or `dispose()`. `install <tool>` in a
-[command session](/formicarium/development/command-api/) is this same install.
+[command session](/formicarium/guides/command-api/) is this same install.
 After it:
 - the command session runs the tool by name;
 - every guest run finds it as `/usr/bin/<tool>` (on the default PATH), so one

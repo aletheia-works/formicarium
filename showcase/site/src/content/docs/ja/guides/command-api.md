@@ -38,7 +38,7 @@ try {
 cross-origin isolation・Worker・資産・CSP の要件を満たしてください。
 
 `createCommandSession(session, { catalog }): CommandSession` は、Session が同じパッケージのものか、
-カタログが [install API](/formicarium/ja/development/install-api/) の規則を満たすかを同期的に確かめます。
+カタログが [install API](/formicarium/ja/guides/install-api/) の規則を満たすかを同期的に確かめます。
 満たさなければ `INVALID_INPUT` を投げ、Session は変えません。内部でインストーラを 1 つだけ作りますが、
 返すオブジェクトは `execute` だけを持ち、Session・インストーラ・内部の port を外に出しません。
 
