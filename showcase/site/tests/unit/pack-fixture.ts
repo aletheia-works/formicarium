@@ -24,7 +24,7 @@ export const PACKAGE_FILES: Record<string, string> = {
     },
   }),
   'runtime/public.js':
-    "export { failure } from './errors.js';\nexport function createCommandSession() {}\n",
+    "export { failure } from './errors.js';\nexport function createCommandSession() {}\nexport function createInstaller() {}\n",
   'runtime/errors.js': 'export const failure = 1;\n',
   'runtime/core.js':
     "import { failure } from './errors.js';\nexport const core = failure;\n",

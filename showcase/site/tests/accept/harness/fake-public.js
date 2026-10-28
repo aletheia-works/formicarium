@@ -19,6 +19,16 @@ export function fixtureToFsEntries(entries) {
   return entries;
 }
 
+// The tools every page installs come through the installer, which writes nothing.
+export function createInstaller() {
+  return {
+    async install(selection) {
+      lines.push(`installer ${selection}`);
+      return { operationId: 'harness', tool: selection, versionOrName: '0', digest: 'd', buildKey: 'k' };
+    },
+  };
+}
+
 export function createCommandSession() {
   return {
     async execute(line, options = {}) {

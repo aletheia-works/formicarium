@@ -133,6 +133,13 @@ function harness(
           return execute(line, options);
         },
       }),
+      // The installer answers as `install <tool>` would, recorded apart.
+      createInstaller: () => ({
+        install: async (selection: string, options: CommandOptions = {}) => {
+          lines.push(`installer ${selection}`);
+          return (await execute(`install ${selection}`, options)).installation;
+        },
+      }),
     },
     browser: {
       createSession: async (options: SessionOptions) => {
@@ -356,7 +363,7 @@ test('Stop ends an interactive run with ABORTED and closes its stdin', async () 
   assert.equal(seen[1]?.stdin, undefined);
 });
 
-test('a page installs its own tool, then every-page tools, and writes the home files', async () => {
+test('a page installs its own tool as typed, then every-page tools quietly, and writes the home files', async () => {
   const seen: CommandOptions[] = [];
   const h = harness(
     'preinstalled',
@@ -377,18 +384,15 @@ test('a page installs its own tool, then every-page tools, and writes the home f
     },
   );
   await h.host.start();
-  assert.deepEqual(h.lines, ['install aube', 'install nano']);
+  assert.deepEqual(h.lines, ['install aube', 'installer nano']);
   assert.equal(h.host.state, 'ready');
   // The ready text names the page's tool, not the one every page gets.
   assert.equal(h.status.textContent, 'Ready: aube 2.7.2');
-  // Each install is shown as typed; one prompt follows the last.
-  assert.ok(
-    h.writes
-      .join('')
-      .endsWith(
-        'installed aube 2.7.2\n/work/app$ install nano\ninstalled nano 2.7.2\n/work/app$ ',
-      ),
-  );
+  // Only the page's own install is shown; nano leaves no trace, and one
+  // prompt follows.
+  const shown = h.writes.join('');
+  assert.ok(shown.endsWith('installed aube 2.7.2\n/work/app$ '));
+  assert.doesNotMatch(shown, /nano/);
   assert.equal(seen[1]?.stdin, undefined);
   // The home files and the directories above them, each directory once.
   const home = h.sessions[0]!.entries!.filter((entry) =>
@@ -417,8 +421,9 @@ test('the empty terminal installs every-page tools once; a failed install stops 
     data: data('empty', { everyPage: ['nano', 'aube'] }),
   });
   await empty.host.start();
-  assert.deepEqual(empty.lines, ['install nano', 'install aube']);
+  assert.deepEqual(empty.lines, ['installer nano', 'installer aube']);
   assert.equal(empty.host.state, 'ready');
+  assert.equal(empty.writes.join(''), '/work/app$ ');
   assert.equal(
     empty.status.textContent,
     'Ready. Type install <tool> to add a tool.',
@@ -443,7 +448,8 @@ test('the empty terminal installs every-page tools once; a failed install stops 
   await failed.host.start();
   assert.deepEqual(failed.lines, ['install aube']);
   assert.equal(failed.host.state, 'ready_failed_install');
-  // An every-page install fails after the page's tool: retried by typing it.
+  // An every-page install fails after the page's tool: the failure names
+  // the tool, and typing the install retries it.
   let fail = true;
   const later = harness(
     'preinstalled',
@@ -457,6 +463,7 @@ test('the empty terminal installs every-page tools once; a failed install stops 
   await later.host.start();
   assert.equal(later.host.state, 'ready_failed_install');
   assert.match(later.status.textContent ?? '', /ASSET_LOAD: HTTP 404/);
+  assert.match(later.writes.join(''), /\nnano: ASSET_LOAD: HTTP 404\n/);
   fail = false;
   type(later.host, 'install nano');
   await settle();
@@ -465,9 +472,32 @@ test('the empty terminal installs every-page tools once; a failed install stops 
   assert.equal(later.status.textContent, 'Ready: nano 2.7.2');
   assert.deepEqual(later.lines, [
     'install aube',
-    'install nano',
+    'installer nano',
     'install nano',
   ]);
+});
+
+test('Ctrl-C cancels a quiet every-page install', async () => {
+  const h = harness(
+    'empty',
+    (_line, options) =>
+      new Promise((_done, fail) =>
+        options.signal?.addEventListener('abort', () =>
+          fail(Object.assign(new Error('aborted'), { code: 'ABORTED' })),
+        ),
+      ),
+    { data: data('empty', { everyPage: ['nano'] }) },
+  );
+  const started = h.host.start();
+  // Loading takes several turns of the event loop (more on a slow runner).
+  for (let turn = 0; turn < 100 && h.host.state !== 'installing'; turn++)
+    await settle();
+  assert.equal(h.host.state, 'installing');
+  assert.match(h.status.textContent ?? '', /^Installing nano: /);
+  h.host.onData('\x03');
+  await started;
+  assert.equal(h.host.state, 'ready_failed_install');
+  assert.match(h.writes.join(''), /ABORTED: the command was cancelled\n/);
 });
 
 test('the empty terminal runs builtins once, follows cd and reports empty output', async () => {

@@ -21,9 +21,9 @@ Type `install aube`, `install pitchfork`, `install biome`, `install nano` or
 - `install <tool>` installs a tool of the showcase catalog. Only the accepted
   versions listed on the Tools page can be installed.
 - Any other first word runs the installed tool of that name.
-- A tool the catalog marks for every page (nano) is installed when any terminal
-  page starts, so other tools can open it too: `jj describe` without `-m`
-  opens nano to edit the description.
+- A tool the catalog marks for every page (nano) is installed quietly when any
+  terminal page starts, so it is there from the start and other tools can open
+  it too: `jj describe` without `-m` opens nano to edit the description.
 
 There is no shell: pipes, redirections, `$` expansion and globbing are refused
 with `INVALID_INPUT`. One line is limited to 65536 bytes. Use ↑ and ↓ for the

@@ -100,6 +100,7 @@ export async function loadFormicarium(
   }
   if (
     typeof root?.createCommandSession !== 'function' ||
+    typeof root?.createInstaller !== 'function' ||
     typeof browser?.createSession !== 'function'
   )
     throw new LoaderError('formicarium entries lack the public API');

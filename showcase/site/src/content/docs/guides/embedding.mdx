@@ -8,8 +8,10 @@ import PackageInstall from '../../../components/PackageInstall.astro';
 import example from '../../../examples/embedding.ts?raw';
 
 The showcase terminals use only the public exports of
-`@aletheia-works/formicarium`: `createSession` from `/browser` and
-`createCommandSession` from the package root. Your page can do the same.
+`@aletheia-works/formicarium`: `createSession` from `/browser`, and
+`createCommandSession` and `createInstaller` from the package root (the
+installer quietly installs the tools every page gets, such as nano). Your page
+can do the same.
 
 <PackageInstall locale="en" />
 

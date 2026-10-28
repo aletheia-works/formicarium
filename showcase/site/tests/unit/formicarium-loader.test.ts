@@ -69,7 +69,7 @@ test('the entries are imported from their staged URLs', async () => {
   const loaded = await loadFormicarium(manifest(), ROOT, async (url) => {
     imported.push(url);
     return url.endsWith('public.js')
-      ? { createCommandSession() {} }
+      ? { createCommandSession() {}, createInstaller() {} }
       : { createSession() {} };
   });
   assert.deepEqual(imported, [
@@ -99,6 +99,15 @@ test('a failed import is reported as ASSET_LOAD without the import error text', 
 test('modules without the public API are refused', async () => {
   await assert.rejects(
     loadFormicarium(manifest(), ROOT, async () => ({})),
+    /lack the public API/,
+  );
+  // The root entry must offer the installer too.
+  await assert.rejects(
+    loadFormicarium(manifest(), ROOT, async (url) =>
+      url.endsWith('public.js')
+        ? { createCommandSession() {} }
+        : { createSession() {} },
+    ),
     /lack the public API/,
   );
 });

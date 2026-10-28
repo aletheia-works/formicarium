@@ -6,7 +6,7 @@ description: How the emulator, the public API and the showcase fit together.
 
 ```text
 showcase page (Astro + Starlight, xterm.js)
-  -> public API: createSession (/browser), createCommandSession (root)
+  -> public API: createSession (/browser), createCommandSession, createInstaller (root)
      -> Session: files, cwd and one run at a time
         -> Web Worker per run: paludarium compiled to WebAssembly
            -> static x86-64 Linux ELF guest

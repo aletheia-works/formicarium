@@ -8,8 +8,9 @@ import PackageInstall from '../../../../components/PackageInstall.astro';
 import example from '../../../../examples/embedding.ts?raw';
 
 showcase の端末は `@aletheia-works/formicarium` の公開 export だけを使います：
-`/browser` の `createSession` と、package の root の `createCommandSession` です。
-自分の page でも同じことができます。
+`/browser` の `createSession` と、package の root の `createCommandSession` と
+`createInstaller` です（installer は、nano のようにどの page にも入れるツールを、
+何も表示せずに導入します）。自分の page でも同じことができます。
 
 <PackageInstall locale="ja" />
 

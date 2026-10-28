@@ -104,7 +104,9 @@ Safari の job は macOS の System keychain に job CA を信頼させ、leaf �
    全画面で動くツールには `interactive: true` を足す。端末の page がキー入力と
    端末の大きさをそのツールに渡し、「停止」ボタンを出す。
    どの page でも使えるようにするツールには `everyPage: true` を足す。端末の page は、
-   開いたときにそのツールを導入するので、ほかのツールからも起動できる。
+   開いたときに公開の `createInstaller` でそのツールを導入し、端末には何も出さない。
+   最初から入っているように見え、ほかのツールからも起動できる。失敗したときだけ、
+   ツールの名前を付けて端末に出す。
    ツールが設定ファイルを home から読むなら、`homeFiles` に home からの相対 path と
    中身（4096 bytes まで）を書く。端末の page は、どのツールの page でもそれを
    `/root` の下に置く（例：jj の pager を止める `.config/jj/config.toml`）。

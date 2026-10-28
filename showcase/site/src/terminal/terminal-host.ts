@@ -1,5 +1,6 @@
 import type {
   CommandSession,
+  Installer,
   Progress,
   Session,
 } from '@aletheia-works/formicarium';
@@ -202,6 +203,7 @@ export class TerminalHost {
     this.#setState('loading');
     this.#status({ kind: 'loading' });
     const siteRoot = siteRootFrom(this.#options.pageUrl, data.base);
+    let installer: Installer;
     const fetchOptions = {
       signal: this.#page.signal,
       fetchImpl: this.#options.fetchImpl,
@@ -244,6 +246,7 @@ export class TerminalHost {
       }
       this.#session = session;
       this.#commands = loaded.root.createCommandSession(session, { catalog });
+      installer = loaded.root.createInstaller(session, catalog);
     } catch (error) {
       if (this.state === 'disposed') return;
       this.#setState('failed');
@@ -253,25 +256,63 @@ export class TerminalHost {
       this.#status({ kind: 'failed', ...failure });
       return;
     }
-    // The page's own tool first, then the tools every page installs (one
-    // that already is the page's tool is installed once). The first failure
-    // stops the rest.
-    const installs = [
-      ...(data.mode === 'preinstalled' && data.tool ? [data.tool] : []),
-      ...data.everyPage.filter((tool) => tool !== data.tool),
-    ];
-    if (installs.length === 0) {
+    // The page's own tool is installed as if typed. The tools every page
+    // installs follow through the public installer, which writes nothing to
+    // the terminal, so they look present from the start (one that already is
+    // the page's tool is installed once). The first failure stops the rest.
+    const own = data.mode === 'preinstalled' ? data.tool : null;
+    const quiet = data.everyPage.filter((tool) => tool !== data.tool);
+    if (own) {
+      const line = `install ${own}`;
+      this.#print(`${this.cwd}$ ${line}\n`);
+      if (!(await this.#execute(line, true, quiet.length === 0))) return;
+    }
+    if (quiet.length > 0) {
+      await this.#installQuietly(installer, quiet);
+      return;
+    }
+    if (!own) {
       this.#setState('ready');
       this.#status({ kind: 'ready', tool: null, version: null });
       this.#prompt();
-      return;
     }
-    for (const [index, tool] of installs.entries()) {
-      const line = `install ${tool}`;
-      this.#print(`${this.cwd}$ ${line}\n`);
-      if (!(await this.#execute(line, true, index === installs.length - 1)))
-        return;
+  }
+
+  /**
+   * Installs `tools` one by one without writing to the terminal; only a
+   * failure is shown, named by its tool, and leaves ready_failed_install
+   * (typing install retries it). Ctrl-C cancels it like a typed install.
+   */
+  async #installQuietly(installer: Installer, tools: string[]): Promise<void> {
+    this.#setState('installing');
+    const run = new AbortController();
+    this.#run = run;
+    let failure: { code: string; message: string } | null = null;
+    let current = '';
+    try {
+      for (const tool of tools) {
+        current = tool;
+        this.#status({ kind: 'installing', tool, version: '', progress: null });
+        await installer.install(tool, {
+          signal: run.signal,
+          onProgress: (progress) => {
+            if (!run.signal.aborted && this.state === 'installing')
+              this.#status({ kind: 'installing', tool, version: '', progress });
+          },
+        });
+        if (this.state === 'disposed') return;
+      }
+    } catch (error) {
+      if (this.state === 'disposed') return;
+      failure = run.signal.aborted
+        ? this.#aborted()
+        : new CommandOutput({
+            write: (text) => this.#print(`${current}: ${text}`),
+          }).fail(error);
+    } finally {
+      if (this.#run === run) this.#run = null;
     }
+    this.#finish(true, failure, true);
   }
 
   /**
