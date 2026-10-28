@@ -1,7 +1,6 @@
 {
   'version': 2,
-  'updates':
-    [
+  'updates': [
       {
         'package-ecosystem': 'bun',
         'directory': '/',
@@ -15,6 +14,43 @@
         'labels': ['dependencies'],
         'commit-message': { 'prefix': 'chore(deps)' },
         'open-pull-requests-limit': 5,
+      },
+      {
+        'package-ecosystem': 'bun',
+        'directory': '/showcase/site',
+        'schedule':
+          {
+            'interval': 'weekly',
+            'day': 'monday',
+            'time': '05:00',
+            'timezone': 'Asia/Tokyo',
+          },
+        'labels': ['dependencies'],
+        'commit-message': { 'prefix': 'chore(deps)' },
+        'open-pull-requests-limit': 5,
+      },
+      # astro check runs in its own install because @astrojs/check accepts only
+      # TypeScript 5 and 6; ignore TypeScript majors until its peer range moves.
+      {
+        'package-ecosystem': 'bun',
+        'directory': '/showcase/site/tooling/astro-check',
+        'schedule':
+          {
+            'interval': 'weekly',
+            'day': 'monday',
+            'time': '05:00',
+            'timezone': 'Asia/Tokyo',
+          },
+        'labels': ['dependencies'],
+        'commit-message': { 'prefix': 'chore(deps)' },
+        'open-pull-requests-limit': 5,
+        'ignore':
+          [
+            {
+              'dependency-name': 'typescript',
+              'update-types': ['version-update:semver-major'],
+            },
+          ],
       },
       {
         'package-ecosystem': 'github-actions',
