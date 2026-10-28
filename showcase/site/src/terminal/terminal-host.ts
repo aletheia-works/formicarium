@@ -9,6 +9,7 @@ import type { Timers } from './fetch-limited.ts';
 import {
   emptyEntries,
   fixtureToEntries,
+  homeEntries,
   loadFixtureIndex,
   WORK_CWD,
   WORK_ROOT,
@@ -118,8 +119,6 @@ export class TerminalHost {
   readonly #encoder = new TextEncoder();
   /** The last tool an install command registered (shown in the ready text). */
   #installed: { tool: string; version: string } | null = null;
-  /** Every tool installed in this session (an on-demand tool is installed once). */
-  readonly #tools = new Set<string>();
 
   constructor(options: HostOptions) {
     this.#options = options;
@@ -228,12 +227,15 @@ export class TerminalHost {
         siteRoot,
         fetch: fetchOptions,
       });
-      // The persistence root is /work (app/ and the directories beside it);
-      // the shell then starts in /work/app.
+      // The persistence roots are /work (app/ and the directories beside it)
+      // and the home with the tools' settings; the shell starts in /work/app.
       const session = await loaded.browser.createSession({
         assets: loaded.assets,
         cwd: WORK_ROOT,
-        entries: loaded.root.fixtureToFsEntries(entries),
+        entries: loaded.root.fixtureToFsEntries([
+          ...entries,
+          ...homeEntries(data.homeFiles),
+        ]),
       });
       await session.setCwd(WORK_CWD);
       if (this.state === 'disposed') {
@@ -251,14 +253,24 @@ export class TerminalHost {
       this.#status({ kind: 'failed', ...failure });
       return;
     }
-    if (data.mode === 'preinstalled' && data.tool) {
-      const line = `install ${data.tool}`;
-      this.#print(`${this.cwd}$ ${line}\n`);
-      await this.#execute(line, true);
-    } else {
+    // The page's own tool first, then the tools every page installs (one
+    // that already is the page's tool is installed once). The first failure
+    // stops the rest.
+    const installs = [
+      ...(data.mode === 'preinstalled' && data.tool ? [data.tool] : []),
+      ...data.everyPage.filter((tool) => tool !== data.tool),
+    ];
+    if (installs.length === 0) {
       this.#setState('ready');
       this.#status({ kind: 'ready', tool: null, version: null });
       this.#prompt();
+      return;
+    }
+    for (const [index, tool] of installs.entries()) {
+      const line = `install ${tool}`;
+      this.#print(`${this.cwd}$ ${line}\n`);
+      if (!(await this.#execute(line, true, index === installs.length - 1)))
+        return;
     }
   }
 
@@ -309,23 +321,8 @@ export class TerminalHost {
           this.#clear();
           this.#prompt();
         } else if (action.line.trim() === '') this.#prompt();
-        else void this.#submit(action.line);
+        else void this.#execute(action.line, false);
     }
-  }
-
-  /**
-   * A typed command. An on-demand tool that this session lacks is installed
-   * first, so its command works on every page as a builtin does.
-   */
-  async #submit(line: string): Promise<void> {
-    const tool = line.trim().split(/[ \t]+/)[0] ?? '';
-    if (
-      this.#options.data.onDemand.includes(tool) &&
-      !this.#tools.has(tool) &&
-      !(await this.#execute(`install ${tool}`, false, false))
-    )
-      return;
-    await this.#execute(line, false);
   }
 
   /**
@@ -341,7 +338,7 @@ export class TerminalHost {
   /**
    * Runs one line and reports whether it succeeded. With `last` false a
    * successful run keeps the busy state and prints no prompt, because the
-   * typed command follows it.
+   * page's next install follows it.
    */
   async #execute(
     line: string,
@@ -353,7 +350,10 @@ export class TerminalHost {
     const words = line.trim().split(/[ \t]+/);
     const installing = words[0] === 'install' && words.length === 2;
     const target = installing ? (words[1] ?? '') : '';
-    const shownVersion = automatic ? (this.#options.data.version ?? '') : '';
+    // Only the page's own tool has its version in the page data, and only it
+    // is named in the ready text after the page's installs.
+    const ownTool = automatic && target === this.#options.data.tool;
+    const shownVersion = ownTool ? (this.#options.data.version ?? '') : '';
     const interactive =
       !installing && this.#options.data.interactive.includes(words[0] ?? '');
     this.#setState(installing ? 'installing' : 'running');
@@ -421,14 +421,13 @@ export class TerminalHost {
         if (
           result.kind === 'install' &&
           result.exitCode === 0 &&
-          result.installation
-        ) {
+          result.installation &&
+          (!automatic || ownTool)
+        )
           this.#installed = {
             tool: result.installation.tool,
             version: result.installation.versionOrName,
           };
-          this.#tools.add(result.installation.tool);
-        }
         succeeded = result.exitCode === 0;
       }
     } catch (error) {

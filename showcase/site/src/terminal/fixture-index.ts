@@ -11,10 +11,13 @@ import {
   MAX_FIXTURE_INDEX_BYTES,
   sha256Hex,
 } from './fetch-limited.ts';
+import type { HomeFile } from './page-data.ts';
 
 /** Guest directory that holds the whole fixture tree (cwd is /work/app). */
 export const WORK_ROOT = '/work';
 export const WORK_CWD = '/work/app';
+/** The session home, where tools read their settings. */
+export const HOME = '/root';
 
 /** Fetches demo-fixtures/<fixture>.json and checks its embedded SHA256. */
 export async function loadFixtureIndex(options: {
@@ -85,3 +88,29 @@ export const emptyEntries = (): FsEntry[] => [
   { path: WORK_ROOT, type: 'dir', mode: 0o755 },
   { path: WORK_CWD, type: 'dir', mode: 0o755 },
 ];
+
+/**
+ * The home files below /root, each with the directories above it, so a tool
+ * finds its settings on every page (tools.json `homeFiles`).
+ */
+export function homeEntries(files: readonly HomeFile[]): FsEntry[] {
+  const directories = new Set<string>();
+  const entries: FsEntry[] = [];
+  for (const [index, file] of files.entries()) {
+    const parts = file.path.split('/');
+    for (let depth = 1; depth < parts.length; depth++) {
+      const path = `${HOME}/${parts.slice(0, depth).join('/')}`;
+      if (directories.has(path)) continue;
+      directories.add(path);
+      entries.push({ path, type: 'dir', mode: 0o755 });
+    }
+    entries.push({
+      path: `${HOME}/${file.path}`,
+      type: 'file',
+      mode: 0o644,
+      inodeId: `home-${index + 1}`,
+      data: new TextEncoder().encode(file.text),
+    });
+  }
+  return entries;
+}

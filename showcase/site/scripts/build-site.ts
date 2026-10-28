@@ -245,7 +245,8 @@ async function siteData(
         fixture: entry.fixture,
         fixtureIndex: { path: index.path, sha256: index.sha256 },
         ...(entry.interactive ? { interactive: true as const } : {}),
-        ...(entry.onDemand ? { onDemand: true as const } : {}),
+        ...(entry.everyPage ? { everyPage: true as const } : {}),
+        ...(entry.homeFiles ? { homeFiles: entry.homeFiles } : {}),
       };
     }),
     formicarium: context.formicarium!,

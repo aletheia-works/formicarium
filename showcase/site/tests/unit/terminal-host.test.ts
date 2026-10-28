@@ -73,7 +73,8 @@ function data(
       files: [],
     },
     interactive: [],
-    onDemand: [],
+    everyPage: [],
+    homeFiles: [],
     ...overrides,
   };
 }
@@ -355,7 +356,7 @@ test('Stop ends an interactive run with ABORTED and closes its stdin', async () 
   assert.equal(seen[1]?.stdin, undefined);
 });
 
-test('an on-demand tool is installed on its first run only, on any page', async () => {
+test('a page installs its own tool, then every-page tools, and writes the home files', async () => {
   const seen: CommandOptions[] = [];
   const h = harness(
     'preinstalled',
@@ -367,66 +368,105 @@ test('an on-demand tool is installed on its first run only, on any page', async 
     {
       data: data('preinstalled', {
         interactive: ['nano'],
-        onDemand: ['nano'],
+        everyPage: ['nano'],
+        homeFiles: [
+          { path: '.config/jj/config.toml', text: 'x' },
+          { path: '.config/jj/more.toml', text: 'y' },
+        ],
       }),
     },
   );
   await h.host.start();
-  type(h.host, 'nano --version');
-  await settle();
+  assert.deepEqual(h.lines, ['install aube', 'install nano']);
+  assert.equal(h.host.state, 'ready');
+  // The ready text names the page's tool, not the one every page gets.
+  assert.equal(h.status.textContent, 'Ready: aube 2.7.2');
+  // Each install is shown as typed; one prompt follows the last.
+  assert.ok(
+    h.writes
+      .join('')
+      .endsWith(
+        'installed aube 2.7.2\n/work/app$ install nano\ninstalled nano 2.7.2\n/work/app$ ',
+      ),
+  );
+  assert.equal(seen[1]?.stdin, undefined);
+  // The home files and the directories above them, each directory once.
+  const home = h.sessions[0]!.entries!.filter((entry) =>
+    entry.path.startsWith('/root'),
+  );
+  assert.deepEqual(
+    home.map((entry) => [entry.path, entry.type]),
+    [
+      ['/root/.config', 'dir'],
+      ['/root/.config/jj', 'dir'],
+      ['/root/.config/jj/config.toml', 'file'],
+      ['/root/.config/jj/more.toml', 'file'],
+    ],
+  );
+  const file = home[2] as Extract<FsEntry, { type: 'file' }>;
+  assert.equal(new TextDecoder().decode(file.data), 'x');
+  assert.notEqual(file.inodeId, (home[3] as typeof file).inodeId);
   type(h.host, 'nano note.txt');
   await settle();
-  assert.deepEqual(h.lines, [
-    'install aube',
-    'install nano',
-    'nano --version',
-    'nano note.txt',
-  ]);
-  assert.equal(h.host.state, 'ready');
-  // The install between them gets no stdin; the tool's runs do.
-  assert.equal(seen[1]?.stdin, undefined);
-  assert.ok(seen[2]?.stdin);
-  // One prompt after the install and the run, not one each.
-  assert.match(
-    h.writes.join(''),
-    /\$ nano --version\ninstalled nano 2\.7\.2\n\/work\/app\$ nano note/,
-  );
+  assert.equal(h.lines.at(-1), 'nano note.txt');
+  assert.ok(seen.at(-1)?.stdin);
 });
 
-test('a failed on-demand install skips the command; an installed tool is not installed again', async () => {
+test('the empty terminal installs every-page tools once; a failed install stops the rest', async () => {
+  const empty = harness('empty', async (line) => installed(line.slice(8)), {
+    data: data('empty', { everyPage: ['nano', 'aube'] }),
+  });
+  await empty.host.start();
+  assert.deepEqual(empty.lines, ['install nano', 'install aube']);
+  assert.equal(empty.host.state, 'ready');
+  assert.equal(
+    empty.status.textContent,
+    'Ready. Type install <tool> to add a tool.',
+  );
+  // The nano page installs nano once, as its own tool.
+  const nanoPage = harness(
+    'preinstalled',
+    async (line) => installed(line.slice(8)),
+    { data: data('preinstalled', { tool: 'nano', everyPage: ['nano'] }) },
+  );
+  await nanoPage.host.start();
+  assert.deepEqual(nanoPage.lines, ['install nano']);
+  assert.equal(nanoPage.status.textContent, 'Ready: nano 2.7.2');
+  // The page's own install fails: every-page tools are not installed.
+  const failed = harness(
+    'preinstalled',
+    async () => {
+      throw Object.assign(new Error('HTTP 404'), { code: 'ASSET_LOAD' });
+    },
+    { data: data('preinstalled', { everyPage: ['nano'] }) },
+  );
+  await failed.host.start();
+  assert.deepEqual(failed.lines, ['install aube']);
+  assert.equal(failed.host.state, 'ready_failed_install');
+  // An every-page install fails after the page's tool: retried by typing it.
   let fail = true;
-  const h = harness(
-    'empty',
+  const later = harness(
+    'preinstalled',
     async (line) => {
       if (line === 'install nano' && fail)
         throw Object.assign(new Error('HTTP 404'), { code: 'ASSET_LOAD' });
-      if (line.startsWith('install ')) return installed(line.slice(8));
-      return result('guest', 'ok\n');
+      return installed(line.slice(8));
     },
-    { data: data('empty', { onDemand: ['nano'] }) },
+    { data: data('preinstalled', { everyPage: ['nano'] }) },
   );
-  await h.host.start();
-  type(h.host, 'nano --version');
-  await settle();
-  assert.deepEqual(h.lines, ['install nano']);
-  assert.equal(h.host.state, 'ready');
-  assert.equal(
-    h.status.textContent,
-    'The last command failed (ASSET_LOAD: HTTP 404).',
-  );
+  await later.host.start();
+  assert.equal(later.host.state, 'ready_failed_install');
+  assert.match(later.status.textContent ?? '', /ASSET_LOAD: HTTP 404/);
   fail = false;
-  type(h.host, 'install nano');
+  type(later.host, 'install nano');
   await settle();
-  type(h.host, 'nano --version');
-  await settle();
-  // Tools that are not on demand run as typed.
-  type(h.host, 'aube --version');
-  await settle();
-  assert.deepEqual(h.lines, [
+  assert.equal(later.host.state, 'ready');
+  // A typed install names its tool in the ready text.
+  assert.equal(later.status.textContent, 'Ready: nano 2.7.2');
+  assert.deepEqual(later.lines, [
+    'install aube',
     'install nano',
     'install nano',
-    'nano --version',
-    'aube --version',
   ]);
 });
 
@@ -447,7 +487,10 @@ test('the empty terminal runs builtins once, follows cd and reports empty output
     return result('guest', 'boom', 3);
   });
   await h.host.start();
-  assert.equal(h.status.textContent, 'Ready. No tool is installed yet.');
+  assert.equal(
+    h.status.textContent,
+    'Ready. Type install <tool> to add a tool.',
+  );
   assert.deepEqual(
     h.sessions[0]!.entries!.map((entry) => entry.path),
     ['/work', '/work/app'],

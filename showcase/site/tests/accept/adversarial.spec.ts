@@ -57,7 +57,10 @@ test('[adversarial-output] hostile output and errors stay text, and terminal ans
   }));
   expect(observed.pwned).toBeNull();
   // The answer xterm sends to `ESC [6n` is not typed into the next command.
-  expect(observed.lines).toEqual(['show', 'next', 'fail']);
+  // Before them the page only installs the tools every page gets.
+  expect(observed.lines.slice(-3)).toEqual(['show', 'next', 'fail']);
+  for (const line of observed.lines.slice(0, -3))
+    expect(line).toMatch(/^install [a-z][a-z0-9-]*$/);
   expect(observed.images).toBe(0);
   expect(observed.links).toBe(0);
   expect(observed.status).toContain('<img src=x onerror=');

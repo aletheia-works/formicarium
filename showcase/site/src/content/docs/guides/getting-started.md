@@ -9,7 +9,7 @@ terminal, places a small sample project in `/work/app` and installs the tool
 before the prompt appears. The status line above the terminal tells you what
 is happening (isolation, loading, installing, ready, running or an error).
 
-The [empty terminal](/formicarium/terminal/) starts with nothing installed.
+The [empty terminal](/formicarium/terminal/) starts with only nano installed.
 Type `install aube`, `install pitchfork`, `install biome`, `install nano` or
 `install jj`, then run the tool, for example `biome --version`.
 
@@ -21,8 +21,9 @@ Type `install aube`, `install pitchfork`, `install biome`, `install nano` or
 - `install <tool>` installs a tool of the showcase catalog. Only the accepted
   versions listed on the Tools page can be installed.
 - Any other first word runs the installed tool of that name.
-- A tool marked on demand in the catalog (nano) works on every page: the
-  first time its command runs, the page installs it and then runs the command.
+- A tool the catalog marks for every page (nano) is installed when any terminal
+  page starts, so other tools can open it too: `jj describe` without `-m`
+  opens nano to edit the description.
 
 There is no shell: pipes, redirections, `$` expansion and globbing are refused
 with `INVALID_INPUT`. One line is limited to 65536 bytes. Use ↑ and ↓ for the

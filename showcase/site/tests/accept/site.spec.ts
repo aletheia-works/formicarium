@@ -28,7 +28,7 @@ const catalog = JSON.parse(
 const TOOLS = Object.entries(catalog.defaults).sort(([a], [b]) =>
   a < b ? -1 : 1,
 );
-/** nano's version: tools.json marks it on demand, so every page can open it. */
+/** nano's version: tools.json marks it for every page, so every page has it. */
 const NANO = catalog.defaults.nano;
 const LOCALES = [
   ['en', ''],
@@ -62,8 +62,8 @@ for (const [tool, version] of TOOLS)
       const readyMs = await waitState(site, ['ready']);
       await poll(() => statusText(site)).toBe(
         locale === 'ja'
-          ? '準備完了（ツールは未導入）。'
-          : 'Ready. No tool is installed yet.',
+          ? '準備完了。install <ツール> でツールを導入できます。'
+          : 'Ready. Type install <tool> to add a tool.',
       );
       const installStarted = Date.now();
       await run(site, `install ${tool}`);
@@ -101,7 +101,7 @@ for (const [tool, version] of TOOLS)
         1,
       );
       // nano opens its editor on the fixture, which needs a terminal type it
-      // knows, and quits on Ctrl-X. Every page installs it on its first run.
+      // knows, and quits on Ctrl-X. Every page installs it when it starts.
       if (NANO) {
         await focusTerminal(site);
         await site.type(`nano ${file}`);
@@ -112,6 +112,27 @@ for (const [tool, version] of TOOLS)
         await site.press('Control+x');
         await waitState(site, ['ready']);
         expect(await terminalText(site)).not.toContain('cannot initialize');
+      }
+      // jj describe opens nano (installed in /usr/bin by the page) for the
+      // message; the home config the page writes keeps jj from asking for a pager.
+      if (tool === 'jj' && NANO) {
+        await run(site, 'jj git init');
+        await focusTerminal(site);
+        await site.type('jj describe');
+        await site.press('Enter');
+        await poll(() => terminalText(site), READY_MS).toContain(
+          `GNU nano ${NANO}`,
+        );
+        await site.type('Described in nano');
+        await site.press('Control+x');
+        await poll(() => terminalText(site)).toContain('Save modified buffer');
+        await site.type('y');
+        await poll(() => terminalText(site)).toContain('Write to File');
+        await site.press('Enter');
+        await waitState(site, ['ready']);
+        const log = await run(site, 'jj log -r @ --no-graph -T description');
+        expect(occurrences(log, 'Described in nano'), log).toBe(1);
+        expect(log).not.toContain('pager');
       }
       // aube's link target lies beside app/ (paths with `..` are refused by the builtins).
       if (tool === 'aube')

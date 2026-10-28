@@ -48,7 +48,7 @@
       "tagPattern": "^v(\\d+\\.\\d+(?:\\.\\d+)?)$",
       "fixture": "nano-basic",
       "interactive": true,
-      "onDemand": true,
+      "everyPage": true,
       "acquire": {
         "kind": "gnu-source",
         "builder": "autotools",
@@ -95,6 +95,10 @@
       "repository": "https://github.com/jj-vcs/jj",
       "tagPattern": "^v(\\d+\\.\\d+\\.\\d+)$",
       "fixture": "jj-basic",
+      "interactive": true,
+      "homeFiles": {
+        ".config/jj/config.toml": "[ui]\npaginate = \"never\"\n"
+      },
       "acquire": {
         "kind": "release-asset",
         "asset": "jj-{tag}-x86_64-unknown-linux-musl.tar.gz",

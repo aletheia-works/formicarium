@@ -9,7 +9,7 @@ description: formicarium の showcase の端末の使い方と制限。
 します。端末の上の状態欄が、いま何をしているか（分離の準備・読込み・導入中・
 準備完了・実行中・エラー）を文字で示します。
 
-[空の端末](/formicarium/ja/terminal/)は何も導入していない状態で始まります。
+[空の端末](/formicarium/ja/terminal/)は nano だけを導入した状態で始まります。
 `install aube`・`install pitchfork`・`install biome`・`install nano`・`install jj` を打ってから、たとえば
 `biome --version` を実行します。
 
@@ -20,8 +20,9 @@ description: formicarium の showcase の端末の使い方と制限。
 - `install <tool>` は showcase の catalog のツールを導入します。導入できるのは
   ツールの page にある受入済みの版だけです。
 - それ以外の最初の語は、その名前の導入済みのツールを実行します。
-- catalog で on demand と決めたツール（nano）は、どの page でも使えます。その
-  command を初めて実行したとき、page がツールを導入してから command を実行します。
+- catalog がすべての page に入れると決めたツール（nano）は、どの端末の page でも
+  開いたときに導入するので、ほかのツールからも開けます。`-m` を付けない
+  `jj describe` は、nano を開いて説明を編集させます。
 
 shell はありません。pipe・redirect・`$` の展開・glob は `INVALID_INPUT` で拒否
 されます。1行は 65536 bytes までです。↑・↓ でこの page の中の履歴を辿り、

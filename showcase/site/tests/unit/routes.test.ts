@@ -89,7 +89,8 @@ test('only the tool pages and /terminal/ are terminal pages, with their page dat
       data.base,
       data.fixture?.path,
       data.interactive,
-      data.onDemand,
+      data.everyPage,
+      data.homeFiles,
     ],
     [
       'preinstalled',
@@ -98,6 +99,7 @@ test('only the tool pages and /terminal/ are terminal pages, with their page dat
       '2.7.2',
       '/formicarium/',
       'demo-fixtures/aube-local-deps.json',
+      [],
       [],
       [],
     ],
@@ -112,12 +114,37 @@ test('only the tool pages and /terminal/ are terminal pages, with their page dat
     ['empty', 'en', null],
   );
   // The tool lists must be tool names; anything else stops the page.
-  for (const name of ['interactive', 'onDemand'])
+  for (const name of ['interactive', 'everyPage'])
     for (const value of [undefined, 'nano', ['../nano'], [1]])
       assert.throws(
         () => parsePageData(JSON.stringify({ ...empty, [name]: value })),
         new RegExp(`page data ${name} invalid`),
       );
+  // Home files stay below the home and within the tools.json limit.
+  for (const value of [
+    undefined,
+    {},
+    [null],
+    [{ path: '../etc/passwd', text: 'x' }],
+    [{ path: '/etc/passwd', text: 'x' }],
+    [{ path: 'a//b', text: 'x' }],
+    [{ path: '.config/./jj', text: 'x' }],
+    [{ path: '.config/jj/config.toml', text: 1 }],
+    [{ path: '.config/jj/config.toml', text: 'x'.repeat(4097) }],
+  ])
+    assert.throws(
+      () => parsePageData(JSON.stringify({ ...empty, homeFiles: value })),
+      /page data homeFiles invalid/,
+    );
+  assert.deepEqual(
+    parsePageData(
+      JSON.stringify({
+        ...empty,
+        homeFiles: [{ path: '.config/jj/config.toml', text: 'x'.repeat(4096) }],
+      }),
+    ).homeFiles,
+    [{ path: '.config/jj/config.toml', text: 'x'.repeat(4096) }],
+  );
 });
 
 test('documentation pages and /tools/ load no terminal module and no service worker', async () => {

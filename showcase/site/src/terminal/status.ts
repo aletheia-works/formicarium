@@ -82,8 +82,8 @@ export function statusText(status: Status, locale: Locale): string {
           ? `準備完了：${status.tool} ${status.version}`
           : `Ready: ${status.tool} ${status.version}`;
       return ja
-        ? '準備完了（ツールは未導入）。'
-        : 'Ready. No tool is installed yet.';
+        ? '準備完了。install <ツール> でツールを導入できます。'
+        : 'Ready. Type install <tool> to add a tool.';
     case 'ready-failed-install':
       return ja
         ? `導入に失敗しました（${status.code}: ${status.message}）。同じ command を打つと再試行します。`

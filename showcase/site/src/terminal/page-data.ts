@@ -14,6 +14,12 @@ export interface EmbeddedFile {
   path: string;
   sha256: string;
 }
+/** A text file written below the session home (tools.json `homeFiles`). */
+export interface HomeFile {
+  /** Path relative to the home. */
+  path: string;
+  text: string;
+}
 export interface TerminalPageData {
   mode: TerminalMode;
   locale: Locale;
@@ -26,14 +32,35 @@ export interface TerminalPageData {
   formicarium: FormicariumManifest;
   /** Tools whose runs get the keystrokes and a terminal (tools.json `interactive`). */
   interactive: string[];
-  /** Tools installed the first time their command runs (tools.json `onDemand`). */
-  onDemand: string[];
+  /** Tools installed when the page starts (tools.json `everyPage`). */
+  everyPage: string[];
+  /** Files every page writes below the home before any tool runs. */
+  homeFiles: HomeFile[];
 }
 
 const SHA256 = /^[a-f0-9]{64}$/;
 const PATH = /^[a-z0-9][a-z0-9._/-]*$/;
 /** The tool name shape of tools.json. */
 const TOOL = /^[a-z][a-z0-9-]{0,63}$/;
+/** One segment of a home file path, as tools.json allows it. */
+const HOME_SEGMENT = /^\.?[A-Za-z0-9_][A-Za-z0-9._-]*$/;
+/** The tools.json limit of one home file. */
+const MAX_HOME_FILE_BYTES = 4096;
+
+function homeFiles(value: unknown): HomeFile[] {
+  if (!Array.isArray(value)) throw new Error('page data homeFiles invalid');
+  return value.map((file: Partial<HomeFile> | null) => {
+    if (
+      !file ||
+      typeof file.path !== 'string' ||
+      !file.path.split('/').every((segment) => HOME_SEGMENT.test(segment)) ||
+      typeof file.text !== 'string' ||
+      new TextEncoder().encode(file.text).length > MAX_HOME_FILE_BYTES
+    )
+      throw new Error('page data homeFiles invalid');
+    return { path: file.path, text: file.text };
+  });
+}
 
 function embedded(value: unknown, name: string): EmbeddedFile {
   const file = value as EmbeddedFile | null;
@@ -73,7 +100,7 @@ export function parsePageData(
     throw new Error('preinstalled page needs a tool and version');
   if (!value.formicarium || typeof value.formicarium !== 'object')
     throw new Error('page data formicarium missing');
-  for (const name of ['interactive', 'onDemand'] as const) {
+  for (const name of ['interactive', 'everyPage'] as const) {
     const tools = value[name];
     if (
       !Array.isArray(tools) ||
@@ -91,6 +118,7 @@ export function parsePageData(
     fixture: preinstalled ? embedded(value.fixture, 'fixture') : null,
     formicarium: value.formicarium,
     interactive: [...value.interactive!],
-    onDemand: [...value.onDemand!],
+    everyPage: [...value.everyPage!],
+    homeFiles: homeFiles(value.homeFiles),
   };
 }

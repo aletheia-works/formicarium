@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { FormicariumManifest } from './terminal/formicarium-loader.ts';
-import type { EmbeddedFile } from './terminal/page-data.ts';
+import type { EmbeddedFile, HomeFile } from './terminal/page-data.ts';
 
 /**
  * Build-time data of the pages, written by scripts/build-site.ts from the
@@ -15,8 +15,10 @@ export interface SiteTool {
   fixtureIndex: EmbeddedFile;
   /** tools.json `interactive`: the terminal passes keystrokes to this tool. */
   interactive?: true;
-  /** tools.json `onDemand`: every terminal page installs it on its first run. */
-  onDemand?: true;
+  /** tools.json `everyPage`: every terminal page installs it when it starts. */
+  everyPage?: true;
+  /** tools.json `homeFiles`: text files below the home of every terminal page. */
+  homeFiles?: Record<string, string>;
 }
 export interface SiteData {
   schemaVersion: 1;
@@ -57,9 +59,20 @@ export function loadSiteData(
 export const interactiveTools = (data: SiteData): string[] =>
   data.tools.filter((tool) => tool.interactive).map((tool) => tool.tool);
 
-/** The tools every terminal page installs on first use (page data `onDemand`). */
-export const onDemandTools = (data: SiteData): string[] =>
-  data.tools.filter((tool) => tool.onDemand).map((tool) => tool.tool);
+/** The tools every terminal page installs when it starts (page data `everyPage`). */
+export const everyPageTools = (data: SiteData): string[] =>
+  data.tools.filter((tool) => tool.everyPage).map((tool) => tool.tool);
+
+/** The home files of every tool, by path (page data `homeFiles`). */
+export const homeFilesOf = (data: SiteData): HomeFile[] =>
+  data.tools
+    .flatMap((tool) =>
+      Object.entries(tool.homeFiles ?? {}).map(([path, text]) => ({
+        path,
+        text,
+      })),
+    )
+    .sort((a, b) => (a.path < b.path ? -1 : 1));
 
 export const toolOf = (data: SiteData, tool: string): SiteTool => {
   const found = data.tools.find((item) => item.tool === tool);

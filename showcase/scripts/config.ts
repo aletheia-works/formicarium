@@ -59,8 +59,13 @@ export interface ToolConfig {
   acquire: ReleaseAssetAcquire | SourceBuildAcquire | GnuSourceAcquire;
   /** The terminal pages pass keystrokes to this tool and give it a terminal. */
   interactive?: true;
-  /** Every terminal page installs this tool the first time its command runs. */
-  onDemand?: true;
+  /** Every terminal page installs this tool when its session starts. */
+  everyPage?: true;
+  /**
+   * Text files every terminal page writes below the session home (/root),
+   * by path relative to it, so this tool finds them wherever it is installed.
+   */
+  homeFiles?: Record<string, string>;
 }
 export interface ToolsConfig {
   schemaVersion: 1;
@@ -279,11 +284,12 @@ function tool(value: unknown, index: number, allowed: Set<string>): ToolConfig {
       'fixture',
       'acquire',
       'interactive',
-      'onDemand',
+      'everyPage',
+      'homeFiles',
     ],
     where,
   );
-  for (const flag of ['interactive', 'onDemand'])
+  for (const flag of ['interactive', 'everyPage'])
     if (raw[flag] !== undefined && raw[flag] !== true)
       fail('config-invalid', `${where}.${flag} must be true when present`);
   const repository = text(raw.repository, `${where}.repository`, REPOSITORY);
@@ -310,8 +316,35 @@ function tool(value: unknown, index: number, allowed: Set<string>): ToolConfig {
             ? gnuSource(acquire, `${where}.acquire`, allowed)
             : fail('config-invalid', `${where}.acquire.kind is unknown`),
     ...(raw.interactive === true ? { interactive: true as const } : {}),
-    ...(raw.onDemand === true ? { onDemand: true as const } : {}),
+    ...(raw.everyPage === true ? { everyPage: true as const } : {}),
+    ...(raw.homeFiles === undefined
+      ? {}
+      : { homeFiles: homeFiles(raw.homeFiles, `${where}.homeFiles`) }),
   };
+}
+
+/** One segment of a home file path: no `.`, `..` or empty segment. */
+const HOME_SEGMENT = /^\.?[A-Za-z0-9_][A-Za-z0-9._-]*$/;
+/** Home files are small settings, embedded in every terminal page. */
+export const MAX_HOME_FILE_BYTES = 4096;
+
+function homeFiles(value: unknown, where: string): Record<string, string> {
+  const raw = record(value, where);
+  const files = Object.entries(raw);
+  if (files.length === 0) fail('config-invalid', `${where} must not be empty`);
+  for (const [path, content] of files) {
+    if (!path.split('/').every((segment) => HOME_SEGMENT.test(segment)))
+      fail('config-invalid', `${where} path ${path} is invalid`);
+    if (
+      typeof content !== 'string' ||
+      new TextEncoder().encode(content).length > MAX_HOME_FILE_BYTES
+    )
+      fail(
+        'config-invalid',
+        `${where}.${path} must be text of at most ${MAX_HOME_FILE_BYTES} bytes`,
+      );
+  }
+  return Object.fromEntries(files) as Record<string, string>;
 }
 
 export function validateAllowedSources(value: unknown): AllowedSources {
@@ -346,6 +379,20 @@ export function validateToolsConfig(
       fail('config-invalid', `duplicate tool: ${entry.tool}`);
     names.add(entry.tool);
   }
+  // Every page writes the home files of all tools into one home, so no two
+  // may share a path and none may be the directory of another.
+  const homePaths = tools.flatMap((entry) =>
+    Object.keys(entry.homeFiles ?? {}),
+  );
+  for (const path of homePaths)
+    if (
+      homePaths.some(
+        (other, index) =>
+          (other === path && homePaths.indexOf(path) !== index) ||
+          other.startsWith(`${path}/`),
+      )
+    )
+      fail('config-invalid', `home file ${path} conflicts with another`);
   for (const entry of tools) {
     if (entry.acquire.kind !== 'source-build' || !entry.acquire.ui) continue;
     const runnerName = entry.acquire.ui.runner;

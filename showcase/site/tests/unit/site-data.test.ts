@@ -2,9 +2,10 @@ import assert from 'node:assert/strict';
 import { join } from 'node:path';
 import test from 'node:test';
 import {
+  everyPageTools,
+  homeFilesOf,
   interactiveTools,
   loadSiteData,
-  onDemandTools,
   toolOf,
 } from '../../src/site-data.ts';
 import { tempDir, writeFiles } from './helpers.ts';
@@ -25,11 +26,26 @@ test('the interactive tools are the ones tools.json marks', () => {
   assert.deepEqual(interactiveTools(data), [data.tools[1]!.tool]);
 });
 
-test('the on-demand tools are the ones tools.json marks', () => {
+test('the every-page tools are the ones tools.json marks', () => {
   const data = testSiteData();
-  assert.deepEqual(onDemandTools(data), []);
-  data.tools[2] = { ...data.tools[2]!, onDemand: true };
-  assert.deepEqual(onDemandTools(data), [data.tools[2]!.tool]);
+  assert.deepEqual(everyPageTools(data), []);
+  data.tools[2] = { ...data.tools[2]!, everyPage: true };
+  assert.deepEqual(everyPageTools(data), [data.tools[2]!.tool]);
+});
+
+test('every page gets the home files of all tools, sorted by path', () => {
+  const data = testSiteData();
+  assert.deepEqual(homeFilesOf(data), []);
+  data.tools[2] = {
+    ...data.tools[2]!,
+    homeFiles: { '.config/b/config.toml': 'b', '.a': 'a' },
+  };
+  data.tools[0] = { ...data.tools[0]!, homeFiles: { '.config/a.toml': 'c' } };
+  assert.deepEqual(homeFilesOf(data), [
+    { path: '.a', text: 'a' },
+    { path: '.config/a.toml', text: 'c' },
+    { path: '.config/b/config.toml', text: 'b' },
+  ]);
 });
 
 test('missing or empty site data stops the build', async () => {

@@ -2,9 +2,10 @@
 import TerminalPage from '../../../components/TerminalPage.astro';
 import { HINTS, requireStrings, stringsFor } from '../../../i18n/strings.ts';
 import {
+  everyPageTools,
+  homeFilesOf,
   interactiveTools,
   loadSiteData,
-  onDemandTools,
   toolOf,
 } from '../../../site-data.ts';
 import type { TerminalPageData } from '../../../terminal/page-data.ts';
@@ -41,10 +42,11 @@ const data: TerminalPageData = {
   fixture: tool.fixtureIndex,
   formicarium: site.formicarium,
   interactive: interactiveTools(site),
-  onDemand: onDemandTools(site),
+  everyPage: everyPageTools(site),
+  homeFiles: homeFilesOf(site),
 };
-const helpText = data.onDemand.length
-  ? `${strings.terminalHelp} ${strings.onDemandHelp(data.onDemand.join(', '))}`
+const helpText = data.everyPage.length
+  ? `${strings.terminalHelp} ${strings.everyPageHelp(data.everyPage.join(', '))}`
   : strings.terminalHelp;
 ---
 

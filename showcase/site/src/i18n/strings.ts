@@ -28,13 +28,13 @@ export const STRINGS = {
       title: 'Empty terminal',
       description: 'An empty formicarium terminal: install a tool and run it.',
       intro:
-        'Nothing is installed yet. Install one of the tools below, then run it. The working directory /work/app is empty.',
+        'Install one of the tools below, then run it. The working directory /work/app is empty.',
       hints: 'Install a tool:',
     },
     terminalHelp:
       'Builtins: ls, cat, cd, rm -rf, cp, mv and install; clear (or Ctrl-L) empties the screen. Tab moves the focus out of the terminal; Ctrl-C cancels a running command (an interactive tool gets Ctrl-C; Stop ends it).',
-    onDemandHelp: (tools: string) =>
-      `On every page, ${tools} is installed the first time you run it.`,
+    everyPageHelp: (tools: string) =>
+      `Every page installs ${tools} when it starts, so other tools can open it too.`,
     terminalStop: 'Stop',
     tool: {
       aube: {
@@ -50,7 +50,7 @@ export const STRINGS = {
       jj: {
         label: 'jj',
         summary:
-          'Jujutsu, a version control system that works with Git repositories. The sample project has a note to record. Give each message with -m; fetch and push need a network, so they do not work here.',
+          'Jujutsu, a version control system that works with Git repositories. The sample project has a note to record. jj describe opens nano for the message (save with Ctrl-O, leave with Ctrl-X); fetch and push need a network, so they do not work here.',
       },
       nano: {
         label: 'nano',
@@ -86,13 +86,13 @@ export const STRINGS = {
       title: '空の端末',
       description: '空の formicarium の端末。ツールを導入して動かします。',
       intro:
-        'まだ何も導入していません。下のツールを導入してから実行してください。作業 dir の /work/app は空です。',
+        '下のツールを導入してから実行してください。作業 dir の /work/app は空です。',
       hints: 'ツールの導入：',
     },
     terminalHelp:
       '組込みの command：ls、cat、cd、rm -rf、cp、mv、install。clear（または Ctrl-L）で画面を消します。Tab で端末の外へ focus を移し、Ctrl-C で実行中の command を取り消します（対話的なツールには Ctrl-C が渡るので、「停止」で終わらせます）。',
-    onDemandHelp: (tools: string) =>
-      `${tools} は、どの page でも初めて実行したときに導入します。`,
+    everyPageHelp: (tools: string) =>
+      `${tools} は、どの page でも開いたときに導入するので、ほかのツールからも開けます。`,
     terminalStop: '停止',
     tool: {
       aube: {
@@ -108,7 +108,7 @@ export const STRINGS = {
       jj: {
         label: 'jj',
         summary:
-          'Git の repository で使える version control system の Jujutsu。試しの project に記録するメモがあります。message は -m で渡します。network が無いので fetch と push はできません。',
+          'Git の repository で使える version control system の Jujutsu。試しの project に記録するメモがあります。jj describe は message を書くために nano を開きます（Ctrl-O で保存し、Ctrl-X で終わります）。network が無いので fetch と push はできません。',
       },
       nano: {
         label: 'nano',
@@ -140,7 +140,7 @@ export const HINTS: Readonly<Record<string, readonly string[]>> = Object.freeze(
       'ls',
       'cat note.txt',
       'jj git init',
-      'jj describe -m "first"',
+      'jj describe',
       'jj log',
     ],
     nano: ['nano --version', 'ls', 'cat note.txt', 'nano note.txt'],

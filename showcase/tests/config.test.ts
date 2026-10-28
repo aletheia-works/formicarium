@@ -5,6 +5,7 @@ import test from 'node:test';
 import {
   assetName,
   gnuTag,
+  MAX_HOME_FILE_BYTES,
   readConfigFile,
   validateAllowedSources,
   validateFormicariumRelease,
@@ -78,16 +79,65 @@ test('interactive is kept only as true, and any other value is refused', async (
   }
 });
 
-test('onDemand is kept only as true, and any other value is refused', async () => {
+test('everyPage is kept only as true, and any other value is refused', async () => {
   const config = await current();
   const tools = validateToolsConfig(config, allowed).tools;
-  assert.equal(tools.find((item) => item.tool === 'nano')?.onDemand, true);
-  assert.equal(Object.hasOwn(tools[0]!, 'onDemand'), false);
+  assert.equal(tools.find((item) => item.tool === 'nano')?.everyPage, true);
+  assert.equal(Object.hasOwn(tools[0]!, 'everyPage'), false);
   for (const value of [false, 'yes', 1, null]) {
     const bad = await current();
-    bad.tools[0]!.onDemand = value;
+    bad.tools[0]!.everyPage = value;
     rejects(() => validateToolsConfig(bad, allowed), 'config-invalid');
   }
+});
+
+test('homeFiles keeps small text files at plain relative paths', async () => {
+  const config = await current();
+  const tools = validateToolsConfig(config, allowed).tools;
+  assert.deepEqual(tools.find((item) => item.tool === 'jj')?.homeFiles, {
+    '.config/jj/config.toml': '[ui]\npaginate = "never"\n',
+  });
+  assert.equal(Object.hasOwn(tools[0]!, 'homeFiles'), false);
+  for (const value of [
+    {},
+    [],
+    'x',
+    { '/etc/passwd': 'x' },
+    { '../escape': 'x' },
+    { 'a/./b': 'x' },
+    { 'a//b': 'x' },
+    { '.': 'x' },
+    { 'a/': 'x' },
+    { 'a b': 'x' },
+    { a: 1 },
+    { a: 'x'.repeat(MAX_HOME_FILE_BYTES + 1) },
+  ]) {
+    const bad = await current();
+    bad.tools[0]!.homeFiles = value;
+    rejects(() => validateToolsConfig(bad, allowed), 'config-invalid');
+  }
+  const atLimit = await current();
+  atLimit.tools[0]!.homeFiles = {
+    '.a/b_c-1.toml': 'x'.repeat(MAX_HOME_FILE_BYTES),
+  };
+  assert.doesNotThrow(() => validateToolsConfig(atLimit, allowed));
+});
+
+test('two tools may not write the same home path or a path inside another', async () => {
+  for (const [first, second] of [
+    ['.config/jj/config.toml', '.config/jj/config.toml'],
+    ['.config/jj', '.config/jj/config.toml'],
+    ['.config/jj/config.toml', '.config/jj'],
+  ]) {
+    const bad = await current();
+    const jj = bad.tools.find((item) => item.tool === 'jj')!;
+    jj.homeFiles = { [first!]: 'x' };
+    bad.tools[0]!.homeFiles = { [second!]: 'y' };
+    rejects(() => validateToolsConfig(bad, allowed), 'config-invalid');
+  }
+  const config = await current();
+  config.tools[0]!.homeFiles = { '.config/other/config.toml': 'y' };
+  assert.doesNotThrow(() => validateToolsConfig(config, allowed));
 });
 
 test('a duplicate tool is refused', async () => {

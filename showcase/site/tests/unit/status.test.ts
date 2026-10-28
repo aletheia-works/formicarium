@@ -92,7 +92,7 @@ test('tool names, versions and codes are not translated', () => {
 test('the empty-terminal ready text and the no-output text match the design', () => {
   assert.equal(
     statusText({ kind: 'ready', tool: null, version: null }, 'en'),
-    'Ready. No tool is installed yet.',
+    'Ready. Type install <tool> to add a tool.',
   );
   assert.equal(statusText({ kind: 'no-output' }, 'en'), '(no output)');
   assert.equal(
