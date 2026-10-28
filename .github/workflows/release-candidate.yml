@@ -123,7 +123,7 @@ jobs:
           path: .
       - name: Install Playwright browsers
         if: matrix.part != 'node'
-        uses: aletheia-works/.github/actions/install-playwright@237aeceec82d1ac86155fae871a80d4c1b436845 # v1.2.0
+        uses: aletheia-works/.github/actions/install-playwright@b24ce77ad773bcca239d8140aeb373f295572521 # v1.3.1
         with:
           browsers: ${{ matrix.part }}
           command: bun node_modules/@playwright/test/cli.js

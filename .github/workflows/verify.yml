@@ -37,7 +37,7 @@ jobs:
       - run: bun add --dev --no-save --ignore-scripts @playwright/test@latest @biomejs/biome@latest typescript@latest
       - run: bun scripts/ci/tasks.ts build
       - name: Install Playwright browsers
-        uses: aletheia-works/.github/actions/install-playwright@237aeceec82d1ac86155fae871a80d4c1b436845 # v1.2.0
+        uses: aletheia-works/.github/actions/install-playwright@b24ce77ad773bcca239d8140aeb373f295572521 # v1.3.1
         with:
           browsers: chromium firefox webkit
           command: bun node_modules/@playwright/test/cli.js

@@ -141,7 +141,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: node showcase/scripts/reuse.ts
-      - uses: jdx/mise-action@8418fedb1110381a0d3ba51a7a415d7c1b884550 # v5.2.2
+      - uses: jdx/mise-action@82a612c5ab8bcda7cc5db6b7e81a8e7584c3dc6e # v5.2.3
         with:
           install: false
           cache: false
@@ -253,7 +253,7 @@ jobs:
       - name: Node acceptance through the public /node export
         run: node showcase/scripts/accept-node.ts
       - name: Install Playwright browsers
-        uses: aletheia-works/.github/actions/install-playwright@237aeceec82d1ac86155fae871a80d4c1b436845 # v1.2.0
+        uses: aletheia-works/.github/actions/install-playwright@b24ce77ad773bcca239d8140aeb373f295572521 # v1.3.1
         with:
           browsers: chromium firefox webkit
           command: node node_modules/@playwright/test/cli.js

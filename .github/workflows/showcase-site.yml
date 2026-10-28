@@ -309,7 +309,7 @@ jobs:
           [[ -f "$profile/cert9.db" && ! -L "$profile/cert9.db" ]]
           printf 'SHOWCASE_FIREFOX_PROFILE=%s\n' "$profile" >> "$GITHUB_ENV"
       - name: Install Playwright browser
-        uses: aletheia-works/.github/actions/install-playwright@237aeceec82d1ac86155fae871a80d4c1b436845 # v1.2.0
+        uses: aletheia-works/.github/actions/install-playwright@b24ce77ad773bcca239d8140aeb373f295572521 # v1.3.1
         with:
           browsers: ${{ env.BROWSER }}
           command: node node_modules/@playwright/test/cli.js
@@ -393,7 +393,7 @@ jobs:
           [[ -f "$profile/cert9.db" && ! -L "$profile/cert9.db" ]]
           printf 'SHOWCASE_FIREFOX_PROFILE=%s\n' "$profile" >> "$GITHUB_ENV"
       - name: Install Playwright browser
-        uses: aletheia-works/.github/actions/install-playwright@237aeceec82d1ac86155fae871a80d4c1b436845 # v1.2.0
+        uses: aletheia-works/.github/actions/install-playwright@b24ce77ad773bcca239d8140aeb373f295572521 # v1.3.1
         with:
           browsers: ${{ env.BROWSER }}
           command: node node_modules/@playwright/test/cli.js
@@ -476,7 +476,7 @@ jobs:
           [[ -f "$profile/cert9.db" && ! -L "$profile/cert9.db" ]]
           printf 'SHOWCASE_FIREFOX_PROFILE=%s\n' "$profile" >> "$GITHUB_ENV"
       - name: Install Playwright browser
-        uses: aletheia-works/.github/actions/install-playwright@237aeceec82d1ac86155fae871a80d4c1b436845 # v1.2.0
+        uses: aletheia-works/.github/actions/install-playwright@b24ce77ad773bcca239d8140aeb373f295572521 # v1.3.1
         with:
           browsers: ${{ env.BROWSER }}
           command: node node_modules/@playwright/test/cli.js
