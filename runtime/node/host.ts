@@ -41,6 +41,7 @@ export class GuestNotFoundError extends Error {
  * @param {(chunk: Uint8Array) => void} [options.onStdout]
  * @param {(chunk: Uint8Array) => void} [options.onStderr]
  * @param {number} [options.timeoutMs] これを過ぎたら Worker を止めてエラーにする
+ * @param {{allow: string[]}} [options.network] ゲストが TCP でつないでよい行き先
  */
 export async function runInWorker(options: HostOptions): Promise<HostResult> {
   const {
@@ -54,6 +55,7 @@ export async function runInWorker(options: HostOptions): Promise<HostResult> {
     onStdout,
     onStderr,
     timeoutMs,
+    network,
   } = options;
   if (typeof guest !== 'string' || guest.length === 0)
     throw new TypeError('guest must be a path');
@@ -82,6 +84,7 @@ export async function runInWorker(options: HostOptions): Promise<HostResult> {
       cwd,
       steps,
       persist,
+      network,
     },
   });
   return await new Promise((resolve, reject) => {

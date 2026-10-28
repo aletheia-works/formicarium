@@ -88,6 +88,23 @@ test('Worker execution places each installed guest in /usr/bin and never snapsho
     messages[0]!.snapshot.every(({ path }) => !path.startsWith('/usr')),
   );
 });
+test('Worker execution gives the core the allowed destinations, and none without them', async () => {
+  const runs: FakeRun[] = [];
+  const loadCore = adapter({
+    run(run) {
+      runs.push(run);
+      return {};
+    },
+  });
+  const allow = ['github.com:443', '127.0.0.1:8080'];
+  await executeWorkerRequest(
+    { ...request(), network: { allow } },
+    { post: () => {}, loadCore },
+  );
+  await executeWorkerRequest(request(), { post: () => {}, loadCore });
+  assert.deepEqual(runs[0]!.network, { allow });
+  assert.equal('network' in runs[1]!, false);
+});
 test('Worker execution sends normal nonzero result and complete preRun snapshot', async () => {
   const messages: TestMessage[] = [];
   let cleaned = 0;

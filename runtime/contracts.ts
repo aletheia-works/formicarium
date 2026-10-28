@@ -54,6 +54,7 @@ export interface CoreLauncher {
     cwd: string;
     filesystem: CoreFileSystem;
     tty?: { columns: number; rows: number } | null;
+    network?: { allow: string[] };
   }): CoreGuest;
   dispose(): Promise<void>;
 }
@@ -71,6 +72,8 @@ export interface GuestOptions {
   stdin?: ReadableStream<Uint8Array>;
   /** Makes the guest's standard streams a terminal of this size. */
   terminal?: { columns: number; rows: number };
+  /** The TCP destinations the guest may reach; without it the guest has no network. */
+  network?: { allow: string[] };
 }
 export interface GuestResult {
   exitCode: number;
@@ -110,6 +113,7 @@ export interface RunRequest extends Identity {
   /** True when the host sends `input` messages and then `input-end`. */
   interactive?: boolean;
   terminal?: { columns: number; rows: number };
+  network?: { allow: string[] };
 }
 /** Host to Worker, after the run request: guest stdin bytes, then its end. */
 export type InputMessage = Identity &
@@ -169,6 +173,7 @@ export interface HostOptions {
   onStdout?: ByteSink;
   onStderr?: ByteSink;
   timeoutMs?: number;
+  network?: { allow: string[] };
 }
 export interface HostResult {
   results: (GuestResult & { step: SessionStep; elapsedMs: number })[];

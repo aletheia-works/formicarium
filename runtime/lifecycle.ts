@@ -350,6 +350,9 @@ export function createLifecycle(
         snapshotRoots: [...state.roots],
         ...(input.stdin ? { interactive: true } : {}),
         ...(input.terminal ? { terminal: { ...input.terminal } } : {}),
+        ...(input.network
+          ? { network: { allow: [...input.network.allow] } }
+          : {}),
       };
       handle.worker = spawn(request, {
         message: (value) => message(handle, value),

@@ -261,6 +261,7 @@ export function validateRun(options: RunOptions, home: string) {
     'stdin must be an unlocked ReadableStream',
   );
   const terminal = validateTerminal(options.terminal);
+  const network = validateNetwork(options.network);
   invalid(
     options.timeoutMs === undefined ||
       (Number.isSafeInteger(options.timeoutMs) && options.timeoutMs > 0),
@@ -291,7 +292,39 @@ export function validateRun(options: RunOptions, home: string) {
     signal,
     stdin,
     terminal,
+    network,
   };
+}
+
+/** At most this many destinations, each at most a DNS name and a port long. */
+const NETWORK_ENTRIES = 256;
+const NETWORK_ENTRY_LENGTH = 263;
+// host, *.host, IPv4, [IPv6] or a bare IPv6 address, the first three and
+// [IPv6] optionally with a port.
+const NETWORK_ENTRY =
+  /^(?:(?:\*\.)?[A-Za-z0-9_.-]+(?::(\d{1,5}))?|\[[0-9A-Fa-f:.]+\](?::(\d{1,5}))?|[0-9A-Fa-f:.]+)$/;
+
+/** The TCP destinations a run may reach; without them the guest has no network. */
+export function validateNetwork(value: unknown) {
+  if (value === undefined) return undefined;
+  invalid(isRecord(value), 'network must be an object');
+  const { allow } = value;
+  invalid(
+    Array.isArray(allow) && allow.length <= NETWORK_ENTRIES,
+    `network.allow must be an array of at most ${NETWORK_ENTRIES} entries`,
+  );
+  for (const entry of allow as unknown[]) {
+    const match =
+      typeof entry === 'string' && entry.length <= NETWORK_ENTRY_LENGTH
+        ? NETWORK_ENTRY.exec(entry)
+        : null;
+    const port = match?.[1] ?? match?.[2];
+    invalid(
+      match !== null && (port === undefined || Number(port) <= 65535),
+      'network.allow entries must be host, host:port, *.host, an IPv4 address or [IPv6] with an optional port',
+    );
+  }
+  return { allow: [...(allow as string[])] };
 }
 
 /** The core accepts 0 to 65535; a zero-sized terminal is refused as unusable. */

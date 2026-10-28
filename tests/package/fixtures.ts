@@ -60,6 +60,7 @@ export interface FakeRun {
   cwd: string;
   /** The filesystem by path; changes show in its snapshot. */
   files: Map<string, CoreEntry>;
+  network?: { allow: string[] };
 }
 
 const streamOf = (chunks: Uint8Array[] = []) =>
@@ -94,7 +95,7 @@ export function fakeLauncher(
         { files },
       );
     },
-    run({ program, args, env, cwd, filesystem }) {
+    run({ program, args, env, cwd, filesystem, network }) {
       const run = {
         program,
         args,
@@ -102,6 +103,7 @@ export function fakeLauncher(
         cwd,
         files: (filesystem as unknown as { files: Map<string, CoreEntry> })
           .files,
+        ...(network ? { network } : {}),
       };
       runs.push(run);
       const behaviour = behave(run);

@@ -225,6 +225,7 @@ test('a session carries persisted roots between steps and runs host steps withou
 function stdinLauncher() {
   const seen = {
     tty: undefined as unknown,
+    network: undefined as unknown,
     written: [] as number[],
     closed: false,
     exit: () => {},
@@ -234,6 +235,7 @@ function stdinLauncher() {
     ...base,
     run(options: Parameters<typeof base.run>[0]) {
       seen.tty = options.tty;
+      seen.network = options.network;
       const exited = new Promise<{ kind: 'exited'; code: number }>(
         (resolve) => {
           seen.exit = () => resolve({ kind: 'exited', code: 0 });
@@ -284,6 +286,20 @@ test('runGuest pipes stdin and the terminal size to the core guest', async () =>
   assert.equal(seen.closed, true);
   seen.exit();
   assert.equal((await running).exitCode, 0);
+});
+test('runGuest gives the core a copy of the allowed destinations', async () => {
+  const { launcher, seen } = stdinLauncher();
+  const allow = ['github.com:443'];
+  const running = runGuest({
+    launcher,
+    guestPath: '/guest/program',
+    network: { allow },
+  });
+  await settle();
+  assert.deepEqual(seen.network, { allow: ['github.com:443'] });
+  assert.notEqual((seen.network as { allow: string[] }).allow, allow);
+  seen.exit();
+  await running;
 });
 test('runGuest stops reading stdin when the guest exits, and an errored stdin is end of file', async () => {
   const { launcher, seen } = stdinLauncher();

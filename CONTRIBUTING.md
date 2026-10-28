@@ -96,12 +96,14 @@ per probe run, 840 s per aube #1645 run in the browser, all 8 probe items
 passing, transcripts identical to the native baselines, and the 1 GB wasm memory
 cap pinned by `tests/node/build.test.ts`. The probe also has regression items
 that run only when named: `futex-deadline`, `page-fault-race` and
-`madvise-dontneed`.
+`madvise-dontneed`, and `tcp-echo <address:port>`, which the Node.js probe test
+runs against a local echo server.
 
 `web/index.html` (served by `bun scripts/serve.js --port 8787`, which adds the
 COOP/COEP headers) runs a guest or a session script through the package's
 browser API, for example `?guest=probe` or `?session=aube-1645`;
-`node runtime/node/run.js <guest> [args...]` does the same on Node.js. Session
+`node runtime/node/run.js <guest> [args...]` does the same on Node.js
+(`--allow-net github.com:443`, repeatable, lets the guest reach a destination). Session
 scripts (`fixtures/sessions/*.txt`) accept a guest command, `rm -rf <path>` and
 `cat <path>`, split arguments like `sh -c`, and refuse other shell syntax.
 

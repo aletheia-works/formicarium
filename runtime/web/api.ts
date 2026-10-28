@@ -26,6 +26,12 @@ function spawnBrowserWorker(
       'Worker, SharedArrayBuffer and cross-origin isolation are required',
     );
   }
+  // The core reaches the network through Node.js sockets only (ADR 0014).
+  if (request.network)
+    throw failure(
+      'UNSUPPORTED_ENV',
+      'The guest network is available in Node.js only',
+    );
   const url = new URL(request.assets.workerURL);
   if (
     url.origin !== globalThis.location?.origin ||

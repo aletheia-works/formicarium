@@ -71,7 +71,7 @@ formicarium での JIT の作業は後回しのままです（[ADR 0002](/formic
 
 ## 制限
 
-- ゲストはネットワークを使えません（[ADR 0007](/formicarium/ja/development/decisions/0007-no-guest-network-in-browser/)）。
+- ゲストは、Node.js での実行で TCP の行き先を許可したときだけ、TCP の client としてネットワークを使えます（[ADR 0014](/formicarium/ja/development/decisions/0014-guest-tcp-clients-in-nodejs/)）。
 - ゲストのメモリの上限は 1 GB です。
 - ブラウザでは cross-origin isolation（COOP/COEP か、それを付ける service worker）が必要です。
 - CI で、ブラウザの probe、install・command の確認、showcase とこのサイトの受け入れを macOS の実機の Safari で動かしています。ほかのブラウザのテストは Playwright の WebKit で

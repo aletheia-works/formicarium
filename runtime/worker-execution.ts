@@ -121,6 +121,7 @@ export async function executeWorkerRequest(
       onStderr: output('stderr'),
       ...(stdin ? { stdin } : {}),
       ...(request.terminal ? { terminal: request.terminal } : {}),
+      ...(request.network ? { network: request.network } : {}),
     });
     if (!Array.isArray(result.snapshot))
       throw Object.assign(new Error('Missing snapshot'), { code: 'SNAPSHOT' });

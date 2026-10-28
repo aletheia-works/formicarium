@@ -4,7 +4,7 @@ title: '0007. No guest network in the browser'
 description: Guests get no sockets; runs stay comparable with native baselines.
 ---
 
-- Status: accepted (2026-10-04)
+- Status: superseded by [0014](/formicarium/development/decisions/0014-guest-tcp-clients-in-nodejs/) (2026-10-29)
 - Decided by: during implementation
 
 ## Context

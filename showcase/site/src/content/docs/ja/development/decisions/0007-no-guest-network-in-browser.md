@@ -4,7 +4,7 @@ title: '0007. ブラウザでは、ゲストのネットワークを使わない
 description: ゲストに socket を渡さず、native の基準値と比べられるようにする。
 ---
 
-- 状態：採用（2026-10-04）
+- 状態：[0014](/formicarium/ja/development/decisions/0014-guest-tcp-clients-in-nodejs/) で置き換え（2026-10-29）
 - 決めた人：実装中の判断
 
 ## 背景

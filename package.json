@@ -99,7 +99,7 @@
     "showcase-site:coverage": "node showcase/site/tests/coverage/merge-coverage.ts"
   },
   "devDependencies": {
-    "@aletheia-works/paludarium-wasm": "0.5.0",
+    "@aletheia-works/paludarium-wasm": "0.6.0",
     "@biomejs/biome": "^2.6.3",
     "@playwright/test": "1.64.1",
     "@types/istanbul-lib-coverage": "^2.0.6",

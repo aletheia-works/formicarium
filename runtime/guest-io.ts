@@ -251,6 +251,7 @@ export async function runGuest(options: GuestOptions): Promise<GuestResult> {
     onStderr,
     stdin,
     terminal,
+    network,
   } = options;
   if (typeof launcher?.run !== 'function')
     throw new TypeError('launcher must be a started core');
@@ -272,6 +273,7 @@ export async function runGuest(options: GuestOptions): Promise<GuestResult> {
       cwd,
       filesystem,
       ...(terminal ? { tty: terminal } : {}),
+      ...(network ? { network: { allow: [...network.allow] } } : {}),
     });
     if (!stdin) await guest.stdin.close();
     const input = stdin ? pumpStdin(stdin, guest.stdin) : null;
@@ -372,6 +374,7 @@ export async function runSession({
   persist,
   onStdout,
   onStderr,
+  network,
 }: Omit<GuestOptions, 'snapshotRoots'> & {
   guestEntry: LegacyEntry;
   steps: SessionStep[];
@@ -433,6 +436,7 @@ export async function runSession({
       snapshotRoots: roots,
       onStdout,
       onStderr,
+      ...(network ? { network } : {}),
     });
     const elapsedMs = now() - started;
     carried = [

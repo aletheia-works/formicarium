@@ -10,6 +10,7 @@
 //   --cwd <dir>               仮想 FS 上の作業ディレクトリ（既定 /work）
 //   --env <KEY=VALUE>         環境変数（複数可）
 //   --timeout <seconds>       これを過ぎたら止めて終了コード 124 で終わる
+//   --allow-net <entry>       ゲストが TCP でつないでよい行き先（複数可。host、host:port など）
 import process from 'node:process';
 import type { HostOptions } from '../contracts.js';
 import { errorText } from '../contracts.js';
@@ -23,7 +24,7 @@ const EXIT_INTERNAL = 70;
 function usage(message?: string) {
   if (message) process.stderr.write(`run.js: ${message}\n`);
   process.stderr.write(
-    'usage: node runtime/node/run.js [--copy-in host:guest] [--cwd dir] [--env K=V] [--timeout s] <guest> [args...]\n',
+    'usage: node runtime/node/run.js [--copy-in host:guest] [--cwd dir] [--env K=V] [--timeout s] [--allow-net entry] <guest> [args...]\n',
   );
   return EXIT_USAGE;
 }
@@ -73,6 +74,9 @@ function parseArgs(argv: string[]) {
         options.timeoutMs = seconds * 1000;
         break;
       }
+      case '--allow-net':
+        options.network = { allow: [...(options.network?.allow ?? []), value] };
+        break;
       default:
         throw new Error(`unknown option: ${arg}`);
     }

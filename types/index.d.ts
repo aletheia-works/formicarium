@@ -215,6 +215,9 @@ export interface TerminalSize {
  *   finishes.
  * - `terminal`: makes the guest's standard streams a terminal of this size
  *   (`isatty`, `TCGETS` and `TIOCGWINSZ`). The size is fixed for the run.
+ * - `network`: the TCP destinations the guest may reach, in Node.js only (a
+ *   browser run refuses it with `UNSUPPORTED_ENV`). Without it the guest has
+ *   no network.
  */
 export interface RunOptions {
   guest: Uint8Array;
@@ -225,6 +228,20 @@ export interface RunOptions {
   onOutput?: (chunk: OutputChunk) => void;
   stdin?: ReadableStream<Uint8Array>;
   terminal?: TerminalSize;
+  network?: NetworkOptions;
+}
+/**
+ * The destinations a guest may reach over TCP (at most 256). Each is a host
+ * name (`github.com`), its subdomains (`*.github.com`, without `github.com`
+ * itself), an IPv4 address or an IPv6 one in brackets (`[::1]`), with a port
+ * (`github.com:443`) or for every port. The guest resolves only the allowed
+ * names, and a name reaches only global addresses (`localhost` also reaches
+ * loopback); allow a local server by its address, such as `127.0.0.1:8080`.
+ * Any other destination fails with `ENETUNREACH`. TCP clients only: no
+ * listening sockets and no UDP other than name lookups.
+ */
+export interface NetworkOptions {
+  allow: readonly string[];
 }
 export interface RunResult {
   runId: string;

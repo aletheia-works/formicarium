@@ -20,6 +20,7 @@ mod futex_deadline;
 mod page_fault_race;
 mod madvise_dontneed;
 mod bsf_zero;
+mod tcp_echo;
 
 const CHECKS: &[(&str, Check)] = &[
     ("tokio-timer", tokio_timer),
@@ -61,6 +62,16 @@ fn main() {
             Ok(()) => println!("PASS madvise-dontneed"),
             Err(error) => {
                 println!("FAIL madvise-dontneed: {error}");
+                std::process::exit(1);
+            }
+        }
+        return;
+    }
+    if selected.len() == 2 && selected[0] == "tcp-echo" {
+        match tcp_echo::check(&selected[1]) {
+            Ok(()) => println!("PASS tcp-echo"),
+            Err(error) => {
+                println!("FAIL tcp-echo: {error}");
                 std::process::exit(1);
             }
         }

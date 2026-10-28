@@ -89,7 +89,16 @@ async function main() {
 
 async function runAll(
   launcher: CoreLauncher,
-  { guestHostPath, args, copyIn, env, cwd, steps, persist }: WorkerData,
+  {
+    guestHostPath,
+    args,
+    copyIn,
+    env,
+    cwd,
+    steps,
+    persist,
+    network,
+  }: WorkerData,
 ): Promise<HostResult['results']> {
   const guestPath = `${GUEST_DIR}/${path.basename(guestHostPath)}`;
   const guestEntry: LegacyEntry = {
@@ -104,6 +113,7 @@ async function runAll(
     guestPath,
     env,
     cwd,
+    ...(network ? { network } : {}),
     onStdout: (chunk: Uint8Array) => post('stdout', chunk),
     onStderr: (chunk: Uint8Array) => post('stderr', chunk),
   };
