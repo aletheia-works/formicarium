@@ -34,6 +34,11 @@ Session がその写しを取り込むのは、実行が成功したときだけ
 （[ADR 0008](/formicarium/ja/development/decisions/0008-fresh-instance-per-step/)）。
 同じ `inodeId` を持つファイルは hard link のまま残り、symlink と mode も保たれます。
 
+Worker の中で実行が失敗すると、Worker はエラーコードと、元のエラーについて伝えてよいことを送ります。
+cause の連なりにある各エラーの名前と、エンジンの `RangeError`（受け取った値を引用しうる Node の `ERR_` code 付きのものは除く）・WebAssembly のエラー・core の `PaludariumError`（`kind` も）に限ったメッセージ（300 文字まで）です。
+ほかのメッセージには path や環境変数の値のような呼び出し元のデータが入りうるので、Worker の外に出しません。
+Session はこれらのエラーを `ExecutionError` の `cause` に入れます。
+
 ## 層
 
 | 層             | ファイル（`runtime/`）                                         | 役割                                                                                                            |

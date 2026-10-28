@@ -41,6 +41,14 @@ abort or a failed snapshot terminates the Worker and keeps the previous state,
 so each step starts from a known filesystem ([ADR 0008](/formicarium/development/decisions/0008-fresh-instance-per-step/)).
 Files that share an `inodeId` stay hard links, and symlinks and modes are kept.
 
+When a run fails inside the Worker, the Worker sends the error code and what it
+may tell about the original errors: the name of each error in the cause chain,
+and the message only of an engine `RangeError` (one without Node's `ERR_` code,
+which can quote the received value), a WebAssembly error or the core's
+`PaludariumError` (with its `kind`), up to 300 characters. Other messages can
+hold caller data such as paths or env values, so they stay in the Worker. The
+Session puts these errors in the `ExecutionError`'s `cause`.
+
 ## Layers
 
 | Layer         | Files (`runtime/`)                                             | Role                                                                                                            |

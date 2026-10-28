@@ -1,6 +1,8 @@
 export interface BrowserOutcome {
   isolated?: boolean;
   error?: string;
+  /** The Worker's original error chain, when the run failed there. */
+  cause?: string;
   stderr?: string;
   exitCode?: number;
   transcript?: string;

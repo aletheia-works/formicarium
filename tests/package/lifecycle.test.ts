@@ -15,7 +15,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { ExecutionError } from '../../runtime/errors.js';
 import { createLifecycle } from '../../runtime/lifecycle.js';
-import { identity } from '../../runtime/protocol.js';
+import { identity, workerErrorMessage } from '../../runtime/protocol.js';
 import { SessionState } from '../../runtime/state.js';
 import { elfHeader, fileEntry } from './fixtures.js';
 
@@ -189,6 +189,28 @@ test('current unknown message and unexpected Worker exit both rollback', async (
     await assert.rejects(result, { code: 'EXECUTION' });
     assert.equal((await session.readFile('/work/input'))[0], 1);
   }
+});
+test('a Worker error message becomes the code with its detail as the cause', async () => {
+  const { session, workers } = fixture();
+  const result = session.run(request());
+  workers[0].handlers.message(
+    workerErrorMessage(
+      workers[0].request,
+      'EXECUTION',
+      { stdout: [], stderr: [] },
+      Object.assign(new Error('unreachable'), {
+        name: 'PaludariumError',
+        kind: 'internal',
+      }),
+    ),
+  );
+  const error = (await result.catch((caught) => caught)) as ExecutionError;
+  assert.equal(error.code, 'EXECUTION');
+  const cause = error.cause as Error & { kind?: string };
+  assert.deepEqual(
+    [cause.name, cause.kind, cause.message],
+    ['PaludariumError', 'internal', 'unreachable'],
+  );
 });
 test('done beyond the reception deadline cannot commit and later run remains possible', async () => {
   let now = 0;

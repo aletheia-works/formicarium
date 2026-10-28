@@ -56,10 +56,15 @@ if (parentPort) {
       ...(input ? { stdin: input.stream } : {}),
     });
   });
-  const uncaught = () => {
+  const uncaught = (error: unknown) => {
     if (request)
       parentPort?.postMessage(
-        workerErrorMessage(request, 'EXECUTION', { stdout: [], stderr: [] }),
+        workerErrorMessage(
+          request,
+          'EXECUTION',
+          { stdout: [], stderr: [] },
+          error,
+        ),
       );
   };
   process.on('uncaughtException', uncaught);

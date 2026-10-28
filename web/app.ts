@@ -17,6 +17,21 @@ const $ = (id: string): HTMLElement => {
   return element;
 };
 const output = $('output');
+// ExecutionError の cause（Worker で起きた元のエラーの連なり、外側から）を 1 行にする
+function causeText(error: unknown): string | undefined {
+  const parts: string[] = [];
+  let current = error instanceof Error ? error.cause : undefined;
+  while (current instanceof Error && parts.length < 4) {
+    const { kind } = current as { kind?: unknown };
+    const name =
+      typeof kind === 'string' ? `${current.name}(${kind})` : current.name;
+    parts.push(
+      current.message === current.name ? name : `${name}: ${current.message}`,
+    );
+    current = current.cause;
+  }
+  return parts.length ? parts.join(' <- ') : undefined;
+}
 
 function setStatus(text: string, className?: string) {
   $('status').textContent = text;
@@ -104,10 +119,16 @@ async function main() {
       typeof code === 'string'
         ? `${code}: ${errorText(error)}`
         : errorText(error);
-    setStatus(`error: ${message}`, 'ng');
+    const cause = causeText(error);
+    setStatus(`error: ${message}${cause ? ` (${cause})` : ''}`, 'ng');
     const text = stderr?.length ? new TextDecoder().decode(stderr) : '';
     if (text) output.append(`\n[core stderr]\n${text}`);
-    window.formicariumResult = { isolated, error: message, stderr: text };
+    window.formicariumResult = {
+      isolated,
+      error: message,
+      ...(cause ? { cause } : {}),
+      stderr: text,
+    };
     return;
   }
   const elapsedMs = performance.now() - started;

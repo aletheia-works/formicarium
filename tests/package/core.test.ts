@@ -198,6 +198,21 @@ test('import failure, a missing factory and factory rejection are classified', a
     (error: ExecutionError) =>
       error.code === 'CORE_INIT' && !error.message.includes('secret'),
   );
+  // The core's error stays as the cause, so a RangeError or a WebAssembly
+  // error behind CORE_INIT can reach the host.
+  const memory = new RangeError('could not allocate memory');
+  await assert.rejects(
+    loadPackageCore({
+      ...assetsFixture(),
+      importModule: async () => ({
+        createPaludarium: async () => {
+          throw memory;
+        },
+      }),
+    }),
+    (error: ExecutionError) =>
+      error.code === 'CORE_INIT' && error.cause === memory,
+  );
 });
 
 test('Node.js imports the core from the host-owned copy of the verified files', async () => {

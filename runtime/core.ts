@@ -88,8 +88,13 @@ export function validateCoreBuildInfo(value: unknown): CoreBuildInfo {
 
 const assetFailure = (message: string) =>
   Object.assign(new Error(message), { code: 'ASSET_LOAD' });
-const initFailure = (message: string) =>
-  Object.assign(new Error(message), { code: 'CORE_INIT' });
+// The core's own error stays as the cause; the Worker passes on only what is
+// safe to tell of it (runtime/protocol.ts failureDetail).
+const initFailure = (message: string, cause?: unknown) =>
+  Object.assign(
+    new Error(message, cause === undefined ? undefined : { cause }),
+    { code: 'CORE_INIT' },
+  );
 
 /**
  * Verifies every core file against the build information, then starts the
@@ -145,8 +150,8 @@ export async function loadPackageCore({
     launcher = await (
       factory as (options: { wasmUrl: string }) => Promise<CoreLauncher>
     )({ wasmUrl: descriptor?.wasmURL ?? String(assets.wasmURL) });
-  } catch {
-    throw initFailure('Core initialization failed');
+  } catch (error) {
+    throw initFailure('Core initialization failed', error);
   }
   return {
     launcher,

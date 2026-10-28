@@ -63,7 +63,12 @@ function spawnErrorCode(error: unknown): ErrorCode {
 
 import type { ExecutionError } from './errors.js';
 import { failure, safeCause } from './errors.js';
-import { identity, inspectMessage, joinBytes } from './protocol.js';
+import {
+  detailCause,
+  identity,
+  inspectMessage,
+  joinBytes,
+} from './protocol.js';
 import { normalizePath, validateRun } from './validation.js';
 
 /** Largest stdin chunk sent to the Worker in one message. */
@@ -95,8 +100,11 @@ export function createLifecycle(
     stdout: joinBytes(run.streams.stdout),
     stderr: joinBytes(run.streams.stderr),
   });
-  const runFailure = (run: ActiveRun, code: ErrorCode) =>
-    failure(code, `Run failed: ${code}`, received(run));
+  const runFailure = (run: ActiveRun, code: ErrorCode, cause?: Error) =>
+    failure(code, `Run failed: ${code}`, {
+      ...received(run),
+      ...(cause ? { cause } : {}),
+    });
   const stopDeadline = (run: ActiveRun) =>
     timers.clearTimeout(run.deadlineTimer);
 
@@ -253,7 +261,9 @@ export function createLifecycle(
           bytes: new Uint8Array(parsed.chunk.bytes),
         });
       } else if (parsed.type === 'error')
-        terminate(run, { error: runFailure(run, parsed.code) });
+        terminate(run, {
+          error: runFailure(run, parsed.code, detailCause(parsed.detail)),
+        });
       else {
         const snapshot = state.validateSnapshot(parsed.snapshot);
         terminate(run, { snapshot, result: parsed.result });

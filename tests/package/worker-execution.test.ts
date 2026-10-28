@@ -11,6 +11,7 @@ interface TestMessage {
   snapshot: FsEntry[];
   chunk: OutputChunk;
   code: string;
+  detail: unknown;
 }
 
 import assert from 'node:assert/strict';
@@ -147,6 +148,29 @@ test('core initialization failure remains CORE_INIT', async () => {
     },
   });
   assert.equal(messages[0].code, 'CORE_INIT');
+});
+test('a core failure posts its kind and message but not the run data', async () => {
+  const messages: TestMessage[] = [];
+  await executeWorkerRequest(request(), {
+    post: (message) => messages.push(message as TestMessage),
+    loadCore: async () => {
+      throw Object.assign(
+        new Error('secret', {
+          cause: Object.assign(new Error('Out of memory'), {
+            name: 'PaludariumError',
+            kind: 'host',
+          }),
+        }),
+        { code: 'CORE_INIT' },
+      );
+    },
+  });
+  assert.equal(messages[0].code, 'CORE_INIT');
+  assert.deepEqual(messages[0].detail, [
+    { name: 'Error' },
+    { name: 'PaludariumError', kind: 'host', message: 'Out of memory' },
+  ]);
+  assert.equal(JSON.stringify(messages).includes('secret'), false);
 });
 test('special-file snapshot is rejected rather than posted as done', async () => {
   const messages: TestMessage[] = [];

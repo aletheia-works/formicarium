@@ -6,7 +6,7 @@ import type {
   RunResult,
   Streams,
 } from './contracts.js';
-import { isRecord } from './contracts.js';
+import { errorCode, isRecord } from './contracts.js';
 import { ERROR_CODES, failure } from './errors.js';
 import { equalBytes } from './validation.js';
 
@@ -40,7 +40,85 @@ function validCode(value: unknown): value is ErrorCode {
 export type InspectedMessage =
   | { type: 'output'; chunk: OutputChunk }
   | { type: 'done'; result: RunResult; snapshot: FsEntry[] }
-  | { type: 'error'; code: ErrorCode };
+  | { type: 'error'; code: ErrorCode; detail: FailureDetail[] };
+
+/** One error of a Worker failure's cause chain, outermost first. */
+export interface FailureDetail {
+  name: string;
+  /** PaludariumError's kind, such as `internal`. */
+  kind?: string;
+  message?: string;
+}
+const DETAIL_DEPTH = 4;
+const MESSAGE_LIMIT = 300;
+const DETAIL_NAME = /^[A-Za-z][A-Za-z0-9_]{0,63}$/;
+const DETAIL_KIND = /^[a-z][a-z0-9-]{0,31}$/;
+// The engine, WebAssembly and the core write these messages themselves. Other
+// errors can carry caller data (paths, arguments, env values), so only their
+// name crosses the Worker boundary. Node's own RangeErrors carry an ERR_ code
+// and can quote the value they received, so they are among the others.
+function engineMessage(error: Error): boolean {
+  return (
+    (error instanceof RangeError && errorCode(error) === undefined) ||
+    error instanceof WebAssembly.RuntimeError ||
+    error instanceof WebAssembly.CompileError ||
+    error instanceof WebAssembly.LinkError ||
+    (error.name === 'PaludariumError' &&
+      DETAIL_KIND.test(String((error as { kind?: unknown }).kind)))
+  );
+}
+/** What may be told about a failure in the Worker: names, and engine or core messages. */
+export function failureDetail(error: unknown): FailureDetail[] {
+  const detail: FailureDetail[] = [];
+  let current = error;
+  while (current instanceof Error && detail.length < DETAIL_DEPTH) {
+    const name = DETAIL_NAME.test(current.name) ? current.name : 'Error';
+    if (!engineMessage(current)) detail.push({ name });
+    else
+      detail.push({
+        name,
+        ...(name === 'PaludariumError'
+          ? { kind: String((current as { kind?: unknown }).kind) }
+          : {}),
+        message: current.message
+          .replace(/\p{Cc}/gu, ' ')
+          .slice(0, MESSAGE_LIMIT),
+      });
+    current = current.cause;
+  }
+  return detail;
+}
+function validDetail(value: unknown): value is FailureDetail[] {
+  return (
+    Array.isArray(value) &&
+    value.length <= DETAIL_DEPTH &&
+    value.every(
+      (item) =>
+        isRecord(item) &&
+        typeof item.name === 'string' &&
+        DETAIL_NAME.test(item.name) &&
+        (item.kind === undefined ||
+          (typeof item.kind === 'string' && DETAIL_KIND.test(item.kind))) &&
+        (item.message === undefined ||
+          (typeof item.message === 'string' &&
+            item.message.length <= MESSAGE_LIMIT)),
+    )
+  );
+}
+/** The detail as an Error chain, for ExecutionError's cause. */
+export function detailCause(detail: readonly FailureDetail[]) {
+  let cause: Error | undefined;
+  for (const item of [...detail].reverse()) {
+    const error = new Error(
+      item.message ?? item.name,
+      cause ? { cause } : undefined,
+    );
+    error.name = item.name;
+    if (item.kind !== undefined) Object.assign(error, { kind: item.kind });
+    cause = error;
+  }
+  return cause;
+}
 
 /** Return null for old identities; reject malformed payloads from the active run. */
 export function inspectMessage(
@@ -116,9 +194,14 @@ export function inspectMessage(
       validCode(message.code) &&
         typeof message.message === 'string' &&
         message.stdout instanceof Uint8Array &&
-        message.stderr instanceof Uint8Array,
+        message.stderr instanceof Uint8Array &&
+        (message.detail === undefined || validDetail(message.detail)),
     );
-    return { type: 'error', code: message.code };
+    return {
+      type: 'error',
+      code: message.code,
+      detail: (message.detail ?? []).map((item) => ({ ...item })),
+    };
   }
   throw failure('EXECUTION', 'Worker sent an unknown current-run message');
 }
@@ -126,12 +209,14 @@ export function workerErrorMessage(
   run: Identity,
   code: string,
   streams: Streams,
+  error?: unknown,
 ) {
   return {
     ...identity(run),
     type: 'error',
     code: validCode(code) ? code : 'EXECUTION',
     message: 'Guest execution failed',
+    detail: failureDetail(error),
     stdout: joinBytes(streams.stdout),
     stderr: joinBytes(streams.stderr),
   };

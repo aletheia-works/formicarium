@@ -91,7 +91,12 @@ if (typeof self !== 'undefined') {
     event.preventDefault();
     if (request)
       self.postMessage(
-        workerErrorMessage(request, 'EXECUTION', { stdout: [], stderr: [] }),
+        workerErrorMessage(
+          request,
+          'EXECUTION',
+          { stdout: [], stderr: [] },
+          event.error,
+        ),
       );
   });
 }

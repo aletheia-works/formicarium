@@ -151,6 +151,7 @@ export async function executeWorkerRequest(
           (failure instanceof Error ? errorCode(failure.cause) : undefined) ??
           'EXECUTION',
         streams,
+        error,
       ),
     );
   }

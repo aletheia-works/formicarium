@@ -61,7 +61,7 @@ export function invalid(
   if (!condition) throw failure('INVALID_INPUT', message);
 }
 
-/** Only code and fixed description cross the Worker diagnostic boundary. */
+/** A cleanup failure keeps only its code and a fixed description in the cause. */
 export function safeCause(code: ErrorCode) {
   return Object.freeze({
     code: ERROR_CODES.includes(code) ? code : 'EXECUTION',
