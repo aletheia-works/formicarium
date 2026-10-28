@@ -102,9 +102,13 @@ has a complete example.
   serve the assets from an origin you trust.
 - **Guests and catalogs.** `validateGuest` checks a guest's bytes and build
   information, `createInstaller` installs tools from a fixed catalog of
-  checksummed ELF or tar.gz downloads, and `createCommandSession` runs one
+  checksummed ELF or tar.gz downloads, `registerValidatedGuest` registers a
+  checked guest you already hold, and `createCommandSession` runs one
   command line (`ls`, `cat`, `cd`, `rm -rf`, `cp`, `mv`, `install <tool>`, or an installed
-  tool) without a shell. See the
+  tool) without a shell. A registered tool runs by name in a command session,
+  and every guest run finds it as `/usr/bin/<tool>`. Installing with
+  `createInstaller` writes no output, so a page can have tools ready before the
+  user types anything. See the
   [install API](https://aletheia-works.github.io/formicarium/development/install-api/)
   and [command API](https://aletheia-works.github.io/formicarium/development/command-api/).
 

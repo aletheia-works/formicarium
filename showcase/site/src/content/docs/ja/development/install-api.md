@@ -54,6 +54,21 @@ cross-origin isolation・Worker・資産・CSP の要件を満たしてくださ
 既定の版がない、未知の版、`@` が複数ある、selection に URL を渡す、といった入力は拒否します。
 暗黙の版の探索、再試行、代替はしません。
 
+## install で得られるもの
+
+install が成功すると、ゲストはツールの名前で Session に登録され、`reset()` か
+`dispose()` まで残ります。[command session](/formicarium/ja/development/command-api/)
+の `install <tool>` は、この install そのものです。登録の後は次のようになります。
+- command session で、ツールを名前で実行できます。
+- どのゲストの実行からも `/usr/bin/<tool>`（既定の PATH の上）として見えるので、
+  ツールから別のツールを起動できます。
+- どの出力にも何も書かないので、page は利用者が何か打つ前にツールを導入できます
+  （[組込みのガイド](/formicarium/ja/guides/embedding/#最初からツールを入れておく)を参照）。
+
+カタログから来ないゲストの bytes を登録するには、`validateGuest` で確かめてから、
+その結果を `registerValidatedGuest(session, tool, guest)` に渡します。登録の
+振る舞いは同じです。
+
 ## カタログ
 
 公開している型は `GuestCatalog`、`CatalogEntry`、`GuestBuildInfo` です。

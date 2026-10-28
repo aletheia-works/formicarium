@@ -6,6 +6,7 @@ description: Run guests in your own page with the public formicarium API.
 import { Code } from '@astrojs/starlight/components';
 import PackageInstall from '../../../components/PackageInstall.astro';
 import example from '../../../examples/embedding.ts?raw';
+import preinstall from '../../../examples/preinstall.ts?raw';
 
 The showcase terminals use only the public exports of
 `@aletheia-works/formicarium`: `createSession` from `/browser` and
@@ -35,6 +36,19 @@ The showcase terminals use only the public exports of
 This code is type-checked against the pack this site was built from.
 
 <Code code={example} lang="ts" title="embedding.ts" />
+
+## Tools ready from the start
+
+To open a terminal with tools already installed, install them with
+`createInstaller` before you create the command session. It runs the same
+checks as `install <tool>` but writes nothing, so the user never sees an install
+line. An installed tool runs by name in the command session, and every guest
+run finds it as `/usr/bin/<tool>`, so one tool can start another (for example a
+version control tool that opens an editor). To register guest bytes you already
+hold instead of a catalog entry, check them with `validateGuest` and pass the
+result to `registerValidatedGuest`.
+
+<Code code={preinstall} lang="ts" title="preinstall.ts" />
 
 ## Output and display
 

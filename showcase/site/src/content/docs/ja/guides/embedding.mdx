@@ -6,6 +6,7 @@ description: formicarium の公開 API で、自分の page で guest を動か�
 import { Code } from '@astrojs/starlight/components';
 import PackageInstall from '../../../../components/PackageInstall.astro';
 import example from '../../../../examples/embedding.ts?raw';
+import preinstall from '../../../../examples/preinstall.ts?raw';
 
 showcase の端末は `@aletheia-works/formicarium` の公開 export だけを使います：
 `/browser` の `createSession` と、package の root の `createCommandSession` です。
@@ -35,6 +36,18 @@ showcase の端末は `@aletheia-works/formicarium` の公開 export だけを�
 この code は、このサイトを作った pack の型で型検査しています。
 
 <Code code={example} lang="ts" title="embedding.ts" />
+
+## 最初からツールを入れておく
+
+ツールを導入済みの端末を開くには、command session を作る前に `createInstaller`
+でツールを導入します。`install <tool>` と同じ確かめをしますが、何も書き出さない
+ので、利用者には導入の行が見えません。導入したツールは、command session で名前を
+打てば動き、どの guest の実行からも `/usr/bin/<tool>` として見えるので、ツールから
+別のツールを起動できます（たとえば version control のツールが editor を開く）。
+catalog の代わりに手元にある guest の bytes を登録するには、`validateGuest` で
+確かめてから、その結果を `registerValidatedGuest` に渡します。
+
+<Code code={preinstall} lang="ts" title="preinstall.ts" />
 
 ## 出力と表示
 

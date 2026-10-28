@@ -28,6 +28,7 @@ These were affirmed by the user; the background of each piece of work is in its 
 ## Working notes for agents
 
 - Run builds and tests from the main session, one at a time, and report a refused command instead of working around it.
+- Before saying the package lacks a feature, check its public surface first: `package.json` `exports`, `types/index.d.ts`, the README's "What the API does" and the site's install, command and embedding pages. Reading only the internals under `runtime/` misses what the public exports already offer (for example `createInstaller` and `registerValidatedGuest` for tools ready from the start).
 - In Git Bash, `/work`-style guest paths given to `runtime/node/run.js --copy-in` are rewritten to Windows paths; prefix the command with `MSYS_NO_PATHCONV=1`.
 - PowerShell refuses `-File` scripts under this machine's execution policy. Pass the script with `-Command` instead; never change the policy.
 - wslc fails on this machine (ERROR_SHARING_VIOLATION); `scripts/lib/container.sh` falls back to Docker on its own.
