@@ -52,14 +52,17 @@ no secret; it answers only the site's origin, and the relay reaches only
 reach GitHub.
 
 That client can also keep the MicroVM busy, so the cost is bounded by count,
-not by who calls: there is one shared MicroVM of the smallest size, and the
-function runs at most 2 at once (reserved concurrency, which also leaves the
-account's other stacks their share). At about $0.03 an hour for 0.5 GB and
-0.25 vCPU running (us-east-1 rates; check the Lambda pricing page), a MicroVM
-kept running all month costs about $25, plus its traffic. The cap bounds cost,
-not availability: such a client can hold both of the function's slots, and
-visitors then get Lambda's 429 until it stops. Its tests need no
-AWS account: `node --test relay-token/`.
+not by who calls: the function reuses a live MicroVM of the smallest size,
+and calls in the same minute that find none start one between them, so
+cold calls on either side of a minute can briefly start a second. At about
+$0.03 an hour for 0.5 GB and 0.25 vCPU running (us-east-1 rates; check the
+Lambda pricing page), a MicroVM kept running all month costs about $25, plus
+its traffic. The function itself is not capped: the account's concurrency
+limit is 10, the least Lambda leaves unreserved, so none can be reserved.
+Such a client can therefore use the account's Lambda concurrency, which the
+account's other stacks share, and its calls are billed per request.
+
+The function's tests need no AWS account: `node --test relay-token/`.
 
 The MicroVM base image's version is pinned in `relay.tf`. When Lambda
 deprecates it, update `relay_base_image_version` to the version that

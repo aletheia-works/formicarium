@@ -211,9 +211,9 @@ resource "aws_lambda_function" "relay_token" {
   memory_size      = 128
   # Covers a new MicroVM's start, which the function waits for.
   timeout = 30
-  # A flood of calls cannot take the concurrency the account's other stacks
-  # share; the client token keeps two calls from starting two MicroVMs.
-  reserved_concurrent_executions = 2
+  # No reserved concurrency: the account's limit is 10, the least Lambda
+  # leaves unreserved, so it cannot reserve any. The client token makes
+  # calls in the same minute start one MicroVM between them.
   logging_config {
     log_format = "Text"
     log_group  = aws_cloudwatch_log_group.relay_token.name
