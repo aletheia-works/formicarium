@@ -84,8 +84,10 @@ workflow runs on `pull_request_target`.
 Beyond that, the apply role, which only the `aws-apply` environment on `main`
 can assume, may write only `formicarium-*` buckets, functions, MicroVM images
 and `/formicarium/*` log groups, through Cloud Control too (its writes are on
-`*` for the same reason), and may pass Lambda's own network connectors, which
-the relay's image and MicroVM use. It may create a `formicarium-*` role only
+`*` for the same reason). Two Lambda actions name no resource (Lambda's
+service reference lists none): it may create a MicroVM image only with the
+tag `Project = formicarium`, and may pass network connectors, which the
+relay's image and MicroVM use. It may create a `formicarium-*` role only
 with the `formicarium-workload-boundary` permissions boundary attached, may
 not remove that boundary, and may pass such a role only to Lambda. It cannot
 change the boundary or the two CI roles, so it cannot grant itself more: they

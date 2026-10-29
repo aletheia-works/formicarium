@@ -184,9 +184,11 @@ resource "aws_iam_role_policy" "relay_token" {
         Resource = "*"
       },
       {
+        # Lambda checks this against no resource (the service reference lists
+        # none), so it cannot be scoped to the two connectors.
         Effect   = "Allow"
         Action   = "lambda:PassNetworkConnector"
-        Resource = ["${local.relay_connector}:ALL_INGRESS", "${local.relay_connector}:INTERNET_EGRESS"]
+        Resource = "*"
       },
       {
         Effect   = "Allow"

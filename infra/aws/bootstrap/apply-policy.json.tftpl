@@ -31,10 +31,21 @@
       "Resource": "*"
     },
     {
+      "Sid": "CreateOwnMicrovmImages",
+      "Effect": "Allow",
+      "Action": "lambda:CreateMicrovmImage",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestTag/Project": "formicarium"
+        }
+      }
+    },
+    {
       "Sid": "PassLambdaNetworkConnectors",
       "Effect": "Allow",
       "Action": "lambda:PassNetworkConnector",
-      "Resource": "arn:aws:lambda:*:aws:network-connector:aws-network-connector:*"
+      "Resource": "*"
     },
     {
       "Sid": "WriteOwnLogGroups",
