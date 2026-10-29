@@ -52,7 +52,8 @@ has no TCP sockets.
   the remote side can change.
 - The guest cannot listen for connections and has no UDP other than its name
   lookups.
-- The command API does not pass `network` yet.
+- The command API passes `network` to guest runs only, as it does `stdin` and
+  `terminal`.
 
 ## Alternatives rejected
 

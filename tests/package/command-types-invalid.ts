@@ -23,6 +23,8 @@ shell.execute('ls', { timeoutMs: 1 });
 shell.execute('ls', { stdin: 'keys' });
 // @ts-expect-error a terminal needs both columns and rows.
 shell.execute('ls', { terminal: { columns: 80 } });
+// @ts-expect-error network.allow is a list of destinations.
+shell.execute('ls', { network: { allow: 'github.com' } });
 // @ts-expect-error onOutput receives a chunk callback, not a string.
 shell.execute('ls', { onOutput: 'stdout' });
 const result: CommandResult = {

@@ -18,7 +18,7 @@ import { failure, invalid } from './errors.js';
 import { createInstaller, type Installer } from './install.js';
 import type { GuestCatalog } from './install-catalog.js';
 import { type SessionPort, sessionPort } from './session-port.js';
-import { validateTerminal } from './validation.js';
+import { validateNetwork, validateTerminal } from './validation.js';
 
 /** Exact argv[0] names that never reach a registered guest of the same name. */
 export const RESERVED_COMMANDS = Object.freeze([
@@ -46,6 +46,7 @@ interface CheckedOptions {
   onOutput?: (chunk: OutputChunk) => void;
   stdin?: ReadableStream<Uint8Array>;
   terminal?: TerminalSize;
+  network?: { allow: string[] };
 }
 type Route =
   | { kind: 'ls'; path?: string }
@@ -66,7 +67,7 @@ function checkOptions(value: unknown): CheckedOptions {
     'command options invalid',
   );
   const raw = value as CommandOptions;
-  const { signal, onProgress, onOutput, stdin, terminal } = raw;
+  const { signal, onProgress, onOutput, stdin, terminal, network } = raw;
   invalid(
     signal === undefined || signal instanceof AbortSignal,
     'command signal invalid',
@@ -89,6 +90,7 @@ function checkOptions(value: unknown): CheckedOptions {
     onOutput,
     ...(stdin ? { stdin } : {}),
     ...(terminal === undefined ? {} : { terminal: validateTerminal(terminal) }),
+    ...(network === undefined ? {} : { network: validateNetwork(network) }),
   };
 }
 
@@ -204,7 +206,7 @@ async function runInstall(
 
 /**
  * GuestRunAdapter: one run reservation; Session.run's default timeout applies.
- * Only guest runs receive stdin and terminal, and a terminal run gets
+ * Only guest runs receive stdin, terminal and network, and a terminal run gets
  * TERM=xterm-256color.
  */
 async function runGuest(
@@ -222,6 +224,7 @@ async function runGuest(
       ...(options.terminal
         ? { terminal: options.terminal, env: TERMINAL_ENV }
         : {}),
+      ...(options.network ? { network: options.network } : {}),
     };
     const run = await port.runInstalled(
       reservation,

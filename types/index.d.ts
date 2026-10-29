@@ -89,9 +89,10 @@ export declare function createInstaller(
  * - `onProgress`: forwarded unchanged from the installer. `totalBytes: null`
  *   means unknown and is distinct from `0`.
  * - `onOutput`: forwarded unchanged from the guest run.
- * - `stdin` and `terminal`: forwarded to guest runs only, as in
+ * - `stdin`, `terminal` and `network`: forwarded to guest runs only, as in
  *   {@link RunOptions}. A run with `terminal` also gets
- *   `TERM=xterm-256color`. Builtins and `install` never read them.
+ *   `TERM=xterm-256color`. Builtins and `install` never read them; `install`
+ *   fetches on the host, outside the guest's network.
  *
  * There is no timeout option: guest runs use the session run default
  * (600000 ms, none with `stdin`) and install keeps its own 120 s fetch / 180 s
@@ -103,6 +104,7 @@ export interface CommandOptions {
   onOutput?: (chunk: OutputChunk) => void;
   stdin?: ReadableStream<Uint8Array>;
   terminal?: TerminalSize;
+  network?: NetworkOptions;
 }
 /**
  * Result of one command. `stdout`/`stderr` are new caller-owned original

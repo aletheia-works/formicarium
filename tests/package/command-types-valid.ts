@@ -25,6 +25,7 @@ const options: CommandOptions = {
   },
   stdin: new ReadableStream<Uint8Array>(),
   terminal: { columns: 80, rows: 24 },
+  network: { allow: ['github.com:443'] },
 };
 const pending: Promise<CommandResult> = shell.execute('ls /work', options);
 void shell.execute('');

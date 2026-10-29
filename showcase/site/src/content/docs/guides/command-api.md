@@ -47,7 +47,7 @@ rules. Otherwise it throws `INVALID_INPUT` and leaves the Session unchanged. It
 creates one installer internally; the returned object has only `execute` and
 never hands out the Session, the installer or the internal port.
 
-`shell.execute(input, { signal?, onProgress?, onOutput?, stdin?, terminal? }): Promise<CommandResult>`
+`shell.execute(input, { signal?, onProgress?, onOutput?, stdin?, terminal?, network? }): Promise<CommandResult>`
 runs one command. `stdin` (a `ReadableStream<Uint8Array>`) and `terminal`
 (`{ columns, rows }`, 1 to 65535) go to guest runs only, as in the Session's
 `run` ([ADR 0013](/formicarium/development/decisions/0013-interactive-guest-runs/)):
@@ -57,6 +57,17 @@ shows it is xterm-compatible; without `TERM`, a curses guest may assume a
 terminal it does not know. Builtins and `install` never read them. A stream
 that is not an unlocked `ReadableStream`, or a malformed `terminal`, is
 `INVALID_INPUT` before the reservation.
+
+`network` (`{ allow }`) also goes to guest runs only, as in the Session's `run`
+([ADR 0014](/formicarium/development/decisions/0014-guest-tcp-clients-in-nodejs/)):
+in Node.js the guest can open TCP connections to the listed destinations, so
+`jj git clone https://github.com/...` works with `{ allow: ['github.com:443'] }`
+once `jj`, `git` and `git-remote-https` are installed and the guest has CA
+certificates. Only the working directory and the home directory carry over,
+so keep the certificates in the home directory and name them with
+`http.sslCAInfo` in `~/.gitconfig`. A browser session refuses it with `UNSUPPORTED_ENV`, and a
+malformed list is `INVALID_INPUT` before the reservation. `install` fetches on
+the host and does not use it.
 
 ## Syntax
 

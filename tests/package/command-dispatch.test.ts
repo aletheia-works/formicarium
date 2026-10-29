@@ -693,6 +693,23 @@ test('stdin and terminal reach guest runs only, and lift the default timeout', a
   assert.equal(unread.locked, false);
   assert.equal(value.requests.length, 1);
 });
+test('network reaches guest runs only, as a copy', async (t) => {
+  const value = harness();
+  t.after(() => value.session.dispose());
+  await value.register();
+  const shell = command(value);
+  const allow = ['github.com:443'];
+  await shell.execute('fixture', { network: { allow } });
+  allow.push('example.com');
+  assert.deepEqual(value.requests.at(-1)?.network, {
+    allow: ['github.com:443'],
+  });
+  await shell.execute('fixture');
+  assert.equal(value.requests.at(-1)?.network, undefined);
+  // Builtins never start a run.
+  await shell.execute('ls', { network: { allow } });
+  assert.equal(value.requests.length, 2);
+});
 test('a guest run with a terminal gets TERM=xterm-256color; one without gets no TERM', async (t) => {
   const value = harness();
   t.after(() => value.session.dispose());
@@ -703,7 +720,7 @@ test('a guest run with a terminal gets TERM=xterm-256color; one without gets no 
   await shell.execute('fixture');
   assert.equal(value.requests.at(-1)?.env?.TERM, undefined);
 });
-test('a malformed stdin or terminal is INVALID_INPUT before the reservation', async (t) => {
+test('a malformed stdin, terminal or network is INVALID_INPUT before the reservation', async (t) => {
   const value = harness();
   t.after(() => value.session.dispose());
   await value.register();
@@ -719,6 +736,9 @@ test('a malformed stdin or terminal is INVALID_INPUT before the reservation', as
     { terminal: { columns: 0, rows: 24 } },
     { terminal: { columns: 80 } },
     { terminal: null },
+    { network: null },
+    { network: { allow: 'github.com' } },
+    { network: { allow: ['github.com:0'] } },
   ])
     await assert.rejects(
       shell.execute('fixture', options as unknown as CommandOptions),

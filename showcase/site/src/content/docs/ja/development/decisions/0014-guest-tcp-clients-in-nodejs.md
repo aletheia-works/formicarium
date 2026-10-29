@@ -39,7 +39,7 @@ DNS リバインディングを防ぐため、名前で届くのはグローバ�
   ゲストには自分の CA 証明書（たとえば `/etc/ssl/certs/ca-certificates.crt`）が要ります。
 - ネットワークを使う実行は、相手が変わりうるので、native の基準値とは比べません。
 - ゲストは接続を待ち受けられず、名前の問い合わせ以外の UDP は使えません。
-- command API は、まだ `network` を渡しません。
+- command API は、`stdin` や `terminal` と同じく、`network` をゲストの実行にだけ渡します。
 
 ## 退けた案
 

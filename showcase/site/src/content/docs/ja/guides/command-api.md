@@ -42,12 +42,18 @@ cross-origin isolation・Worker・資産・CSP の要件を満たしてくださ
 満たさなければ `INVALID_INPUT` を投げ、Session は変えません。内部でインストーラを 1 つだけ作りますが、
 返すオブジェクトは `execute` だけを持ち、Session・インストーラ・内部の port を外に出しません。
 
-`shell.execute(input, { signal?, onProgress?, onOutput?, stdin?, terminal? }): Promise<CommandResult>` は 1 回の command です。
+`shell.execute(input, { signal?, onProgress?, onOutput?, stdin?, terminal?, network? }): Promise<CommandResult>` は 1 回の command です。
 `stdin`（`ReadableStream<Uint8Array>`）と `terminal`（`{ columns, rows }`、1〜65535）は、Session の `run` と同じく
 ゲストの実行にだけ渡します（[ADR 0013](/formicarium/ja/development/decisions/0013-interactive-guest-runs/)）。
 ゲストは stream を stdin として読み、その大きさの端末を見ます。端末を付けた実行には `TERM=xterm-256color` も渡します。
 表示する端末は xterm 互換で、`TERM` がないと curses のゲストは知らない端末だとみなすことがあるからです。builtin と `install` は読みません。ロックされていない
 `ReadableStream` でない `stdin` や、形の違う `terminal` は、予約の前に `INVALID_INPUT` です。
+
+`network`（`{ allow }`）も、Session の `run` と同じくゲストの実行にだけ渡します（[ADR 0014](/formicarium/ja/development/decisions/0014-guest-tcp-clients-in-nodejs/)）。
+Node.js では、ゲストは一覧にある行き先へ TCP でつなげるので、`jj`・`git`・`git-remote-https` を導入し、ゲストに CA 証明書があれば、
+`{ allow: ['github.com:443'] }` で `jj git clone https://github.com/...` が動きます。引き継がれるのは作業ディレクトリと home ディレクトリだけなので、
+証明書は home ディレクトリに置き、`~/.gitconfig` の `http.sslCAInfo` で指定します。ブラウザの Session では `UNSUPPORTED_ENV` で断り、
+形の違う一覧は予約の前に `INVALID_INPUT` です。`install` はホストで取得するので、これを使いません。
 
 ## 構文
 
