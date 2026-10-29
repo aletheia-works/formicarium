@@ -223,6 +223,22 @@ jobs:
         with:
           path: 'dist/guests/git*'
           key: '${{ steps.git-cache.outputs.cache-primary-key }}'
+      - name: 'Restore jj by Rust compiler and build inputs'
+        if: "matrix.component == 'guests'"
+        id: 'jj-cache'
+        uses: 'actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9' # v6.1.0
+        with:
+          path: 'dist/guests/jj*'
+          key: "product-jj-${{ runner.os }}-${{ runner.arch }}-${{ steps.build-image.outputs.digest }}-${{ hashFiles('mise-tasks/build/guests.sh', 'scripts/lib/container.sh') }}"
+      - name: 'Build unpatched jj'
+        if: "matrix.component == 'guests' && steps.jj-cache.outputs.cache-hit != 'true'"
+        run: 'bash mise-tasks/build/guests.sh jj'
+      - name: 'Save jj before downstream tests can fail'
+        if: "matrix.component == 'guests' && steps.jj-cache.outputs.cache-hit != 'true'"
+        uses: 'actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9' # v6.1.0
+        with:
+          path: 'dist/guests/jj*'
+          key: '${{ steps.jj-cache.outputs.cache-primary-key }}'
       - name: 'Verify reproducible native baselines'
         run: |-
           cp fixtures/baseline/aube-1645.native.txt "$RUNNER_TEMP/aube.native.txt"
@@ -282,14 +298,14 @@ jobs:
           path: 'dist'
           merge-multiple: true
       - name: 'Restore guest executable permissions'
-        run: 'chmod +x dist/guests/probe dist/guests/hello dist/guests/exit3 dist/guests/ttyecho dist/guests/aube dist/guests/pitchfork dist/guests/nano dist/guests/git dist/guests/git-remote-https'
+        run: 'chmod +x dist/guests/probe dist/guests/hello dist/guests/exit3 dist/guests/ttyecho dist/guests/aube dist/guests/pitchfork dist/guests/nano dist/guests/git dist/guests/git-remote-https dist/guests/jj'
       - name: 'Record resolved tools for this suite'
         run: |-
           bun --version
           bun node_modules/@playwright/test/cli.js --version
           cat /etc/os-release
       - name: 'Run product regression tests on Node'
-        run: 'node --test --test-concurrency=1 tests/node/build.test.js tests/node/runner.test.js tests/node/probe.test.js tests/node/session.test.js tests/node/interactive.test.js tests/node/installed-guests.test.js tests/node/network.test.js tests/node/git-http.test.js tests/node/aube-1645.test.js tests/node/pitchfork-basic.test.js'
+        run: 'node --test --test-concurrency=1 tests/node/build.test.js tests/node/runner.test.js tests/node/probe.test.js tests/node/session.test.js tests/node/interactive.test.js tests/node/installed-guests.test.js tests/node/network.test.js tests/node/git-http.test.js tests/node/jj-http.test.js tests/node/aube-1645.test.js tests/node/pitchfork-basic.test.js'
         if: "matrix.suite == 'node'"
       - name: 'Install only this latest Playwright browser'
         if: "matrix.suite != 'node'"
@@ -495,7 +511,7 @@ jobs:
           path: 'dist'
           merge-multiple: true
       - name: 'Restore guest executable permissions'
-        run: 'chmod +x dist/guests/probe dist/guests/hello dist/guests/exit3 dist/guests/ttyecho dist/guests/aube dist/guests/pitchfork dist/guests/nano dist/guests/git dist/guests/git-remote-https'
+        run: 'chmod +x dist/guests/probe dist/guests/hello dist/guests/exit3 dist/guests/ttyecho dist/guests/aube dist/guests/pitchfork dist/guests/nano dist/guests/git dist/guests/git-remote-https dist/guests/jj'
       - name: 'Retain complete compiled products for source-bound candidate inputs'
         uses: 'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9' # v7.0.2
         with:

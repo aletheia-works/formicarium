@@ -63,6 +63,7 @@ mise run build-guests aube        # aube (over an hour; rebuild only when its in
 mise run build-guests pitchfork   # pitchfork, with its web UI built by dist/guests/aube (about 35 minutes cold)
 mise run build-guests nano        # nano with ncurses (about 11 minutes under amd64 emulation on an arm64 Mac)
 mise run build-guests git         # git and git-remote-https, with curl and OpenSSL linked in
+mise run build-guests jj          # jj, which runs the git guest for fetches
 mise run native-baseline aube-1645 --check-reproducible
 mise run native-baseline pitchfork-basic --check-reproducible
 ```
@@ -80,7 +81,8 @@ no terminfo files, only `TERM=xterm-256color`. git 2.56.0 and curl 8.23.0
 helper as `git remote-<scheme>` with `git` found on PATH, so a guest run puts
 `git` in `/usr/bin` and `git-remote-https` there under the scheme's name
 (`git-remote-http` for `http://`); `tests/node/git-http.test.js` clones from a
-local HTTP server this way. Upstream sources are not
+local HTTP server this way. jj v0.46.0 (`JJ_REF`) runs `git` from PATH to fetch,
+so `tests/node/jj-http.test.js` places the same two files next to it. Upstream sources are not
 patched. The native baselines in `fixtures/baseline/` are the expected
 transcripts; the emulator must produce the same output. Guests, their
 environment and the session scripts are listed only in `runtime/registry.ts`.
@@ -92,7 +94,7 @@ natively, which paths each pitchfork command writes.
 
 ```sh
 # Node.js regressions (the same list as CI's Node suite)
-node --test --test-concurrency=1 tests/node/build.test.js tests/node/runner.test.js tests/node/probe.test.js tests/node/session.test.js tests/node/interactive.test.js tests/node/installed-guests.test.js tests/node/network.test.js tests/node/git-http.test.js tests/node/aube-1645.test.js tests/node/pitchfork-basic.test.js
+node --test --test-concurrency=1 tests/node/build.test.js tests/node/runner.test.js tests/node/probe.test.js tests/node/session.test.js tests/node/interactive.test.js tests/node/installed-guests.test.js tests/node/network.test.js tests/node/git-http.test.js tests/node/jj-http.test.js tests/node/aube-1645.test.js tests/node/pitchfork-basic.test.js
 # Browser regressions: probe, the interactive runs of ttyecho and nano, aube #1645 and pitchfork-basic in Chromium, Firefox and WebKit
 bun run test:browser
 bun run test:browser -- --repeat-each=3   # repeatability

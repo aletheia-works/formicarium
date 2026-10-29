@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #MISE alias="build-guests"
 #MISE description="build guests"
-# usage: mise run build-guests [probe|aube|pitchfork|nano|git|all]
+# usage: mise run build-guests [probe|aube|pitchfork|nano|git|jj|all]
 # static-musl x86-64 のゲストをコンテナ（rust:alpine）でビルドし、dist/guests/ に置く。
 #   probe     : guest/probe の probe・hello・exit3・ttyecho・spawn
 #   aube      : aubepkg/aube の AUBE_REF（既定 v2.6.1）
@@ -10,6 +10,7 @@
 #               xterm-256color の端末定義を組み込み、terminfo のファイルなしで動くようにする。ソースは変えない
 #   git       : Git GIT_VERSION（既定 2.56.0）の git と git-remote-https。HTTP の部分は、OpenSSL と zlib
 #               だけを使う curl CURL_VERSION（既定 8.23.0）を static に組み込む。ソースは変えない
+#   jj        : jj-vcs/jj の JJ_REF（既定 v0.46.0）。git の操作は PATH の git を使う。ソースは変えない
 # git から取得したゲストは、取得したコミットを dist/guests/<name>.commit に記録する。nano と git は tarball から
 # ビルドするので .commit はなく、版と確かめた SHA-256 を dist/guests/<name>.build-info に記録する。
 # ビルド後、dist/guests/ にあるすべてのゲストが x86-64 の static な ELF であることを確かめる。
@@ -23,10 +24,10 @@ root=$(cd "$(dirname "$0")/../.." && pwd)
 . "$root/scripts/lib/container.sh"
 
 what=${1:-all}
-case $what in probe|aube|pitchfork|nano|git|all) ;; *) echo "usage: $0 [probe|aube|pitchfork|nano|git|all]" >&2; exit 2;; esac
+case $what in probe|aube|pitchfork|nano|git|jj|all) ;; *) echo "usage: $0 [probe|aube|pitchfork|nano|git|jj|all]" >&2; exit 2;; esac
 
 # ビルドで作られるゲストの一覧（生成物の確認に使う）
-guests="probe hello exit3 ttyecho aube pitchfork nano git git-remote-https"
+guests="probe hello exit3 ttyecho aube pitchfork nano git git-remote-https jj"
 
 image=${FORMICARIUM_RUST_IMAGE:-rust:alpine}
 aube_repo=${AUBE_REPO:-https://github.com/aubepkg/aube.git}
@@ -43,6 +44,12 @@ if ! [[ $pitchfork_ref =~ ^[A-Za-z0-9._/-]+$ ]]; then
 fi
 if ! [[ $pitchfork_repo =~ ^https://[A-Za-z0-9._/-]+$ ]]; then
   echo "error: PITCHFORK_REPO は https の URL にしてください: $pitchfork_repo" >&2
+  exit 2
+fi
+jj_repo=https://github.com/jj-vcs/jj.git
+jj_ref=${JJ_REF:-v0.46.0}
+if ! [[ $jj_ref =~ ^[A-Za-z0-9._/-]+$ ]]; then
+  echo "error: JJ_REF に使えない文字があります: $jj_ref" >&2
   exit 2
 fi
 # nano と ncurses の tarball は SHA-256 で確かめる。既定の版の値は、GNU の keyring で署名を
@@ -241,13 +248,31 @@ build_git() {
   " guest/probe/Cargo.toml
 }
 
+build_jj() {
+  echo "== jj $jj_ref をビルド（${image}）"
+  container_run "$image" dist/guests "
+    apk add --no-cache musl-dev git >/dev/null
+    src=/cache/jj-src/$jj_ref
+    if [ ! -d \"\$src/.git\" ]; then
+      rm -rf \"\$src\"
+      git clone --quiet --depth 1 --branch '$jj_ref' '$jj_repo' \"\$src\"
+    fi
+    git -C \"\$src\" rev-parse HEAD > /out/jj.commit
+    cd \"\$src\"
+    git diff HEAD --exit-code
+    cargo build --release --locked --target $target -p jj-cli --bin jj --target-dir /cache/jj
+    cp /cache/jj/$target/release/jj /out/jj
+  " guest/probe/Cargo.toml
+}
+
 case $what in
   probe) build_probe ;;
   aube) build_aube ;;
   pitchfork) build_pitchfork ;;
   nano) build_nano ;;
   git) build_git ;;
-  all) build_probe; build_aube; build_pitchfork; build_nano; build_git ;;
+  jj) build_jj ;;
+  all) build_probe; build_aube; build_pitchfork; build_nano; build_git; build_jj ;;
 esac
 
 # 生成物が static な ELF であること（プログラムヘッダに PT_INTERP がない）を確かめる。

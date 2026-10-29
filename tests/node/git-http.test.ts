@@ -1,82 +1,25 @@
 // ゲストの git（ADR 0014）：Node.js で、許可した手元の HTTP サーバーから git clone できること。
-// ホストの git で作った bare リポジトリを、dumb HTTP（静的なファイル）として 127.0.0.1 で配る。
+// 手元の bare リポジトリを dumb HTTP で配る（http-repository.ts）。
 // 外のネットワークを使わないので、結果は毎回同じになる。
 // git は release candidate の固定の入力にないゲストなので、product の CI の Node.js の回帰テストでだけ実行する。
 // 前提：bun run build と bash mise-tasks/build/guests.sh git を実行済み。ホストに git があること。
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
-import http from 'node:http';
-import type net from 'node:net';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
 import { runInWorker } from '../../runtime/node/host.js';
 import { missingArtifacts, readElfInfo, root } from './helpers.js';
+import {
+  bareRepository,
+  gitHelpers as helpers,
+  serve,
+} from './http-repository.js';
 
 const TIMEOUT_MS = 10 * 60 * 1000;
 const git = path.join(root, 'dist/guests/git');
-// git は helper を `git remote-<scheme>` として、git 自身を PATH（/usr/bin）から探して起動する。
-// http:// の helper は git-remote-http で、git-remote-https と同じバイナリなので、その名前で置く。
-const helpers = [
-  { host: git, guest: '/usr/bin/git' },
-  {
-    host: path.join(root, 'dist/guests/git-remote-https'),
-    guest: '/usr/bin/git-remote-http',
-  },
-];
 const decoder = () => new TextDecoder();
-
-/** ホストの git で、2 つのコミットを持つ bare リポジトリを作り、dumb HTTP で読めるようにする。 */
-function bareRepository(directory: string) {
-  const work = path.join(directory, 'work');
-  const run = (cwd: string, ...args: string[]) =>
-    execFileSync('git', args, {
-      cwd,
-      encoding: 'utf8',
-      env: {
-        ...process.env,
-        GIT_AUTHOR_NAME: 't',
-        GIT_AUTHOR_EMAIL: 't@e',
-        GIT_COMMITTER_NAME: 't',
-        GIT_COMMITTER_EMAIL: 't@e',
-        GIT_CONFIG_GLOBAL: '/dev/null',
-        GIT_CONFIG_NOSYSTEM: '1',
-      },
-    });
-  run(directory, 'init', '-q', '-b', 'main', work);
-  writeFileSync(path.join(work, 'a.txt'), 'hello\n');
-  run(work, 'add', '.');
-  run(work, 'commit', '-q', '-m', 'first');
-  writeFileSync(path.join(work, 'a.txt'), 'hello\nmore\n');
-  run(work, 'commit', '-q', '-am', 'second');
-  run(directory, 'clone', '-q', '--bare', work, 'repo.git');
-  run(path.join(directory, 'repo.git'), 'update-server-info');
-  return run(work, 'log', '--format=%H %s');
-}
-
-/** directory の中のファイルだけを返す、静的なファイルのサーバー。 */
-async function serve(directory: string) {
-  const server = http.createServer(async (request, response) => {
-    const file = path.join(
-      directory,
-      decodeURIComponent(new URL(request.url ?? '/', 'http://x').pathname),
-    );
-    if (!file.startsWith(`${directory}${path.sep}`)) {
-      response.writeHead(403).end();
-      return;
-    }
-    try {
-      response.writeHead(200).end(await readFile(file));
-    } catch {
-      response.writeHead(404).end();
-    }
-  });
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-  return { server, port: (server.address() as net.AddressInfo).port };
-}
 
 describe('ゲストの git（Node.js の Worker）', () => {
   it('許可した手元の HTTP サーバーから clone でき、許可がなければつながらない', {

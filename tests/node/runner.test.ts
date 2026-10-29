@@ -225,7 +225,7 @@ describe('ゲストと手順の表（runtime/registry.js）', () => {
       assert.ok(built.has(name), `${name} がビルドの対象にありません`);
     assert.match(
       script,
-      /^case \$what in probe\|aube\|pitchfork\|nano\|git\|all\)/m,
+      /^case \$what in probe\|aube\|pitchfork\|nano\|git\|jj\|all\)/m,
     );
   });
 
