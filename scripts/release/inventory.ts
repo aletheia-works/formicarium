@@ -57,6 +57,7 @@ export const PACKAGE_FILES = Object.freeze([
   'assets/paludarium/worker-support.mjs',
   'assets/paludarium/jit-support.mjs',
   'assets/paludarium/filesystem-snapshot.mjs',
+  'assets/paludarium/relay-protocol.mjs',
   'assets/paludarium/paludarium.wasm',
   'assets/paludarium/build-info.json',
   'assets/paludarium/LICENSE',

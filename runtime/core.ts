@@ -22,6 +22,7 @@ export const CORE_MODULES = Object.freeze([
   'worker-support.mjs',
   'jit-support.mjs',
   'filesystem-snapshot.mjs',
+  'relay-protocol.mjs',
 ]);
 export const CORE_WASM = 'paludarium.wasm';
 export const CORE_FILES = Object.freeze([...CORE_MODULES, CORE_WASM]);

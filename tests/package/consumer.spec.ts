@@ -210,6 +210,7 @@ test('installed changed loader is refused before the core is imported', async ({
     'worker-support.mjs',
     'jit-support.mjs',
     'filesystem-snapshot.mjs',
+    'relay-protocol.mjs',
   ])
     extraFiles[`/mutation/${name}`] = await readFile(resolve(core, name));
   extraFiles['/mutation/index.mjs'] = Buffer.concat([

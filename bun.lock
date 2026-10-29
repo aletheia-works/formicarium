@@ -5,7 +5,7 @@
     "": {
       "name": "@aletheia-works/formicarium",
       "devDependencies": {
-        "@aletheia-works/paludarium-wasm": "0.7.0",
+        "@aletheia-works/paludarium-wasm": "0.8.0",
         "@biomejs/biome": "^2.6.3",
         "@playwright/test": "1.64.1",
         "@types/istanbul-lib-coverage": "^2.0.6",
@@ -20,7 +20,7 @@
   },
   "trustedDependencies": [],
   "packages": {
-    "@aletheia-works/paludarium-wasm": ["@aletheia-works/paludarium-wasm@0.7.0", "", {}, "sha512-UiCq6vwlv+hWiIhMlCKRGuGHBx+WMW5fJHifl+OVoHype/oeNCcV5OSqHdYZmGd+ywXTNm3Sosv3dUZKhc1g1A=="],
+    "@aletheia-works/paludarium-wasm": ["@aletheia-works/paludarium-wasm@0.8.0", "", {}, "sha512-6R9acUxAjkwwzoqy7f0sXc9NbEJ9ovGjauAMAz1V9NftZXuR/vfKJOrhroDvoOWjndvsnhWr6m15sSckZDFmzQ=="],
 
     "@babel/code-frame": ["@babel/code-frame@7.29.7", "", { "dependencies": { "@babel/helper-validator-identifier": "^7.29.7", "js-tokens": "^4.0.0", "picocolors": "^1.1.1" } }, "sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw=="],
 
