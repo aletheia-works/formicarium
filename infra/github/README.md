@@ -17,11 +17,12 @@ branch to be up to date with main before merging.
 
 ## Required checks
 
-| Exact check name         | Coverage                                                                                       |
-| ------------------------ | ---------------------------------------------------------------------------------------------- |
-| `ci-required`            | Every `ci.yml` job the PR's changes need (quality, commit-format, product, release candidate)  |
-| `check / Commitlint`     | Organization reusable commitlint workflow                                                      |
-| `showcase-site-required` | showcase site: Chromium/Firefox/WebKit acceptance, coverage and evidence (`showcase-site.yml`) |
+| Exact check name         | Coverage                                                                                                      |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `ci-required`            | Every `ci.yml` job the PR's changes need (quality, commit-format, product, release candidate)                 |
+| `check / Commitlint`     | Organization reusable commitlint workflow                                                                     |
+| `showcase-site-required` | showcase site: Chromium/Firefox/WebKit acceptance, coverage and evidence (`showcase-site.yml`)                |
+| `showcase-required`      | showcase guests: resolve, acquire, catalog, Node/browser/Safari acceptance and the candidate (`showcase.yml`) |
 
 All are bound to GitHub Actions app ID `15368` in the `main` ruleset. As in
 paludarium, `ci.yml` runs only the jobs a PR's changed files need: its `changes`
@@ -34,6 +35,10 @@ global required check, since unrelated PRs would otherwise wait for a missing
 check. `showcase-site.yml` instead runs on every PR: its `changes` job decides
 whether the site jobs run, and `showcase-site-required` passes a PR without
 site changes and fails any other run with a failed or skipped site job.
+`showcase.yml` works the same way: its `changes` job applies the push paths
+(the showcase outside the site, the public API and the workflow) to the PR's
+files, and `showcase-required` passes a PR without such changes and fails a
+run in which a guest job failed or was skipped.
 
 ## Secret setup (日本語)
 

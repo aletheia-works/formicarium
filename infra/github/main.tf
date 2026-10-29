@@ -69,9 +69,9 @@ locals {
   # ci-required is the one required check of ci.yml: it passes when every job
   # the PR's changes need passed and the rest were skipped, so ci.yml jobs can
   # be skipped, renamed or added without a ruleset change. showcase-site-required
-  # runs on every PR and passes a PR without site changes, so requiring it
-  # never leaves an unrelated PR waiting.
-  required_checks = ["ci-required", "check / Commitlint", "showcase-site-required"]
+  # and showcase-required run on every PR and pass a PR without site or
+  # showcase changes, so requiring them never leaves an unrelated PR waiting.
+  required_checks = ["ci-required", "check / Commitlint", "showcase-site-required", "showcase-required"]
 }
 # Administrators have no bypass (enforce_admins). Branches need not be up to
 # date with main before merging, as in paludarium and vivarium: the long

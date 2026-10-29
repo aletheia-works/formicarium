@@ -599,5 +599,8 @@ test('accept-safari runs the 20 tests in real Safari on macOS and removes the jo
 
 test('showcase.yml skips site-only changes on PR and push', () => {
   const head = showcase.slice(0, showcase.indexOf('permissions:'));
-  assert.equal(head.split("- '!showcase/site/**'\n").length - 1, 2);
+  // push filters by paths; a PR always runs and its changes job drops
+  // showcase/site/ before matching the paths.
+  assert.equal(head.split("- '!showcase/site/**'\n").length - 1, 1);
+  assert.ok(showcase.includes(`grep -v '^showcase/site/' "$files" >`));
 });

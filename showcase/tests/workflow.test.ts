@@ -36,7 +36,7 @@ function jobs(): Map<string, string> {
 const steps = (job: string) =>
   job.split(/\n(?= {6}- )/).filter((step) => step.trimStart().startsWith('- '));
 
-test('triggers: PR and main push on showcase or public API paths, manual run, showcase-site call', () => {
+test('triggers: every PR, main push on showcase or public API paths, manual run, showcase-site call', () => {
   const head = workflow.slice(0, workflow.indexOf('permissions:'));
   for (const path of [
     'showcase/**',
@@ -45,8 +45,22 @@ test('triggers: PR and main push on showcase or public API paths, manual run, sh
     'types/**',
     'package.json',
   ])
-    assert.equal(head.split(`- ${path}\n`).length - 1, 2, path);
-  assert.match(head, /^ {2}push:\n {4}branches: \[main\]/m);
+    assert.equal(head.split(`- ${path}\n`).length - 1, 1, path);
+  // showcase-required must report on every PR, so pull_request has no paths;
+  // the changes job applies the push paths to a PR's files instead.
+  assert.match(head, /^ {2}pull_request:\n {2}push:\n {4}branches: \[main\]/m);
+  const changes = jobs().get('changes')!;
+  assert.ok(
+    changes.includes(
+      'grep -qE \'^(showcase/|runtime/|types/|package\\.json$|\\.github/workflows/showcase\\.yml$)\' "$files.guests"',
+    ),
+  );
+  assert.ok(
+    changes.includes(
+      `grep -v '^showcase/site/' "$files" > "$files.guests" || true`,
+    ),
+  );
+  assert.match(changes, /\[ -n "\$SHOWCASE_MODE" \]/);
   assert.match(head, /^ {2}workflow_dispatch:\n {2}workflow_call:/m);
   assert.match(head, /mode:\n[\s\S]*?default: verify/);
   assert.doesNotMatch(head, /schedule:/);
@@ -63,14 +77,25 @@ test('permissions are read-only; only acquire, catalog and candidate read action
   const table = jobs();
   assert.deepEqual(
     [...table.keys()],
-    ['resolve', 'acquire', 'catalog', 'accept', 'accept-safari', 'candidate'],
+    [
+      'changes',
+      'resolve',
+      'acquire',
+      'catalog',
+      'accept',
+      'accept-safari',
+      'candidate',
+      'required',
+    ],
   );
   for (const [name, body] of table) {
     const block =
       /^ {4}permissions:\n((?: {6}.+\n)+)/m.exec(`${body}\n`)?.[1] ?? '';
     const expected = ['acquire', 'catalog', 'candidate'].includes(name)
       ? '      contents: read\n      actions: read\n'
-      : '';
+      : name === 'changes'
+        ? '      contents: read\n      pull-requests: read\n'
+        : '';
     assert.equal(block, expected, name);
   }
 });
@@ -83,13 +108,29 @@ test('job timeouts follow the infrastructure design', () => {
     ]),
   );
   assert.deepEqual(timeouts, {
+    changes: 5,
     resolve: 10,
     acquire: 180,
     catalog: 15,
     accept: 60,
     'accept-safari': 60,
     candidate: 10,
+    required: 5,
   });
+});
+
+test('showcase-required needs every job and passes only a complete or fully skipped run', () => {
+  const required = jobs().get('required')!;
+  assert.match(required, /^ {4}name: showcase-required$/m);
+  assert.match(
+    required,
+    /^ {4}needs:\n {6}\[changes, resolve, acquire, catalog, accept, accept-safari, candidate\]$/m,
+  );
+  assert.match(required, /^ {4}if: always\(\)$/m);
+  assert.match(
+    jobs().get('resolve')!,
+    /^ {4}if: needs\.changes\.outputs\.guests == 'true'$/m,
+  );
 });
 
 test('actions are pinned by commit SHA and match the versions ci.yml uses', () => {

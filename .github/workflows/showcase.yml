@@ -1,13 +1,8 @@
 name: Showcase guests
 on:
+  # Every PR runs (showcase-required must report); the changes job decides
+  # whether the guest jobs run.
   pull_request:
-    paths:
-      - showcase/**
-      - '!showcase/site/**'
-      - .github/workflows/showcase.yml
-      - runtime/**
-      - types/**
-      - package.json
   push:
     branches: [main]
     paths:
@@ -40,7 +35,48 @@ concurrency:
   group: showcase-${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      guests: ${{ steps.files.outputs.guests }}
+    steps:
+      - id: files
+        name: Does this PR touch the showcase or the public API (every other run builds the guests)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          SHOWCASE_MODE: ${{ inputs.mode }}
+        run: |
+          set -euo pipefail
+          # A push, a manual run and a showcase-site call (which passes a mode)
+          # always build; only this workflow's own PR runs are filtered.
+          if [ "$GITHUB_EVENT_NAME" != pull_request ] || [ -n "$SHOWCASE_MODE" ]; then
+            echo guests=true >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          files="$RUNNER_TEMP/pr-files.txt"
+          gh api --paginate "repos/$REPO/pulls/$PR_NUMBER/files?per_page=100" \
+            --jq '.[] | .filename, (.previous_filename // empty)' > "$files"
+          count=$(wc -l < "$files")
+          echo "files: $count"
+          # The paths of the push trigger; the API lists at most 3000 files, and
+          # a longer PR builds the guests.
+          # No pipe: under pipefail, grep -q closing it early would make a long
+          # list read as no match.
+          grep -v '^showcase/site/' "$files" > "$files.guests" || true
+          if [ "$count" -ge 3000 ] || grep -qE '^(showcase/|runtime/|types/|package\.json$|\.github/workflows/showcase\.yml$)' "$files.guests"; then
+            echo guests=true >> "$GITHUB_OUTPUT"
+          else
+            echo guests=false >> "$GITHUB_OUTPUT"
+          fi
   resolve:
+    needs: changes
+    if: needs.changes.outputs.guests == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     outputs:
@@ -412,3 +448,30 @@ jobs:
           if-no-files-found: error
           include-hidden-files: true
           path: showcase/.work/candidate/
+  required:
+    name: showcase-required
+    needs:
+      [changes, resolve, acquire, catalog, accept, accept-safari, candidate]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Every job this run needs succeeded (a PR without showcase changes passes)
+        env:
+          SHOWCASE_GUESTS: ${{ needs.changes.outputs.guests }}
+          SHOWCASE_NEEDS: ${{ toJSON(needs) }}
+        run: |
+          set -euo pipefail
+          # changes must pass; the guest jobs must all pass when the guests
+          # are built and must all be skipped when they are not.
+          want=skipped
+          [ "$SHOWCASE_GUESTS" = true ] && want=success
+          bad=$(jq -r --arg want "$want" 'to_entries[]
+            | select((.key == "changes" and .value.result != "success")
+                or (.key != "changes" and .value.result != $want))
+            | "\(.key): \(.value.result)"' <<< "$SHOWCASE_NEEDS")
+          if [ -n "$bad" ]; then
+            echo "::error::guests=$SHOWCASE_GUESTS, but: $bad"
+            exit 1
+          fi
+          echo "guests=$SHOWCASE_GUESTS: every needed job is $want"
