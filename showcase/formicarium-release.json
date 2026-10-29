@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "0.8.0",
-  "integrity": "sha512-4nQzb3R0YW3zZx1s9bbLyk4M2j4SSk3UnxoROLZEPMLUNvaDrM1fss4v/6zma9zF0aftKxK+/dE/1hHWB2ZdiQ==",
-  "sourceCommit": "d3b7557609735f6a58f1a2e81506f9489b0084d6"
+  "version": "0.9.0",
+  "integrity": "sha512-aj+JXDhg7sRBMgO/TXiAAPVJsPUK3b+ipu5NlUUsPkJyQCzxXZgmFWcFqaBuBheG/3MgGJNVsD8nLQeSiY5SuQ==",
+  "sourceCommit": "bb549abdec62c5b04a0000dab0fe6fdd9cfb327f"
 }
