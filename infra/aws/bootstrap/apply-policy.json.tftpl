@@ -33,7 +33,7 @@
     {
       "Sid": "CreateOwnMicrovmImages",
       "Effect": "Allow",
-      "Action": "lambda:CreateMicrovmImage",
+      "Action": ["lambda:CreateMicrovmImage", "lambda:TagResource"],
       "Resource": "*",
       "Condition": {
         "StringEquals": {
