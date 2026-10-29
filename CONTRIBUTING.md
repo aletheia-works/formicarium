@@ -95,7 +95,7 @@ natively, which paths each pitchfork command writes.
 ```sh
 # Node.js regressions (the same list as CI's Node suite)
 node --test --test-concurrency=1 tests/node/build.test.js tests/node/runner.test.js tests/node/probe.test.js tests/node/session.test.js tests/node/interactive.test.js tests/node/installed-guests.test.js tests/node/network.test.js tests/node/git-http.test.js tests/node/jj-http.test.js tests/node/aube-1645.test.js tests/node/pitchfork-basic.test.js
-# Browser regressions: probe, the interactive runs of ttyecho and nano, aube #1645 and pitchfork-basic in Chromium, Firefox and WebKit
+# Browser regressions: probe, the interactive runs of ttyecho and nano, tcp-echo through a local relay, aube #1645 and pitchfork-basic in Chromium, Firefox and WebKit
 bun run test:browser
 bun run test:browser -- --repeat-each=3   # repeatability
 mise run test-consumer                    # the packed package in a separate consumer (prepare its assets first)
@@ -106,8 +106,9 @@ per probe run, 840 s per aube #1645 run in the browser, all 8 probe items
 passing, transcripts identical to the native baselines, and the 1 GB wasm memory
 cap pinned by `tests/node/build.test.ts`. The probe also has regression items
 that run only when named: `futex-deadline`, `page-fault-race`,
-`madvise-dontneed`, and `tcp-echo <address:port>`, which
-`tests/node/network.test.js` runs against a local echo server.
+`madvise-dontneed`, and `tcp-echo <address:port>`, which runs against a local
+echo server in `tests/node/network.test.js` (directly and through a local
+relay) and in `tests/browser/network.spec.ts` (through a local relay).
 
 `web/index.html` (served by `bun scripts/serve.js --port 8787`, which adds the
 COOP/COEP headers) runs a guest or a session script through the package's

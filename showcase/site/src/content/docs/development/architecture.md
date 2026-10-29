@@ -90,8 +90,9 @@ build files and the decisions specific to it remain only in the git history.
 
 ## Limits
 
-- Guests have no network unless a Node.js run allows TCP destinations; then
-  they are TCP clients only ([ADR 0014](/formicarium/development/decisions/0014-guest-tcp-clients-in-nodejs/)).
+- Guests have no network unless a run allows TCP destinations; then they are
+  TCP clients only ([ADR 0014](/formicarium/development/decisions/0014-guest-tcp-clients-in-nodejs/)),
+  through a WebSocket relay in the browser ([ADR 0015](/formicarium/development/decisions/0015-guest-network-in-browser-through-a-relay/)).
 - Guest memory is capped at 1 GB.
 - Browsers need cross-origin isolation (COOP/COEP or a service worker that adds them).
 - CI runs the browser probe, the install and command checks, the showcase

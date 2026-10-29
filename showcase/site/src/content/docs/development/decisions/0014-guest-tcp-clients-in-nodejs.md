@@ -4,7 +4,8 @@ title: '0014. Guest TCP clients in Node.js'
 description: A run can let its guest reach allowed TCP destinations in Node.js; without them the guest still has no network.
 ---
 
-- Status: accepted (2026-10-29)
+- Status: accepted (2026-10-29); its refusal of `network` in the browser is
+  replaced by [0015](/formicarium/development/decisions/0015-guest-network-in-browser-through-a-relay/) (2026-10-30)
 - Decided by: the maintainer, so that a guest such as `jj git clone` can fetch
   from a remote repository
 - Supersedes: [0007](/formicarium/development/decisions/0007-no-guest-network-in-browser/)

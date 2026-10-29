@@ -14,6 +14,7 @@ import {
   guardCommandInput,
   tokenizeCommand,
 } from './command-parse.js';
+import type { NetworkRequest } from './contracts.js';
 import { failure, invalid } from './errors.js';
 import { createInstaller, type Installer } from './install.js';
 import type { GuestCatalog } from './install-catalog.js';
@@ -46,7 +47,7 @@ interface CheckedOptions {
   onOutput?: (chunk: OutputChunk) => void;
   stdin?: ReadableStream<Uint8Array>;
   terminal?: TerminalSize;
-  network?: { allow: string[] };
+  network?: NetworkRequest;
 }
 type Route =
   | { kind: 'ls'; path?: string }

@@ -354,7 +354,49 @@ export function validateNetwork(value: unknown) {
     (allow as unknown[]).every(networkEntry),
     'network.allow entries must be host, *.host, an IPv4 address or [IPv6], with an optional port of 1 to 65535, or a bare IPv6 address',
   );
-  return { allow: [...(allow as string[])] };
+  const relay = validateRelay(value.relay);
+  return { allow: [...(allow as string[])], ...(relay ? { relay } : {}) };
+}
+
+/** A relay URL and its subprotocols, each within what a WebSocket handshake carries. */
+const RELAY_URL_LENGTH = 2048;
+const RELAY_PROTOCOLS = 8;
+const RELAY_PROTOCOL_LENGTH = 4096;
+// An HTTP token (RFC 9110), which `new WebSocket(url, protocols)` requires.
+const RELAY_PROTOCOL = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
+
+/** The WebSocket relay that connects for the guest; the core needs one outside Node.js. */
+function validateRelay(value: unknown) {
+  if (value === undefined) return undefined;
+  invalid(isRecord(value), 'network.relay must be an object');
+  const { url, protocols = [] } = value;
+  let parsed: URL | undefined;
+  try {
+    if (typeof url === 'string' && url.length <= RELAY_URL_LENGTH)
+      parsed = new URL(url);
+  } catch {
+    // An unparsable URL is refused below.
+  }
+  invalid(
+    parsed !== undefined &&
+      ['ws:', 'wss:'].includes(parsed.protocol) &&
+      // WebSocket refuses any fragment, even an empty one, which URL reports as ''.
+      !(url as string).includes('#'),
+    `network.relay.url must be a ws: or wss: URL of at most ${RELAY_URL_LENGTH} characters, without a fragment`,
+  );
+  invalid(
+    Array.isArray(protocols) &&
+      protocols.length <= RELAY_PROTOCOLS &&
+      protocols.every(
+        (protocol: unknown) =>
+          typeof protocol === 'string' &&
+          protocol.length <= RELAY_PROTOCOL_LENGTH &&
+          RELAY_PROTOCOL.test(protocol),
+      ) &&
+      new Set(protocols).size === protocols.length,
+    `network.relay.protocols must be at most ${RELAY_PROTOCOLS} distinct tokens of at most ${RELAY_PROTOCOL_LENGTH} characters`,
+  );
+  return { url: url as string, protocols: [...(protocols as string[])] };
 }
 
 /** The core accepts 0 to 65535; a zero-sized terminal is refused as unusable. */

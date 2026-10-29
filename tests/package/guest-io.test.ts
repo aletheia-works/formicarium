@@ -301,6 +301,26 @@ test('runGuest gives the core a copy of the allowed destinations', async () => {
   seen.exit();
   await running;
 });
+test('runGuest gives the core a copy of the relay', async () => {
+  const { launcher, seen } = stdinLauncher();
+  const relay = { url: 'wss://relay.example/', protocols: ['lambda-microvms'] };
+  const running = runGuest({
+    launcher,
+    guestPath: '/guest/program',
+    network: { allow: ['github.com:443'], relay },
+  });
+  await settle();
+  assert.deepEqual(seen.network, {
+    allow: ['github.com:443'],
+    relay: { url: 'wss://relay.example/', protocols: ['lambda-microvms'] },
+  });
+  assert.notEqual(
+    (seen.network as { relay: { protocols: string[] } }).relay.protocols,
+    relay.protocols,
+  );
+  seen.exit();
+  await running;
+});
 test('runGuest stops reading stdin when the guest exits, and an errored stdin is end of file', async () => {
   const { launcher, seen } = stdinLauncher();
   let cancelled = false;

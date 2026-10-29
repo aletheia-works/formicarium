@@ -98,11 +98,14 @@ has a complete example.
   leaves the filesystem as it was. For an interactive guest, `stdin` streams
   its standard input and `terminal: { columns, rows }` makes its standard
   streams a terminal; a run with `stdin` has no default timeout.
-- **Network (Node.js).** A guest has no network unless a run passes
+- **Network.** A guest has no network unless a run passes
   `network: { allow: ['github.com:443'] }`. It can then open TCP connections
   to the listed destinations only, and resolve only the listed names; anything
   else fails with `ENETUNREACH`. TLS runs inside the guest, so give it CA
-  certificates. A browser run with `network` fails with `UNSUPPORTED_ENV`.
+  certificates. A browser has no TCP sockets, so a browser run also needs
+  `network.relay: { url, protocols? }`, a WebSocket relay such as
+  `@aletheia-works/paludarium-wasm/relay` serves; without one it fails with
+  `UNSUPPORTED_ENV`. Node.js uses the relay when given.
 - **Core assets.** Before the core starts, the pinned paludarium version and the
   SHA-256 of every core file are checked against
   `assets/paludarium/build-info.json` (`ASSET_LOAD` if missing or changed,
@@ -124,8 +127,8 @@ has a complete example.
 ## Limits
 
 - Guests must be static x86-64 Linux ELF executables of at most 128 MiB.
-- Guests have no network in the browser. In Node.js they are TCP clients of
-  the allowed destinations only: no listening sockets and no UDP.
+- Guests are TCP clients of the allowed destinations only, through a relay in
+  the browser: no listening sockets and no UDP.
 - The core's memory is capped at 1 GB.
 - Each run starts from a fresh filesystem; only the working directory and the
   home directory carry over.

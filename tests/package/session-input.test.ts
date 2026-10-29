@@ -314,6 +314,76 @@ test('network is copied into the request and validated', async (t) => {
     256,
   );
 });
+test('network.relay is validated and copied, with no subprotocols by default', async (t) => {
+  const { session, workers, done } = fixture();
+  t.after(() => session.dispose());
+  const protocols = ['lambda-microvms', 'lambda-microvms.port.8080'];
+  const relay = { url: 'wss://relay.example/', protocols };
+  const running = session.run({
+    guest: elfHeader(),
+    network: { allow: ['github.com:443'], relay },
+  });
+  protocols.push('changed');
+  relay.url = 'ws://changed/';
+  await turn();
+  assert.deepEqual(workers[0]?.request.network, {
+    allow: ['github.com:443'],
+    relay: {
+      url: 'wss://relay.example/',
+      protocols: ['lambda-microvms', 'lambda-microvms.port.8080'],
+    },
+  });
+  done(workers[0]!);
+  await running;
+  const run = (relay: unknown) =>
+    validateRun(
+      {
+        guest: elfHeader(),
+        network: { allow: ['github.com'], relay } as unknown as {
+          allow: string[];
+        },
+      },
+      '/root',
+    ).network;
+  assert.deepEqual(run({ url: 'ws://127.0.0.1:8080' }), {
+    allow: ['github.com'],
+    relay: { url: 'ws://127.0.0.1:8080', protocols: [] },
+  });
+  assert.deepEqual(
+    run({
+      url: `wss://${'a'.repeat(2042)}`,
+      protocols: Array.from({ length: 8 }, (_, i) => `${i}${'x'.repeat(4095)}`),
+    })?.relay?.protocols.length,
+    8,
+  );
+  for (const value of [
+    null,
+    'ws://127.0.0.1:8080',
+    {},
+    { url: 8080 },
+    { url: 'not a url' },
+    { url: 'http://127.0.0.1:8080' },
+    { url: 'https://relay.example/' },
+    { url: 'wss://relay.example/#token' },
+    { url: 'wss://relay.example/#' },
+    { url: `wss://${'a'.repeat(2043)}` },
+    { url: 'wss://relay.example/', protocols: 'lambda-microvms' },
+    { url: 'wss://relay.example/', protocols: [''] },
+    { url: 'wss://relay.example/', protocols: ['two words'] },
+    { url: 'wss://relay.example/', protocols: ['a,b'] },
+    { url: 'wss://relay.example/', protocols: ['a', 'a'] },
+    { url: 'wss://relay.example/', protocols: ['x'.repeat(4097)] },
+    {
+      url: 'wss://relay.example/',
+      protocols: Array.from({ length: 9 }, (_, i) => `p${i}`),
+    },
+  ])
+    assert.throws(
+      () => run(value),
+      { code: 'INVALID_INPUT' },
+      String(value && JSON.stringify(value).slice(0, 60)),
+    );
+});
 test('stdin must be an unlocked ReadableStream, and a refused run leaves it untouched', () => {
   const locked = source();
   locked.stream.getReader();

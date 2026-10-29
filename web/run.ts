@@ -72,7 +72,7 @@ function typedInput(text: string) {
 }
 
 async function runGuest(
-  { name, args, stdin, terminal }: Extract<Request, { kind: 'guest' }>,
+  { name, args, stdin, terminal, network }: Extract<Request, { kind: 'guest' }>,
   sink: Sink,
 ): Promise<Outcome> {
   const guest = await fetchBytes(GUESTS[name]!);
@@ -90,6 +90,7 @@ async function runGuest(
       },
       ...(input ? { stdin: input.stream } : {}),
       ...(terminal ? { terminal } : {}),
+      ...(network ? { network } : {}),
     });
     return {
       exitCode: result.exitCode,

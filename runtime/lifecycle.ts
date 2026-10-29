@@ -13,7 +13,7 @@ import type {
   Streams,
   WorkerHandle,
 } from './contracts.js';
-import { errorCode } from './contracts.js';
+import { copyNetwork, errorCode } from './contracts.js';
 import { invalid } from './errors.js';
 import type { GuestHandle } from './guest-validation.js';
 import { bindSessionPort, type Reservation } from './session-port.js';
@@ -350,9 +350,7 @@ export function createLifecycle(
         snapshotRoots: [...state.roots],
         ...(input.stdin ? { interactive: true } : {}),
         ...(input.terminal ? { terminal: { ...input.terminal } } : {}),
-        ...(input.network
-          ? { network: { allow: [...input.network.allow] } }
-          : {}),
+        ...(input.network ? { network: copyNetwork(input.network) } : {}),
       };
       handle.worker = spawn(request, {
         message: (value) => message(handle, value),

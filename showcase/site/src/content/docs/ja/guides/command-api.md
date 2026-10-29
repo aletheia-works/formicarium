@@ -49,11 +49,12 @@ cross-origin isolation・Worker・資産・CSP の要件を満たしてくださ
 表示する端末は xterm 互換で、`TERM` がないと curses のゲストは知らない端末だとみなすことがあるからです。builtin と `install` は読みません。ロックされていない
 `ReadableStream` でない `stdin` や、形の違う `terminal` は、予約の前に `INVALID_INPUT` です。
 
-`network`（`{ allow }`）も、Session の `run` と同じくゲストの実行にだけ渡します（[ADR 0014](/formicarium/ja/development/decisions/0014-guest-tcp-clients-in-nodejs/)）。
+`network`（`{ allow, relay? }`）も、Session の `run` と同じくゲストの実行にだけ渡します（[ADR 0014](/formicarium/ja/development/decisions/0014-guest-tcp-clients-in-nodejs/)）。
 Node.js では、ゲストは一覧にある行き先へ TCP でつなげるので、`jj`・`git`・`git-remote-https` を導入し、ゲストに CA 証明書があれば、
 `{ allow: ['github.com:443'] }` で `jj git clone https://github.com/...` が動きます。引き継がれるのは作業ディレクトリと home ディレクトリだけなので、
-証明書は home ディレクトリに置き、`~/.gitconfig` の `http.sslCAInfo` で指定します。ブラウザの Session では `UNSUPPORTED_ENV` で断り、
-形の違う一覧は予約の前に `INVALID_INPUT` です。`install` はホストで取得するので、これを使いません。
+証明書は home ディレクトリに置き、`~/.gitconfig` の `http.sslCAInfo` で指定します。ブラウザの Session では、ゲストの代わりに接続する
+WebSocket の relay を `relay` に渡す必要があり（[ADR 0015](/formicarium/ja/development/decisions/0015-guest-network-in-browser-through-a-relay/)）、
+なければ `UNSUPPORTED_ENV` で断ります。形の違う一覧や relay は、予約の前に `INVALID_INPUT` です。`install` はホストで取得するので、これを使いません。
 
 ## 構文
 

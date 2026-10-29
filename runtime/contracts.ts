@@ -54,7 +54,7 @@ export interface CoreLauncher {
     cwd: string;
     filesystem: CoreFileSystem;
     tty?: { columns: number; rows: number } | null;
-    network?: { allow: string[] };
+    network?: NetworkRequest;
   }): CoreGuest;
   dispose(): Promise<void>;
 }
@@ -73,7 +73,7 @@ export interface GuestOptions {
   /** Makes the guest's standard streams a terminal of this size. */
   terminal?: { columns: number; rows: number };
   /** The TCP destinations the guest may reach; without it the guest has no network. */
-  network?: { allow: string[] };
+  network?: NetworkRequest;
 }
 export interface GuestResult {
   exitCode: number;
@@ -113,7 +113,7 @@ export interface RunRequest extends Identity {
   /** True when the host sends `input` messages and then `input-end`. */
   interactive?: boolean;
   terminal?: { columns: number; rows: number };
-  network?: { allow: string[] };
+  network?: NetworkRequest;
 }
 /** Host to Worker, after the run request: guest stdin bytes, then its end. */
 export type InputMessage = Identity &
@@ -173,7 +173,7 @@ export interface HostOptions {
   onStdout?: ByteSink;
   onStderr?: ByteSink;
   timeoutMs?: number;
-  network?: { allow: string[] };
+  network?: NetworkRequest;
 }
 export interface HostResult {
   results: (GuestResult & { step: SessionStep; elapsedMs: number })[];
@@ -197,6 +197,26 @@ export function errorCode(error: unknown): string | undefined {
 export function errorText(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
+/** A run's network after validation: its destinations and, outside Node.js, its relay. */
+export interface NetworkRequest {
+  allow: string[];
+  relay?: { url: string; protocols: string[] };
+}
+/** A copy that the caller can no longer change. */
+export function copyNetwork(network: NetworkRequest): NetworkRequest {
+  return {
+    allow: [...network.allow],
+    ...(network.relay
+      ? {
+          relay: {
+            url: network.relay.url,
+            protocols: [...network.relay.protocols],
+          },
+        }
+      : {}),
+  };
+}
+
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

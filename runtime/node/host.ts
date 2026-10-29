@@ -41,7 +41,8 @@ export class GuestNotFoundError extends Error {
  * @param {(chunk: Uint8Array) => void} [options.onStdout]
  * @param {(chunk: Uint8Array) => void} [options.onStderr]
  * @param {number} [options.timeoutMs] これを過ぎたら Worker を止めてエラーにする
- * @param {{allow: string[]}} [options.network] ゲストが TCP でつないでよい行き先
+ * @param {{allow: string[], relay?: {url: string, protocols: string[]}}} [options.network]
+ *   ゲストが TCP でつないでよい行き先と、渡したときは通る WebSocket の relay
  */
 export async function runInWorker(options: HostOptions): Promise<HostResult> {
   const {

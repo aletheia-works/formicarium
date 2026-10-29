@@ -217,9 +217,9 @@ export interface TerminalSize {
  *   finishes.
  * - `terminal`: makes the guest's standard streams a terminal of this size
  *   (`isatty`, `TCGETS` and `TIOCGWINSZ`). The size is fixed for the run.
- * - `network`: the TCP destinations the guest may reach, in Node.js only (a
- *   browser run refuses it with `UNSUPPORTED_ENV`). Without it the guest has
- *   no network.
+ * - `network`: the TCP destinations the guest may reach. A browser run also
+ *   needs `network.relay`, and refuses `network` without it with
+ *   `UNSUPPORTED_ENV`. Without it the guest has no network.
  */
 export interface RunOptions {
   guest: Uint8Array;
@@ -243,9 +243,29 @@ export interface RunOptions {
  * loopback); allow a local server by its address, such as `127.0.0.1:8080`.
  * Any other destination fails with `ENETUNREACH`. TCP clients only: no
  * listening sockets and no UDP other than name lookups.
+ *
+ * `relay` is the WebSocket relay that resolves and connects for the guest.
+ * A browser has no TCP sockets, so a browser run needs one; Node.js uses it
+ * when given and otherwise connects itself.
  */
 export interface NetworkOptions {
   allow: readonly string[];
+  relay?: RelayOptions;
+}
+/**
+ * A relay as `@aletheia-works/paludarium-wasm/relay` serves it. The relay
+ * checks its own allow list too, so a destination must be allowed by both.
+ * - `url`: the relay's `ws:` or `wss:` URL, at most 2048 characters, without
+ *   a fragment.
+ * - `protocols`: the subprotocols each WebSocket offers, as
+ *   `new WebSocket(url, protocols)` takes them; at most 8 distinct tokens of
+ *   at most 4096 characters. A relay on AWS Lambda MicroVMs takes
+ *   `lambda-microvms`, `lambda-microvms.authentication.<token>` and
+ *   `lambda-microvms.port.<n>`.
+ */
+export interface RelayOptions {
+  url: string;
+  protocols?: readonly string[];
 }
 export interface RunResult {
   runId: string;

@@ -44,7 +44,7 @@ test('browser missing Worker asset is ASSET_LOAD before guest starts', async ({
   );
   expect(code).toBe('ASSET_LOAD');
 });
-test('browser run with a network is UNSUPPORTED_ENV before any Worker starts', async ({
+test('browser run with a network but no relay is UNSUPPORTED_ENV before any Worker starts', async ({
   page,
 }) => {
   const result = await page.evaluate(
@@ -82,7 +82,43 @@ test('browser run with a network is UNSUPPORTED_ENV before any Worker starts', a
   );
   expect(result).toEqual({ code: 'UNSUPPORTED_ENV', fetched: [] });
 });
-test('browser command with a network is UNSUPPORTED_ENV before any Worker starts', async ({
+test('browser run with a network and a relay passes the network check', async ({
+  page,
+}) => {
+  // The Worker asset is missing, so the run reaches the asset load and fails there.
+  const code = await page.evaluate(
+    async (guest) => {
+      const { createSession } = await import('/runtime/web/api.js');
+      const url = `${location.origin}/missing-worker.mjs`;
+      const session = await createSession({
+        assets: {
+          loaderURL: url,
+          wasmURL: url,
+          buildInfoURL: url,
+          workerURL: url,
+        },
+      });
+      try {
+        await session.run({
+          guest: Uint8Array.from(guest),
+          timeoutMs: 5000,
+          network: {
+            allow: ['github.com:443'],
+            relay: { url: 'ws://127.0.0.1:9/' },
+          },
+        });
+      } catch (caught) {
+        const error = caught as ExecutionError;
+        return error.code;
+      } finally {
+        await session.dispose();
+      }
+    },
+    [...elfHeader()],
+  );
+  expect(code).toBe('ASSET_LOAD');
+});
+test('browser command with a network but no relay is UNSUPPORTED_ENV before any Worker starts', async ({
   page,
 }) => {
   const bytes = elf();

@@ -80,5 +80,22 @@ export function parseRunRequest(searchParams: URLSearchParams) {
     (!terminal || terminal.columns > 65535 || terminal.rows > 65535)
   )
     throw new Error(`invalid terminal: ${size}`);
-  return { kind: 'guest' as const, name: guest, args, stdin, terminal };
+  // ?allow=<destination>（複数可）と ?relay=<ws URL> は、ゲストの network に渡す。
+  // 形は Session が検査する。
+  const allow = searchParams.getAll('allow');
+  const relay = searchParams.get('relay');
+  if (relay !== null && allow.length === 0)
+    throw new Error('relay needs allow');
+  const network =
+    allow.length === 0
+      ? null
+      : { allow, ...(relay === null ? {} : { relay: { url: relay } }) };
+  return {
+    kind: 'guest' as const,
+    name: guest,
+    args,
+    stdin,
+    terminal,
+    network,
+  };
 }

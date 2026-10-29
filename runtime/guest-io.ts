@@ -7,6 +7,7 @@ import type {
   LegacyEntry,
   SessionStep,
 } from './contracts.js';
+import { copyNetwork } from './contracts.js';
 // ゲストの入出力を扱う、コアに依存しない共通部（Node.js とブラウザの両方で使う）。
 //
 // コアの起動と照合は runtime/core.ts が受け持つ。ここでは、起動したコア（launcher）に対して、
@@ -273,7 +274,7 @@ export async function runGuest(options: GuestOptions): Promise<GuestResult> {
       cwd,
       filesystem,
       ...(terminal ? { tty: terminal } : {}),
-      ...(network ? { network: { allow: [...network.allow] } } : {}),
+      ...(network ? { network: copyNetwork(network) } : {}),
     });
     if (!stdin) await guest.stdin.close();
     const input = stdin ? pumpStdin(stdin, guest.stdin) : null;

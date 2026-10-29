@@ -57,6 +57,7 @@ test('every page exists in English and Japanese', async () => {
       'decisions/0011-host-baseline-in-measurements',
       'decisions/0013-interactive-guest-runs',
       'decisions/0014-guest-tcp-clients-in-nodejs',
+      'decisions/0015-guest-network-in-browser-through-a-relay',
     ].map((name) => `development/${name}/index.html`),
   ];
   for (const page of expected) {

@@ -26,11 +26,12 @@ function spawnBrowserWorker(
       'Worker, SharedArrayBuffer and cross-origin isolation are required',
     );
   }
-  // The core reaches the network through Node.js sockets only (ADR 0014).
-  if (request.network)
+  // A page has no TCP sockets, so the core connects through a WebSocket
+  // relay there (ADR 0015).
+  if (request.network && !request.network.relay)
     throw failure(
       'UNSUPPORTED_ENV',
-      'The guest network is available in Node.js only',
+      'The guest network in a browser needs network.relay',
     );
   const url = new URL(request.assets.workerURL);
   if (

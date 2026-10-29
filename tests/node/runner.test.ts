@@ -91,6 +91,7 @@ describe('ブラウザ用の手順の定義（web/sessions.js）', () => {
         args: ['one'],
         stdin: null,
         terminal: null,
+        network: null,
       },
     );
   });
@@ -105,6 +106,7 @@ describe('ブラウザ用の手順の定義（web/sessions.js）', () => {
         args: [],
         stdin: 'a\r',
         terminal: { columns: 100, rows: 30 },
+        network: null,
       },
     );
     for (const terminal of [
@@ -130,6 +132,31 @@ describe('ブラウザ用の手順の定義（web/sessions.js）', () => {
           new URLSearchParams(`guest=ttyecho&stdin=${'a'.repeat(4097)}`),
         ),
       /stdin too long/,
+    );
+  });
+  it('allow と relay を network にして返し、allow のない relay を拒否する', () => {
+    assert.deepEqual(
+      parseRunRequest(
+        new URLSearchParams(
+          'guest=probe&arg=tcp-echo&allow=127.0.0.1:1&allow=[::1]:1&relay=ws://127.0.0.1:2/',
+        ),
+      ).network,
+      {
+        allow: ['127.0.0.1:1', '[::1]:1'],
+        relay: { url: 'ws://127.0.0.1:2/' },
+      },
+    );
+    assert.deepEqual(
+      parseRunRequest(new URLSearchParams('guest=probe&allow=127.0.0.1:1'))
+        .network,
+      { allow: ['127.0.0.1:1'] },
+    );
+    assert.throws(
+      () =>
+        parseRunRequest(
+          new URLSearchParams('guest=probe&relay=ws://127.0.0.1:2/'),
+        ),
+      /relay needs allow/,
     );
   });
   it('aube-1645 のファイル一覧は fixtures/ の中身と一致する', () => {
@@ -259,6 +286,7 @@ describe('入口の検証', () => {
         args: ['--version'],
         stdin: null,
         terminal: null,
+        network: null,
       },
     );
   });

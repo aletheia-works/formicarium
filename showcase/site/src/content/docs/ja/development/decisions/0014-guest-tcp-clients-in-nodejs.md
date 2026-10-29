@@ -4,7 +4,7 @@ title: '0014. Node.js では、ゲストが TCP の client になれる'
 description: Node.js での実行では、許可した TCP の行き先にゲストがつなげる。指定しなければ、これまでどおりネットワークはない。
 ---
 
-- 状態：採用（2026-10-29）
+- 状態：採用（2026-10-29）。ブラウザで `network` を断る部分は [0015](/formicarium/ja/development/decisions/0015-guest-network-in-browser-through-a-relay/) で置き換え（2026-10-30）
 - 決めた人：メンテナー。`jj git clone` のようなゲストが、リモートのリポジトリから取得できるようにするため
 - 置き換えた決定：[0007](/formicarium/ja/development/decisions/0007-no-guest-network-in-browser/)
 
