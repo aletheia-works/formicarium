@@ -304,6 +304,23 @@ const NETWORK_ENTRY_LENGTH = 263;
 const NETWORK_ENTRY =
   /^(?:(?:\*\.)?([A-Za-z0-9_.-]+)(?::(\d{1,5}))?|\[([0-9A-Fa-f:.]+)\](?::(\d{1,5}))?|[0-9A-Fa-f:.]*:[0-9A-Fa-f:.]*)$/;
 
+const IPV4 =
+  /^(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)$/;
+
+/** An IPv6 address in text: eight groups, `::` once for zeros, and an IPv4 address last. */
+function ipv6(text: string) {
+  const halves = text.split('::');
+  if (halves.length > 2) return false;
+  const all = halves.flatMap((half) => (half === '' ? [] : half.split(':')));
+  const last = all.at(-1);
+  const embedded = last?.includes('.') ?? false;
+  if (embedded && !IPV4.test(last!)) return false;
+  const hex = embedded ? all.slice(0, -1) : all;
+  if (!hex.every((group) => /^[0-9A-Fa-f]{1,4}$/.test(group))) return false;
+  const count = hex.length + (embedded ? 2 : 0);
+  return halves.length === 2 ? count <= 7 : count === 8;
+}
+
 /** True when the core takes the entry: no empty name label, a port of 1 to 65535. */
 function networkEntry(entry: unknown) {
   if (typeof entry !== 'string' || entry.length > NETWORK_ENTRY_LENGTH)
@@ -319,7 +336,7 @@ function networkEntry(entry: unknown) {
         .replace(/\.$/, '')
         .split('.')
         .every((label) => label !== '')) &&
-    (address === undefined || address.includes(':')) &&
+    (host !== undefined || ipv6(address ?? entry)) &&
     (port === undefined || (Number(port) >= 1 && Number(port) <= 65535))
   );
 }

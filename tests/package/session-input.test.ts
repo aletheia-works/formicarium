@@ -260,6 +260,14 @@ test('network is copied into the request and validated', async (t) => {
     { allow: ['github.com:0'] },
     { allow: ['[::1]:0'] },
     { allow: ['[1.2.3.4]'] },
+    // IPv6 forms the core refuses.
+    { allow: ['dead:beef'] },
+    { allow: ['[dead:beef]'] },
+    { allow: [':'] },
+    { allow: ['1::2::3'] },
+    { allow: ['12345::1'] },
+    { allow: ['1:2:3:4:5:6:7:8:9'] },
+    { allow: ['::1.2.3.999'] },
     { allow: ['a'.repeat(264)] },
     { allow: Array(257).fill('github.com') },
   ])
@@ -284,6 +292,12 @@ test('network is copied into the request and validated', async (t) => {
     // A bare IPv6 address is one address for every port.
     '::1',
     'fe80::1:443',
+    '::',
+    '::ffff:1.2.3.4',
+    '[::ffff:1.2.3.4]:443',
+    '1:2:3:4:5:6:7:8',
+    '1:2:3:4:5:6:7::',
+    '-',
     'github.com.',
     'a'.repeat(263),
   ];
