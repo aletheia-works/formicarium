@@ -35,7 +35,10 @@ comes from, built into a MicroVM image of the smallest size (0.5 GB). Only
 the Cloud Control resource (`hashicorp/awscc`) sets an image's memory and
 hooks, so the image uses it, and the CI roles may call Cloud Control. The
 relay connects only to `github.com:443`, and accepts WebSockets only from
-`https://aletheia-works.github.io`.
+`https://aletheia-works.github.io`. Cloud Control requires an image's OS
+capabilities and hooks, and awscc drops empty values, so the image takes the
+only capability value, `ALL`, which applies inside the MicroVM only (it has no
+execution role, so no AWS credentials), and lists every hook as disabled.
 
 No MicroVM is kept in the state: the platform ends a MicroVM after at most 8
 hours. The token function ([relay-token/index.mjs](relay-token/index.mjs))

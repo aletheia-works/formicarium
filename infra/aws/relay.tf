@@ -96,10 +96,27 @@ resource "awscc_lambda_microvm_image" "relay" {
   cpu_configurations = [{ architecture = "ARM_64" }]
   # The smallest size: 0.5 GB and a quarter vCPU, up to four times that at
   # peak. The relay is one Node.js process that copies bytes.
-  resources                  = [{ minimum_memory_in_mi_b = 512 }]
-  egress_network_connectors  = ["${local.relay_connector}:INTERNET_EGRESS"]
-  additional_os_capabilities = []
-  hooks                      = {}
+  resources                 = [{ minimum_memory_in_mi_b = 512 }]
+  egress_network_connectors = ["${local.relay_connector}:INTERNET_EGRESS"]
+  # Cloud Control requires both, and awscc drops an empty value. ALL is the
+  # only capability value; it applies inside the MicroVM only, which has no
+  # execution role and so no AWS credentials.
+  additional_os_capabilities = ["ALL"]
+  # The relay serves no lifecycle hook, so each is DISABLED (HookState in the
+  # AWS::Lambda::MicrovmImage schema).
+  hooks = {
+    port = 8080
+    microvm_image_hooks = {
+      ready    = "DISABLED"
+      validate = "DISABLED"
+    }
+    microvm_hooks = {
+      run       = "DISABLED"
+      resume    = "DISABLED"
+      suspend   = "DISABLED"
+      terminate = "DISABLED"
+    }
+  }
   logging = {
     cloud_watch = {
       log_group = aws_cloudwatch_log_group.relay_build.name
