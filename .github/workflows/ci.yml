@@ -273,7 +273,7 @@ jobs:
           bun node_modules/@playwright/test/cli.js --version
           cat /etc/os-release
       - name: 'Run product regression tests on Node'
-        run: 'node --test --test-concurrency=1 tests/node/build.test.js tests/node/runner.test.js tests/node/probe.test.js tests/node/session.test.js tests/node/interactive.test.js tests/node/installed-guests.test.js tests/node/aube-1645.test.js tests/node/pitchfork-basic.test.js'
+        run: 'node --test --test-concurrency=1 tests/node/build.test.js tests/node/runner.test.js tests/node/probe.test.js tests/node/session.test.js tests/node/interactive.test.js tests/node/installed-guests.test.js tests/node/network.test.js tests/node/aube-1645.test.js tests/node/pitchfork-basic.test.js'
         if: "matrix.suite == 'node'"
       - name: 'Install only this latest Playwright browser'
         if: "matrix.suite != 'node'"

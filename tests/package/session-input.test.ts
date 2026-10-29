@@ -252,6 +252,14 @@ test('network is copied into the request and validated', async (t) => {
     { allow: ['github.com:443/path'] },
     { allow: ['https://github.com'] },
     { allow: ['[::1]:99999'] },
+    // Entries the core refuses: empty labels, port 0, an IPv4 address in brackets.
+    { allow: ['...'] },
+    { allow: ['a..b'] },
+    { allow: ['.github.com'] },
+    { allow: ['*.'] },
+    { allow: ['github.com:0'] },
+    { allow: ['[::1]:0'] },
+    { allow: ['[1.2.3.4]'] },
     { allow: ['a'.repeat(264)] },
     { allow: Array(257).fill('github.com') },
   ])
@@ -273,7 +281,10 @@ test('network is copied into the request and validated', async (t) => {
     '*.githubusercontent.com:443',
     '127.0.0.1:65535',
     '[::1]:8080',
+    // A bare IPv6 address is one address for every port.
     '::1',
+    'fe80::1:443',
+    'github.com.',
     'a'.repeat(263),
   ];
   assert.deepEqual(

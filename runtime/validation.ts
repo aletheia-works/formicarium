@@ -299,10 +299,30 @@ export function validateRun(options: RunOptions, home: string) {
 /** At most this many destinations, each at most a DNS name and a port long. */
 const NETWORK_ENTRIES = 256;
 const NETWORK_ENTRY_LENGTH = 263;
-// host, *.host, IPv4, [IPv6] or a bare IPv6 address, the first three and
-// [IPv6] optionally with a port.
+// host or *.host, IPv4 or [IPv6], each with an optional port, or a bare IPv6
+// address, which takes no port.
 const NETWORK_ENTRY =
-  /^(?:(?:\*\.)?[A-Za-z0-9_.-]+(?::(\d{1,5}))?|\[[0-9A-Fa-f:.]+\](?::(\d{1,5}))?|[0-9A-Fa-f:.]+)$/;
+  /^(?:(?:\*\.)?([A-Za-z0-9_.-]+)(?::(\d{1,5}))?|\[([0-9A-Fa-f:.]+)\](?::(\d{1,5}))?|[0-9A-Fa-f:.]*:[0-9A-Fa-f:.]*)$/;
+
+/** True when the core takes the entry: no empty name label, a port of 1 to 65535. */
+function networkEntry(entry: unknown) {
+  if (typeof entry !== 'string' || entry.length > NETWORK_ENTRY_LENGTH)
+    return false;
+  const match = NETWORK_ENTRY.exec(entry);
+  if (!match) return false;
+  const [, host, hostPort, address, addressPort] = match;
+  const port = hostPort ?? addressPort;
+  return (
+    // One trailing dot names the root, as in a fully qualified name.
+    (host === undefined ||
+      host
+        .replace(/\.$/, '')
+        .split('.')
+        .every((label) => label !== '')) &&
+    (address === undefined || address.includes(':')) &&
+    (port === undefined || (Number(port) >= 1 && Number(port) <= 65535))
+  );
+}
 
 /** The TCP destinations a run may reach; without them the guest has no network. */
 export function validateNetwork(value: unknown) {
@@ -313,17 +333,10 @@ export function validateNetwork(value: unknown) {
     Array.isArray(allow) && allow.length <= NETWORK_ENTRIES,
     `network.allow must be an array of at most ${NETWORK_ENTRIES} entries`,
   );
-  for (const entry of allow as unknown[]) {
-    const match =
-      typeof entry === 'string' && entry.length <= NETWORK_ENTRY_LENGTH
-        ? NETWORK_ENTRY.exec(entry)
-        : null;
-    const port = match?.[1] ?? match?.[2];
-    invalid(
-      match !== null && (port === undefined || Number(port) <= 65535),
-      'network.allow entries must be host, host:port, *.host, an IPv4 address or [IPv6] with an optional port',
-    );
-  }
+  invalid(
+    (allow as unknown[]).every(networkEntry),
+    'network.allow entries must be host, *.host, an IPv4 address or [IPv6], with an optional port of 1 to 65535, or a bare IPv6 address',
+  );
   return { allow: [...(allow as string[])] };
 }
 

@@ -27,9 +27,11 @@ has no TCP sockets.
 
 - `RunOptions` takes an optional `network: { allow: string[] }` of at most 256
   destinations: a host name, `*.` and its subdomains, an IPv4 address or an
-  IPv6 one in brackets, each with or without a port. The Session checks the
-  form (`INVALID_INPUT`), copies the list and passes it to the core; the core
-  checks the rest.
+  IPv6 one in brackets, each with or without a port from 1 to 65535, or a bare
+  IPv6 address for every port. The Session checks the form, including the
+  empty name labels, port 0 and bracketed IPv4 that the core refuses
+  (`INVALID_INPUT`), copies the list and passes it to the core, which checks
+  the rest.
 - Without `network` a run behaves as before: the guest has no network, aube
   keeps `AUBE_NO_UPDATE_CHECK=1`, and native baselines are still recorded with
   `--network none`.
