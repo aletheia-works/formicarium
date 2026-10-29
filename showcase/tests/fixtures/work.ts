@@ -26,6 +26,11 @@ export const MAIN_ALLOWED = JSON.stringify({
     'https://git.savannah.gnu.org/git/nano.git',
     'https://github.com/ThomasDickey/ncurses-snapshots',
     'https://github.com/jj-vcs/jj',
+    'https://github.com/git/git',
+    'https://github.com/curl/curl',
+    'https://github.com/gnutls/gnutls',
+    'https://github.com/gnutls/nettle',
+    'https://github.com/madler/zlib',
   ],
 });
 /** Stand-in for `git show origin/main:<path>` in unit tests. */
