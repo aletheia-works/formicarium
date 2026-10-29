@@ -50,6 +50,17 @@ resource "github_repository_environment" "github_pages" {
   depends_on = [github_repository_pages.this]
 }
 
+# infra/aws applies through this environment: its apply role trusts only
+# the OIDC subject of a job in it, and only main may deploy to it.
+resource "github_repository_environment" "aws_apply" {
+  repository  = github_repository.this.name
+  environment = "aws-apply"
+  deployment_branch_policy {
+    protected_branches     = true
+    custom_branch_policies = false
+  }
+}
+
 # Main is protected by the ruleset below (as in vivarium). The
 # classic protection it replaced is removed: integrations/github 6.13.0 sent
 # every existing check twice when it updated github_branch_protection_v3

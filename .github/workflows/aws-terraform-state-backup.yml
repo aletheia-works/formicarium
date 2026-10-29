@@ -1,0 +1,35 @@
+name: AWS Terraform State Backup
+
+on:
+  schedule:
+    - cron: '30 3 * * 1'
+
+  workflow_run:
+    workflows: ['AWS Terraform Apply']
+    types:
+      - completed
+
+  workflow_dispatch:
+
+# The backup renews the encrypted state artifact of infra/aws; it reads no AWS
+# resource, so the organization's reusable workflow serves as it is.
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  backup:
+    # Before the first apply there is no state to renew.
+    if: |
+      github.repository == 'aletheia-works/formicarium' &&
+      vars.LATEST_AWS_APPLY_RUN_ID != '' &&
+      (github.event_name != 'workflow_run' ||
+       github.event.workflow_run.conclusion == 'success')
+    uses: aletheia-works/.github/.github/workflows/terraform-state-backup.yml@0ab4b956b12760b3926ac8f768e04432404a5182 # v1.3.4
+    with:
+      state_artifact_name: terraform-state-aws
+      state_run_id_variable: LATEST_AWS_APPLY_RUN_ID
+      module_label: aws
+      working_directory: infra/aws
+    secrets:
+      TF_TOKEN_GITHUB: ${{ secrets.TF_TOKEN_GITHUB }}

@@ -1,0 +1,2 @@
+# Every variable has a default; copy to terraform.tfvars only to override one.
+# aws_region = "ap-northeast-1"

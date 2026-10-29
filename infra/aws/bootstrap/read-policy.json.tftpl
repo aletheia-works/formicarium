@@ -1,0 +1,46 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadOwnBucketSettings",
+      "Effect": "Allow",
+      "Action": ["s3:Get*", "s3:List*"],
+      "Resource": "arn:aws:s3:::formicarium-*"
+    },
+    {
+      "Sid": "ReadOwnFunctionsAndImages",
+      "Effect": "Allow",
+      "Action": ["lambda:Get*", "lambda:List*"],
+      "Resource": [
+        "arn:aws:lambda:*:${account_id}:function:formicarium-*",
+        "arn:aws:lambda:*:${account_id}:microvm-image:formicarium-*"
+      ]
+    },
+    {
+      "Sid": "ListingIsNotResourceScoped",
+      "Effect": "Allow",
+      "Action": [
+        "lambda:ListFunctions",
+        "lambda:ListMicrovmImages",
+        "lambda:ListMicrovms",
+        "logs:DescribeLogGroups"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ReadOwnLogGroups",
+      "Effect": "Allow",
+      "Action": ["logs:Describe*", "logs:ListTags*", "logs:GetDataProtectionPolicy"],
+      "Resource": [
+        "arn:aws:logs:*:${account_id}:log-group:/formicarium/*",
+        "arn:aws:logs:*:${account_id}:log-group:/formicarium/*:*"
+      ]
+    },
+    {
+      "Sid": "ReadIdentities",
+      "Effect": "Allow",
+      "Action": ["iam:Get*", "iam:List*"],
+      "Resource": "*"
+    }
+  ]
+}

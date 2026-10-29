@@ -3,22 +3,28 @@ on:
   pull_request:
     paths:
       - 'infra/github/**'
+      - 'infra/aws/**'
       - '.github/workflows/*terraform*'
       - '.github/workflows/tofu-fmt-autofix.yml'
       - '.github/workflows/infra-check.yml'
   push:
     branches: [main]
-    paths: ['infra/github/**', '.github/workflows/infra-check.yml']
+    paths:
+      ['infra/github/**', 'infra/aws/**', '.github/workflows/infra-check.yml']
 permissions:
   contents: read
 jobs:
   validate:
-    name: Validate GitHub infrastructure
+    name: Validate ${{ matrix.module }} infrastructure
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [github, aws]
     defaults:
       run:
-        working-directory: infra/github
+        working-directory: infra/${{ matrix.module }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
