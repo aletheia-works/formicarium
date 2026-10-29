@@ -8,6 +8,12 @@
       "Resource": "arn:aws:s3:::formicarium-*"
     },
     {
+      "Sid": "ReadRelayArtifacts",
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:GetObjectTagging", "s3:GetObjectVersion"],
+      "Resource": "arn:aws:s3:::formicarium-relay-artifacts-${account_id}/relay/*"
+    },
+    {
       "Sid": "ReadOwnFunctionsAndImages",
       "Effect": "Allow",
       "Action": ["lambda:Get*", "lambda:List*"],
@@ -35,6 +41,16 @@
         "arn:aws:logs:*:${account_id}:log-group:/formicarium/*",
         "arn:aws:logs:*:${account_id}:log-group:/formicarium/*:*"
       ]
+    },
+    {
+      "Sid": "ReadThroughCloudControl",
+      "Effect": "Allow",
+      "Action": [
+        "cloudformation:GetResource",
+        "cloudformation:ListResources",
+        "cloudformation:GetResourceRequestStatus"
+      ],
+      "Resource": "*"
     },
     {
       "Sid": "ReadIdentities",

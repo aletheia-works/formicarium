@@ -35,6 +35,12 @@
       "Resource": "arn:aws:lambda:*:${account_id}:microvm-image:formicarium-*"
     },
     {
+      "Sid": "PassLambdaNetworkConnectors",
+      "Effect": "Allow",
+      "Action": "lambda:PassNetworkConnector",
+      "Resource": "arn:aws:lambda:*:aws:network-connector:aws-network-connector:*"
+    },
+    {
       "Sid": "ListMicrovms",
       "Effect": "Allow",
       "Action": "lambda:ListMicrovms",

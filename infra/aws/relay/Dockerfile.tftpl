@@ -1,0 +1,7 @@
+# The relay for guest networking in the browser, as paludarium publishes it
+# (docs/guide/relay.md). Lambda builds this on its MicroVM base image, starts
+# it, and snapshots the running relay; each MicroVM resumes from there.
+FROM node:alpine
+RUN npm install -g --ignore-scripts @aletheia-works/paludarium-wasm@${paludarium_version}
+EXPOSE 8080
+CMD ["sh", "-c", "exec node \"$(npm root -g)/@aletheia-works/paludarium-wasm/relay.mjs\""]

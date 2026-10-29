@@ -14,3 +14,4 @@ tfplan
 
 .DS_Store
 Thumbs.db
+.build/

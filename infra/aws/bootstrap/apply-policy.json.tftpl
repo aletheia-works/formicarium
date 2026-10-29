@@ -20,6 +20,23 @@
       ]
     },
     {
+      "Sid": "WriteThroughCloudControl",
+      "Effect": "Allow",
+      "Action": [
+        "cloudformation:CreateResource",
+        "cloudformation:UpdateResource",
+        "cloudformation:DeleteResource",
+        "cloudformation:CancelResourceRequest"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "PassLambdaNetworkConnectors",
+      "Effect": "Allow",
+      "Action": "lambda:PassNetworkConnector",
+      "Resource": "arn:aws:lambda:*:aws:network-connector:aws-network-connector:*"
+    },
+    {
       "Sid": "WriteOwnLogGroups",
       "Effect": "Allow",
       "Action": "logs:*",
