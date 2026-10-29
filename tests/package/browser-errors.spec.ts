@@ -2,6 +2,7 @@ import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 import type { ExecutionError } from '../../runtime/errors.js';
 import { elfHeader, serveDirectory } from './fixtures.js';
+import { elf, expectation } from './session-fixtures.js';
 
 let server: Awaited<ReturnType<typeof serveDirectory>>;
 test.beforeAll(async () => {
@@ -78,6 +79,60 @@ test('browser run with a network is UNSUPPORTED_ENV before any Worker starts', a
       }
     },
     [...elfHeader()],
+  );
+  expect(result).toEqual({ code: 'UNSUPPORTED_ENV', fetched: [] });
+});
+test('browser command with a network is UNSUPPORTED_ENV before any Worker starts', async ({
+  page,
+}) => {
+  const bytes = elf();
+  const result = await page.evaluate(
+    async ({ guest, expected }) => {
+      const { createSession } = await import('/runtime/web/api.js');
+      const { createCommandSession, registerValidatedGuest, validateGuest } =
+        await import('/runtime/public.js');
+      const url = `${location.origin}/missing-worker.mjs`;
+      const session = await createSession({
+        assets: {
+          loaderURL: url,
+          wasmURL: url,
+          buildInfoURL: url,
+          workerURL: url,
+        },
+      });
+      const bytes = Uint8Array.from(guest);
+      await registerValidatedGuest(
+        session,
+        'fixture',
+        validateGuest(bytes, expected),
+      );
+      const shell = createCommandSession(session, {
+        catalog: {
+          schemaVersion: 1,
+          catalogId: 'none',
+          defaults: {},
+          entries: [],
+        },
+      });
+      const fetched: string[] = [];
+      const original = globalThis.fetch;
+      globalThis.fetch = (input, init) => {
+        fetched.push(String(input));
+        return original(input, init);
+      };
+      try {
+        await shell.execute('fixture', {
+          network: { allow: ['github.com:443'] },
+        });
+      } catch (caught) {
+        const error = caught as ExecutionError;
+        return { code: error.code, fetched };
+      } finally {
+        globalThis.fetch = original;
+        await session.dispose();
+      }
+    },
+    { guest: [...bytes], expected: expectation(bytes) },
   );
   expect(result).toEqual({ code: 'UNSUPPORTED_ENV', fetched: [] });
 });
