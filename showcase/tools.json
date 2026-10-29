@@ -105,6 +105,181 @@
         "format": "tar.gz",
         "archiveEntry": "jj"
       }
+    },
+    {
+      "tool": "git",
+      "repository": "https://github.com/git/git",
+      "tagPattern": "^v(\\d+\\.\\d+\\.\\d+)$",
+      "fixture": "git-basic",
+      "everyPage": true,
+      "homeFiles": {
+        ".gitconfig": "[http]\n\tsslCAInfo = /root/.config/ssl/cacert.pem\n"
+      },
+      "acquire": {
+        "kind": "gnu-source",
+        "builder": "autotools",
+        "package": "git",
+        "tag": "v{version}",
+        "signers": ["96E07AF25771955980DAD10020D04E5A713660A7"],
+        "spdx": "GPL-2.0-only",
+        "source": {
+          "listing": "https://www.kernel.org/pub/software/scm/git/",
+          "tarball": "https://www.kernel.org/pub/software/scm/git/git-{version}.tar.gz",
+          "signature": "https://www.kernel.org/pub/software/scm/git/git-{version}.tar.sign",
+          "signedData": "tar",
+          "license": "COPYING"
+        },
+        "configure": [
+          "--with-curl={prefix}",
+          "--without-openssl",
+          "--with-zlib={prefix}",
+          "--without-tcltk",
+          "--without-expat"
+        ],
+        "make": [
+          "prefix=/usr",
+          "NO_GETTEXT=1",
+          "NO_REGEX=YesPlease",
+          "NO_RUST=YesPlease",
+          "NO_TCLTK=1",
+          "NO_PERL=1",
+          "NO_PYTHON=1",
+          "NO_CURL=",
+          "CURLDIR={prefix}",
+          "CURL_CONFIG={prefix}/bin/curl-config",
+          "CURL_LDFLAGS=-L{prefix}/lib -lcurl -lgnutls -lhogweed -lnettle -lgmp -lz -pthread"
+        ],
+        "binary": "git",
+        "output": "git",
+        "companions": [
+          {
+            "binary": "git-remote-https",
+            "output": "git-remote-http"
+          }
+        ],
+        "libraries": [
+          {
+            "package": "zlib",
+            "repository": "https://github.com/madler/zlib",
+            "tag": "v{version}",
+            "signers": ["5ED46A6721D365587791E2AA783FCD8E58BCAFBA"],
+            "spdx": "Zlib",
+            "source": {
+              "listing": "https://zlib.net/",
+              "tarball": "https://zlib.net/zlib-{version}.tar.gz",
+              "signature": "{tarball}.asc",
+              "license": "LICENSE"
+            },
+            "configure": ["--static"]
+          },
+          {
+            "package": "gmp",
+            "signers": ["343C2FF0FBEE5EC2EDBEF399F3599FF828C67298"],
+            "spdx": "LGPL-3.0-or-later OR GPL-2.0-or-later",
+            "source": {
+              "listing": "https://ftp.gnu.org/gnu/gmp/",
+              "tarball": "https://ftp.gnu.org/gnu/gmp/gmp-{version}.tar.gz",
+              "signature": "{tarball}.sig",
+              "license": "COPYINGv2"
+            },
+            "configure": [
+              "--disable-shared",
+              "--enable-static",
+              "CFLAGS=-O2 -std=gnu17"
+            ]
+          },
+          {
+            "package": "nettle",
+            "repository": "https://github.com/gnutls/nettle",
+            "tag": "nettle_{version}_release_{date}",
+            "signers": ["343C2FF0FBEE5EC2EDBEF399F3599FF828C67298"],
+            "spdx": "LGPL-3.0-or-later OR GPL-2.0-or-later",
+            "source": {
+              "listing": "https://ftp.gnu.org/gnu/nettle/",
+              "tarball": "https://ftp.gnu.org/gnu/nettle/nettle-{version}.tar.gz",
+              "signature": "{tarball}.sig",
+              "license": "COPYINGv2"
+            },
+            "configure": [
+              "--disable-shared",
+              "--disable-documentation",
+              "--libdir={prefix}/lib"
+            ]
+          },
+          {
+            "package": "gnutls",
+            "repository": "https://github.com/gnutls/gnutls",
+            "tag": "{version}",
+            "signers": [
+              "5D46CB0F763405A7053556F47A75A648B3F9220C",
+              "E987AB7F7E89667776D05B3BB0E9DD20B29F1432"
+            ],
+            "spdx": "LGPL-2.1-or-later",
+            "source": {
+              "listing": "https://www.gnupg.org/ftp/gcrypt/gnutls/v3.8/",
+              "tarball": "https://www.gnupg.org/ftp/gcrypt/gnutls/v3.8/gnutls-{version}.tar.xz",
+              "signature": "{tarball}.sig",
+              "license": "COPYING.LESSERv2"
+            },
+            "configure": [
+              "--disable-shared",
+              "--enable-static",
+              "--with-included-libtasn1",
+              "--with-included-unistring",
+              "--without-p11-kit",
+              "--disable-tools",
+              "--disable-doc",
+              "--disable-manpages",
+              "--disable-tests",
+              "--disable-nls",
+              "--disable-cxx",
+              "--without-idn",
+              "--without-tpm",
+              "--without-tpm2",
+              "--without-zlib",
+              "--without-zstd",
+              "--without-brotli",
+              "NETTLE_CFLAGS=-I{prefix}/include",
+              "NETTLE_LIBS=-L{prefix}/lib -lnettle",
+              "HOGWEED_CFLAGS=-I{prefix}/include",
+              "HOGWEED_LIBS=-L{prefix}/lib -lhogweed -lnettle -lgmp"
+            ]
+          },
+          {
+            "package": "curl",
+            "repository": "https://github.com/curl/curl",
+            "tag": "curl-{major}_{minor}_{patch}",
+            "signers": ["27EDEAF22F3ABCEB50DB9A125CC908FDB71E12C2"],
+            "spdx": "curl",
+            "source": {
+              "listing": "https://curl.se/download/",
+              "tarball": "https://curl.se/download/curl-{version}.tar.gz",
+              "signature": "{tarball}.asc",
+              "license": "COPYING"
+            },
+            "configure": [
+              "--disable-shared",
+              "--enable-static",
+              "--with-gnutls={prefix}",
+              "--without-openssl",
+              "--with-zlib={prefix}",
+              "--without-libidn2",
+              "--without-libpsl",
+              "--without-brotli",
+              "--without-zstd",
+              "--without-nghttp2",
+              "--without-libssh2",
+              "--disable-ldap",
+              "--disable-docs",
+              "--disable-manual",
+              "--with-ca-bundle=/root/.config/ssl/cacert.pem",
+              "--without-ca-path",
+              "LIBS=-lhogweed -lnettle -lgmp",
+              "ac_cv_func_memset_explicit=no"
+            ]
+          }
+        ]
+      }
     }
   ]
 }

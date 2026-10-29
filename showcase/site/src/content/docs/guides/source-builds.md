@@ -24,10 +24,22 @@ commit for the rest of the run.
   sources. Both are built with musl-gcc as static libraries and a static
   program, and the signed tarballs are published beside the guest under
   `sources/` as its corresponding source.
+- **Signed tarballs from other servers.** git is built the same way from its
+  tarball on kernel.org, with zlib, GMP, nettle, GnuTLS and curl from their own
+  release servers; GnuTLS and nettle keep every linked part compatible with
+  git's GPL-2.0-only license. A `source` entry names the listing, the tarball
+  (`.tar.gz`, or `.tar.xz` as GnuTLS publishes it) and the signature of such a
+  package (git signs the uncompressed tar, the others the archive) and its
+  license file. GMP, which nettle uses and which has no tagged public
+  repository, is the one exception: it is identified by its signed
+  ftp.gnu.org tarball alone, and no commit is recorded for it. As for nano, the signed tarballs of the guest and of every
+  library are published under `sources/`. The same build
+  also gives `git-remote-https`, a guest of its own that every page installs
+  quietly with git, so jj can run git too.
 
 The run then writes the catalog, installs and runs each tool with
 `--version` through the public API in Node, Chromium, Firefox, WebKit and real
-Safari on macOS, and assembles the candidate only when all twenty-five checks pass. This site is built
+Safari on macOS, and assembles the candidate only when all thirty checks pass. This site is built
 from that candidate and never resolves `latest` again.
 
 Adding a tool needs an entry in `tools.json`, a demo fixture in

@@ -16,7 +16,11 @@ import { type WorkLayout, workLayout, writeOnce } from './paths.ts';
 export const sitePath = (tool: string, version: string, file: string) =>
   `guests/${tool}/${version}/${file}`;
 
-/** GuestCatalog whose defaults are the versions resolved in this run. */
+/**
+ * GuestCatalog whose defaults are the versions resolved in this run. A
+ * companion is installable by its own name too; its entry names the tool it
+ * belongs to (`companionOf`), so the pages and their tests can tell it apart.
+ */
 export function buildCatalog(
   records: readonly AcquiredTool[],
   limit: number = TRANSFER_POLICY.maxCatalogBytes,
@@ -33,6 +37,7 @@ export function buildCatalog(
     downloadSha256: record.downloadSha256,
     downloadBytes: record.downloadBytes,
     elfBytes: record.elfBytes,
+    ...(record.companionOf ? { companionOf: record.companionOf } : {}),
     buildInfo: record.buildInfo,
     buildInfoSha256: record.buildInfoSha256,
   }));

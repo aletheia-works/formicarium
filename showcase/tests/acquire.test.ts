@@ -29,7 +29,7 @@ import {
   releaseRoutes,
   sha,
 } from './fixtures/github.ts';
-import { gnuOptions, ncursesTagRoutes } from './fixtures/gnu.ts';
+import { gitTagRoutes, gnuOptions, ncursesTagRoutes } from './fixtures/gnu.ts';
 import { tgz } from './fixtures/tar.ts';
 import { MAIN_ALLOWED, readMain, withLayout } from './fixtures/work.ts';
 
@@ -230,6 +230,7 @@ function siteRoutes() {
       assets: [{ name: 'biome-linux-x64-musl', bytes: biomeElf }],
     }),
     ...ncursesTagRoutes(),
+    ...gitTagRoutes(),
     ...releaseRoutes({
       slug: 'jj-vcs/jj',
       tag: 'v0.46.0',

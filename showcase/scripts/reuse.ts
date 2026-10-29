@@ -10,6 +10,7 @@ import { readZip } from './archive.ts';
 import {
   type BuildPlan,
   loadPlans,
+  planGuests,
   sourceBuildInfo,
   sourceRecord,
 } from './build.ts';
@@ -175,11 +176,18 @@ export function checkReused(
   }
 }
 
-/** Returns a reused record, or null when the plan must be compiled. */
+/**
+ * Returns a reused record, or null when the plan must be compiled. A plan
+ * with companions is reused only when every one of its guests matches.
+ */
 export async function findReusable(
   plan: BuildPlan,
   options: ReuseOptions,
-): Promise<{ record: AcquiredTool; elf: Uint8Array } | null> {
+): Promise<{
+  record: AcquiredTool;
+  elf: Uint8Array;
+  companions: { record: AcquiredTool; elf: Uint8Array }[];
+} | null> {
   const latest = await latestCandidateArtifact(options);
   if (!latest) return null;
   let files: Map<string, Uint8Array>;
@@ -189,20 +197,26 @@ export async function findReusable(
     console.log(`reuse unavailable (${causeOf(error)}); building ${plan.tool}`);
     return null;
   }
-  const checked = checkReused(plan, files, options.validate);
-  if (!checked) return null;
-  const record = sourceRecord(
-    plan,
-    checked.elf,
-    checked.info,
-    checked.buildInfoSha256,
-    {
-      runId: latest.run.id,
-      runAttempt: latest.run.run_attempt,
-      workflow: latest.run.path,
-    },
-  );
-  return { record, elf: checked.elf };
+  const found: { record: AcquiredTool; elf: Uint8Array }[] = [];
+  for (const guest of planGuests(plan)) {
+    const checked = checkReused(guest.plan, files, options.validate);
+    if (!checked) return null;
+    const record = sourceRecord(
+      guest.plan,
+      checked.elf,
+      checked.info,
+      checked.buildInfoSha256,
+      {
+        runId: latest.run.id,
+        runAttempt: latest.run.run_attempt,
+        workflow: latest.run.path,
+      },
+      guest.companionOf,
+    );
+    found.push({ record, elf: checked.elf });
+  }
+  const [own, ...companions] = found;
+  return { ...own!, companions };
 }
 
 export async function runReuseJob(options: {
@@ -226,7 +240,8 @@ export async function runReuseJob(options: {
     if (present.has(plan.tool)) continue;
     const found = await findReusable(plan, { ...options, trusted });
     if (!found) continue;
-    await storeAcquired(layout, found.record, found.elf, found.elf);
+    for (const guest of [found, ...found.companions])
+      await storeAcquired(layout, guest.record, guest.elf, guest.elf);
     reused.push(plan.tool);
   }
   return reused;

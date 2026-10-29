@@ -75,6 +75,7 @@ function data(
     interactive: [],
     everyPage: [],
     homeFiles: [],
+    companions: {},
     ...overrides,
   };
 }
@@ -475,6 +476,79 @@ test('the empty terminal installs every-page tools once; a failed install stops 
     'installer nano',
     'install nano',
   ]);
+});
+
+test("a tool's companions are installed quietly with it, at its version, on every path", async () => {
+  const companions = { aube: ['aube-extra'], nano: ['nano-a', 'nano-b'] };
+  const answer = async (line: string) => installed(line.slice(8));
+  // The page's own tool, then an every-page tool, each with its companions.
+  const page = harness('preinstalled', answer, {
+    data: data('preinstalled', { everyPage: ['nano'], companions }),
+  });
+  await page.host.start();
+  assert.deepEqual(page.lines, [
+    'install aube',
+    'installer aube-extra@2.7.2',
+    'installer nano',
+    'installer nano-a@2.7.2',
+    'installer nano-b@2.7.2',
+  ]);
+  assert.equal(page.host.state, 'ready');
+  assert.equal(page.status.textContent, 'Ready: aube 2.7.2');
+  assert.doesNotMatch(page.writes.join(''), /extra|nano/);
+  // A typed install brings the companions too; the ready text names the tool.
+  const empty = harness('empty', answer, {
+    data: data('empty', { companions }),
+  });
+  await empty.host.start();
+  type(empty.host, 'install aube');
+  await settle();
+  assert.deepEqual(empty.lines, ['install aube', 'installer aube-extra@2.7.2']);
+  assert.equal(empty.host.state, 'ready');
+  assert.equal(empty.status.textContent, 'Ready: aube 2.7.2');
+  // A companion that fails is named, and leaves the typed install failed.
+  const failing = harness(
+    'empty',
+    async (line) => {
+      if (line === 'install aube-extra@2.7.2')
+        throw Object.assign(new Error('HTTP 404'), { code: 'ASSET_LOAD' });
+      return installed(line.slice(8));
+    },
+    { data: data('empty', { companions }) },
+  );
+  await failing.host.start();
+  type(failing.host, 'install aube');
+  await settle();
+  assert.equal(failing.host.state, 'ready');
+  assert.match(failing.writes.join(''), /\naube-extra: ASSET_LOAD: HTTP 404\n/);
+  assert.match(failing.status.textContent ?? '', /ASSET_LOAD: HTTP 404/);
+  // On the page's own install it leaves ready_failed_install, naming it too.
+  const own = harness(
+    'preinstalled',
+    async (line) => {
+      if (line === 'install nano-b@2.7.2')
+        throw Object.assign(new Error('HTTP 404'), { code: 'ASSET_LOAD' });
+      return installed(line.slice(8));
+    },
+    { data: data('preinstalled', { tool: 'nano', companions }) },
+  );
+  await own.host.start();
+  assert.equal(own.host.state, 'ready_failed_install');
+  assert.match(own.writes.join(''), /\nnano-b: ASSET_LOAD: HTTP 404\n/);
+  const quiet = harness(
+    'empty',
+    async (line) => {
+      if (line === 'install nano-a@2.7.2')
+        throw Object.assign(new Error('HTTP 404'), { code: 'ASSET_LOAD' });
+      return installed(line.slice(8));
+    },
+    { data: data('empty', { everyPage: ['nano', 'aube'], companions }) },
+  );
+  await quiet.host.start();
+  // The first failure stops the rest, named by the companion.
+  assert.deepEqual(quiet.lines, ['installer nano', 'installer nano-a@2.7.2']);
+  assert.equal(quiet.host.state, 'ready_failed_install');
+  assert.match(quiet.writes.join(''), /^nano-a: ASSET_LOAD: HTTP 404\n/);
 });
 
 test('Ctrl-C cancels a quiet every-page install', async () => {

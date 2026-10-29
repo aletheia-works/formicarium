@@ -9,9 +9,10 @@ terminal, places a small sample project in `/work/app` and installs the tool
 before the prompt appears. The status line above the terminal tells you what
 is happening (isolation, loading, installing, ready, running or an error).
 
-The [empty terminal](/formicarium/terminal/) starts with only nano installed.
-Type `install aube`, `install pitchfork`, `install biome`, `install nano` or
-`install jj`, then run the tool, for example `biome --version`.
+The [empty terminal](/formicarium/terminal/) starts with only nano and git
+installed. Type `install aube`, `install pitchfork`, `install biome`,
+`install nano`, `install jj` or `install git`, then run the tool, for example
+`biome --version`.
 
 ## Commands
 

@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 import {
   assetName,
+  companionNames,
   gnuTag,
   MAX_HOME_FILE_BYTES,
   readConfigFile,
@@ -33,6 +34,7 @@ test('the committed tools.json, allow list, callers and release pin are valid', 
       ['biome', 'release-asset'],
       ['nano', 'gnu-source'],
       ['jj', 'release-asset'],
+      ['git', 'gnu-source'],
     ],
   );
   assert.deepEqual(
@@ -202,6 +204,158 @@ test('a gnu-source tool needs pinned signers, a version tag and allowed librarie
     const config = await current();
     change(config);
     rejects(() => validateToolsConfig(config, allowed), code);
+  }
+});
+
+test('git names its own source servers, GnuTLS and nettle, make variables and a companion', async () => {
+  type Lib = Record<string, unknown> & { source?: Record<string, unknown> };
+  const git = (config: { tools: ToolJson[] }) =>
+    config.tools.find((item) => item.tool === 'git')!;
+  const lib = (config: { tools: ToolJson[] }, index: number) =>
+    (git(config).acquire.libraries as Lib[])[index]!;
+  const source = (config: { tools: ToolJson[] }) =>
+    git(config).acquire.source as Record<string, unknown>;
+  const parsed = validateToolsConfig(await current(), allowed).tools.find(
+    (item) => item.tool === 'git',
+  )!;
+  assert.equal(parsed.acquire.kind, 'gnu-source');
+  if (parsed.acquire.kind !== 'gnu-source') return;
+  assert.equal(parsed.acquire.source?.signedData, 'tar');
+  assert.deepEqual(
+    parsed.acquire.libraries.map((item) => [
+      item.package,
+      item.tag,
+      item.source?.signature,
+      item.source?.license,
+    ]),
+    [
+      ['zlib', 'v{version}', '{tarball}.asc', 'LICENSE'],
+      ['gmp', null, '{tarball}.sig', 'COPYINGv2'],
+      [
+        'nettle',
+        'nettle_{version}_release_{date}',
+        '{tarball}.sig',
+        'COPYINGv2',
+      ],
+      ['gnutls', '{version}', '{tarball}.sig', 'COPYING.LESSERv2'],
+      ['curl', 'curl-{major}_{minor}_{patch}', '{tarball}.asc', 'COPYING'],
+    ],
+  );
+  // GMP has no repository; GnuTLS ships .tar.xz only; nettle is dual licensed.
+  assert.equal(parsed.acquire.libraries[1]!.repository, null);
+  assert.ok(parsed.acquire.libraries[3]!.source?.tarball.endsWith('.tar.xz'));
+  assert.equal(
+    parsed.acquire.libraries[2]!.spdx,
+    'LGPL-3.0-or-later OR GPL-2.0-or-later',
+  );
+  assert.ok(parsed.acquire.make?.includes('NO_CURL='));
+  assert.deepEqual(parsed.acquire.companions, [
+    { binary: 'git-remote-https', output: 'git-remote-http' },
+  ]);
+  assert.deepEqual(companionNames(parsed), ['git-remote-https']);
+  assert.deepEqual(
+    companionNames(validateToolsConfig(await current(), allowed).tools[0]!),
+    [],
+  );
+  // nano keeps the GNU defaults: no source settings at all.
+  const nano = validateToolsConfig(await current(), allowed).tools.find(
+    (item) => item.tool === 'nano',
+  )!;
+  assert.equal(
+    nano.acquire.kind === 'gnu-source' && nano.acquire.source,
+    undefined,
+  );
+  // A full signature URL without {tarball} and an absent signedData pass too.
+  const accepted = await current();
+  source(accepted).signature =
+    'https://www.kernel.org/pub/software/scm/git/git-{major}.{minor}.{patch}.tar.asc';
+  delete source(accepted).signedData;
+  validateToolsConfig(accepted, allowed);
+  // A library without a repository may also keep the plain GNU defaults.
+  const plain = await current();
+  delete lib(plain, 1).source;
+  assert.equal(
+    validateToolsConfig(plain, allowed).tools.at(-1)?.acquire.kind,
+    'gnu-source',
+  );
+  const refused: ((config: { tools: ToolJson[] }) => void)[] = [
+    // Source URLs: HTTPS, a plain host, known placeholders, no `..`.
+    (config) => (source(config).listing = 'http://www.kernel.org/git/'),
+    (config) => (source(config).listing = 'https://user@kernel.org/git/'),
+    (config) => (source(config).listing = 'https://kernel.org/git/?x=1'),
+    (config) => (source(config).listing = 'https://kernel.org/git/{tag}/'),
+    (config) => (source(config).listing = 'https://kernel.org/../git/'),
+    (config) => (source(config).listing = 'https://localhost/git/'),
+    (config) =>
+      (source(config).tarball = 'https://kernel.org/git-{version}.tar.bz2'),
+    (config) =>
+      (source(config).tarball = 'https://kernel.org/git-{version}.tar.gz.xz'),
+    (config) =>
+      (source(config).tarball = 'https://kernel.org/nano-{version}.tar.gz'),
+    (config) => (source(config).signature = '{tarball}'),
+    (config) => (source(config).signature = 'x{tarball}.asc'),
+    (config) => (source(config).signature = '{tarball}/../x.asc'),
+    (config) => (source(config).signature = 'https://kernel.org/git.tar.sign'),
+    (config) =>
+      (source(config).signature = 'https://kernel.org/x/git-{version}.tar.gz'),
+    (config) => (source(config).signedData = 'archive'),
+    (config) => (source(config).license = '../COPYING'),
+    (config) => (source(config).extra = true),
+    (config) => (git(config).acquire.source = 'https://kernel.org/'),
+    // No library builder but autotools, and autotools arguments only.
+    (config) => (lib(config, 2).builder = 'openssl'),
+    (config) => (lib(config, 0).configure = ['linux x86_64']),
+    // An autoconf cache answer is yes or no, nothing else.
+    (config) => (lib(config, 0).configure = ['ac_cv_func_x=maybe']),
+    (config) => (lib(config, 0).configure = ['ac_cv_func_x=$(id)']),
+    (config) => (lib(config, 0).configure = ['cv_func_x=no']),
+    // Tags: known placeholders only; {date} only on GitHub, once.
+    (config) => (lib(config, 2).tag = 'nettle_{version}_{when}'),
+    (config) => (lib(config, 2).tag = 'nettle_{date}'),
+    (config) => (lib(config, 2).tag = 'nettle_{version}_{date}_{date}'),
+    (config) => {
+      lib(config, 2).repository = 'https://git.savannah.gnu.org/git/nano.git';
+    },
+    // No repository and tag: both or neither, never for the tool, and only
+    // for a signed ftp.gnu.org tarball.
+    (config) => (lib(config, 1).repository = 'https://github.com/madler/zlib'),
+    (config) => (lib(config, 1).tag = 'v{version}'),
+    (config) => delete lib(config, 0).tag,
+    (config) => delete lib(config, 0).repository,
+    (config) => delete git(config).acquire.tag,
+    (config) => (lib(config, 1).source!.listing = 'https://zlib.net/'),
+    (config) =>
+      (lib(config, 1).source!.tarball =
+        'https://zlib.net/gmp-{version}.tar.gz'),
+    (config) => (lib(config, 1).source!.signature = '{tarball}.asc'),
+    (config) => (lib(config, 1).source!.signedData = 'tar'),
+    // SPDX: identifiers joined by OR/AND, nothing else.
+    (config) => (lib(config, 2).spdx = 'LGPL-3.0-or-later or GPL-2.0'),
+    (config) => (lib(config, 2).spdx = 'LGPL-3.0-or-later OR'),
+    (config) => (lib(config, 2).spdx = '(MIT)'),
+    // Make variables: NAME=value, nothing that steers make itself.
+    (config) => (git(config).acquire.make = []),
+    (config) => (git(config).acquire.make = ['-j1']),
+    (config) => (git(config).acquire.make = ['NO_CURL=$(shell id)']),
+    (config) => (git(config).acquire.make = ['MAKEFLAGS=-e']),
+    (config) => (git(config).acquire.make = ['SHELL=/bin/sh']),
+    // Companions: a tool name, a safe output, no clash with any tool.
+    (config) => (git(config).acquire.companions = []),
+    (config) =>
+      (git(config).acquire.companions = [{ binary: 'Git', output: 'g' }]),
+    (config) =>
+      (git(config).acquire.companions = [{ binary: 'x', output: '../x' }]),
+    (config) =>
+      (git(config).acquire.companions = [{ binary: 'x', output: 'x', y: 1 }]),
+    (config) =>
+      (git(config).acquire.companions = [{ binary: 'git', output: 'git' }]),
+    (config) =>
+      (git(config).acquire.companions = [{ binary: 'jj', output: 'jj' }]),
+  ];
+  for (const change of refused) {
+    const config = await current();
+    change(config);
+    rejects(() => validateToolsConfig(config, allowed), 'config-invalid');
   }
 });
 

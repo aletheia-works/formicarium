@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { validateGuest } from '@aletheia-works/formicarium';
-import { type BuildPlan, sourceBuildInfo } from '../scripts/build.ts';
+import {
+  type BuildPlan,
+  planGuests,
+  sourceBuildInfo,
+} from '../scripts/build.ts';
 import { canonicalJson } from '../scripts/build-key.ts';
 import { readConfigFile, validateTrustedCallers } from '../scripts/config.ts';
 import { createGitHubApi } from '../scripts/github.ts';
@@ -98,9 +102,9 @@ const goodFiles = () => ({
   [`${prefix}pitchfork`]: elf,
   [`${prefix}build-info.json`]: canonicalJson(sourceBuildInfo(plan, sha(elf))),
 });
-const reuse = (table: Record<string, Route>) => {
+const reuse = (table: Record<string, Route>, which: BuildPlan = plan) => {
   const fetchImpl = fakeFetch(table);
-  return findReusable(plan, {
+  return findReusable(which, {
     api: createGitHubApi({ token: 'read', fetchImpl }),
     repository: 'owner/repo',
     trusted,
@@ -197,4 +201,53 @@ test('an unavailable artifact download falls back to a build', async () => {
   const table = routes([run({})], goodFiles());
   delete table['https://blob.example/a.zip?sig=secret'];
   assert.equal(await reuse(table), null);
+});
+
+test('a build with a companion is reused only with every one of its guests', async () => {
+  // Shaped like git's plan: one autotools build, git-remote-https beside it.
+  const gnu: BuildPlan = {
+    ...plan,
+    builder: 'autotools',
+    toolchain: null,
+    cargo: null,
+    rustc: null,
+    rustcVersion: null,
+    gnu: {
+      steps: [],
+      output: 'pitchfork',
+      make: [],
+      companions: [{ binary: 'pitchfork-extra', output: 'extra' }],
+      cc: { compiler: 'gcc', muslLibcSha256: 'c'.repeat(64) },
+      signedOnly: [],
+    },
+  };
+  gnu.buildKey = sourceBuildInfo(gnu, '0'.repeat(64)).buildKey;
+  const [own, companion] = planGuests(gnu);
+  assert.equal(own!.plan, gnu);
+  assert.equal(companion!.companionOf, 'pitchfork');
+  assert.notEqual(companion!.plan.buildKey, gnu.buildKey);
+  const extra = staticElf(190, 6);
+  const companionPrefix = 'site/guests/pitchfork-extra/2.30.0/';
+  const files = {
+    [`${prefix}pitchfork`]: elf,
+    [`${prefix}build-info.json`]: canonicalJson(sourceBuildInfo(gnu, sha(elf))),
+    [`${companionPrefix}pitchfork-extra`]: extra,
+    [`${companionPrefix}build-info.json`]: canonicalJson(
+      sourceBuildInfo(companion!.plan, sha(extra)),
+    ),
+  };
+  const found = await reuse(routes([run({ id: 13 })], files), gnu);
+  assert.ok(found);
+  assert.equal(found.record.tool, 'pitchfork');
+  assert.deepEqual(
+    found.companions.map((item) => [
+      item.record.tool,
+      item.record.companionOf,
+      item.record.elfSha256,
+      item.record.provenance.reusedFromRun?.runId,
+    ]),
+    [['pitchfork-extra', 'pitchfork', sha(extra), 13]],
+  );
+  const { [`${companionPrefix}pitchfork-extra`]: _gone, ...missing } = files;
+  assert.equal(await reuse(routes([run({})], missing), gnu), null);
 });

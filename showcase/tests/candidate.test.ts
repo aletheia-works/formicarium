@@ -21,6 +21,7 @@ import {
   fixtureInventorySha256,
   lastDistributableAt,
   noticesText,
+  resolvedTools,
   summaryMarkdown,
 } from '../scripts/candidate.ts';
 import { buildCatalog, placeSite } from '../scripts/catalog.ts';
@@ -254,49 +255,69 @@ test('verify assembles a non-distributable candidate whose id matches its manife
   });
 });
 
-/** biome's resolution as if built from a signed GNU tarball with one library. */
-async function withGnuSources(layout: WorkLayout, tarballBody = 'tarball') {
+/**
+ * biome's resolution as if built from a signed GPL tarball with an X11
+ * library and an LGPL one whose signature is an `.asc` (not a `.sig`).
+ * With `license` the tool's own license is another one.
+ */
+async function withGnuSources(
+  layout: WorkLayout,
+  tarballBody = 'tarball',
+  license = 'GPL-3.0-or-later',
+) {
   const resolutions = resolutionsOf(fixtures);
   const biome = resolutions.tools.find((item) => item.tool === 'biome')!;
-  const tarball = (name: string) => ({
+  biome.license = { ...biome.license, spdx: license };
+  const tarball = (name: string, signature?: string) => ({
     name: `${name}-1.0.tar.gz`,
     url: `https://ftp.gnu.org/gnu/${name}/${name}-1.0.tar.gz`,
     sha256: sha256('tarball'),
     size: 7,
-    signatureUrl: `https://ftp.gnu.org/gnu/${name}/${name}-1.0.tar.gz.sig`,
+    signatureUrl: `https://ftp.gnu.org/gnu/${name}/${signature ?? `${name}-1.0.tar.gz.sig`}`,
     signatureSha256: sha256('sig'),
+    ...(signature ? { signatureName: signature } : {}),
     signer: 'A'.repeat(40),
+  });
+  const library = (name: string, spdx: string, signature?: string) => ({
+    package: name,
+    repository: `https://github.com/example/${name}`,
+    tag: 'v1.0',
+    version: '1.0',
+    commit: commit(name),
+    tarball: tarball(name, signature),
+    license: {
+      path: 'COPYING',
+      file: `${name}-COPYING`,
+      sha256: sha256(`${spdx}\n`),
+      spdx,
+    },
   });
   biome.gnu = {
     tarball: tarball('biome'),
     libraries: [
-      {
-        package: 'ncurses',
-        repository: 'https://github.com/ThomasDickey/ncurses-snapshots',
-        tag: 'v6_6',
-        version: '6.6',
-        commit: commit('ncurses'),
-        tarball: tarball('ncurses'),
-        license: {
-          path: 'COPYING',
-          file: 'ncurses-COPYING',
-          sha256: sha256('X11\n'),
-          spdx: 'X11',
-        },
-      },
+      library('ncurses', 'X11'),
+      library('libfoo', 'LGPL-2.1-or-later', 'libfoo-1.0.tar.gz.asc'),
     ],
   };
   await writeJson(layout.resolutions, resolutions);
   await writeFile(join(layout.licenses, 'ncurses-COPYING'), 'X11\n');
+  await writeFile(
+    join(layout.licenses, 'libfoo-COPYING'),
+    'LGPL-2.1-or-later\n',
+  );
   await mkdir(layout.tarballs, { recursive: true });
-  for (const name of ['biome', 'ncurses']) {
+  for (const [name, signature] of [
+    ['biome', 'biome-1.0.tar.gz.sig'],
+    ['ncurses', 'ncurses-1.0.tar.gz.sig'],
+    ['libfoo', 'libfoo-1.0.tar.gz.asc'],
+  ]) {
     await writeFile(join(layout.tarballs, `${name}-1.0.tar.gz`), tarballBody);
-    await writeFile(join(layout.tarballs, `${name}-1.0.tar.gz.sig`), 'sig');
+    await writeFile(join(layout.tarballs, signature!), 'sig');
   }
   return resolutions;
 }
 
-test('a GNU guest brings its library license and its signed sources', async () => {
+test('a GPL guest brings its library licenses and the signed sources of all its packages', async () => {
   await withLayout(async (layout) => {
     const { packageRoot, pack } = await seed(layout);
     const resolutions = await withGnuSources(layout);
@@ -311,8 +332,12 @@ test('a GNU guest brings its library license and its signed sources', async () =
     const site = join(layout.candidate, 'site');
     for (const path of [
       'licenses/ncurses-COPYING',
+      'licenses/libfoo-COPYING',
       'sources/biome/biome-1.0.tar.gz',
       'sources/biome/biome-1.0.tar.gz.sig',
+      'sources/biome/libfoo-1.0.tar.gz',
+      'sources/biome/libfoo-1.0.tar.gz.asc',
+      // The X11 library is linked into the GPL guest: its source comes too.
       'sources/biome/ncurses-1.0.tar.gz',
       'sources/biome/ncurses-1.0.tar.gz.sig',
     ])
@@ -321,12 +346,33 @@ test('a GNU guest brings its library license and its signed sources', async () =
     assert.equal(await readFile(join(site, 'NOTICES.md'), 'utf8'), notices);
     assert.match(
       notices,
-      / {2}- with ncurses 6\.6 .+ X11 — licenses\/ncurses-COPYING/,
+      / {2}- with ncurses 1\.0 .+ X11 — licenses\/ncurses-COPYING/,
     );
     assert.match(
       notices,
-      / {2}- source: sources\/biome\/ncurses-1\.0\.tar\.gz /,
+      / {2}- source: sources\/biome\/libfoo-1\.0\.tar\.gz and its signature libfoo-1\.0\.tar\.gz\.asc /,
     );
+    assert.match(
+      notices,
+      /sources\/biome\/ncurses-1\.0\.tar\.gz and its signature ncurses-1\.0\.tar\.gz\.sig/,
+    );
+  });
+  // A guest under a permissive license serves only the license files.
+  await withLayout(async (layout) => {
+    const { packageRoot, pack } = await seed(layout);
+    const resolutions = await withGnuSources(layout, 'tarball', 'MIT');
+    await assembleCandidate({
+      layout,
+      mode: 'verify',
+      sourceCommit,
+      pack,
+      log: logOf(rowsFor()),
+      packageRoot,
+    });
+    const site = join(layout.candidate, 'site');
+    await access(join(site, 'licenses/libfoo-COPYING'));
+    await assert.rejects(access(join(site, 'sources')));
+    assert.doesNotMatch(noticesText(resolutions), /source: /);
   });
   await withLayout(async (layout) => {
     const { packageRoot, pack } = await seed(layout);
@@ -343,6 +389,64 @@ test('a GNU guest brings its library license and its signed sources', async () =
       (error) => causeOf(error) === 'checksum-mismatch',
     );
   });
+});
+
+test('NOTICES name a library without a repository by its signed tarball, with no commit', async () => {
+  await withLayout(async (layout) => {
+    await seed(layout);
+    const resolutions = await withGnuSources(layout);
+    const biome = resolutions.tools.find((item) => item.tool === 'biome')!;
+    const library = biome.gnu!.libraries[1]!;
+    biome.gnu!.libraries[1] = {
+      ...library,
+      repository: null,
+      tag: null,
+      commit: null,
+    };
+    const notices = noticesText(resolutions);
+    assert.match(
+      notices,
+      new RegExp(
+        `- with libfoo 1\\.0 \\(no repository; signed tarball ${library.tarball.url.replaceAll('.', '\\.')}, sha256 ${library.tarball.sha256}, signer ${library.tarball.signer}\\): LGPL`,
+      ),
+    );
+    assert.doesNotMatch(notices, /libfoo 1\.0 \(.*@/);
+  });
+});
+
+test('a companion is no tool of its own, but must match the tool it belongs to', () => {
+  const resolutions = resolutionsOf(fixtures);
+  const extra = officialRecord('biome-extra', '2.5.15', 'elf', 3).record;
+  const companion = {
+    ...extra,
+    companionOf: 'biome',
+    buildInfo: {
+      ...extra.buildInfo,
+      source: { ...fixtures[1]!.record.buildInfo.source },
+    },
+  };
+  const records = fixtures.map(({ record }) => record);
+  assert.deepEqual(
+    resolvedTools([...records, companion], resolutions).map(
+      (item) => item.tool,
+    ),
+    ['aube', 'biome'],
+  );
+  for (const other of [
+    { ...companion, companionOf: 'jj' },
+    { ...companion, version: '2.5.14' },
+    {
+      ...companion,
+      buildInfo: {
+        ...companion.buildInfo,
+        source: { ...companion.buildInfo.source, commit: commit('other') },
+      },
+    },
+  ])
+    assert.throws(
+      () => resolvedTools([...records, other], resolutions),
+      (error) => causeOf(error) === 'config-invalid',
+    );
 });
 
 test('a missing acceptance row or a pack of another mode creates no candidate', async () => {

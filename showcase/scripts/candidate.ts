@@ -17,6 +17,7 @@ import {
 import { readConfigFile, validateTrustedCallers } from './config.ts';
 import { fail, runCli } from './errors.ts';
 import { createGitHubApi, type GitHubApi } from './github.ts';
+import { signatureNameOf } from './gnu.ts';
 import type { Mode } from './mode.ts';
 import type { PackRecord } from './pack.ts';
 import {
@@ -87,26 +88,48 @@ export async function fixtureInventorySha256(
   return canonicalSha256(await fileInventory(directory));
 }
 
+/**
+ * The tools of the run, one per resolution. A companion is no tool of its
+ * own: it must belong to an acquired tool of the same version and source.
+ */
 export function resolvedTools(
   acquired: readonly AcquiredTool[],
   resolutions: Resolutions,
 ): ResolvedTool[] {
-  return acquired.map((record) => {
-    const resolution = resolutionFor(resolutions, record.tool);
+  for (const record of acquired) {
+    if (!record.companionOf) continue;
+    const own = acquired.find(
+      (item) => item.tool === record.companionOf && !item.companionOf,
+    );
     if (
-      resolution.version !== record.version ||
-      resolution.commit !== record.buildInfo.source.commit ||
-      resolution.repository !== record.buildInfo.source.repository
+      !own ||
+      own.version !== record.version ||
+      own.buildInfo.source.commit !== record.buildInfo.source.commit ||
+      own.buildInfo.source.repository !== record.buildInfo.source.repository
     )
-      fail('config-invalid', `${record.tool} differs from resolutions.json`);
-    return {
-      tool: record.tool,
-      version: record.version,
-      source: { ...record.buildInfo.source },
-      elfSha256: record.elfSha256,
-      provenance: { ...record.provenance },
-    };
-  });
+      fail(
+        'config-invalid',
+        `${record.tool} differs from ${record.companionOf}`,
+      );
+  }
+  return acquired
+    .filter((record) => !record.companionOf)
+    .map((record) => {
+      const resolution = resolutionFor(resolutions, record.tool);
+      if (
+        resolution.version !== record.version ||
+        resolution.commit !== record.buildInfo.source.commit ||
+        resolution.repository !== record.buildInfo.source.repository
+      )
+        fail('config-invalid', `${record.tool} differs from resolutions.json`);
+      return {
+        tool: record.tool,
+        version: record.version,
+        source: { ...record.buildInfo.source },
+        elfSha256: record.elfSha256,
+        provenance: { ...record.provenance },
+      };
+    });
 }
 
 /** Deterministic third-party notice index; no times or run data. */
@@ -122,14 +145,17 @@ export function noticesText(resolutions: Resolutions): string {
     for (const library of tool.gnu.libraries)
       lines.push(
         `  - with ${library.package} ${library.version} ` +
-          `(${library.repository} @ ${library.commit}): ` +
+          (library.repository && library.commit
+            ? `(${library.repository} @ ${library.commit}): `
+            : `(no repository; signed tarball ${library.tarball.url}, ` +
+              `sha256 ${library.tarball.sha256}, signer ${library.tarball.signer}): `) +
           `${library.license.spdx} — licenses/${library.license.file} ` +
           `(sha256 ${library.license.sha256})`,
       );
-    for (const tarball of gnuTarballs(tool))
+    for (const tarball of bundledTarballs(tool))
       lines.push(
-        `  - source: sources/${tool.tool}/${tarball.name} and its .sig ` +
-          `(sha256 ${tarball.sha256}, from ${tarball.url})`,
+        `  - source: sources/${tool.tool}/${tarball.name} and its signature ` +
+          `${signatureNameOf(tarball)} (sha256 ${tarball.sha256}, from ${tarball.url})`,
       );
   }
   lines.push(
@@ -139,9 +165,15 @@ export function noticesText(resolutions: Resolutions): string {
   return lines.join('\n');
 }
 
-/** The signed tarballs a gnu-source guest was built from, in build order. */
-const gnuTarballs = (tool: Resolutions['tools'][number]) =>
-  tool.gnu
+/** GPL and LGPL identifiers (`GPL-2.0-only`, `LGPL-2.1-or-later`, ...). */
+const COPYLEFT = /^(?:L?GPL|AGPL)-\d/;
+/**
+ * The signed tarballs served beside a gnu-source guest, in build order: when
+ * the tool's own license is GPL or LGPL, its corresponding source is the
+ * tool's tarball and that of every library linked into it.
+ */
+export const bundledTarballs = (tool: Resolutions['tools'][number]) =>
+  tool.gnu && COPYLEFT.test(tool.license.spdx ?? '')
     ? [...tool.gnu.libraries.map((item) => item.tarball), tool.gnu.tarball]
     : [];
 
@@ -193,11 +225,11 @@ export async function assembleCandidate(
         join(site, 'licenses', license.file),
       );
     // The corresponding source of a GPL guest is served beside it.
-    for (const tarball of gnuTarballs(tool)) {
+    for (const tarball of bundledTarballs(tool)) {
       await mkdir(join(site, 'sources', tool.tool), { recursive: true });
       for (const [file, digest] of [
         [tarball.name, tarball.sha256],
-        [`${tarball.name}.sig`, tarball.signatureSha256],
+        [signatureNameOf(tarball), tarball.signatureSha256],
       ] as const) {
         const bytes = await readFile(join(layout.tarballs, file));
         if (sha256(bytes) !== digest)

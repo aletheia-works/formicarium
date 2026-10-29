@@ -60,6 +60,21 @@ test('the generated catalog has resolved defaults, relative URLs and is accepted
   );
 });
 
+test('a companion is installable by its own name and names the tool it belongs to', async () => {
+  const extra = officialRecord('biome-extra', '2.5.15', 'elf', 3);
+  const catalog = buildCatalog([
+    biome.record,
+    { ...extra.record, companionOf: 'biome' },
+  ]);
+  assert.deepEqual(catalog.defaults, {
+    biome: '2.5.15',
+    'biome-extra': '2.5.15',
+  });
+  assert.equal(Object.hasOwn(catalog.entries[0]!, 'companionOf'), false);
+  assert.equal(catalog.entries[1]!.companionOf, 'biome');
+  await verifyCatalog(catalog, installerApi);
+});
+
 test('a catalog the public API refuses is not used', async () => {
   const catalog = buildCatalog([aube.record]);
   const tampered: GuestCatalog = {

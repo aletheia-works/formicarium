@@ -6,6 +6,8 @@ export interface TarSpec {
   body?: Uint8Array | string;
   linkname?: string;
   mode?: number;
+  /** Seconds since the epoch; 0 by default. */
+  mtime?: number;
   /** v7: the pre-POSIX header without magic (nano's release tarballs). */
   format?: 'v7';
 }
@@ -36,7 +38,7 @@ export function header(spec: TarSpec, size: number): Uint8Array {
   put(block, 108, 8, octal(0, 8));
   put(block, 116, 8, octal(0, 8));
   put(block, 124, 12, octal(size, 12));
-  put(block, 136, 12, octal(0, 12));
+  put(block, 136, 12, octal(spec.mtime ?? 0, 12));
   put(block, 148, 8, '        ');
   put(block, 156, 1, spec.type ?? '0');
   if (spec.linkname) put(block, 157, 100, spec.linkname);

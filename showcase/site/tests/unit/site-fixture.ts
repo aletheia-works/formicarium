@@ -9,6 +9,7 @@ const SHA = 'a'.repeat(64);
 export const TEST_TOOLS = [
   { tool: 'aube', version: '2.7.2', fixture: 'aube-local-deps' },
   { tool: 'biome', version: '2.5.15', fixture: 'biome-basic' },
+  { tool: 'git', version: '2.56.0', fixture: 'git-basic' },
   { tool: 'jj', version: '0.46.0', fixture: 'jj-basic' },
   { tool: 'nano', version: '9.3', fixture: 'nano-basic' },
   { tool: 'pitchfork', version: '2.32.0', fixture: 'pitchfork-basic' },
@@ -24,6 +25,8 @@ export function testSiteData(overrides: Partial<SiteData> = {}): SiteData {
       ...tool,
       repository: `https://github.com/example/${tool.tool}`,
       fixtureIndex: { path: `demo-fixtures/${tool.fixture}.json`, sha256: SHA },
+      // git's build also gives git-remote-https, installed with it.
+      ...(tool.tool === 'git' ? { companions: ['git-remote-https'] } : {}),
     })),
     formicarium: {
       version: '0.3.0',

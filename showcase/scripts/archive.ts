@@ -1,4 +1,12 @@
-import { lstat, mkdir, readdir, symlink, writeFile } from 'node:fs/promises';
+import { spawn } from 'node:child_process';
+import {
+  lstat,
+  mkdir,
+  readdir,
+  symlink,
+  utimes,
+  writeFile,
+} from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { crc32, createGunzip, inflateRawSync } from 'node:zlib';
 import { fail } from './errors.ts';
@@ -13,6 +21,11 @@ export interface TarEntry {
   path: string;
   kind: 'file' | 'dir' | 'symlink' | 'hardlink';
   mode: number;
+  /**
+   * Seconds since the epoch, from the PAX record or the header. Kept on the
+   * written files so make does not regenerate a release's configure output.
+   */
+  mtime: number;
   target?: string;
   bytes?: Uint8Array;
 }
@@ -72,6 +85,78 @@ export function gunzipBounded(
     });
     gunzip.end(Buffer.from(bytes));
   });
+}
+
+/**
+ * Runs the system `xz -dc` (no xz decoder ships with Node) and kills it as
+ * soon as its output exceeds the limit or the deadline passes. A failed or
+ * killed run is an invalid archive; the limit and deadline keep their causes.
+ */
+export function unxzBounded(
+  bytes: Uint8Array,
+  limit: number,
+  options: { deadlineMs?: number; command?: string } = {},
+): Promise<Uint8Array> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(options.command ?? 'xz', ['-dc'], {
+      stdio: ['pipe', 'pipe', 'ignore'],
+    });
+    const chunks: Buffer[] = [];
+    let total = 0;
+    let failure: unknown = null;
+    const stop = (error: unknown) => {
+      failure ??= error;
+      child.kill('SIGKILL');
+    };
+    const capture = (code: Parameters<typeof fail>[0], message: string) => {
+      try {
+        fail(code, message);
+      } catch (error) {
+        stop(error);
+      }
+    };
+    const deadlineMs = options.deadlineMs ?? TRANSFER_POLICY.fetchDeadlineMs;
+    const timer = setTimeout(
+      () => capture('deadline', `xz did not finish within ${deadlineMs} ms`),
+      deadlineMs,
+    );
+    child.stdout.on('data', (chunk: Buffer) => {
+      total += chunk.length;
+      if (total > limit)
+        capture('size-limit', `expanded archive exceeds ${limit} bytes`);
+      else chunks.push(chunk);
+    });
+    // xz stops reading when it fails; the write error is reported by close.
+    child.stdin.on('error', () => {});
+    child.once('error', (error) => {
+      try {
+        fail('archive-invalid', 'xz could not run', error);
+      } catch (wrapped) {
+        stop(wrapped);
+      }
+      clearTimeout(timer);
+      reject(failure);
+    });
+    child.once('close', (code) => {
+      clearTimeout(timer);
+      if (!failure && code !== 0)
+        capture('archive-invalid', `xz stream invalid (exit ${code})`);
+      if (failure) reject(failure);
+      else resolve(new Uint8Array(Buffer.concat(chunks)));
+    });
+    child.stdin.end(Buffer.from(bytes));
+  });
+}
+
+/** A release tarball's tar by its file name: `.tar.gz` or `.tar.xz`. */
+export async function expandTarball(
+  name: string,
+  bytes: Uint8Array,
+  limit: number,
+): Promise<Uint8Array> {
+  if (name.endsWith('.tar.gz')) return gunzipBounded(bytes, limit);
+  if (name.endsWith('.tar.xz')) return unxzBounded(bytes, limit);
+  return bad(`${name} is neither .tar.gz nor .tar.xz`);
 }
 
 function text(bytes: Uint8Array): string {
@@ -233,6 +318,10 @@ export function readTar(tar: Uint8Array, options: TarOptions): TarResult {
       extended.path ?? `${prefix ? `${prefix}/` : ''}${field(header, 0, 100)}`;
     const path = entryPath(raw, options.maxPathBytes);
     const linkpath = extended.linkpath;
+    const paxMtime = Math.floor(Number(extended.mtime));
+    const mtime = Number.isSafeInteger(paxMtime)
+      ? paxMtime
+      : octal(header, 136, 12);
     extended = Object.create(null);
     if (path === '') {
       if (type !== '5') bad('archive root must be a directory');
@@ -247,7 +336,7 @@ export function readTar(tar: Uint8Array, options: TarOptions): TarResult {
           : type === '1'
             ? 'hardlink'
             : 'file';
-    const entry: TarEntry = { path, kind, mode };
+    const entry: TarEntry = { path, kind, mode, mtime };
     if (kind === 'file') entry.bytes = body;
     if (kind === 'symlink' || kind === 'hardlink')
       entry.target = linkTarget(
@@ -384,22 +473,20 @@ export async function writeTree(
     const target = join(destination, ...path.split('/'));
     await mkdir(dirname(target), { recursive: true });
     if (entry.kind === 'dir') await mkdir(target, { recursive: true });
-    else if (entry.kind === 'file')
+    else if (entry.kind === 'file') {
       await writeFile(target, entry.bytes!, {
         flag: 'wx',
         mode: entry.mode & 0o111 ? 0o755 : 0o644,
       });
-    else if (entry.kind === 'symlink') await symlink(entry.target!, target);
+      await utimes(target, entry.mtime, entry.mtime);
+    } else if (entry.kind === 'symlink') await symlink(entry.target!, target);
     else {
-      const source = resolveEntry(
-        entries,
-        entry.path,
-        TRANSFER_POLICY.maxPathBytes,
-      );
-      await writeFile(target, entries.get(source)!.bytes!, {
-        flag: 'wx',
-        mode: 0o644,
-      });
+      const source = entries.get(
+        resolveEntry(entries, entry.path, TRANSFER_POLICY.maxPathBytes),
+      )!;
+      await writeFile(target, source.bytes!, { flag: 'wx', mode: 0o644 });
+      // A hard link is the same file, so it has its target's time.
+      await utimes(target, source.mtime, source.mtime);
     }
   }
   const info = await lstat(destination);

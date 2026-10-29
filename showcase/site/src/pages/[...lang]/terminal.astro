@@ -2,6 +2,7 @@
 import TerminalPage from '../../components/TerminalPage.astro';
 import { requireStrings, stringsFor } from '../../i18n/strings.ts';
 import {
+  companionsOf,
   everyPageTools,
   homeFilesOf,
   interactiveTools,
@@ -32,6 +33,7 @@ const data: TerminalPageData = {
   interactive: interactiveTools(site),
   everyPage: everyPageTools(site),
   homeFiles: homeFilesOf(site),
+  companions: companionsOf(site),
 };
 const helpText = data.everyPage.length
   ? `${strings.terminalHelp} ${strings.everyPageHelp(data.everyPage.join(', '))}`

@@ -3,9 +3,9 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fetchBounded } from './acquire.ts';
-import { gunzipBounded, readTar, selectEntry, singleRoot } from './archive.ts';
+import { expandTarball, readTar, selectEntry, singleRoot } from './archive.ts';
 import { COMMIT_PATTERN, sha256 } from './build-key.ts';
-import { type GnuPackage, gnuTag } from './config.ts';
+import { type GnuPackage, type GnuSource, gnuTag } from './config.ts';
 import { fail, ShowcaseError } from './errors.ts';
 import type { FetchLike } from './github.ts';
 import { SOURCE_ARCHIVE_LIMITS, TRANSFER_POLICY } from './limits.ts';
@@ -21,6 +21,11 @@ export interface SignedTarball {
   size: number;
   signatureUrl: string;
   signatureSha256: string;
+  /**
+   * The signature's file name beside the tarball. Records written before it
+   * existed are GNU ones, whose signature is `<name>.sig`.
+   */
+  signatureName?: string;
   /** Primary key fingerprint that made the good signature. */
   signer: string;
 }
@@ -34,9 +39,10 @@ export interface GnuTransferOptions {
 }
 
 /**
- * ftp.gnu.org and Savannah drop some connections from CI runners, so a
- * transport failure of a request to them is retried twice. The GitHub API
- * stays unretried, and a bad answer (status, size, signature) never is.
+ * ftp.gnu.org, Savannah and the other release servers drop some connections
+ * from CI runners, so a transport failure of a request to them is retried
+ * twice. The GitHub API stays unretried, and a bad answer (status, size,
+ * signature) never is.
  */
 export const GNU_RETRY_DELAYS_MS = Object.freeze([10_000, 30_000]);
 
@@ -61,7 +67,7 @@ const transportError = (error: unknown) =>
   error instanceof ShowcaseError &&
   (error.code === 'offline' || error.code === 'deadline');
 
-/** fetchBounded for a GNU server, with the transport retries above. */
+/** fetchBounded for a release server, with the transport retries above. */
 const fetchGnu = (url: string, maxBytes: number, options: GnuTransferOptions) =>
   retrying(
     () => fetchBounded(url, { maxBytes, fetchImpl: options.fetchImpl }),
@@ -107,28 +113,72 @@ const compareVersions = (a: string, b: string) => {
   return 0;
 };
 
-/** The highest `<package>-<version>.tar.gz` that also has its `.sig`. */
-export function latestVersion(listing: string, name: string): string {
+/** The GNU defaults: ftp.gnu.org, `<tarball>.sig` over the archive, COPYING. */
+export const gnuDefaults = (name: string): GnuSource => ({
+  listing: `${GNU_MIRROR}/${name}/`,
+  tarball: `${GNU_MIRROR}/${name}/${name}-{version}.tar.gz`,
+  signature: '{tarball}.sig',
+  license: 'COPYING',
+});
+/** A package's source settings, with the GNU defaults when it names none. */
+export const sourceOf = (pkg: Pick<GnuPackage, 'package' | 'source'>) =>
+  pkg.source ?? gnuDefaults(pkg.package);
+
+/** The tarball and signature URLs of one version. */
+export function sourceUrls(source: GnuSource, version: string) {
+  const tarball = gnuTag(source.tarball, version);
+  const signature = gnuTag(
+    source.signature.replace('{tarball}', tarball),
+    version,
+  );
+  return {
+    name: tarball.split('/').at(-1)!,
+    tarball,
+    signature,
+    signatureName: signature.split('/').at(-1)!,
+  };
+}
+
+/**
+ * The highest `<package>-<version><suffix>` of a listing (`.tar.gz` unless
+ * the source's tarball is `.tar.xz`). In the GNU listing (the default) the
+ * link is relative and the `.sig` must be listed too. With `anyPrefix` (a
+ * package with its own source) the link may carry any path or origin and the
+ * signature need not be listed: its fetch must still succeed.
+ */
+export function latestVersion(
+  listing: string,
+  name: string,
+  options: { anyPrefix?: boolean; suffix?: '.tar.gz' | '.tar.xz' } = {},
+): string {
+  const suffix = (options.suffix ?? '.tar.gz').replaceAll('.', '\\.');
   const tarballs = new Set<string>();
   const signatures = new Set<string>();
   const escaped = name.replaceAll(/[.*+?^${}()|[\]\\-]/g, '\\$&');
+  // HTML attribute names ignore case, and zlib.net writes HREF.
+  const href = '[Hh][Rr][Ee][Ff]=';
   const link = new RegExp(
-    `href="${escaped}-(\\d[0-9.]*)\\.tar\\.gz(\\.sig)?"`,
+    options.anyPrefix
+      ? `${href}"(?:[^"\\s]*/)?${escaped}-(\\d[0-9.]*)${suffix}"`
+      : `${href}"${escaped}-(\\d[0-9.]*)${suffix}(\\.sig)?"`,
     'g',
   );
   for (const [, version, signature] of listing.matchAll(link))
     if (version && VERSION.test(version))
       (signature ? signatures : tarballs).add(version);
-  const versions = [...tarballs].filter((version) => signatures.has(version));
+  const versions = options.anyPrefix
+    ? [...tarballs]
+    : [...tarballs].filter((version) => signatures.has(version));
   if (versions.length === 0)
-    fail('release-invalid', `no signed ${name} tarball in the GNU listing`);
+    fail('release-invalid', `no signed ${name} tarball in the listing`);
   return versions.sort(compareVersions).at(-1)!;
 }
 
 /**
  * gpgv with only the pinned keyring. The signature counts only when gpgv
- * succeeds, reports one GOODSIG and no bad, expired or revoked signature,
- * and the VALIDSIG primary key is one of the configured signers.
+ * succeeds and reports no bad, expired or revoked signature, and every
+ * signature in it (GnuTLS releases carry two) is good and made by one of
+ * the configured signers' primary keys; the first of them is returned.
  */
 export async function verifySignature(
   pkg: Pick<GnuPackage, 'package' | 'signers'>,
@@ -171,15 +221,19 @@ export async function verifySignature(
       if (tag(name).length > 0)
         fail('signature-invalid', `${pkg.package} signature reports ${name}`);
     const valid = tag('VALIDSIG');
-    if (tag('GOODSIG').length !== 1 || valid.length !== 1)
+    if (valid.length === 0 || tag('GOODSIG').length !== valid.length)
       fail(
         'signature-invalid',
-        `${pkg.package} needs exactly one good signature`,
+        `${pkg.package} needs only good signatures, at least one`,
       );
-    const primary = valid[0]!.at(-1) ?? '';
-    if (!pkg.signers.includes(primary))
-      fail('signature-invalid', `${pkg.package} signer ${primary} not pinned`);
-    return primary;
+    const primaries = valid.map((line) => line.at(-1) ?? '');
+    for (const primary of primaries)
+      if (!pkg.signers.includes(primary))
+        fail(
+          'signature-invalid',
+          `${pkg.package} signer ${primary} not pinned`,
+        );
+    return primaries[0]!;
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
@@ -243,7 +297,10 @@ export async function lsRemoteCommit(
   return commit;
 }
 
-/** Downloads one release tarball and its signature, then checks the signature. */
+/**
+ * Downloads one release tarball and its signature, then checks the
+ * signature over the archive, or over the gunzipped tar (`signedData: tar`).
+ */
 export async function fetchSignedTarball(
   pkg: GnuPackage,
   version: string,
@@ -253,30 +310,39 @@ export async function fetchSignedTarball(
   bytes: Uint8Array;
   signature: Uint8Array;
 }> {
-  const name = `${pkg.package}-${version}.tar.gz`;
-  const url = `${GNU_MIRROR}/${pkg.package}/${name}`;
+  const source = sourceOf(pkg);
+  const urls = sourceUrls(source, version);
   const fetched = await fetchGnu(
-    url,
+    urls.tarball,
     SOURCE_ARCHIVE_LIMITS.maxDownloadBytes,
     options,
   );
   const signature = await fetchGnu(
-    `${url}.sig`,
+    urls.signature,
     TRANSFER_POLICY.maxMetadataBytes,
     options,
   );
-  const signer = await verifySignature(pkg, fetched.bytes, signature.bytes, {
+  const signed =
+    source.signedData === 'tar'
+      ? await expandTarball(
+          urls.name,
+          fetched.bytes,
+          SOURCE_ARCHIVE_LIMITS.maxExpandedBytes,
+        )
+      : fetched.bytes;
+  const signer = await verifySignature(pkg, signed, signature.bytes, {
     exec: options.exec,
     keys: options.keys,
   });
   return {
     record: {
-      name,
-      url,
+      name: urls.name,
+      url: urls.tarball,
       sha256: sha256(fetched.bytes),
       size: fetched.bytes.length,
-      signatureUrl: `${url}.sig`,
+      signatureUrl: urls.signature,
       signatureSha256: sha256(signature.bytes),
+      signatureName: urls.signatureName,
       signer,
     },
     bytes: fetched.bytes,
@@ -284,46 +350,65 @@ export async function fetchSignedTarball(
   };
 }
 
-/** The latest signed release of one GNU package. */
+/** The signature file name of a record (older GNU records lack it). */
+export const signatureNameOf = (tarball: SignedTarball) =>
+  tarball.signatureName ?? `${tarball.name}.sig`;
+
+/** The latest signed release of one package. */
 export async function resolveGnuPackage(
   pkg: GnuPackage,
   options: GnuTransferOptions = {},
 ) {
   const listing = await fetchGnu(
-    `${GNU_MIRROR}/${pkg.package}/`,
+    sourceOf(pkg).listing,
     TRANSFER_POLICY.maxMetadataBytes,
     options,
   );
   const version = latestVersion(
     new TextDecoder().decode(listing.bytes),
     pkg.package,
+    {
+      anyPrefix: pkg.source !== undefined,
+      suffix: sourceOf(pkg).tarball.endsWith('.tar.xz') ? '.tar.xz' : '.tar.gz',
+    },
   );
   return {
     version,
-    tag: gnuTag(pkg.tag, version),
+    tag: pkg.tag === null ? null : gnuTag(pkg.tag, version),
     ...(await fetchSignedTarball(pkg, version, options)),
   };
 }
 
-/** The tarball's top-level COPYING, which the guest is distributed under. */
-export async function copyingOf(tarball: Uint8Array): Promise<Uint8Array> {
-  const tar = await gunzipBounded(
+/**
+ * The license file at `path` below the tarball's single root (COPYING by
+ * default), which the guest is distributed under.
+ */
+export async function copyingOf(
+  tarball: Uint8Array,
+  path = 'COPYING',
+  /** The tarball's file name: its suffix selects gzip or xz. */
+  name = 'source.tar.gz',
+): Promise<Uint8Array> {
+  const tar = await expandTarball(
+    name,
     tarball,
     SOURCE_ARCHIVE_LIMITS.maxExpandedBytes,
   );
   const { entries } = readTar(tar, {
     ...SOURCE_ARCHIVE_LIMITS,
     allowV7Header: true,
+    // git archive tarballs (git's own) carry a pax global header.
+    allowGlobalHeader: true,
   });
   try {
     return selectEntry(
       entries,
-      `${singleRoot(entries)}/COPYING`,
+      `${singleRoot(entries)}/${path}`,
       SOURCE_ARCHIVE_LIMITS.maxPathBytes,
     );
   } catch (error) {
     if (error instanceof ShowcaseError && error.code === 'archive-invalid')
-      fail('release-invalid', 'tarball has no COPYING', error);
+      fail('release-invalid', `tarball has no ${path}`, error);
     throw error;
   }
 }

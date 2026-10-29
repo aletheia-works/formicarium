@@ -262,9 +262,9 @@ function evidence(extra: Partial<AcceptanceEvidence> = {}): AcceptanceEvidence {
   return { ...body, evidenceId: evidenceIdOf(body) };
 }
 
-test('evidence: the site profile has 43 required rows and a complete set passes', () => {
-  assert.equal(REQUIRED_ROWS.length, 43);
-  assert.equal(requireRows(allPassed()).length, 43);
+test('evidence: the site profile has 48 required rows and a complete set passes', () => {
+  assert.equal(REQUIRED_ROWS.length, 48);
+  assert.equal(requireRows(allPassed()).length, 48);
   assert.ok(validateEvidence(evidence(), { deployed: false }));
   assert.match(identityDigest(identity), /^[a-f0-9]{64}$/);
   const deployed = evidence({ deployedIdentity: identity.siteInventorySha256 });
@@ -284,7 +284,7 @@ test('evidence: missing, duplicate, failed and unverified rows are refused', () 
   );
   for (const status of ['failed', 'unverified'] as const) {
     const rows = allPassed();
-    rows[42] = { ...rows[42]!, status };
+    rows[47] = { ...rows[47]!, status };
     rejects(
       'evidence-invalid',
       () => requireRows(rows),

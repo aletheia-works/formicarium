@@ -15,7 +15,7 @@ export type Key = 'Enter' | 'Tab' | 'Alt+Tab' | 'Control+c' | 'Control+x' | 'q';
 /**
  * One browser tab as the site acceptance sees it. Playwright drives Chromium,
  * Firefox and WebKit; safaridriver drives the Safari that ships with macOS.
- * The tests use only what both can do, so the same 24 run in each.
+ * The tests use only what both can do, so the same 28 run in each.
  */
 export interface SitePage {
   readonly project: string;

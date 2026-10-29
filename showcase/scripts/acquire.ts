@@ -173,6 +173,11 @@ export interface AcquiredTool {
   downloadBytes: number;
   elfSha256: string;
   elfBytes: number;
+  /**
+   * A further program of this gnu-source tool's build (git-remote-https of
+   * git): a guest and catalog entry of its own, but no tool of tools.json.
+   */
+  companionOf?: string;
   buildInfo: GuestBuildInfo;
   buildInfoSha256: string;
   provenance: ToolProvenance;

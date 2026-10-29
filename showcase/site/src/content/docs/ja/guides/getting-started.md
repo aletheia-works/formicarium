@@ -9,8 +9,8 @@ description: formicarium の showcase の端末の使い方と制限。
 します。端末の上の状態欄が、いま何をしているか（分離の準備・読込み・導入中・
 準備完了・実行中・エラー）を文字で示します。
 
-[空の端末](/formicarium/ja/terminal/)は nano だけを導入した状態で始まります。
-`install aube`・`install pitchfork`・`install biome`・`install nano`・`install jj` を打ってから、たとえば
+[空の端末](/formicarium/ja/terminal/)は nano と git だけを導入した状態で始まります。
+`install aube`・`install pitchfork`・`install biome`・`install nano`・`install jj`・`install git` を打ってから、たとえば
 `biome --version` を実行します。
 
 ## command

@@ -26,30 +26,70 @@ export interface SourceBuildAcquire {
   package?: string;
   ui?: UiBuild;
 }
-/** A GNU package built from its signed ftp.gnu.org tarball. */
+/**
+ * Where a package's signed release tarballs are published, when not on
+ * ftp.gnu.org. Each URL is an HTTPS template with `{version}`, `{major}`,
+ * `{minor}` and `{patch}`; `signature` may also start with `{tarball}`.
+ */
+export interface GnuSource {
+  /** Page whose links name the tarball's file (any path prefix). */
+  listing: string;
+  /** Ends in `/<package>-{version}.tar.gz` or `.tar.xz`. */
+  tarball: string;
+  signature: string;
+  /** `tar`: the signature covers the uncompressed tar, not the archive. */
+  signedData?: 'tar';
+  /** The license file, relative to the tarball's single root. */
+  license: string;
+}
+/**
+ * A package built from its signed release tarball: by default the GNU one
+ * on ftp.gnu.org with its `.sig`, otherwise the one `source` names.
+ */
 export interface GnuPackage {
-  /** GNU package name: ftp.gnu.org/gnu/<package>/<package>-<version>.tar.gz. */
+  /** Package name: ftp.gnu.org/gnu/<package>/<package>-<version>.tar.gz by default. */
   package: string;
-  /** Tag of the release in the repository; `{version}`, `{major}`, `{minor}`, `{patch}`. */
-  tag: string;
+  /**
+   * Tag of the release in the repository; `{version}`, `{major}`, `{minor}`,
+   * `{patch}`, and on GitHub one `{date}` (8 digits, found among the tags).
+   * null only for a library without a repository (see GnuLibrary).
+   */
+  tag: string | null;
   /** Primary key fingerprints in showcase/keys/<package>.gpg that may sign. */
   signers: string[];
-  /** SPDX identifier of the tarball's COPYING. */
+  /** SPDX identifier or `A OR B` expression of the tarball's license. */
   spdx: string;
   /** configure arguments; the builder adds --prefix, CC and the search paths. */
   configure: string[];
+  source?: GnuSource;
 }
 export interface GnuLibrary extends GnuPackage {
-  repository: string;
+  /**
+   * null together with `tag` for a library that has no tagged public
+   * repository (GMP): it is identified by its signed ftp.gnu.org tarball
+   * alone, and no commit is recorded for it.
+   */
+  repository: string | null;
+}
+/** A further program of the same build, distributed as a guest of its own. */
+export interface GnuCompanion {
+  /** Guest file name and tool name in the catalog. */
+  binary: string;
+  /** The built program's path in the source tree. */
+  output: string;
 }
 export interface GnuSourceAcquire extends GnuPackage {
   kind: 'gnu-source';
+  tag: string;
   builder: 'autotools';
   /** Guest file name, and the built program's path in the source tree. */
   binary: string;
   output: string;
   /** Static libraries built first, in order, into one prefix. */
   libraries: GnuLibrary[];
+  /** make variables of the program build (`NAME=value`, `{prefix}` expanded). */
+  make?: string[];
+  companions?: GnuCompanion[];
 }
 export interface ToolConfig {
   tool: string;
@@ -97,11 +137,24 @@ const IDENTIFIER = /^[A-Za-z0-9_-]{1,128}$/;
 const ASSET = /^[A-Za-z0-9._@+-]+$/;
 const GNU_PACKAGE = /^[a-z][a-z0-9-]{0,63}$/;
 const FINGERPRINT = /^[0-9A-F]{40}$/;
-const SPDX = /^[A-Za-z0-9.+-]{1,64}$/;
+/** One SPDX identifier, or identifiers joined by ` OR ` / ` AND `. */
+const SPDX = /^(?=.{1,128}$)[A-Za-z0-9.+-]+(?: (?:OR|AND) [A-Za-z0-9.+-]+)*$/;
 const TAG_TEMPLATE = /^[A-Za-z0-9._{}-]{1,128}$/;
-/** `--option[=value]` or `VARIABLE=value`; `{prefix}` is the build prefix. */
+/**
+ * `--option[=value]`, `VARIABLE=value` (the value may hold `=`, as in
+ * `CFLAGS=-O2 -std=gnu17`), or an autoconf cache answer
+ * `ac_cv_<name>=yes|no` (curl must not take GnuTLS's own memset_explicit,
+ * which musl's headers do not declare); `{prefix}` is the build prefix.
+ */
 const CONFIGURE_ARGUMENT =
-  /^(?:--[a-z0-9][a-z0-9-]*(?:=[A-Za-z0-9._,+/{}-]*)?|[A-Z][A-Z0-9_]*=[A-Za-z0-9._,+/{} -]*)$/;
+  /^(?:--[a-z0-9][a-z0-9-]*(?:=[A-Za-z0-9._,+/{}-]*)?|[A-Z][A-Z0-9_]*=[A-Za-z0-9._,+/{}= -]*|ac_cv_[a-z0-9_]+=(?:yes|no))$/;
+/** A make variable; names that steer make itself are refused below. */
+const MAKE_VARIABLE = /^[A-Za-z][A-Za-z0-9_]*=[A-Za-z0-9._,+/{} -]*$/;
+const MAKE_CONTROL = /^(?:MAKE[A-Z]*|MFLAGS|SHELL|GNUMAKEFLAGS|VPATH)=/;
+/** https://<host>/<path> with only these characters and template braces. */
+const SOURCE_URL =
+  /^https:\/\/[a-z0-9-]+(?:\.[a-z0-9-]+)+\/[A-Za-z0-9._~/{}+-]*$/;
+const URL_PLACEHOLDERS = ['{version}', '{major}', '{minor}', '{patch}'];
 const WORKFLOW = /^\.github\/workflows\/[A-Za-z0-9_.-]+\.ya?ml$/;
 export const SHOWCASE_WORKFLOW = '.github/workflows/showcase.yml';
 
@@ -211,17 +264,90 @@ function sourceBuild(value: Json, where: string): SourceBuildAcquire {
   return result;
 }
 
-function gnuPackage(value: Json, where: string): GnuPackage {
-  const tag = text(value.tag, `${where}.tag`, TAG_TEMPLATE);
-  if (!tag.includes('{'))
-    fail('config-invalid', `${where}.tag must name the version`);
+/** One URL template: HTTPS, a plain host, no `..`, only the placeholders. */
+function urlTemplate(value: unknown, where: string): string {
+  const url = text(value, where, SOURCE_URL);
+  let literal = url;
+  for (const placeholder of URL_PLACEHOLDERS)
+    literal = literal.replaceAll(placeholder, '');
+  if (/[{}]/.test(literal) || url.split('/').includes('..'))
+    fail('config-invalid', `${where} has an unknown placeholder or ..`);
+  return url;
+}
+/** `{tarball}` and a file suffix, such as `{tarball}.asc`. */
+const TARBALL_SUFFIX = /^\{tarball\}[A-Za-z0-9._+-]+$/;
+
+function gnuSourceSettings(
+  value: unknown,
+  where: string,
+  name: string,
+): GnuSource {
+  const raw = record(value, where);
+  only(
+    raw,
+    ['listing', 'tarball', 'signature', 'signedData', 'license'],
+    where,
+  );
+  const tarball = urlTemplate(raw.tarball, `${where}.tarball`);
+  if (
+    !/\.tar\.(?:gz|xz)$/.test(tarball) ||
+    !tarball.endsWith(`/${name}-{version}${tarball.slice(-7)}`)
+  )
+    fail(
+      'config-invalid',
+      `${where}.tarball must end in ${name}-{version}.tar.gz or .tar.xz`,
+    );
+  const signature =
+    typeof raw.signature === 'string' && TARBALL_SUFFIX.test(raw.signature)
+      ? raw.signature
+      : urlTemplate(raw.signature, `${where}.signature`);
+  // The signature is served beside the tarball under its own file name.
+  const expanded = signature.replace('{tarball}', tarball);
+  if (
+    !URL_PLACEHOLDERS.some((placeholder) => expanded.includes(placeholder)) ||
+    expanded.split('/').at(-1) === tarball.split('/').at(-1)
+  )
+    fail(
+      'config-invalid',
+      `${where}.signature must name its own versioned file`,
+    );
+  if (raw.signedData !== undefined && raw.signedData !== 'tar')
+    fail('config-invalid', `${where}.signedData must be tar when present`);
+  return {
+    listing: urlTemplate(raw.listing, `${where}.listing`),
+    tarball,
+    signature,
+    ...(raw.signedData === 'tar' ? { signedData: 'tar' as const } : {}),
+    license: relativePath(raw.license, `${where}.license`),
+  };
+}
+
+function versionTag(value: unknown, where: string): string {
+  const tag = text(value, where, TAG_TEMPLATE);
+  let literal = tag.replace('{date}', '');
+  for (const placeholder of URL_PLACEHOLDERS)
+    literal = literal.replaceAll(placeholder, '');
+  if (
+    !URL_PLACEHOLDERS.some((placeholder) => tag.includes(placeholder)) ||
+    /[{}]/.test(literal)
+  )
+    fail('config-invalid', `${where} must name the version only`);
+  return tag;
+}
+
+/** The GNU mirror (gnu.ts GNU_MIRROR), which signs every release tarball. */
+const GNU_FTP = 'https://ftp.gnu.org/gnu';
+
+function gnuPackage(value: Json, where: string, untagged = false): GnuPackage {
+  const tag = untagged ? null : versionTag(value.tag, `${where}.tag`);
   const signers = strings(value.signers, `${where}.signers`).map((item) =>
     text(item, `${where}.signers`, FINGERPRINT),
   );
   if (new Set(signers).size !== signers.length)
     fail('config-invalid', `${where}.signers has duplicates`);
+  const name = text(value.package, `${where}.package`, GNU_PACKAGE);
   return {
-    package: text(value.package, `${where}.package`, GNU_PACKAGE),
+    package: name,
     tag,
     signers,
     spdx: text(value.spdx, `${where}.spdx`, SPDX),
@@ -230,19 +356,64 @@ function gnuPackage(value: Json, where: string): GnuPackage {
           text(item, `${where}.configure[${index}]`, CONFIGURE_ARGUMENT),
         )
       : fail('config-invalid', `${where}.configure must be an array`),
+    ...(value.source === undefined
+      ? {}
+      : { source: gnuSourceSettings(value.source, `${where}.source`, name) }),
   };
 }
 
-const GNU_PACKAGE_KEYS = ['package', 'tag', 'signers', 'spdx', 'configure'];
+const GNU_PACKAGE_KEYS = [
+  'package',
+  'tag',
+  'signers',
+  'spdx',
+  'configure',
+  'source',
+];
+
+function makeVariables(value: unknown, where: string): string[] {
+  if (!Array.isArray(value) || value.length === 0)
+    fail('config-invalid', `${where} must be a non-empty array`);
+  return value.map((item, index) => {
+    const variable = text(item, `${where}[${index}]`, MAKE_VARIABLE);
+    if (MAKE_CONTROL.test(variable))
+      fail('config-invalid', `${where}[${index}] steers make itself`);
+    return variable;
+  });
+}
+
+function companions(value: unknown, where: string): GnuCompanion[] {
+  if (!Array.isArray(value) || value.length === 0)
+    fail('config-invalid', `${where} must be a non-empty array`);
+  return value.map((item, index) => {
+    const at = `${where}[${index}]`;
+    const raw = record(item, at);
+    only(raw, ['binary', 'output'], at);
+    return {
+      binary: text(raw.binary, `${at}.binary`, TOOL),
+      output: relativePath(raw.output, `${at}.output`),
+    };
+  });
+}
 
 function gnuSource(
   value: Json,
   where: string,
   allowed: Set<string>,
+  toolRepository: string,
 ): GnuSourceAcquire {
   only(
     value,
-    ['kind', 'builder', 'binary', 'output', 'libraries', ...GNU_PACKAGE_KEYS],
+    [
+      'kind',
+      'builder',
+      'binary',
+      'output',
+      'libraries',
+      'make',
+      'companions',
+      ...GNU_PACKAGE_KEYS,
+    ],
     where,
   );
   if (value.builder !== 'autotools')
@@ -253,6 +424,25 @@ function gnuSource(
     const at = `${where}.libraries[${index}]`;
     const raw = record(item, at);
     only(raw, ['repository', ...GNU_PACKAGE_KEYS], at);
+    if ((raw.repository === undefined) !== (raw.tag === undefined))
+      fail('config-invalid', `${at} needs repository and tag, or neither`);
+    if (raw.repository === undefined) {
+      // Without a repository only the signed GNU tarball identifies it.
+      const pkg = gnuPackage(raw, at, true);
+      const gnu = `${GNU_FTP}/${pkg.package}/`;
+      if (
+        pkg.source &&
+        (pkg.source.listing !== gnu ||
+          !pkg.source.tarball.startsWith(gnu) ||
+          pkg.source.signature !== '{tarball}.sig' ||
+          pkg.source.signedData)
+      )
+        fail(
+          'config-invalid',
+          `${at} without a repository needs its signed ftp.gnu.org tarball`,
+        );
+      return { ...pkg, repository: null };
+    }
     const repository = text(raw.repository, `${at}.repository`, REPOSITORY);
     if (!allowed.has(repository))
       fail('source-not-allowed', `${repository} is not in the main allow list`);
@@ -262,13 +452,39 @@ function gnuSource(
     kind: 'gnu-source',
     builder: 'autotools',
     ...gnuPackage(value, where),
+    tag: versionTag(value.tag, `${where}.tag`),
     binary: text(value.binary, `${where}.binary`, IDENTIFIER),
     output: relativePath(value.output, `${where}.output`),
     libraries,
+    ...(value.make === undefined
+      ? {}
+      : { make: makeVariables(value.make, `${where}.make`) }),
+    ...(value.companions === undefined
+      ? {}
+      : { companions: companions(value.companions, `${where}.companions`) }),
   };
+  // A dated tag is found among the repository's tags through the GitHub API.
+  for (const [pkg, repository] of [
+    [result, toolRepository],
+    ...libraries.map((item) => [item, item.repository] as const),
+  ] as const)
+    if (
+      pkg.tag?.includes('{date}') &&
+      !repository?.startsWith('https://github.com/')
+    )
+      fail(
+        'config-invalid',
+        `${pkg.package}.tag {date} needs a GitHub repository`,
+      );
   const names = [result.package, ...libraries.map((item) => item.package)];
   if (new Set(names).size !== names.length)
     fail('config-invalid', `${where} names a package twice`);
+  const binaries = [
+    result.binary,
+    ...(result.companions ?? []).map((item) => item.binary),
+  ];
+  if (new Set(binaries).size !== binaries.length)
+    fail('config-invalid', `${where} names a program twice`);
   return result;
 }
 
@@ -313,7 +529,7 @@ function tool(value: unknown, index: number, allowed: Set<string>): ToolConfig {
         : acquire.kind === 'source-build'
           ? sourceBuild(acquire, `${where}.acquire`)
           : acquire.kind === 'gnu-source'
-            ? gnuSource(acquire, `${where}.acquire`, allowed)
+            ? gnuSource(acquire, `${where}.acquire`, allowed, repository)
             : fail('config-invalid', `${where}.acquire.kind is unknown`),
     ...(raw.interactive === true ? { interactive: true as const } : {}),
     ...(raw.everyPage === true ? { everyPage: true as const } : {}),
@@ -373,11 +589,14 @@ export function validateToolsConfig(
     fail('config-invalid', 'tools.json tools must be a non-empty array');
   const allowed = new Set(allowedSources.repositories);
   const tools = raw.tools.map((item, index) => tool(item, index, allowed));
+  // A companion is installed by its own name, so it shares the tool names.
   const names = new Set<string>();
-  for (const entry of tools) {
-    if (names.has(entry.tool))
-      fail('config-invalid', `duplicate tool: ${entry.tool}`);
-    names.add(entry.tool);
+  for (const name of tools.flatMap((entry) => [
+    entry.tool,
+    ...companionNames(entry),
+  ])) {
+    if (names.has(name)) fail('config-invalid', `duplicate tool: ${name}`);
+    names.add(name);
   }
   // Every page writes the home files of all tools into one home, so no two
   // may share a path and none may be the directory of another.
@@ -469,7 +688,13 @@ export async function readConfigFile(
   }
 }
 
-/** Expands a GNU tag template for one version (missing parts are 0). */
+/** The tool names of a gnu-source tool's companions, in order. */
+export const companionNames = (entry: ToolConfig): string[] =>
+  entry.acquire.kind === 'gnu-source'
+    ? (entry.acquire.companions ?? []).map((item) => item.binary)
+    : [];
+
+/** Expands a tag or URL template for one version (missing parts are 0). */
 export function gnuTag(template: string, version: string): string {
   const [major = '0', minor = '0', patch = '0'] = version.split('.');
   return template

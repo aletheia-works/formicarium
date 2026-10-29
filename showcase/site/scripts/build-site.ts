@@ -5,6 +5,7 @@ import { dirname, join, relative } from 'node:path';
 import { parseUniqueJson } from '../../scripts/build-key.ts';
 import type { CandidateManifest } from '../../scripts/candidate.ts';
 import {
+  companionNames,
   readConfigFile,
   validateAllowedSources,
   validateToolsConfig,
@@ -247,6 +248,9 @@ async function siteData(
         ...(entry.interactive ? { interactive: true as const } : {}),
         ...(entry.everyPage ? { everyPage: true as const } : {}),
         ...(entry.homeFiles ? { homeFiles: entry.homeFiles } : {}),
+        ...(companionNames(entry).length
+          ? { companions: companionNames(entry) }
+          : {}),
       };
     }),
     formicarium: context.formicarium!,

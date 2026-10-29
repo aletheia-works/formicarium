@@ -315,7 +315,7 @@ jobs:
         with:
           browsers: ${{ env.BROWSER }}
           command: node node_modules/@playwright/test/cli.js
-      - name: Site acceptance (24 tests, 1 worker, no retry, 180 s each)
+      - name: Site acceptance (28 tests, 1 worker, no retry, 180 s each)
         env:
           SHOWCASE_ACCEPT_RESULTS: ${{ github.workspace }}/showcase/site/.work/accept/chromium/results.json
         run: node node_modules/@playwright/test/cli.js test --config showcase/site/tests/playwright.config.ts --project="$BROWSER" --workers=1 --retries=0
@@ -399,7 +399,7 @@ jobs:
         with:
           browsers: ${{ env.BROWSER }}
           command: node node_modules/@playwright/test/cli.js
-      - name: Site acceptance (24 tests, 1 worker, no retry, 180 s each)
+      - name: Site acceptance (28 tests, 1 worker, no retry, 180 s each)
         env:
           SHOWCASE_ACCEPT_RESULTS: ${{ github.workspace }}/showcase/site/.work/accept/firefox/results.json
         run: node node_modules/@playwright/test/cli.js test --config showcase/site/tests/playwright.config.ts --project="$BROWSER" --workers=1 --retries=0
@@ -482,7 +482,7 @@ jobs:
         with:
           browsers: ${{ env.BROWSER }}
           command: node node_modules/@playwright/test/cli.js
-      - name: Site acceptance (24 tests, 1 worker, no retry, 180 s each)
+      - name: Site acceptance (28 tests, 1 worker, no retry, 180 s each)
         env:
           SHOWCASE_ACCEPT_RESULTS: ${{ github.workspace }}/showcase/site/.work/accept/webkit/results.json
         run: node node_modules/@playwright/test/cli.js test --config showcase/site/tests/playwright.config.ts --project="$BROWSER" --workers=1 --retries=0
@@ -556,7 +556,7 @@ jobs:
           security verify-cert -c "$SHOWCASE_TLS_CERT" -p ssl -s localhost
       - name: Allow safaridriver to drive Safari
         run: sudo safaridriver --enable
-      - name: Site acceptance in Safari (24 tests, 1 worker, no retry, 180 s each)
+      - name: Site acceptance in Safari (28 tests, 1 worker, no retry, 180 s each)
         env:
           SHOWCASE_ACCEPT_RESULTS: ${{ github.workspace }}/showcase/site/.work/accept/safari/results.json
         run: |

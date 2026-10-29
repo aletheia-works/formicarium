@@ -24,10 +24,19 @@ import {
 const siteDir = process.env.SHOWCASE_SITE_DIR ?? siteLayout().dist;
 const catalog = JSON.parse(
   readFileSync(join(siteDir, 'catalog.json'), 'utf8'),
-) as { defaults: Record<string, string> };
-const TOOLS = Object.entries(catalog.defaults).sort(([a], [b]) =>
-  a < b ? -1 : 1,
+) as {
+  defaults: Record<string, string>;
+  entries: { tool: string; companionOf?: string }[];
+};
+/** A companion (git-remote-https) is installed with its tool: no tool page. */
+const COMPANIONS = new Set(
+  catalog.entries
+    .filter((entry) => entry.companionOf)
+    .map((entry) => entry.tool),
 );
+const TOOLS = Object.entries(catalog.defaults)
+  .filter(([tool]) => !COMPANIONS.has(tool))
+  .sort(([a], [b]) => (a < b ? -1 : 1));
 /** nano's version: tools.json marks it for every page, so every page has it. */
 const NANO = catalog.defaults.nano;
 const LOCALES = [
@@ -38,6 +47,7 @@ const LOCALES = [
 const FIXTURE_FILES: Record<string, [string, string]> = {
   aube: ['package.json', '"linked": "link:../outside/linked"'],
   biome: ['example.js', 'Hello, terrarium!'],
+  git: ['README.md', 'git init, then git add and git commit it.'],
   jj: ['note.txt', 'with jj git init'],
   nano: ['note.txt', 'save it with Ctrl-O'],
   pitchfork: ['pitchfork.toml', '[daemons.api]'],

@@ -15,9 +15,16 @@ import {
   type ValidateGuest,
   validateWithPublicApi,
 } from './acquire.ts';
-import { gunzipBounded, readTar, singleRoot, writeTree } from './archive.ts';
+import {
+  expandTarball,
+  gunzipBounded,
+  readTar,
+  singleRoot,
+  writeTree,
+} from './archive.ts';
 import { builderHash, buildKey, sha256 } from './build-key.ts';
 import type {
+  GnuCompanion,
   GnuSourceAcquire,
   SourceBuildAcquire,
   ToolConfig,
@@ -64,6 +71,14 @@ export interface GnuBuildStep {
   sourceDir: string;
   configure: string[];
 }
+/** A library identified by its signed tarball alone (no repository or commit). */
+export interface SignedOnlyLibrary {
+  package: string;
+  version: string;
+  tarball: string;
+  sha256: string;
+  signer: string;
+}
 /** The C toolchain of an autotools build: its compiler and musl's libc.a. */
 export interface CToolchain {
   compiler: string;
@@ -85,8 +100,23 @@ export interface BuildPlan {
   cargo: string | null;
   rustc: string | null;
   rustcVersion: string | null;
-  /** autotools only: libraries first, the program last. */
-  gnu: { steps: GnuBuildStep[]; output: string; cc: CToolchain } | null;
+  /**
+   * autotools only: libraries first, the program last, built with the make
+   * variables; each companion is a further program of the same build.
+   */
+  gnu: {
+    steps: GnuBuildStep[];
+    output: string;
+    make: string[];
+    companions: GnuCompanion[];
+    cc: CToolchain;
+    /**
+     * Libraries with no repository (GMP): no commit can name them, so their
+     * signed tarballs enter the builderHash and the provenance instead of
+     * the dependencies (which need a repository and commit).
+     */
+    signedOnly: SignedOnlyLibrary[];
+  } | null;
   nodeBin: string | null;
   nodeVersion: string | null;
   runner: { tool: string; elfPath: string; elfSha256: string } | null;
@@ -541,15 +571,22 @@ export async function prepareGnuBuild(
   const sourceDir = join(layout.sources, `${config.tool}-${resolution.commit}`);
   const steps: GnuBuildStep[] = [];
   const dependencies: GuestBuildInfo['dependencies'][number][] = [];
-  for (const item of [...resolution.gnu.libraries, own]) {
-    const commit = await tagCommit(
-      options.api,
-      item.repository,
-      item.tag,
-      options.exec,
-    );
-    if (commit !== item.commit)
-      fail('commit-unreachable', `${item.tag} no longer names the commit`);
+  const signedOnly: SignedOnlyLibrary[] = [];
+  for (const item of [
+    ...resolution.gnu.libraries,
+    { ...own, version: resolution.version },
+  ]) {
+    if (item.repository && item.tag && item.commit) {
+      const commit = await tagCommit(
+        options.api,
+        item.repository,
+        item.tag,
+        options.exec,
+      );
+      if (commit !== item.commit)
+        fail('commit-unreachable', `${item.tag} no longer names the commit`);
+    } else if (item.repository || item.tag || item.commit)
+      fail('config-invalid', `${item.package} has a partial identity`);
     let bytes: Uint8Array;
     try {
       bytes = await readFile(join(layout.tarballs, item.tarball.name));
@@ -558,25 +595,37 @@ export async function prepareGnuBuild(
     }
     if (sha256(bytes) !== item.tarball.sha256)
       fail('checksum-mismatch', `${item.tarball.name} differs from resolve`);
-    const tar = await gunzipBounded(
+    const tar = await expandTarball(
+      item.tarball.name,
       bytes,
       SOURCE_ARCHIVE_LIMITS.maxExpandedBytes,
     );
     const { entries } = readTar(tar, {
       ...SOURCE_ARCHIVE_LIMITS,
       allowV7Header: true,
+      // git archive tarballs (git's own) carry a pax global header.
+      allowGlobalHeader: true,
     });
     const directory = join(sourceDir, item.package);
     await writeTree(entries, directory, singleRoot(entries));
     const configure = configured.get(item.package);
     if (!configure) fail('config-invalid', `${item.package} is not configured`);
     steps.push({ package: item.package, sourceDir: directory, configure });
-    dependencies.push({
-      tool: item === own ? 'source-tarball' : item.package,
-      repository: item.repository,
-      commit: item.commit,
-      digest: item.tarball.sha256,
-    });
+    if (item.repository && item.commit)
+      dependencies.push({
+        tool: item.package === own.package ? 'source-tarball' : item.package,
+        repository: item.repository,
+        commit: item.commit,
+        digest: item.tarball.sha256,
+      });
+    else
+      signedOnly.push({
+        package: item.package,
+        version: item.version,
+        tarball: item.tarball.name,
+        sha256: item.tarball.sha256,
+        signer: item.tarball.signer,
+      });
   }
   const cc = await cToolchain(options.exec);
   const plan: BuildPlan = {
@@ -597,11 +646,25 @@ export async function prepareGnuBuild(
     nodeBin: null,
     nodeVersion: null,
     runner: null,
-    gnu: { steps, output: acquire.output, cc },
+    gnu: {
+      steps,
+      output: acquire.output,
+      make: acquire.make ?? [],
+      companions: acquire.companions ?? [],
+      cc,
+      signedOnly,
+    },
     dependencies,
     builderHash: builderHash(await builderInventory(), {
       compiler: cc.compiler,
       muslLibc: cc.muslLibcSha256,
+      ...(signedOnly.length
+        ? {
+            signedOnly: signedOnly
+              .map((item) => `${item.tarball}:${item.sha256}`)
+              .join(' '),
+          }
+        : {}),
     }),
     buildKey: '',
   };
@@ -632,6 +695,10 @@ export function sourceBuildInfo(
           builder: 'autotools',
           compiler: plan.gnu.cc.compiler,
           muslLibcSha256: plan.gnu.cc.muslLibcSha256,
+          // Signed tarballs with no repository: no commit is claimed for them.
+          ...(plan.gnu.signedOnly?.length
+            ? { signedOnly: plan.gnu.signedOnly }
+            : {}),
           note: PROVENANCE_NOTE,
         }
       : {
@@ -672,6 +739,13 @@ export async function compilePlan(
       const prefix = join(staging, 'prefix');
       const env = buildEnvironment({});
       const steps = plan.gnu.steps;
+      const outputs = [
+        [plan.gnu.output, join(out, plan.binary)],
+        ...plan.gnu.companions.map((item) => [
+          item.output,
+          join(out, item.binary),
+        ]),
+      ];
       for (const [index, step] of steps.entries()) {
         const program = index === steps.length - 1;
         await runInGroup({
@@ -681,7 +755,14 @@ export async function compilePlan(
             program ? 'program' : 'library',
             step.sourceDir,
             prefix,
-            ...(program ? [plan.gnu.output, join(out, plan.binary)] : []),
+            ...(program
+              ? [
+                  String(outputs.length),
+                  ...outputs.flat(),
+                  String(plan.gnu.make.length),
+                  ...plan.gnu.make,
+                ]
+              : []),
             ...step.configure,
           ],
           cwd: step.sourceDir,
@@ -747,24 +828,57 @@ export async function compilePlan(
   });
 }
 
-/** The built ELF is validated through the public API and stored. */
+/**
+ * The guests one plan builds: its tool, then each companion under its own
+ * tool name, with the same source and dependencies and its own buildKey.
+ */
+export function planGuests(
+  plan: BuildPlan,
+): { plan: BuildPlan; companionOf: string | null }[] {
+  return [
+    { plan, companionOf: null },
+    ...(plan.gnu?.companions ?? []).map((item) => {
+      const guest = { ...plan, tool: item.binary, binary: item.binary };
+      guest.buildKey = sourceBuildInfo(guest, '0'.repeat(64)).buildKey;
+      return { plan: guest, companionOf: plan.tool };
+    }),
+  ];
+}
+
+/** Each built ELF is validated through the public API and stored. */
 async function finishCompile(
   plan: BuildPlan,
   out: string,
   options: CompileOptions,
   started: number,
 ): Promise<AcquiredTool> {
-  const elf = new Uint8Array(await readFile(join(out, plan.binary)));
-  if (elf.length > TRANSFER_POLICY.maxElfBytes)
-    fail('size-limit', `${plan.tool} ELF exceeds the ELF limit`);
-  const info = sourceBuildInfo(plan, sha256(elf));
-  if (info.buildKey !== plan.buildKey)
-    fail('build-failed', 'buildKey changed while compiling');
-  const buildInfoSha256 = validateWithPublicApi(options.validate, elf, info);
-  const record = sourceRecord(plan, elf, info, buildInfoSha256, null);
-  record.timing.fetchMs = Math.round(performance.now() - started);
-  await storeAcquired(options.layout, record, elf, elf);
-  return record;
+  const records: [AcquiredTool, Uint8Array][] = [];
+  for (const guest of planGuests(plan)) {
+    const elf = new Uint8Array(await readFile(join(out, guest.plan.binary)));
+    if (elf.length > TRANSFER_POLICY.maxElfBytes)
+      fail('size-limit', `${guest.plan.tool} ELF exceeds the ELF limit`);
+    const info = sourceBuildInfo(guest.plan, sha256(elf));
+    if (info.buildKey !== guest.plan.buildKey)
+      fail('build-failed', 'buildKey changed while compiling');
+    const buildInfoSha256 = validateWithPublicApi(options.validate, elf, info);
+    records.push([
+      sourceRecord(
+        guest.plan,
+        elf,
+        info,
+        buildInfoSha256,
+        null,
+        guest.companionOf,
+      ),
+      elf,
+    ]);
+  }
+  // Nothing is stored before every guest of the build passed.
+  for (const [record, elf] of records) {
+    record.timing.fetchMs = Math.round(performance.now() - started);
+    await storeAcquired(options.layout, record, elf, elf);
+  }
+  return records[0]![0];
 }
 
 export function sourceRecord(
@@ -773,6 +887,7 @@ export function sourceRecord(
   info: GuestBuildInfo,
   buildInfoSha256: string,
   reusedFromRun: AcquiredTool['provenance']['reusedFromRun'],
+  companionOf: string | null = null,
 ): AcquiredTool {
   return {
     tool: plan.tool,
@@ -783,6 +898,7 @@ export function sourceRecord(
     downloadBytes: elf.length,
     elfSha256: info.elfSha256,
     elfBytes: elf.length,
+    ...(companionOf ? { companionOf } : {}),
     buildInfo: info,
     buildInfoSha256,
     provenance: {

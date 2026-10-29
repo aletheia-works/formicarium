@@ -114,6 +114,7 @@ export class TerminalHost {
   #output: CommandOutput | null = null;
   #session: Session | null = null;
   #commands: CommandSession | null = null;
+  #installer: Installer | null = null;
   #isolationTimer: unknown = null;
   /** The stdin of the running interactive tool; null when none runs. */
   #input: ReadableStreamDefaultController<Uint8Array> | null = null;
@@ -247,6 +248,7 @@ export class TerminalHost {
       this.#session = session;
       this.#commands = loaded.root.createCommandSession(session, { catalog });
       installer = loaded.root.createInstaller(session, catalog);
+      this.#installer = installer;
     } catch (error) {
       if (this.state === 'disposed') return;
       this.#setState('failed');
@@ -279,40 +281,86 @@ export class TerminalHost {
   }
 
   /**
-   * Installs `tools` one by one without writing to the terminal; only a
-   * failure is shown, named by its tool, and leaves ready_failed_install
-   * (typing install retries it). Ctrl-C cancels it like a typed install.
+   * Installs `tools` one by one without writing to the terminal, each with
+   * its companions; only a failure is shown, named by its tool, and leaves
+   * ready_failed_install (typing install retries it). Ctrl-C cancels it like
+   * a typed install.
    */
   async #installQuietly(installer: Installer, tools: string[]): Promise<void> {
     this.#setState('installing');
     const run = new AbortController();
     this.#run = run;
     let failure: { code: string; message: string } | null = null;
-    let current = '';
+    const current = { tool: '' };
     try {
       for (const tool of tools) {
-        current = tool;
-        this.#status({ kind: 'installing', tool, version: '', progress: null });
-        await installer.install(tool, {
-          signal: run.signal,
-          onProgress: (progress) => {
-            if (!run.signal.aborted && this.state === 'installing')
-              this.#status({ kind: 'installing', tool, version: '', progress });
-          },
-        });
+        current.tool = tool;
+        const installed = await this.#installOne(installer, tool, run.signal);
         if (this.state === 'disposed') return;
+        await this.#installCompanions(
+          installer,
+          installed,
+          run.signal,
+          current,
+        );
+        if (this.#isDisposed()) return;
       }
     } catch (error) {
       if (this.state === 'disposed') return;
       failure = run.signal.aborted
         ? this.#aborted()
         : new CommandOutput({
-            write: (text) => this.#print(`${current}: ${text}`),
+            write: (text) => this.#print(`${current.tool}: ${text}`),
           }).fail(error);
     } finally {
       if (this.#run === run) this.#run = null;
     }
     this.#finish(true, failure, true);
+  }
+
+  /** One install through the public installer, its progress in the status. */
+  async #installOne(
+    installer: Installer,
+    selection: string,
+    signal: AbortSignal,
+  ): Promise<{ tool: string; versionOrName: string }> {
+    const tool = selection.split('@')[0]!;
+    this.#status({ kind: 'installing', tool, version: '', progress: null });
+    return installer.install(selection, {
+      signal,
+      onProgress: (progress) => {
+        if (!signal.aborted && this.state === 'installing')
+          this.#status({ kind: 'installing', tool, version: '', progress });
+      },
+    });
+  }
+
+  /**
+   * The companions of an installed tool (git-remote-https of git), at its
+   * version, without writing to the terminal; `current` names the one being
+   * installed for a failure message.
+   */
+  async #installCompanions(
+    installer: Installer,
+    installed: { tool: string; versionOrName: string },
+    signal: AbortSignal,
+    current: { tool: string },
+  ): Promise<void> {
+    for (const companion of this.#options.data.companions[installed.tool] ??
+      []) {
+      current.tool = companion;
+      await this.#installOne(
+        installer,
+        `${companion}@${installed.versionOrName}`,
+        signal,
+      );
+      if (this.#isDisposed()) return;
+    }
+  }
+
+  /** Read again after an await: dispose() may have run meanwhile. */
+  #isDisposed(): boolean {
+    return this.state === 'disposed';
   }
 
   /**
@@ -441,6 +489,7 @@ export class TerminalHost {
     };
     let failure: { code: string; message: string } | null = null;
     let succeeded = false;
+    const companion = { tool: '' };
     try {
       const result = await commands.execute(line, {
         signal: run.signal,
@@ -469,11 +518,32 @@ export class TerminalHost {
             tool: result.installation.tool,
             version: result.installation.versionOrName,
           };
+        // A tool's companions follow its install quietly, named on failure.
+        if (
+          result.exitCode === 0 &&
+          result.kind === 'install' &&
+          result.installation &&
+          this.#installer
+        ) {
+          await this.#installCompanions(
+            this.#installer,
+            result.installation,
+            run.signal,
+            companion,
+          );
+          if (this.#isDisposed()) return false;
+        }
         succeeded = result.exitCode === 0;
       }
     } catch (error) {
       if (this.state === 'disposed') return false;
-      failure = run.signal.aborted ? this.#aborted() : output.fail(error);
+      failure = run.signal.aborted
+        ? this.#aborted()
+        : companion.tool
+          ? new CommandOutput({
+              write: (text) => this.#print(`${companion.tool}: ${text}`),
+            }).fail(error)
+          : output.fail(error);
     } finally {
       if (this.#run === run) this.#run = null;
       if (interactive) this.#endInput();

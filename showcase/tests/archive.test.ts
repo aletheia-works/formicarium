@@ -1,13 +1,16 @@
 import assert from 'node:assert/strict';
-import { readFile, readlink } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import { mkdir, readFile, readlink, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import test from 'node:test';
 import { gzipSync } from 'node:zlib';
 import {
+  expandTarball,
   extractEntry,
   gunzipBounded,
   readTar,
   readZip,
+  unxzBounded,
   writeTree,
 } from '../scripts/archive.ts';
 import { causeOf } from '../scripts/errors.ts';
@@ -189,6 +192,29 @@ test('a git archive tree keeps its commit comment and is written without its roo
   });
 });
 
+test('a written tree keeps the archive times, so make sees configure.ac older than aclocal.m4', async () => {
+  const source = tar([
+    { name: 'pkg-1', type: '5' },
+    { name: 'pkg-1/configure.ac', body: 'AC_INIT', mtime: 1_700_000_000 },
+    { name: 'pkg-1/aclocal.m4', body: 'm4', mtime: 1_700_000_100 },
+    // A PAX mtime wins over the header's, as tar gives it.
+    { name: 'PaxHeader', type: 'x', body: pax({ mtime: '1700000200.5' }) },
+    { name: 'pkg-1/configure', body: '#!/bin/sh\n', mtime: 1, mode: 0o755 },
+    { name: 'pkg-1/copy', type: '1', linkname: 'pkg-1/aclocal.m4' },
+  ]);
+  const result = readTar(source, limits);
+  await withLayout(async (layout) => {
+    const destination = join(layout.root, 'tree');
+    await writeTree(result.entries, destination, 'pkg-1');
+    const seconds = async (name: string) =>
+      Math.floor((await stat(join(destination, name))).mtimeMs / 1000);
+    assert.equal(await seconds('configure.ac'), 1_700_000_000);
+    assert.equal(await seconds('aclocal.m4'), 1_700_000_100);
+    assert.equal(await seconds('configure'), 1_700_000_200);
+    assert.equal(await seconds('copy'), 1_700_000_100);
+  });
+});
+
 test('artifact zips are read with CRC and size checks', () => {
   const files = readZip(
     zip({ 'manifest.json': '{}', 'site/a.bin': elf }),
@@ -201,4 +227,45 @@ test('artifact zips are read with CRC and size checks', () => {
   throwsCause(() => readZip(corrupt, limits), 'archive-invalid');
   throwsCause(() => readZip(zip({ '../x': 'y' }), limits), 'archive-invalid');
   throwsCause(() => readZip(new Uint8Array(10), limits), 'archive-invalid');
+});
+
+test('xz output is read through the system xz and bounded like gzip', async () => {
+  const raw = new Uint8Array(200_000).fill(7);
+  const compressed = new Uint8Array(execFileSync('xz', ['-c'], { input: raw }));
+  assert.deepEqual(await unxzBounded(compressed, raw.length), raw);
+  assert.deepEqual(
+    await expandTarball('a-1.0.tar.xz', compressed, raw.length),
+    raw,
+  );
+  assert.deepEqual(
+    await expandTarball('a-1.0.tar.gz', gzipSync(raw), raw.length),
+    new Uint8Array(raw),
+  );
+  // Past the limit xz is killed; a broken stream, a missing xz, a stalled
+  // xz and another suffix are refused with their own causes.
+  await rejectsCause(unxzBounded(compressed, raw.length - 1), 'size-limit');
+  await rejectsCause(
+    unxzBounded(new Uint8Array([1, 2, 3]), 10),
+    'archive-invalid',
+  );
+  await rejectsCause(
+    unxzBounded(compressed, raw.length, { command: '/nonexistent/xz' }),
+    'archive-invalid',
+  );
+  await withLayout(async (layout) => {
+    const stalled = join(layout.root, 'xz');
+    await mkdir(layout.root, { recursive: true });
+    await writeFile(stalled, '#!/bin/sh\nexec sleep 30\n', { mode: 0o755 });
+    await rejectsCause(
+      unxzBounded(compressed, raw.length, {
+        command: stalled,
+        deadlineMs: 200,
+      }),
+      'deadline',
+    );
+  });
+  await rejectsCause(
+    expandTarball('a-1.0.tar.bz2', compressed, raw.length),
+    'archive-invalid',
+  );
 });

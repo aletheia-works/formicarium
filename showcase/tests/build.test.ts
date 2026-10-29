@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { access, chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import test from 'node:test';
+import { gunzipSync } from 'node:zlib';
 import { validateGuest } from '@aletheia-works/formicarium';
 import type { AcquiredTool } from '../scripts/acquire.ts';
+import { loadAcquired } from '../scripts/acquire.ts';
 import {
   type BuildPlan,
   buildEnvironment,
@@ -403,13 +406,16 @@ function gnuBuildTarball(name: string, elfPath: string | null) {
   ]);
 }
 
-async function gnuResolution(layout: { tarballs: string; root: string }) {
+async function gnuResolution(
+  layout: { tarballs: string; root: string },
+  bodies: Partial<Record<'nano' | 'ncurses', Uint8Array>> = {},
+) {
   const elf = staticElf(170, 7);
   await mkdir(layout.root, { recursive: true });
   await writeFile(join(layout.root, 'nano.elf'), elf);
   await mkdir(layout.tarballs, { recursive: true });
-  const tarball = async (name: string, elfPath: string | null) => {
-    const body = gnuBuildTarball(name, elfPath);
+  const tarball = async (name: 'nano' | 'ncurses', elfPath: string | null) => {
+    const body = bodies[name] ?? gnuBuildTarball(name, elfPath);
     const file = `${name}-1.0.tar.gz`;
     await writeFile(join(layout.tarballs, file), body);
     return {
@@ -581,5 +587,232 @@ test('an autotools compile builds each package without a token and validates the
     );
     assert.match(args, /^--prefix=\/.+\/prefix\n--disable-nls\n/);
     assert.match(args, /NCURSESW_CFLAGS=-I\/.+\/prefix\/include\/ncursesw\n/);
+  });
+});
+
+/**
+ * Replaces ncurses' resolved tarball by the same tar compressed with xz
+ * (GnuTLS publishes only .tar.xz), as resolve.ts would have stored it.
+ */
+async function ncursesAsXz(
+  layout: { tarballs: string },
+  resolution: ToolResolution,
+) {
+  const library = resolution.gnu!.libraries[0]!;
+  const tar = gunzipSync(
+    await readFile(join(layout.tarballs, library.tarball.name)),
+  );
+  const body = execFileSync('xz', ['-c'], { input: tar });
+  await writeFile(join(layout.tarballs, 'ncurses-1.0.tar.xz'), body);
+  library.tarball = {
+    ...library.tarball,
+    name: 'ncurses-1.0.tar.xz',
+    sha256: sha(body),
+    size: body.length,
+  };
+}
+/** The program's tarball: it builds two programs and records a make variable. */
+const programTarball = (elf: string, extra: string) => {
+  const make =
+    `all:\n\tmkdir -p src && cp '${elf}' src/nano && cp '${extra}' src/extra` +
+    ' && echo "$(FOO)" > make.vars\n';
+  return tgz([
+    { name: 'nano-1.0', type: '5' },
+    { name: 'nano-1.0/COPYING', body: 'license\n' },
+    {
+      name: 'nano-1.0/configure',
+      mode: 0o755,
+      body:
+        '#!/bin/sh\nset -e\ntest "$CC" = musl-gcc\n' +
+        `printf '%s' '${make}' > Makefile\n`,
+    },
+  ]);
+};
+/** nano as if it had make variables and a companion program. */
+const companionConfig = (output = 'src/extra'): ToolConfig => {
+  const config = structuredClone(nanoConfig);
+  if (config.acquire.kind !== 'gnu-source') throw Error('nano is gnu-source');
+  config.acquire.make = ['FOO={prefix}/lib -lx'];
+  config.acquire.companions = [{ binary: 'nano-extra', output }];
+  return config;
+};
+
+test('an xz library tarball is unpacked; the program gets make variables and builds its companion', async () => {
+  await withLayout(async (layout) => {
+    const extra = staticElf(180, 9);
+    await mkdir(layout.root, { recursive: true });
+    await writeFile(join(layout.root, 'extra.elf'), extra);
+    const { elf, resolution: nanoResolution } = await gnuResolution(layout, {
+      nano: programTarball(
+        join(layout.root, 'nano.elf'),
+        join(layout.root, 'extra.elf'),
+      ),
+    });
+    await ncursesAsXz(layout, nanoResolution);
+    const libc = join(layout.root, 'libc.a');
+    await writeFile(libc, 'musl libc');
+    const plan = await prepareBuild({
+      config: companionConfig(),
+      resolution: nanoResolution,
+      layout,
+      api: ncursesApi(),
+      acquired: [],
+      exec: gnuExecFor(libc),
+    });
+    assert.deepEqual(
+      plan.gnu?.steps.map((step) => step.package),
+      ['ncurses', 'nano'],
+    );
+    assert.deepEqual(plan.gnu?.make, ['FOO={prefix}/lib -lx']);
+    const record = await compilePlan(plan, { layout, validate: validateGuest });
+    assert.equal(record.elfSha256, sha(elf));
+    assert.equal(record.companionOf, undefined);
+    assert.match(
+      await readFile(
+        join(plan.gnu!.steps[0]!.sourceDir, 'configure.args'),
+        'utf8',
+      ),
+      /^--prefix=\/.+\/prefix\n--without-shared\n/,
+    );
+    assert.match(
+      await readFile(join(plan.gnu!.steps[1]!.sourceDir, 'make.vars'), 'utf8'),
+      /^\/.+\/prefix\/lib -lx\n$/,
+    );
+    // The companion is a guest of its own: same source, its own ELF and key.
+    const acquired = await loadAcquired(layout);
+    assert.deepEqual(
+      acquired.map((item) => [item.tool, item.companionOf ?? null]),
+      [
+        ['nano', null],
+        ['nano-extra', 'nano'],
+      ],
+    );
+    const companion = acquired[1]!;
+    assert.equal(companion.elfSha256, sha(extra));
+    assert.equal(companion.downloadFile, 'nano-extra');
+    assert.equal(companion.buildInfo.tool, 'nano-extra');
+    assert.equal(companion.version, record.version);
+    assert.deepEqual(companion.buildInfo.source, record.buildInfo.source);
+    assert.deepEqual(
+      companion.buildInfo.dependencies,
+      record.buildInfo.dependencies,
+    );
+    assert.notEqual(companion.buildInfo.buildKey, record.buildInfo.buildKey);
+  });
+});
+
+test('a build whose companion is missing stores no guest', async () => {
+  await withLayout(async (layout) => {
+    await mkdir(layout.root, { recursive: true });
+    await writeFile(join(layout.root, 'extra.elf'), staticElf(180, 9));
+    const { resolution: nanoResolution } = await gnuResolution(layout, {
+      nano: programTarball(
+        join(layout.root, 'nano.elf'),
+        join(layout.root, 'extra.elf'),
+      ),
+    });
+    const libc = join(layout.root, 'libc.a');
+    await writeFile(libc, 'musl libc');
+    const plan = await prepareBuild({
+      config: companionConfig('src/missing'),
+      resolution: nanoResolution,
+      layout,
+      api: ncursesApi(),
+      acquired: [],
+      exec: gnuExecFor(libc),
+    });
+    await rejects(
+      compilePlan(plan, { layout, validate: validateGuest }),
+      'build-failed',
+    );
+    assert.deepEqual(await loadAcquired(layout), []);
+  });
+});
+
+test('a library without a repository enters the builderHash and provenance, never the dependencies', async () => {
+  await withLayout(async (layout) => {
+    const { elf, resolution: nanoResolution } = await gnuResolution(layout);
+    // ncurses as if it had no tagged repository (as GMP has none).
+    const library = nanoResolution.gnu!.libraries[0]!;
+    nanoResolution.gnu!.libraries[0] = {
+      ...library,
+      repository: null,
+      tag: null,
+      commit: null,
+    };
+    const config = structuredClone(nanoConfig);
+    if (config.acquire.kind !== 'gnu-source') throw Error('nano is gnu-source');
+    config.acquire.libraries[0] = {
+      ...config.acquire.libraries[0]!,
+      repository: null,
+      tag: null,
+    };
+    const libc = join(layout.root, 'libc.a');
+    await writeFile(libc, 'musl libc');
+    const plan = await prepareBuild({
+      config,
+      resolution: nanoResolution,
+      layout,
+      api: ncursesApi(),
+      acquired: [],
+      exec: gnuExecFor(libc),
+    });
+    assert.deepEqual(
+      plan.dependencies.map((item) => item.tool),
+      ['source-tarball'],
+    );
+    assert.deepEqual(plan.gnu?.signedOnly, [
+      {
+        package: 'ncurses',
+        version: '6.6',
+        tarball: 'ncurses-1.0.tar.gz',
+        sha256: library.tarball.sha256,
+        signer: library.tarball.signer,
+      },
+    ]);
+    const record = await compilePlan(plan, { layout, validate: validateGuest });
+    assert.equal(record.elfSha256, sha(elf));
+    assert.deepEqual(
+      (record.buildInfo.provenance as { signedOnly?: unknown }).signedOnly,
+      plan.gnu?.signedOnly,
+    );
+    // A changed tarball changes the builderHash and so the buildKey.
+    await withLayout(async (other) => {
+      const second = await gnuResolution(other, {
+        ncurses: gnuBuildTarball('ncurses', 'x'),
+      });
+      second.resolution.gnu!.libraries[0] = {
+        ...second.resolution.gnu!.libraries[0]!,
+        repository: null,
+        tag: null,
+        commit: null,
+      };
+      await writeFile(join(other.root, 'libc.a'), 'musl libc');
+      const changed = await prepareBuild({
+        config,
+        resolution: second.resolution,
+        layout: other,
+        api: ncursesApi(),
+        acquired: [],
+        exec: gnuExecFor(join(other.root, 'libc.a')),
+      });
+      assert.notEqual(changed.builderHash, plan.builderHash);
+    });
+    // A partial identity (a commit without its repository) is refused.
+    nanoResolution.gnu!.libraries[0] = {
+      ...nanoResolution.gnu!.libraries[0]!,
+      commit: commit('ncurses'),
+    };
+    await rejects(
+      prepareBuild({
+        config,
+        resolution: nanoResolution,
+        layout: { ...layout, sources: join(layout.root, 'partial') },
+        api: ncursesApi(),
+        acquired: [],
+        exec: gnuExecFor(libc),
+      }),
+      'config-invalid',
+    );
   });
 });

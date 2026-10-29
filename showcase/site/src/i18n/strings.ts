@@ -47,6 +47,11 @@ export const STRINGS = {
         summary:
           'A formatter and linter for web projects. The sample project has a biome.json and two scripts.',
       },
+      git: {
+        label: 'Git',
+        summary:
+          'The version control system, built here from its signed source with curl, GnuTLS, nettle, GMP and zlib. The sample project has a README to commit; every page installs git, so jj can run it too.',
+      },
       jj: {
         label: 'jj',
         summary:
@@ -105,6 +110,11 @@ export const STRINGS = {
         summary:
           'web の project の formatter と linter。試しの project に biome.json と2つの script があります。',
       },
+      git: {
+        label: 'Git',
+        summary:
+          'version control system。署名された source から curl、GnuTLS、nettle、GMP、zlib と一緒にここで build しています。試しの project に commit する README があります。どの page でも git を導入するので、jj からも動かせます。',
+      },
       jj: {
         label: 'jj',
         summary:
@@ -135,6 +145,7 @@ export const HINTS: Readonly<Record<string, readonly string[]>> = Object.freeze(
       'aube --help',
     ],
     biome: ['biome --version', 'ls', 'cat example.js', 'biome --help'],
+    git: ['git --version', 'ls', 'cat README.md', 'git init demo'],
     jj: [
       'jj --version',
       'ls',

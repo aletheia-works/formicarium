@@ -16,7 +16,7 @@ import { writeCandidate } from './candidate-fixture.ts';
 import { tempDir, WORKFLOW, writeFiles } from './helpers.ts';
 import { writePack } from './pack-fixture.ts';
 
-const TOOLS = ['aube', 'biome', 'jj', 'nano', 'pitchfork'];
+const TOOLS = ['aube', 'biome', 'git', 'jj', 'nano', 'pitchfork'];
 
 async function setup(options: { tamper?: boolean } = {}) {
   const root = await tempDir('build');

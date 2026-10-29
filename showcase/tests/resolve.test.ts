@@ -10,6 +10,7 @@ import {
 import { causeOf } from '../scripts/errors.ts';
 import { createGitHubApi } from '../scripts/github.ts';
 import {
+  datedTag,
   loadResolutions,
   loadVerifiedTools,
   resolveTool,
@@ -22,7 +23,7 @@ import {
   type Route,
   releaseRoutes,
 } from './fixtures/github.ts';
-import { gnuOptions, ncursesTagRoutes } from './fixtures/gnu.ts';
+import { gitTagRoutes, gnuOptions, ncursesTagRoutes } from './fixtures/gnu.ts';
 import { MAIN_ALLOWED, readMain, withLayout } from './fixtures/work.ts';
 
 const tools = validateToolsConfig(
@@ -63,6 +64,7 @@ const all = () => ({
     annotated: true,
   }),
   ...ncursesTagRoutes(),
+  ...gitTagRoutes(),
   ...releaseRoutes({
     slug: 'jj-vcs/jj',
     tag: 'v0.46.0',
@@ -93,6 +95,7 @@ test('resolves every tool once, peels annotated tags and writes resolutions once
         ['biome', '2.5.15', commit('biome')],
         ['nano', '9.3', commit('nano')],
         ['jj', '0.46.0', commit('jj')],
+        ['git', '2.56.0', commit('git/git')],
       ],
     );
     assert.equal(resolutions.tools[1]!.asset, null);
@@ -201,4 +204,34 @@ test('a repository missing from the main allow list is refused before any reques
         })
       : readMain(path);
   await rejects(loadVerifiedTools(narrowed), 'source-not-allowed');
+});
+
+test('a dated tag is the one GitHub tag that fits its template', async () => {
+  const url =
+    'https://api.github.com/repos/gnutls/nettle/git/matching-refs/tags/nettle_4.0_release_';
+  const with_ = (refs: unknown) => api({ [url]: () => json(refs) });
+  const nettle = 'https://github.com/gnutls/nettle';
+  const template = 'nettle_4.0_release_{date}';
+  assert.equal(
+    await datedTag(
+      with_([
+        { ref: 'refs/tags/nettle_4.0_release_20260205' },
+        { ref: 'refs/tags/nettle_4.0_release_2026' },
+        { ref: 'refs/tags/nettle_4.0_release_20260205x' },
+        { ref: 1 },
+      ]),
+      nettle,
+      template,
+    ),
+    'nettle_4.0_release_20260205',
+  );
+  for (const refs of [
+    [],
+    [
+      { ref: 'refs/tags/nettle_4.0_release_20260205' },
+      { ref: 'refs/tags/nettle_4.0_release_20260301' },
+    ],
+  ])
+    await rejects(datedTag(with_(refs), nettle, template), 'tag-mismatch');
+  await rejects(datedTag(with_({}), nettle, template), 'bad-body');
 });

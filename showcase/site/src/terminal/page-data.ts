@@ -36,6 +36,11 @@ export interface TerminalPageData {
   everyPage: string[];
   /** Files every page writes below the home before any tool runs. */
   homeFiles: HomeFile[];
+  /**
+   * Further programs installed with a tool, by tool (tools.json
+   * `companions`): installing git also installs git-remote-https.
+   */
+  companions: Record<string, string[]>;
 }
 
 const SHA256 = /^[a-f0-9]{64}$/;
@@ -60,6 +65,28 @@ function homeFiles(value: unknown): HomeFile[] {
       throw new Error('page data homeFiles invalid');
     return { path: file.path, text: file.text };
   });
+}
+
+function companions(value: unknown): Record<string, string[]> {
+  const valid = (tools: unknown) =>
+    Array.isArray(tools) &&
+    tools.length > 0 &&
+    tools.every((tool) => typeof tool === 'string' && TOOL.test(tool));
+  if (
+    !value ||
+    typeof value !== 'object' ||
+    Array.isArray(value) ||
+    !Object.entries(value).every(
+      ([tool, names]) => TOOL.test(tool) && valid(names),
+    )
+  )
+    throw new Error('page data companions invalid');
+  return Object.fromEntries(
+    Object.entries(value as Record<string, string[]>).map(([tool, names]) => [
+      tool,
+      [...names],
+    ]),
+  );
 }
 
 function embedded(value: unknown, name: string): EmbeddedFile {
@@ -120,5 +147,6 @@ export function parsePageData(
     interactive: [...value.interactive!],
     everyPage: [...value.everyPage!],
     homeFiles: homeFiles(value.homeFiles),
+    companions: companions(value.companions),
   };
 }

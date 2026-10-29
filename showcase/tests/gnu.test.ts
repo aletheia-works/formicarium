@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { readConfigFile, type ToolConfig } from '../scripts/config.ts';
+import { gunzipSync } from 'node:zlib';
+import {
+  readConfigFile,
+  type ToolConfig,
+  validateToolsConfig,
+} from '../scripts/config.ts';
 import { causeOf } from '../scripts/errors.ts';
 import { createGitHubApi } from '../scripts/github.ts';
 import {
@@ -8,19 +14,24 @@ import {
   latestVersion,
   lsRemoteCommit,
   processExec,
+  signatureNameOf,
   verifySignature,
 } from '../scripts/gnu.ts';
 import { resolveGnuTool } from '../scripts/resolve.ts';
 import { commit, fakeFetch, sha } from './fixtures/github.ts';
 import {
+  GIT_SOURCES,
+  gitTagRoutes,
   gnuExec,
   gnuOptions,
   gnuRoutes,
   gnuTarball,
   ncursesTagRoutes,
   SIGNERS,
+  xzTarball,
 } from './fixtures/gnu.ts';
-import { tgz } from './fixtures/tar.ts';
+import { pax, tgz } from './fixtures/tar.ts';
+import { MAIN_ALLOWED } from './fixtures/work.ts';
 
 const nano = (
   (await readConfigFile('tools.json')) as { tools: ToolConfig[] }
@@ -30,6 +41,11 @@ const data = new Uint8Array([1, 2, 3]);
 const rejects = (promise: Promise<unknown>, code: string) =>
   assert.rejects(promise, (error) => causeOf(error) === code);
 const api = () => createGitHubApi({ fetchImpl: fakeFetch(ncursesTagRoutes()) });
+const git = validateToolsConfig(
+  await readConfigFile('tools.json'),
+  JSON.parse(MAIN_ALLOWED),
+).tools.find((item) => item.tool === 'git')!;
+const gitApi = () => createGitHubApi({ fetchImpl: fakeFetch(gitTagRoutes()) });
 
 test('the latest version is the highest signed tarball, compared by number', () => {
   const page = [
@@ -53,7 +69,44 @@ test('the latest version is the highest signed tarball, compared by number', () 
   );
 });
 
-test('a signature counts only as one good signature by a pinned primary key', async () => {
+test('a package with its own source takes links with any prefix and no listed signature', () => {
+  const page = [
+    'curl-8.9.1.tar.gz',
+    '/download/curl-8.23.0.tar.gz',
+    'https://example.org/releases/curl-8.22.0/curl-8.22.0.tar.gz',
+    '/download/curl-9.0.0.tar.xz',
+    'curl-tiny-10.0.0.tar.gz',
+    '/download/curl-10.0.0-rc1.tar.gz',
+  ]
+    .map((href) => `<a href="${href}">x</a>`)
+    .join('\n');
+  // Absolute-path and absolute links count; .tar.xz, curl-tiny and a
+  // pre-release never match, and no signature needs to be listed.
+  assert.equal(latestVersion(page, 'curl', { anyPrefix: true }), '8.23.0');
+  // The GNU listing keeps its rule: relative links with a listed .sig only.
+  assert.throws(
+    () => latestVersion(page, 'curl'),
+    (error) => causeOf(error) === 'release-invalid',
+  );
+  assert.throws(
+    () =>
+      latestVersion('<a href="/curl-8.tar.gz">x</a>', 'curl', {
+        anyPrefix: true,
+      }),
+    (error) => causeOf(error) === 'release-invalid',
+  );
+});
+
+test('latestVersion reads the href attribute in any case, as zlib.net writes HREF', () => {
+  // zlib.net links the tarball with HREF and its signature with href.
+  const page = [
+    '<A HREF="zlib-1.3.2.tar.gz">zlib source code, version 1.3.2, tar.gz format</A>',
+    '<a href="zlib-1.3.2.tar.gz.asc">GPG signature</a>',
+  ].join('\n');
+  assert.equal(latestVersion(page, 'zlib', { anyPrefix: true }), '1.3.2');
+});
+
+test('a signature counts only when every signature in it is good and by a pinned primary key', async () => {
   const calls: string[][] = [];
   assert.equal(
     await verifySignature(pkg, data, data, {
@@ -75,15 +128,30 @@ test('a signature counts only as one good signature by a pinned primary key', as
     `[GNUPG:] EXPKEYSIG X Someone\n[GNUPG:] VALIDSIG A 0 0 ${SIGNERS.nano}\n`,
     `[GNUPG:] BADSIG X Someone\n${good}`,
     `${good}[GNUPG:] REVKEYSIG X Someone\n`,
-    // Two signatures, none, and a key that is not pinned.
-    `${good}${good}`,
+    // A good signature without its VALIDSIG, none, a key that is not
+    // pinned, and two signatures of which one key is not pinned.
+    `${good}[GNUPG:] GOODSIG Y Other\n`,
     '[GNUPG:] NEWSIG\n',
     good.replace(SIGNERS.nano!, SIGNERS.ncurses!),
+    `${good}${good.replace(SIGNERS.nano!, SIGNERS.ncurses!)}`,
   ])
     await rejects(
       verifySignature(pkg, data, data, { exec: gnuExec({ status }) }),
       'signature-invalid',
     );
+  // GnuTLS signs each release with two pinned keys: both must be good.
+  const both = {
+    package: 'gnutls',
+    signers: [SIGNERS.nano!, SIGNERS.ncurses!],
+  };
+  assert.equal(
+    await verifySignature(both, data, data, {
+      exec: gnuExec({
+        status: `${good}${good.replace(SIGNERS.nano!, SIGNERS.ncurses!)}`,
+      }),
+    }),
+    SIGNERS.nano,
+  );
   await rejects(
     verifySignature(pkg, data, data, {
       exec: () => {
@@ -224,6 +292,161 @@ test('the license is the COPYING at the tarball root', async () => {
     ),
     'GPL\n',
   );
+});
+
+test('the license can be another file, and a pax global header is accepted', async () => {
+  const tarball = tgz([
+    {
+      name: 'pax_global_header',
+      type: 'g',
+      body: pax({ comment: commit('o') }),
+    },
+    { name: 'gnutls-3.8.13', type: '5' },
+    { name: 'gnutls-3.8.13/COPYING.LESSERv2', body: 'LGPL\n' },
+  ]);
+  assert.equal(
+    new TextDecoder().decode(await copyingOf(tarball, 'COPYING.LESSERv2')),
+    'LGPL\n',
+  );
+  await assert.rejects(copyingOf(tarball), /tarball has no COPYING/);
+  // A .tar.xz name reads the same tar through xz.
+  assert.equal(
+    new TextDecoder().decode(
+      await copyingOf(
+        xzTarball('gnutls', '3.8.13', 'COPYING.LESSERv2'),
+        'COPYING.LESSERv2',
+        'gnutls-3.8.13.tar.xz',
+      ),
+    ),
+    'gnutls license\n',
+  );
+});
+
+test('git resolves from its own servers with its libraries, signature names and licenses', async () => {
+  const signed: Record<string, Uint8Array> = {};
+  const exec = gnuExec();
+  const found = await resolveGnuTool(gitApi(), git, {
+    ...gnuOptions((file, args) => {
+      // gpgv <keyring options> <signature> <data>: keep what was verified.
+      if (file === 'gpgv') {
+        const keyring = args[1]!;
+        signed[keyring.slice(keyring.lastIndexOf('/') + 1, -4)] = readFileSync(
+          args.at(-1)!,
+        );
+      }
+      return exec(file, args);
+    }),
+  });
+  const { resolution } = found;
+  assert.equal(resolution.version, '2.56.0');
+  assert.equal(resolution.tag, 'v2.56.0');
+  assert.equal(resolution.commit, commit('git/git'));
+  assert.deepEqual(
+    resolution.gnu?.libraries.map((item) => [
+      item.package,
+      item.version,
+      item.tag,
+      item.commit,
+      item.license.path,
+      item.license.file,
+      item.license.spdx,
+      item.tarball.signer,
+    ]),
+    [
+      [
+        'zlib',
+        '1.3.2',
+        'v1.3.2',
+        commit('madler/zlib'),
+        'LICENSE',
+        'zlib-LICENSE',
+        'Zlib',
+        SIGNERS.zlib,
+      ],
+      // GMP has no tagged repository: its signed tarball is its identity.
+      [
+        'gmp',
+        '6.3.0',
+        null,
+        null,
+        'COPYINGv2',
+        'gmp-COPYINGv2',
+        'LGPL-3.0-or-later OR GPL-2.0-or-later',
+        SIGNERS.gmp,
+      ],
+      [
+        'nettle',
+        '4.0',
+        'nettle_4.0_release_20260205',
+        commit('gnutls/nettle'),
+        'COPYINGv2',
+        'nettle-COPYINGv2',
+        'LGPL-3.0-or-later OR GPL-2.0-or-later',
+        SIGNERS.nettle,
+      ],
+      [
+        'gnutls',
+        '3.8.13',
+        '3.8.13',
+        commit('gnutls/gnutls'),
+        'COPYING.LESSERv2',
+        'gnutls-COPYING.LESSERv2',
+        'LGPL-2.1-or-later',
+        SIGNERS.gnutls,
+      ],
+      [
+        'curl',
+        '8.23.0',
+        'curl-8_23_0',
+        commit('curl/curl'),
+        'COPYING',
+        'curl-COPYING',
+        'curl',
+        SIGNERS.curl,
+      ],
+    ],
+  );
+  assert.equal(resolution.license.file, 'git-COPYING');
+  assert.equal(resolution.gnu?.tarball.signatureName, 'git-2.56.0.tar.sign');
+  assert.equal(resolution.gnu?.tarball.signatureUrl, GIT_SOURCES[0].signature);
+  assert.deepEqual(
+    found.tarballs.map(([file]) => file),
+    [
+      'git-2.56.0.tar.gz',
+      'git-2.56.0.tar.sign',
+      'zlib-1.3.2.tar.gz',
+      'zlib-1.3.2.tar.gz.asc',
+      'gmp-6.3.0.tar.gz',
+      'gmp-6.3.0.tar.gz.sig',
+      'nettle-4.0.tar.gz',
+      'nettle-4.0.tar.gz.sig',
+      'gnutls-3.8.13.tar.xz',
+      'gnutls-3.8.13.tar.xz.sig',
+      'curl-8.23.0.tar.gz',
+      'curl-8.23.0.tar.gz.asc',
+    ],
+  );
+  // git's signature covers the gunzipped tar; the others cover the archive
+  // as published, GnuTLS's .tar.xz included.
+  assert.deepEqual(signed.git, gunzipSync(gnuTarball('git', '2.56.0')));
+  assert.deepEqual(signed.curl, Buffer.from(gnuTarball('curl', '8.23.0')));
+  assert.deepEqual(
+    signed.gnutls,
+    Buffer.from(xzTarball('gnutls', '3.8.13', 'COPYING.LESSERv2')),
+  );
+  // An unlisted signature still has to be fetched.
+  const routes = { ...gnuRoutes() };
+  delete routes[GIT_SOURCES.find((item) => item.name === 'curl')!.signature];
+  await rejects(
+    resolveGnuTool(gitApi(), git, {
+      ...gnuOptions(),
+      fetchImpl: fakeFetch(routes),
+    }),
+    'offline',
+  );
+  // A record written before signatureName names the GNU .sig.
+  const { signatureName: _name, ...older } = resolution.gnu!.tarball;
+  assert.equal(signatureNameOf(older), 'git-2.56.0.tar.gz.sig');
 });
 
 test('a gnu-source tool resolves its tarball and libraries with their commits', async () => {

@@ -103,7 +103,7 @@ async function work(changes: Record<string, string | null> = {}) {
 
 test('playwrightSpecs walks nested suites and needs every test expected', () => {
   const specs = playwrightSpecs(report('[tool-page] case 2'));
-  assert.equal(specs.length, 24);
+  assert.equal(specs.length, 28);
   assert.deepEqual(
     specs.filter((spec) => !spec.passed).map((spec) => spec.title),
     ['[tool-page] case 2'],
@@ -111,7 +111,7 @@ test('playwrightSpecs walks nested suites and needs every test expected', () => 
   assert.deepEqual(playwrightSpecs(null), []);
 });
 
-test('complete logs give the 43-row site evidence without deployedIdentity', async () => {
+test('complete logs give the 48-row site evidence without deployedIdentity', async () => {
   const { layout, manifest } = await work();
   const { evidence, directory } = await assembleEvidence({
     layout,
@@ -119,7 +119,7 @@ test('complete logs give the 43-row site evidence without deployedIdentity', asy
     sourceCommit: COMMIT,
     recordedAt: '2026-10-19T12:00:00Z',
   });
-  assert.equal(evidence.checks.length, 43);
+  assert.equal(evidence.checks.length, 48);
   assert.ok(evidence.checks.every((row) => row.status === 'passed'));
   assert.equal(evidence.deployedIdentity, undefined);
   assert.equal(evidence.identity.candidateId, manifest.candidateId);

@@ -21,9 +21,19 @@ showcase のツールは
   nano の Savannah の repository と ncurses の snapshot の repository にある tag の
   commit で識別します。どちらも musl-gcc で static な library と program に build し、
   署名された tarball を、対応する source としてゲストの横の `sources/` に置きます。
+- **ほかの server の署名された tarball。** git も同じように、kernel.org の tarball と、
+  それぞれの release の server にある zlib・GMP・nettle・GnuTLS・curl から build します。
+  GnuTLS と nettle を使うので、link するものはすべて git の GPL-2.0-only と両立します。
+  このような package では、`source` に一覧・tarball（`.tar.gz`、または GnuTLS が出す
+  `.tar.xz`）・署名（git は圧縮前の tar に、ほかは archive に署名します）と license の
+  file を書きます。例外は nettle が使う GMP で、tag の付いた公開 repository が無いので、
+  ftp.gnu.org の署名付き tarball だけで識別し、commit は記録しません。nano と同じく、ゲストとすべての library の署名された tarball を
+  `sources/` に置きます。同じ build から出る
+  `git-remote-https` は独立したゲストで、どの page も git と一緒に何も出さずに導入する
+  ので、jj からも git を動かせます。
 
 その後、run は catalog を書き、Node・Chromium・Firefox・WebKit・macOS の実機の Safari で
-公開 API を通して各ツールを導入して `--version` を実行し、25件の確認がすべて通ったときだけ候補を
+公開 API を通して各ツールを導入して `--version` を実行し、30件の確認がすべて通ったときだけ候補を
 作ります。このサイトはその候補から作り、`latest` を解決し直しません。
 
 ツールを足すには、`tools.json` の entry、`showcase/fixtures/<名前>/app` の demo の

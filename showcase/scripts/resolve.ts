@@ -25,6 +25,8 @@ import {
   lsRemoteCommit,
   resolveGnuPackage,
   type SignedTarball,
+  signatureNameOf,
+  sourceOf,
 } from './gnu.ts';
 import { TRANSFER_POLICY } from './limits.ts';
 import {
@@ -46,13 +48,17 @@ export interface LicenseRecord {
   sha256: string;
   spdx: string | null;
 }
-/** One signed GNU tarball, identified by the tag commit of its repository. */
+/**
+ * One signed GNU tarball, identified by the tag commit of its repository.
+ * A library without a repository (GMP) has null repository, tag and commit:
+ * its signed tarball is its only identity.
+ */
 export interface GnuPackageResolution {
   package: string;
-  repository: string;
-  tag: string;
+  repository: string | null;
+  tag: string | null;
   version: string;
-  commit: string;
+  commit: string | null;
   tarball: SignedTarball;
   license: LicenseRecord;
 }
@@ -212,30 +218,66 @@ export async function tagCommit(
     : lsRemoteCommit(repository, tag, exec, retryDelaysMs);
 }
 
+/**
+ * A tag that also names its release date (nettle's
+ * `nettle_{version}_release_{date}`): the one tag of the GitHub repository
+ * that matches the template with eight digits in place of `{date}`.
+ */
+export async function datedTag(
+  api: GitHubApi,
+  repository: string,
+  template: string,
+): Promise<string> {
+  const [before = '', after = ''] = template.split('{date}');
+  const refs = await api.get(
+    `repos/${repositorySlug(repository)}/git/matching-refs/tags/${encodeTag(before)}`,
+  );
+  if (!Array.isArray(refs)) fail('bad-body', 'matching refs is not an array');
+  const literal = (value: string) =>
+    value.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = new RegExp(
+    `^refs/tags/(${literal(before)}\\d{8}${literal(after)})$`,
+  );
+  const tags = refs.flatMap((ref) => {
+    const name = object(ref, 'matching ref').ref;
+    const match = typeof name === 'string' ? pattern.exec(name) : null;
+    return match ? [match[1]!] : [];
+  });
+  if (tags.length !== 1)
+    fail('tag-mismatch', `${tags.length} tags match ${template}, not one`);
+  return tags[0]!;
+}
+
 async function gnuPackage(
   api: GitHubApi,
   pkg: GnuPackage,
-  repository: string,
+  repository: string | null,
   options: GnuResolveOptions,
 ) {
   const found = await resolveGnuPackage(pkg, options);
-  const copying = await copyingOf(found.bytes);
+  if (repository && found.tag?.includes('{date}'))
+    found.tag = await datedTag(api, repository, found.tag);
+  const licensePath = sourceOf(pkg).license;
+  const copying = await copyingOf(found.bytes, licensePath, found.record.name);
   const resolution: GnuPackageResolution = {
     package: pkg.package,
     repository,
     tag: found.tag,
     version: found.version,
-    commit: await tagCommit(
-      api,
-      repository,
-      found.tag,
-      options.exec,
-      options.retryDelaysMs,
-    ),
+    commit:
+      repository && found.tag
+        ? await tagCommit(
+            api,
+            repository,
+            found.tag,
+            options.exec,
+            options.retryDelaysMs,
+          )
+        : null,
     tarball: found.record,
     license: {
-      path: 'COPYING',
-      file: `${pkg.package}-COPYING`,
+      path: licensePath,
+      file: `${pkg.package}-${licensePath.split('/').at(-1)}`,
       sha256: sha256(copying),
       spdx: pkg.spdx,
     },
@@ -268,17 +310,16 @@ export async function resolveGnuTool(
   ])
     packages.push(await gnuPackage(api, pkg, repository, options));
   const [own, ...libraries] = packages;
-  const version = new RegExp(config.tagPattern).exec(own!.resolution.tag)?.[1];
-  if (version !== own!.resolution.version)
-    fail(
-      'tag-mismatch',
-      `${config.tool} tag ${own!.resolution.tag} has no match`,
-    );
+  // The tool always has its repository and tag (config.ts refuses otherwise).
+  const tag = own!.resolution.tag ?? '';
+  const version = new RegExp(config.tagPattern).exec(tag)?.[1];
+  if (version !== own!.resolution.version || !own!.resolution.commit)
+    fail('tag-mismatch', `${config.tool} tag ${tag} has no match`);
   return {
     resolution: {
       tool: config.tool,
       repository: config.repository,
-      tag: own!.resolution.tag,
+      tag,
       version,
       commit: own!.resolution.commit,
       asset: null,
@@ -292,7 +333,7 @@ export async function resolveGnuTool(
     files: packages.flatMap((item) => item.files),
     tarballs: packages.flatMap((item) => [
       [item.resolution.tarball.name, item.tarball] as [string, Uint8Array],
-      [`${item.resolution.tarball.name}.sig`, item.signature] as [
+      [signatureNameOf(item.resolution.tarball), item.signature] as [
         string,
         Uint8Array,
       ],

@@ -106,6 +106,7 @@ test('only the tool pages and /terminal/ are terminal pages, with their page dat
       data.interactive,
       data.everyPage,
       data.homeFiles,
+      data.companions,
     ],
     [
       'preinstalled',
@@ -117,6 +118,7 @@ test('only the tool pages and /terminal/ are terminal pages, with their page dat
       [],
       [],
       [],
+      { git: ['git-remote-https'] },
     ],
   );
   const empty = parsePageData(
@@ -135,6 +137,20 @@ test('only the tool pages and /terminal/ are terminal pages, with their page dat
         () => parsePageData(JSON.stringify({ ...empty, [name]: value })),
         new RegExp(`page data ${name} invalid`),
       );
+  // Companions are tool names by tool name, never an empty list.
+  for (const value of [
+    undefined,
+    [],
+    'git',
+    { git: 'git-remote-https' },
+    { git: [] },
+    { git: ['../git'] },
+    { '../git': ['git-remote-https'] },
+  ])
+    assert.throws(
+      () => parsePageData(JSON.stringify({ ...empty, companions: value })),
+      /page data companions invalid/,
+    );
   // Home files stay below the home and within the tools.json limit.
   for (const value of [
     undefined,

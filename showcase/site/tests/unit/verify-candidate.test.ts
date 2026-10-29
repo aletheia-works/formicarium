@@ -145,6 +145,7 @@ test('(4) a log without the real Safari rows fails; WebKit does not stand in', a
     [
       'acceptance-log.json#aube/safari',
       'acceptance-log.json#biome/safari',
+      'acceptance-log.json#git/safari',
       'acceptance-log.json#jj/safari',
       'acceptance-log.json#nano/safari',
       'acceptance-log.json#pitchfork/safari',
@@ -157,6 +158,7 @@ test('(5) a catalog default that is not the accepted version fails', async () =>
     catalogDefaults: {
       aube: '2.7.1',
       biome: '2.5.15',
+      git: '2.56.0',
       jj: '0.46.0',
       nano: '9.3',
       pitchfork: '2.32.0',

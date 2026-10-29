@@ -1,6 +1,6 @@
 # showcase
 
-最新の安定版の aube・pitchfork・Biome・nano・jj を、formicarium の**公開 export だけ**で
+最新の安定版の aube・pitchfork・Biome・nano・jj・git を、formicarium の**公開 export だけ**で
 受入し、showcase の候補（`ShowcaseCandidateManifest`、catalog、guest）を作る。
 配布（Pages）は showcase site（`site/`、`showcase-site.yml`）が、この候補を受け取って
 行う。showcase は候補を長期保存しない。
@@ -10,8 +10,9 @@
 run 39412286499）。macOS の実機 Safari の 3 行も受入に加え（`accept-safari` job）、
 15 行がそろわないと候補を作らない（15 行がそろった最初の main の run は 40151083995、
 `82a01c27`、Safari 26.6.2）。WebKit の結果を Safari の代わりにはしない。
-nano を加えて 4 ツール、jj を加えて 5 ツールになったので、今は 25 行（5 ツール × 5 環境）が
-そろうまで候補を作らない。
+nano を加えて 4 ツール、jj を加えて 5 ツール、git を加えて 6 ツールになったので、今は 30 行
+（6 ツール × 5 環境）がそろうまで候補を作らない。git と同じ build の git-remote-https は
+companion なので、受入の行を持たない。
 
 ## 構成
 
@@ -51,8 +52,8 @@ fixture の共有は `scripts/boundary.ts` と Biome の `noRestrictedImports` �
 | source build | `scripts/build.ts`、`builders/cargo.sh`                                    | `prepare`：tag と commit の一致、codeload の source、toolchain の選択、buildKey。`compile`：token なしの独立した process group で build                      |
 | 再利用       | `scripts/reuse.ts`                                                         | main の信頼した workflow の成功 run の `showcase-candidate` から、buildKey・ELF・build-info を照合して再利用                                                 |
 | catalog      | `scripts/catalog.ts`                                                       | `GuestCatalog`（same-origin の相対 URL）。公開 `createInstaller` で受理を確かめる                                                                            |
-| 受入         | `scripts/accept-node.ts`、`tests/accept.spec.ts`、`tests/accept-safari.ts` | `install <tool>` と `<tool> --version`。5 ツール × Node・Chromium・Firefox・WebKit・実機 Safari の 25 行                                                     |
-| 候補         | `scripts/candidate.ts`                                                     | 25 行がすべて合格したときだけ manifest を作る。`verify` は常に `distributable: false`                                                                        |
+| 受入         | `scripts/accept-node.ts`、`tests/accept.spec.ts`、`tests/accept-safari.ts` | `install <tool>` と `<tool> --version`。6 ツール × Node・Chromium・Firefox・WebKit・実機 Safari の 30 行                                                     |
+| 候補         | `scripts/candidate.ts`                                                     | 30 行がすべて合格したときだけ manifest を作る。`verify` は常に `distributable: false`                                                                        |
 
 toolchain は upstream の宣言（`rust-toolchain.toml`・`rust-toolchain`、UI の
 Node は `.node-version`・`mise.toml`・`.tool-versions` の正確な版）に従い、
@@ -101,6 +102,30 @@ Safari の job は macOS の System keychain に job CA を信頼させ、leaf �
    `source-build`（`builder: "cargo"`、`binary`）。GitHub ではなく GNU の tarball で
    公開されるものは `gnu-source`（`builder: "autotools"`、`package`、`tag`、`signers`、
    `spdx`、`configure`、`binary`、`output`、`libraries`）。script に分岐は書かない。
+   ftp.gnu.org 以外の server で署名付きの tarball を出す package（git・curl・GnuTLS・
+   zlib）や、license の file が `COPYING` でない package（nettle）は、ツールにも
+   library にも `source` を書く：`listing`（tarball の file への link がある page。
+   相対・絶対 path・絶対 URL のどれでもよく、署名は一覧に無くてよいが取得は必須）、
+   `tarball`（`.../<package>-{version}.tar.gz` か `.tar.xz`。`.tar.xz` は system の
+   `xz -dc` で展開し、出力の大きさと時間を `.tar.gz` と同じ上限で打ち切る）、
+   `signature`（`{tarball}.asc` か完全な URL）、署名が圧縮前の tar に対するものなら
+   `signedData: "tar"`、`license`（tarball の root からの path）。URL は https で、
+   `{version}`・`{major}`・`{minor}`・`{patch}` だけを使える。`source` が無ければ
+   今までどおり GNU の既定（ftp.gnu.org の一覧、`.sig`、`COPYING`）になる。
+   license の file は `licenses/<package>-<file 名>` に置く。`spdx` は
+   `LGPL-3.0-or-later OR GPL-2.0-or-later` のような `OR`・`AND` の式でもよい。
+   tag が release の日付を含むとき（nettle の `nettle_{version}_release_{date}`）は
+   `{date}` を1つ書く。GitHub の repository の tag から、8 桁の数字でその形に合う
+   ただ1つの tag を選ぶ（0 個や2個以上なら止める）。
+   例外として、tag の付いた公開 repository の無い library（GMP）は `repository` と `tag` を
+   両方とも省き、ftp.gnu.org の署名付き tarball だけで識別する（commit は記録せず、build-info の
+   dependencies ではなく builderHash と provenance の `signedOnly` に tarball の SHA256 を入れる）。program の
+   `make` には `NAME=value` の make 変数を書ける（`{prefix}` を置き換える。
+   `MAKEFLAGS` や `SHELL` のような make 自身を動かす変数は拒む）。同じ build から出る
+   ほかの program は `companions`（`binary` と `output`）に書く。git の
+   `git-remote-https` のように、それぞれ自分の名前の validated guest と catalog の
+   entry（`companionOf` でツールを指す）になり、ツールを導入すると端末の page が
+   何も出さずに一緒に導入する。`--version` の受入とツールの page は持たない。
    全画面で動くツールには `interactive: true` を足す。端末の page がキー入力と
    端末の大きさをそのツールに渡し、「停止」ボタンを出す。
    どの page でも使えるようにするツールには `everyPage: true` を足す。端末の page は、
@@ -116,8 +141,23 @@ Safari の job は macOS の System keychain に job CA を信頼させ、leaf �
    鍵は作者が公開しているものを書き出し、fingerprint を確かめてから置く。nano の鍵は
    GNU の keyring から、ncurses の鍵は GNU の keyring の写しが期限切れなので作者の
    サイトの最新のものから取った（どちらも 2029 年に期限が切れるので、その前に入れ替える）。
-   ゲストの横の `sources/<tool>/` に tarball と `.sig` を置き、GPL の対応する source とする。
-   ftp.gnu.org と Savannah は CI の runner からの接続をときどき落とすので、その取得と
+   ツール自身の SPDX が GPL・LGPL のとき、ゲストの横の `sources/<tool>/` に、ツールと
+   すべての library の tarball と署名を置き、対応する source とする（nano は ncurses も、
+   git は curl・GnuTLS・nettle・zlib も置く）。
+   `source` を持つ package では一覧から最も新しい版を選び、その署名の file を取って
+   同じように確かめる。署名に複数の署名が入っているとき（GnuTLS は 2 つの鍵で署名する）は、
+   すべてが良い署名で、すべての主鍵が `signers` にあるときだけ受け入れる。
+   git（Junio C Hamano）・curl（Daniel Stenberg）・zlib（Mark Adler）の鍵は、公開されて
+   いるものを最小に書き出して置いた。GnuTLS の 2 つの鍵（Zoltan Fridrich と
+   Alexander Sosedkin）は gnutls.org の `gnutls-release-keyring.gpg` から、nettle の
+   Niels Möller の鍵は、GNU の keyring の写しが 2023 年に期限切れなので、同じ
+   fingerprint の keys.openpgp.org のものから取った（2030 年に期限が切れる）。
+   git は GPL-2.0-only なので、TLS は GPLv2 と両立する GnuTLS（LGPL-2.1-or-later）と
+   nettle（LGPL-3.0-or-later OR GPL-2.0-or-later）と GMP（同じ二重 license、`COPYINGv2`）で
+   作る。GMP の鍵は nettle と同じ Niels Möller の鍵である。
+   GnuTLS の libtasn1 と libunistring は同梱のものを使う。
+   release の server（ftp.gnu.org、Savannah、kernel.org など）は CI の runner からの接続を
+   ときどき落とすので、その取得と
    `git ls-remote` の通信の失敗だけは 10 秒・30 秒あけて 2 回までやり直す（GitHub API と、
    状態・大きさ・署名の誤りはやり直さない）。`git ls-remote` は取得と同じ 120 秒で打ち切る
    （git には期限がなく、TLS の握手で止まると job の時間を使い切る）。

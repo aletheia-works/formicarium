@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { join } from 'node:path';
 import test from 'node:test';
 import {
+  companionsOf,
   everyPageTools,
   homeFilesOf,
   interactiveTools,
@@ -31,6 +32,13 @@ test('the every-page tools are the ones tools.json marks', () => {
   assert.deepEqual(everyPageTools(data), []);
   data.tools[2] = { ...data.tools[2]!, everyPage: true };
   assert.deepEqual(everyPageTools(data), [data.tools[2]!.tool]);
+});
+
+test('the companions of each tool are the ones tools.json names', () => {
+  const data = testSiteData();
+  assert.deepEqual(companionsOf(data), { git: ['git-remote-https'] });
+  data.tools[0] = { ...data.tools[0]!, companions: [] };
+  assert.deepEqual(companionsOf(data), { git: ['git-remote-https'] });
 });
 
 test('every page gets the home files of all tools, sorted by path', () => {
@@ -74,7 +82,7 @@ test('SHOWCASE_SITE_DATA selects the file when no path is given', async () => {
   const previous = process.env.SHOWCASE_SITE_DATA;
   process.env.SHOWCASE_SITE_DATA = join(root, 'site-data.json');
   try {
-    assert.equal(loadSiteData().tools.length, 5);
+    assert.equal(loadSiteData().tools.length, 6);
   } finally {
     if (previous === undefined) delete process.env.SHOWCASE_SITE_DATA;
     else process.env.SHOWCASE_SITE_DATA = previous;

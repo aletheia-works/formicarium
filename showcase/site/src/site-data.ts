@@ -19,6 +19,8 @@ export interface SiteTool {
   everyPage?: true;
   /** tools.json `homeFiles`: text files below the home of every terminal page. */
   homeFiles?: Record<string, string>;
+  /** tools.json `companions`: further programs installed with this tool. */
+  companions?: string[];
 }
 export interface SiteData {
   schemaVersion: 1;
@@ -73,6 +75,14 @@ export const homeFilesOf = (data: SiteData): HomeFile[] =>
       })),
     )
     .sort((a, b) => (a.path < b.path ? -1 : 1));
+
+/** The companions installed with each tool, by tool (page data `companions`). */
+export const companionsOf = (data: SiteData): Record<string, string[]> =>
+  Object.fromEntries(
+    data.tools
+      .filter((tool) => tool.companions?.length)
+      .map((tool) => [tool.tool, [...tool.companions!]]),
+  );
 
 export const toolOf = (data: SiteData, tool: string): SiteTool => {
   const found = data.tools.find((item) => item.tool === tool);
