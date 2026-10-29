@@ -38,7 +38,8 @@ relay connects only to `github.com:443`, and accepts WebSockets only from
 `https://aletheia-works.github.io`. Cloud Control requires an image's OS
 capabilities and hooks, and awscc drops empty values, so the image takes the
 only capability value, `ALL`, which applies inside the MicroVM only (it has no
-execution role, so no AWS credentials), and lists every hook as disabled.
+execution role, so no AWS credentials), and lists every hook as disabled,
+without a hooks port, which Lambda refuses when no hook is enabled.
 
 No MicroVM is kept in the state: the platform ends a MicroVM after at most 8
 hours. The token function ([relay-token/index.mjs](relay-token/index.mjs))

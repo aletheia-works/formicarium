@@ -103,9 +103,9 @@ resource "awscc_lambda_microvm_image" "relay" {
   # execution role and so no AWS credentials.
   additional_os_capabilities = ["ALL"]
   # The relay serves no lifecycle hook, so each is DISABLED (HookState in the
-  # AWS::Lambda::MicrovmImage schema).
+  # AWS::Lambda::MicrovmImage schema). Lambda refuses a hooks port with no
+  # hook enabled, so there is none.
   hooks = {
-    port = 8080
     microvm_image_hooks = {
       ready    = "DISABLED"
       validate = "DISABLED"
