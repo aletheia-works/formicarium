@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 #MISE alias="build-guests"
 #MISE description="build guests"
-# usage: mise run build-guests [probe|aube|pitchfork|nano|all]
+# usage: mise run build-guests [probe|aube|pitchfork|nano|git|all]
 # static-musl x86-64 のゲストをコンテナ（rust:alpine）でビルドし、dist/guests/ に置く。
 #   probe     : guest/probe の probe・hello・exit3・ttyecho・spawn
 #   aube      : aubepkg/aube の AUBE_REF（既定 v2.6.1）
 #   pitchfork : jdx/pitchfork（公式リポジトリ）の PITCHFORK_REF（既定 v2.30.1）。ソースは変えない
 #   nano      : GNU nano NANO_VERSION（既定 9.3）。ncurses NCURSES_VERSION（既定 6.6）に
 #               xterm-256color の端末定義を組み込み、terminfo のファイルなしで動くようにする。ソースは変えない
-# git から取得したゲストは、取得したコミットを dist/guests/<name>.commit に記録する。nano は tarball から
-# ビルドするので .commit はなく、版と確かめた SHA-256 を dist/guests/nano.build-info に記録する。
+#   git       : Git GIT_VERSION（既定 2.56.0）の git と git-remote-https。HTTP の部分は、OpenSSL と zlib
+#               だけを使う curl CURL_VERSION（既定 8.23.0）を static に組み込む。ソースは変えない
+# git から取得したゲストは、取得したコミットを dist/guests/<name>.commit に記録する。nano と git は tarball から
+# ビルドするので .commit はなく、版と確かめた SHA-256 を dist/guests/<name>.build-info に記録する。
 # ビルド後、dist/guests/ にあるすべてのゲストが x86-64 の static な ELF であることを確かめる。
 # runtime/registry.js の GUESTS にあるゲストは、すべて下の guests に含める
 # （tests/node/runner.test.js で確かめる）。
@@ -21,10 +23,10 @@ root=$(cd "$(dirname "$0")/../.." && pwd)
 . "$root/scripts/lib/container.sh"
 
 what=${1:-all}
-case $what in probe|aube|pitchfork|nano|all) ;; *) echo "usage: $0 [probe|aube|pitchfork|nano|all]" >&2; exit 2;; esac
+case $what in probe|aube|pitchfork|nano|git|all) ;; *) echo "usage: $0 [probe|aube|pitchfork|nano|git|all]" >&2; exit 2;; esac
 
 # ビルドで作られるゲストの一覧（生成物の確認に使う）
-guests="probe hello exit3 ttyecho aube pitchfork nano"
+guests="probe hello exit3 ttyecho aube pitchfork nano git git-remote-https"
 
 image=${FORMICARIUM_RUST_IMAGE:-rust:alpine}
 aube_repo=${AUBE_REPO:-https://github.com/aubepkg/aube.git}
@@ -49,13 +51,19 @@ nano_version=${NANO_VERSION:-9.3}
 nano_sha256=${NANO_SHA256:-a9affc52c9596ee0682bcdd4ceb3c0b235eb221d83d733dfd9b0dff45897cb0d}
 ncurses_version=${NCURSES_VERSION:-6.6}
 ncurses_sha256=${NCURSES_SHA256:-355b4cbbed880b0381a04c46617b7656e362585d52e9cf84a67e2009b749ff11}
-for value in "$nano_version" "$ncurses_version"; do
+# git の tarball は、Junio C Hamano の署名（git-<版>.tar.sign）と kernel.org の sha256sums.asc で、
+# curl の tarball は Daniel Stenberg の署名で確かめた値。別の版を使うときは、その版の値も渡す。
+git_version=${GIT_VERSION:-2.56.0}
+git_sha256=${GIT_SHA256:-26c56c296b38c0695b26fa95f475f1d01704d2d38e73465ca30b0b2f5dc789d3}
+curl_version=${CURL_VERSION:-8.23.0}
+curl_sha256=${CURL_SHA256:-8dadd7d2536a314f982ad05a651b713f426bf7d02cc2c76cffb9796f2218e6c5}
+for value in "$nano_version" "$ncurses_version" "$git_version" "$curl_version"; do
   if ! [[ $value =~ ^[0-9]+(\.[0-9]+)+$ ]]; then
     echo "error: 版の形が正しくありません: $value" >&2
     exit 2
   fi
 done
-for value in "$nano_sha256" "$ncurses_sha256"; do
+for value in "$nano_sha256" "$ncurses_sha256" "$git_sha256" "$curl_sha256"; do
   if ! [[ $value =~ ^[0-9a-f]{64}$ ]]; then
     echo "error: SHA-256 の形が正しくありません: $value" >&2
     exit 2
@@ -186,12 +194,60 @@ build_nano() {
   " guest/probe/Cargo.toml
 }
 
+build_git() {
+  echo "== git $git_version（curl $curl_version）をビルド（${FORMICARIUM_C_IMAGE:-alpine:latest}）"
+  # curl は OpenSSL と zlib だけで static にする（Alpine の静的な libidn2 は git の error() とぶつかる）。
+  # musl の regex には REG_STARTEND がないので git 同梱の regex を使い、Rust の部品は使わない。
+  container_run "${FORMICARIUM_C_IMAGE:-alpine:latest}" dist/guests "
+    apk add --no-cache build-base linux-headers openssl-dev openssl-libs-static zlib-dev zlib-static \\
+      expat-dev expat-static perl >/dev/null
+    mkdir -p /cache/git-src && cd /cache/git-src
+    # 取得済みでも毎回 SHA-256 を確かめ、合わなければ捨てて止める。
+    fetch() {
+      if [ ! -f \"\$1\" ]; then
+        wget -q -O \"\$1.part\" \"\$2\"
+        mv \"\$1.part\" \"\$1\"
+      fi
+      echo \"\$3  \$1\" | sha256sum -c - || { rm -f \"\$1\"; exit 1; }
+    }
+    fetch curl-$curl_version.tar.xz https://curl.se/download/curl-$curl_version.tar.xz $curl_sha256
+    fetch git-$git_version.tar.xz https://www.kernel.org/pub/software/scm/git/git-$git_version.tar.xz $git_sha256
+    rm -rf /tmp/build && mkdir /tmp/build && cd /tmp/build
+    tar -xJf /cache/git-src/curl-$curl_version.tar.xz
+    cd curl-$curl_version
+    ./configure --prefix=/tmp/curl --disable-shared --enable-static --with-openssl --with-zlib \\
+      --without-libidn2 --without-libpsl --without-brotli --without-zstd --without-nghttp2 \\
+      --without-libssh2 --disable-ldap --disable-docs --disable-manual \\
+      --with-ca-bundle=/etc/ssl/certs/ca-certificates.crt >/dev/null
+    make -j\$(nproc) >/dev/null
+    make install >/dev/null
+    cd /tmp/build
+    tar -xJf /cache/git-src/git-$git_version.tar.xz
+    cd git-$git_version
+    make -j\$(nproc) prefix=/usr NO_GETTEXT=1 NO_REGEX=YesPlease NO_RUST=YesPlease NO_TCLTK=1 \\
+      NO_PERL=1 NO_PYTHON=1 CURLDIR=/tmp/curl \\
+      CURL_LDFLAGS='-L/tmp/curl/lib -lcurl -lssl -lcrypto -lz -pthread' LDFLAGS=-static CFLAGS=-O2 \\
+      git git-remote-http >/dev/null
+    strip -o /out/git git
+    strip -o /out/git-remote-https git-remote-http
+    {
+      echo \"git=$git_version\"
+      echo \"git-sha256=$git_sha256\"
+      echo \"curl=$curl_version\"
+      echo \"curl-sha256=$curl_sha256\"
+      echo \"openssl=\$(apk info -e -v openssl-libs-static | sed 's/^openssl-libs-static-//')\"
+      echo \"alpine=\$(cat /etc/alpine-release)\"
+    } > /out/git.build-info
+  " guest/probe/Cargo.toml
+}
+
 case $what in
   probe) build_probe ;;
   aube) build_aube ;;
   pitchfork) build_pitchfork ;;
   nano) build_nano ;;
-  all) build_probe; build_aube; build_pitchfork; build_nano ;;
+  git) build_git ;;
+  all) build_probe; build_aube; build_pitchfork; build_nano; build_git ;;
 esac
 
 # 生成物が static な ELF であること（プログラムヘッダに PT_INTERP がない）を確かめる。

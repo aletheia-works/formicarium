@@ -62,6 +62,7 @@ mise run build-guests probe       # probe, hello, exit3, ttyecho and spawn (abou
 mise run build-guests aube        # aube (over an hour; rebuild only when its inputs change)
 mise run build-guests pitchfork   # pitchfork, with its web UI built by dist/guests/aube (about 35 minutes cold)
 mise run build-guests nano        # nano with ncurses (about 11 minutes under amd64 emulation on an arm64 Mac)
+mise run build-guests git         # git and git-remote-https, with curl and OpenSSL linked in
 mise run native-baseline aube-1645 --check-reproducible
 mise run native-baseline pitchfork-basic --check-reproducible
 ```
@@ -72,7 +73,14 @@ ncurses tarballs are checked against SHA-256 digests in the build script,
 taken from tarballs whose signatures were checked with the GNU keyring; a
 different version needs its digest too (`NANO_SHA256`, `NCURSES_SHA256`).
 ncurses is built with the xterm-256color definition compiled in, so nano needs
-no terminfo files, only `TERM=xterm-256color`. Upstream sources are not
+no terminfo files, only `TERM=xterm-256color`. git 2.56.0 and curl 8.23.0
+(`GIT_VERSION`, `CURL_VERSION`) are checked the same way (`GIT_SHA256`,
+`CURL_SHA256`), against digests from tarballs whose signatures were checked
+(Junio C Hamano's for git, Daniel Stenberg's for curl). git starts its HTTP
+helper as `git remote-<scheme>` with `git` found on PATH, so a guest run puts
+`git` in `/usr/bin` and `git-remote-https` there under the scheme's name
+(`git-remote-http` for `http://`); `tests/node/git-http.test.js` clones from a
+local HTTP server this way. Upstream sources are not
 patched. The native baselines in `fixtures/baseline/` are the expected
 transcripts; the emulator must produce the same output. Guests, their
 environment and the session scripts are listed only in `runtime/registry.ts`.
@@ -84,7 +92,7 @@ natively, which paths each pitchfork command writes.
 
 ```sh
 # Node.js regressions (the same list as CI's Node suite)
-node --test --test-concurrency=1 tests/node/build.test.js tests/node/runner.test.js tests/node/probe.test.js tests/node/session.test.js tests/node/interactive.test.js tests/node/installed-guests.test.js tests/node/network.test.js tests/node/aube-1645.test.js tests/node/pitchfork-basic.test.js
+node --test --test-concurrency=1 tests/node/build.test.js tests/node/runner.test.js tests/node/probe.test.js tests/node/session.test.js tests/node/interactive.test.js tests/node/installed-guests.test.js tests/node/network.test.js tests/node/git-http.test.js tests/node/aube-1645.test.js tests/node/pitchfork-basic.test.js
 # Browser regressions: probe, the interactive runs of ttyecho and nano, aube #1645 and pitchfork-basic in Chromium, Firefox and WebKit
 bun run test:browser
 bun run test:browser -- --repeat-each=3   # repeatability
