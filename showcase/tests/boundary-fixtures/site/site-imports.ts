@@ -1,3 +1,4 @@
+import { satteri } from '@astrojs/markdown-satteri';
 import starlight from '@astrojs/starlight';
 import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 import { defineConfig } from 'astro/config';

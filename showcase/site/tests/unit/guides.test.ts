@@ -101,3 +101,31 @@ test('a wrong use of the API fails the same type check', async () => {
       ),
   );
 });
+
+test('a line break between two Japanese characters does not become a space', async () => {
+  // Chrome shows a source line break inside a Japanese sentence as a space
+  // (「端末を 開き」); the build joins those lines and keeps breaks next to
+  // Latin text, where the space belongs.
+  const { out } = await buildTestSite();
+  const cjk = '[\\p{sc=Han}\\u3000-\\u30ff\\uff00-\\uffef]';
+  const broken = new RegExp(`${cjk}\\s*\\n\\s*${cjk}`, 'u');
+  // ja and ja/guides/embedding are MDX pages, compiled by @astrojs/mdx.
+  for (const path of [
+    'ja',
+    'ja/guides/embedding',
+    'ja/guides/getting-started',
+    'ja/guides/command-api',
+    'ja/development/architecture',
+  ]) {
+    // A break between two elements is not inside a sentence.
+    const text = plain(
+      (await page(out, path))
+        .replace(/<(pre|script|style)\b[\s\S]*?<\/\1>/g, '')
+        .replace(/>\s+</g, '><'),
+    );
+    assert.doesNotMatch(text, broken, path);
+  }
+  const text = plain(await page(out, 'ja/guides/getting-started'));
+  assert.match(text, /ツールの page は端末を開き、/);
+  assert.match(text, /試しの project を\s+\/work\/app\s+に置き/);
+});

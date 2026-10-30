@@ -33,6 +33,8 @@ export const TEST_PACKAGES: readonly string[] = Object.freeze([
 export const SITE_PACKAGES: readonly string[] = Object.freeze([
   'astro',
   '@astrojs/starlight',
+  // The Markdown processor astro.config.mjs passes its plugin through.
+  '@astrojs/markdown-satteri',
   '@xterm/xterm',
   '@xterm/addon-fit',
 ]);

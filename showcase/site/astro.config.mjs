@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { satteri } from '@astrojs/markdown-satteri';
 import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
 
@@ -40,6 +41,43 @@ function recordBundleModules() {
 
 const label = (en, ja) => ({ label: en, translations: { ja } });
 
+/** Japanese characters: kanji, kana with their punctuation, full-width forms. */
+const CJK = /[\p{sc=Han}\u3000-\u30ff\uff00-\uffef]/u;
+const CJK_BREAK = new RegExp(
+  `(${CJK.source})[ \\t]*\\n[ \\t]*(?=${CJK.source})`,
+  'gu',
+);
+/** The first (0) or last (-1) character of an inline node's text. */
+const edge = (node, at) =>
+  node === undefined
+    ? ''
+    : typeof node.value === 'string'
+      ? (node.value.at(at) ?? '')
+      : node.children?.length
+        ? edge(node.children.at(at), at)
+        : '';
+const LEADING_BREAK = new RegExp(`^[ \\t]*\\n[ \\t]*(?=${CJK.source})`, 'u');
+const TRAILING_BREAK = new RegExp(`(${CJK.source})[ \\t]*\\n[ \\t]*$`, 'u');
+
+/**
+ * Joins the source lines of a Japanese sentence: a browser shows the line
+ * break between two Japanese characters as a space. A break next to Latin
+ * text stays, since the docs put a space there. A Sätteri mdast plugin.
+ */
+const joinCjkLines = {
+  name: 'formicarium-showcase-join-cjk-lines',
+  text(node, ctx) {
+    const siblings = ctx.parent(node)?.children ?? [];
+    const index = ctx.indexOf(node) ?? -1;
+    let value = node.value.replace(CJK_BREAK, '$1');
+    if (CJK.test(edge(siblings[index - 1], -1)))
+      value = value.replace(LEADING_BREAK, '');
+    if (CJK.test(edge(siblings[index + 1], 0)))
+      value = value.replace(TRAILING_BREAK, '$1');
+    if (value !== node.value) ctx.setProperty(node, 'value', value);
+  },
+};
+
 export default defineConfig({
   site: 'https://aletheia-works.github.io',
   base: '/formicarium',
@@ -55,6 +93,7 @@ export default defineConfig({
   // The unit tests build a small site into their own directories.
   publicDir: process.env.SHOWCASE_SITE_PUBLIC ?? './public',
   outDir: process.env.SHOWCASE_SITE_OUT ?? './dist',
+  markdown: { processor: satteri({ mdastPlugins: [joinCjkLines] }) },
   integrations: [
     starlight({
       title: 'formicarium',

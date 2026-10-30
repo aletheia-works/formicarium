@@ -66,14 +66,14 @@ test('only public entries, node builtins, showcase paths and test tooling are im
 
 // The site probes live in boundary-fixtures/site/ (not scanned): import-like
 // text in this file would itself be reported.
-test('site: Astro, Starlight and xterm (and their subpaths) are allowed below showcase/site only', async () => {
+test('site: Astro, Starlight, its Markdown processor and xterm (and their subpaths) are allowed below showcase/site only', async () => {
   const source = await probe('site/site-imports.ts');
   assert.deepEqual(checkShowcaseFile('showcase/site/src/x.ts', source), []);
   assert.equal(
     checkShowcaseFile('showcase/scripts/x.ts', source).filter(
       (item) => item.kind === 'unknown-import',
     ).length,
-    7,
+    8,
   );
   assert.deepEqual(
     checkShowcaseFile(
