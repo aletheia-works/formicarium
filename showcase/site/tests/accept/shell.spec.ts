@@ -40,6 +40,10 @@ const CASES = [
       ['python3 --version', 'python3: command not found.'],
       ['install foo', 'install: no tool named foo.'],
       ['cd /nope', 'cd: /nope is outside /work'],
+      ['ls /', 'ls: / is outside /work'],
+      ['cat nothing.txt', 'cat: nothing.txt: no such file or directory.'],
+      ['ls | head', 'There is no shell:'],
+      ['cat', 'cat: usage: cat path'],
     ],
   ],
   [
@@ -49,6 +53,10 @@ const CASES = [
       ['python3 --version', 'python3：command が見つかりません。'],
       ['install foo', 'install：foo という名前のツールはありません。'],
       ['cd /nope', 'cd：/nope は /work と'],
+      ['ls /', 'ls：/ は /work と'],
+      ['cat nothing.txt', 'cat：nothing.txt はありません。'],
+      ['ls | head', 'shell はありません。'],
+      ['install', 'install：使い方は install <ツール> です。'],
     ],
   ],
 ] as const;

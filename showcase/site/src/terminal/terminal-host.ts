@@ -96,12 +96,13 @@ const INPUT: readonly HostState[] = [
 
 /**
  * The public command API's failures that are a user's mistake, by code and
- * message (formicarium 0.9.0, runtime/state.js and install-catalog.js): an
- * unregistered guest; an install selection whose tool has no catalog default
- * or whose name or version is malformed; and a path outside the persistence
- * roots (/work and the home). A unit test finds each message in the
- * package the site ships, so a reworded core fails it rather than silently
- * falling back to the raw codes.
+ * message (formicarium 0.9.0, runtime/state.js, install-catalog.js and
+ * command-parse.js): an unregistered guest; an install selection whose tool
+ * has no catalog default or whose name or version is malformed; a path
+ * outside the persistence roots (/work and the home); a missing entry; and
+ * shell syntax. A unit test finds each message in the package the site
+ * ships, so a reworded core fails it rather than silently falling back to
+ * the raw codes.
  */
 export const API_MISTAKES = Object.freeze({
   notRegistered: { code: 'NOT_FOUND', message: 'Guest is not registered' },
@@ -113,12 +114,34 @@ export const API_MISTAKES = Object.freeze({
     code: 'INVALID_INPUT',
     message: 'path lies outside persistence roots',
   },
+  missingEntry: { code: 'NOT_FOUND', message: 'Entry does not exist' },
+  noShell: { code: 'INVALID_INPUT', message: 'shell syntax is unsupported' },
 });
 const {
   notRegistered: NOT_REGISTERED,
   badIdentifier: BAD_IDENTIFIER,
   outsideRoots: OUTSIDE_ROOTS,
+  missingEntry: MISSING_ENTRY,
+  noShell: NO_SHELL,
 } = API_MISTAKES;
+/**
+ * The INVALID_INPUT messages of a builtin's wrong arguments, by builtin
+ * (runtime/command.js; cat and cd share one written with the name).
+ */
+export const API_USAGE: Readonly<Record<string, readonly string[]>> =
+  Object.freeze({
+    ls: ['ls accepts at most one path', 'ls flags are unsupported'],
+    cat: ['cat requires exactly one path'],
+    cd: ['cd requires exactly one path'],
+    rm: ['rm accepts only rm -rf path'],
+    cp: ['cp accepts only cp [-r] source destination'],
+    mv: ['mv accepts only mv source destination'],
+    install: ['install requires exactly one selection'],
+  });
+/** The builtins that take paths. */
+const PATH_BUILTINS = new Set(['ls', 'cat', 'cd', 'rm', 'cp', 'mv']);
+/** The one flag a path builtin takes before its paths. */
+const PATH_FLAGS: Readonly<Record<string, string>> = { rm: '-rf', cp: '-r' };
 const isFailure = (
   failure: { code: string; message: string },
   known: { code: string; message: string },
@@ -272,14 +295,31 @@ export class TerminalHost {
         text: shell.unknownTool(argument, this.#catalogTools),
         status: { kind: 'unknown-tool', selection: argument },
       };
+    if (isFailure(failure, NO_SHELL))
+      return { text: shell.noShell, status: { kind: 'no-shell' } };
     if (
-      name === 'cd' &&
-      words.length === 2 &&
-      isFailure(failure, OUTSIDE_ROOTS)
+      failure.code === 'INVALID_INPUT' &&
+      API_USAGE[name]?.includes(failure.message)
     )
       return {
-        text: shell.outsideRoots(argument, WORK_ROOT, HOME),
-        status: { kind: 'outside-roots', work: WORK_ROOT, home: HOME },
+        text: shell.usage(name, shell.usages[name]!),
+        status: { kind: 'usage', name },
+      };
+    if (!PATH_BUILTINS.has(name)) return null;
+    // The path is named only when the line has one; only rm -rf and cp -r
+    // take a flag, so cat -x names the path -x.
+    const operands = words.slice(1);
+    if (operands[0] === PATH_FLAGS[name]) operands.shift();
+    const path = operands.length === 1 ? plainText(operands[0]!) : '';
+    if (isFailure(failure, OUTSIDE_ROOTS))
+      return {
+        text: shell.outsideRoots(name, path, WORK_ROOT, HOME),
+        status: { kind: 'outside-roots', name, work: WORK_ROOT, home: HOME },
+      };
+    if (isFailure(failure, MISSING_ENTRY))
+      return {
+        text: shell.missing(name, path),
+        status: { kind: 'missing-entry', name },
       };
     return null;
   }

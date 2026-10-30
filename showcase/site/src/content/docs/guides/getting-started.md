@@ -20,8 +20,9 @@ installed. Type `install aube`, `install pitchfork`, `install biome`,
   `mv src dst` are built in.
 - `clear` empties the terminal and its scrollback in the page; no command runs.
 - `help` lists the builtins, the installed tools, the tools `install` adds and
-  the keys; no command runs. A mistake, such as an unknown command, is
-  explained the same way.
+  the keys; no command runs. A mistake is explained the same way: an unknown
+  command or tool, wrong arguments to a builtin, a missing file and a path
+  outside `/work` and the home.
 - `install <tool>` installs a tool of the showcase catalog. Only the accepted
   versions listed on the Tools page can be installed.
 - Any other first word runs the installed tool of that name.
@@ -32,8 +33,8 @@ installed. Type `install aube`, `install pitchfork`, `install biome`,
   `git clone https://github.com/<owner>/<repo>` or
   `jj git clone https://github.com/<owner>/<repo>`. See [Network](#network).
 
-There is no shell: pipes, redirections, `$` expansion and globbing are refused
-with `INVALID_INPUT`. One line is limited to 65536 bytes. Use ↑ and ↓ for the
+There is no shell: pipes, redirections, `$` expansion and globbing are refused,
+and the terminal says so. One line is limited to 65536 bytes. Use ↑ and ↓ for the
 history of this page, Ctrl-L to clear the screen while keeping the typed line,
 and Ctrl-C to cancel a running command or install (except an interactive
 tool, below). Tab and

@@ -72,10 +72,30 @@ export const STRINGS = {
         `install: no tool named ${selection}. Tools: ${listEn(tools)}.`,
       unknownToolStatus: (selection: string) =>
         `No tool named ${selection}. Type help for the tools.`,
-      outsideRoots: (path: string, work: string, home: string) =>
-        `cd: ${path} is outside ${work} and the home directory ${home}.`,
-      outsideRootsStatus: (work: string, home: string) =>
-        `cd goes only inside ${work} and ${home}.`,
+      outsideRoots: (name: string, path: string, work: string, home: string) =>
+        `${name}: ${path || 'a path'} is outside ${work} and the home directory ${home}.`,
+      outsideRootsStatus: (name: string, work: string, home: string) =>
+        `${name} reaches only ${work} and ${home}.`,
+      missing: (name: string, path: string) =>
+        `${name}: ${path ? `${path}: ` : ''}no such file or directory.`,
+      missingStatus: (name: string) =>
+        `${name}: no such file or directory. ls shows what is here.`,
+      noShell:
+        'There is no shell: pipes, redirections, $ expansion and globs do not work. Run one command per line.',
+      noShellStatus: 'No shell: one command per line.',
+      usage: (name: string, usage: string) => `${name}: usage: ${usage}`,
+      usageStatus: (name: string) =>
+        `${name}: wrong arguments. Type help for the builtins.`,
+      /** How each builtin is written, for a line the API refuses. */
+      usages: {
+        ls: 'ls [path]',
+        cat: 'cat path',
+        cd: 'cd path',
+        rm: 'rm -rf path',
+        cp: 'cp [-r] source destination',
+        mv: 'mv source destination',
+        install: 'install <tool>',
+      } as Record<string, string>,
     },
     tool: {
       aube: {
@@ -168,10 +188,30 @@ export const STRINGS = {
         `install：${selection} という名前のツールはありません。ツール：${listJa(tools)}。`,
       unknownToolStatus: (selection: string) =>
         `${selection} という名前のツールはありません。help でツールの一覧を表示します。`,
-      outsideRoots: (path: string, work: string, home: string) =>
-        `cd：${path} は ${work} と home directory の ${home} の外にあります。`,
-      outsideRootsStatus: (work: string, home: string) =>
-        `cd で移れるのは ${work} と ${home} の中だけです。`,
+      outsideRoots: (name: string, path: string, work: string, home: string) =>
+        `${name}：${path ? `${path} は` : 'path が'} ${work} と home directory の ${home} の外にあります。`,
+      outsideRootsStatus: (name: string, work: string, home: string) =>
+        `${name} で使えるのは ${work} と ${home} の中だけです。`,
+      missing: (name: string, path: string) =>
+        `${name}：${path ? `${path} は` : 'その file か dir は'}ありません。`,
+      missingStatus: (name: string) =>
+        `${name}：その file か dir はありません。ls で中身を表示します。`,
+      noShell:
+        'shell はありません。pipe・redirect・$ の展開・glob は使えません。1 行に 1 つの command を打ってください。',
+      noShellStatus: 'shell はありません。1 行に 1 つの command です。',
+      usage: (name: string, usage: string) =>
+        `${name}：使い方は ${usage} です。`,
+      usageStatus: (name: string) =>
+        `${name} の引数が違います。help で組込みの command を表示します。`,
+      usages: {
+        ls: 'ls [path]',
+        cat: 'cat path',
+        cd: 'cd path',
+        rm: 'rm -rf path',
+        cp: 'cp [-r] source destination',
+        mv: 'mv source destination',
+        install: 'install <ツール>',
+      } as Record<string, string>,
     },
     tool: {
       aube: {

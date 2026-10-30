@@ -25,7 +25,10 @@ export type Status =
   /** The mistakes the terminal explains itself (see terminal-host.ts). */
   | { kind: 'command-not-found'; name: string }
   | { kind: 'unknown-tool'; selection: string }
-  | { kind: 'outside-roots'; work: string; home: string }
+  | { kind: 'outside-roots'; name: string; work: string; home: string }
+  | { kind: 'missing-entry'; name: string }
+  | { kind: 'no-shell' }
+  | { kind: 'usage'; name: string }
   | { kind: 'failed'; code: string; message: string }
   | { kind: 'line-too-long' }
   | { kind: 'paste-truncated' };
@@ -125,9 +128,16 @@ export function statusText(status: Status, locale: Locale): string {
       return stringsFor(locale).shell.unknownToolStatus(status.selection);
     case 'outside-roots':
       return stringsFor(locale).shell.outsideRootsStatus(
+        status.name,
         status.work,
         status.home,
       );
+    case 'missing-entry':
+      return stringsFor(locale).shell.missingStatus(status.name);
+    case 'no-shell':
+      return stringsFor(locale).shell.noShellStatus;
+    case 'usage':
+      return stringsFor(locale).shell.usageStatus(status.name);
     case 'failed':
       return ja
         ? `${status.code}: ${status.message}。再読み込みしてください。`

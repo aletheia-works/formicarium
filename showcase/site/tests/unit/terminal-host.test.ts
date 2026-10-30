@@ -13,6 +13,7 @@ import type { LoadedFormicarium } from '../../src/terminal/formicarium-loader.ts
 import type { TerminalPageData } from '../../src/terminal/page-data.ts';
 import {
   API_MISTAKES,
+  API_USAGE,
   attachPageEvents,
   copyAction,
   type HostOptions,
@@ -773,6 +774,13 @@ test('each API mistake the terminal explains is a message of the formicarium pac
     );
     assert.ok(sources.includes(code), code);
   }
+  // cat and cd share one message, written with the builtin's name.
+  for (const message of Object.values(API_USAGE).flat())
+    assert.ok(
+      sources.includes(`'${message}'`) ||
+        sources.includes(`\`${message.replace(/^\w+/, '${name}')}\``),
+      message,
+    );
 });
 
 test('the mistakes the API reports are explained in the locale; other failures keep their code', async () => {
@@ -781,10 +789,21 @@ test('the mistakes the API reports are explained in the locale; other failures k
       throw failure('NOT_FOUND', 'Guest is not registered');
     if (line === 'install foo')
       throw failure('INVALID_INPUT', 'install identifier invalid');
-    if (line === 'cd /nope' || line === 'cat /nope')
+    if (line === 'cd /nope' || line === 'rm -rf /' || line === 'cp a /b')
       throw failure('INVALID_INPUT', 'path lies outside persistence roots');
-    if (line === 'cat missing')
+    if (line === 'cat missing' || line === 'cat -x' || line === 'mv a b')
       throw failure('NOT_FOUND', 'Entry does not exist');
+    if (line === 'ls | head')
+      throw failure('INVALID_INPUT', 'shell syntax is unsupported');
+    if (line === 'cat')
+      throw failure('INVALID_INPUT', 'cat requires exactly one path');
+    if (line === 'install')
+      throw failure('INVALID_INPUT', 'install requires exactly one selection');
+    // Not an API outcome (gti goes to the guest path): a usage message under
+    // another name must keep its code.
+    if (line === 'gti x y')
+      throw failure('INVALID_INPUT', 'install requires exactly one selection');
+    if (line === 'cat "a') throw failure('INVALID_INPUT', 'unterminated quote');
     if (line === 'git log') throw failure('BUSY', 'Session is busy');
     return installs(line);
   };
@@ -826,13 +845,61 @@ test('the mistakes the API reports are explained in the locale; other failures k
     afterLast(h.writes, 'cd /nope'),
     '\ncd: /nope is outside /work and the home directory /root.\n/work/app$ ',
   );
-  assert.equal(h.status.textContent, 'cd goes only inside /work and /root.');
+  assert.equal(h.status.textContent, 'cd reaches only /work and /root.');
 
-  // The same message from another builtin, a missing entry and an
-  // unrelated code are shown as the API gives them.
+  for (const [line, shown, status] of [
+    [
+      'rm -rf /',
+      'rm: / is outside /work and the home directory /root.',
+      'rm reaches only /work and /root.',
+    ],
+    [
+      'cp a /b',
+      'cp: a path is outside /work and the home directory /root.',
+      'cp reaches only /work and /root.',
+    ],
+    [
+      'cat missing',
+      'cat: missing: no such file or directory.',
+      'cat: no such file or directory. ls shows what is here.',
+    ],
+    [
+      'cat -x',
+      'cat: -x: no such file or directory.',
+      'cat: no such file or directory. ls shows what is here.',
+    ],
+    [
+      'mv a b',
+      'mv: no such file or directory.',
+      'mv: no such file or directory. ls shows what is here.',
+    ],
+    [
+      'ls | head',
+      'There is no shell: pipes, redirections, $ expansion and globs do not work. Run one command per line.',
+      'No shell: one command per line.',
+    ],
+    [
+      'cat',
+      'cat: usage: cat path',
+      'cat: wrong arguments. Type help for the builtins.',
+    ],
+    [
+      'install',
+      'install: usage: install <tool>',
+      'install: wrong arguments. Type help for the builtins.',
+    ],
+  ] as const) {
+    type(h.host, line);
+    await settle();
+    assert.equal(afterLast(h.writes, line), `\n${shown}\n/work/app$ `, line);
+    assert.equal(h.status.textContent, status, line);
+  }
+
+  // A usage message under another name, an unrelated message of a known
+  // code and an unrelated code are shown as the API gives them.
   for (const [line, shown] of [
-    ['cat /nope', 'INVALID_INPUT: path lies outside persistence roots'],
-    ['cat missing', 'NOT_FOUND: Entry does not exist'],
+    ['gti x y', 'INVALID_INPUT: install requires exactly one selection'],
+    ['cat "a', 'INVALID_INPUT: unterminated quote'],
     ['git log', 'BUSY: Session is busy'],
   ] as const) {
     type(h.host, line);
@@ -857,7 +924,32 @@ test('the mistakes the API reports are explained in the locale; other failures k
     [
       'cd /nope',
       'cd：/nope は /work と home directory の /root の外にあります。',
-      'cd で移れるのは /work と /root の中だけです。',
+      'cd で使えるのは /work と /root の中だけです。',
+    ],
+    [
+      'cp a /b',
+      'cp：path が /work と home directory の /root の外にあります。',
+      'cp で使えるのは /work と /root の中だけです。',
+    ],
+    [
+      'cat missing',
+      'cat：missing はありません。',
+      'cat：その file か dir はありません。ls で中身を表示します。',
+    ],
+    [
+      'mv a b',
+      'mv：その file か dir はありません。',
+      'mv：その file か dir はありません。ls で中身を表示します。',
+    ],
+    [
+      'ls | head',
+      'shell はありません。pipe・redirect・$ の展開・glob は使えません。1 行に 1 つの command を打ってください。',
+      'shell はありません。1 行に 1 つの command です。',
+    ],
+    [
+      'install',
+      'install：使い方は install <ツール> です。',
+      'install の引数が違います。help で組込みの command を表示します。',
     ],
   ] as const) {
     type(ja.host, line);

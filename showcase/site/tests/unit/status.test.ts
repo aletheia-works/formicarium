@@ -51,7 +51,10 @@ test('every state has an English and a Japanese sentence', () => {
     { kind: 'command-failed', code: 'NOT_FOUND', message: 'no guest x' },
     { kind: 'command-not-found', name: 'python3' },
     { kind: 'unknown-tool', selection: 'foo' },
-    { kind: 'outside-roots', work: '/work', home: '/root' },
+    { kind: 'outside-roots', name: 'cd', work: '/work', home: '/root' },
+    { kind: 'missing-entry', name: 'cat' },
+    { kind: 'no-shell' },
+    { kind: 'usage', name: 'cp' },
     {
       kind: 'failed',
       code: 'UNSUPPORTED_ENV',
