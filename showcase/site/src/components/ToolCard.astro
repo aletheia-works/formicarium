@@ -28,6 +28,8 @@ const { tool, href, label, version, summary, open } = Astro.props;
     color: var(--sl-color-text);
     text-decoration: none;
     min-width: 0;
+    /* A long word, such as a URL in a summary, breaks inside the card. */
+    overflow-wrap: anywhere;
   }
   .tool-card:hover,
   .tool-card:focus-visible {

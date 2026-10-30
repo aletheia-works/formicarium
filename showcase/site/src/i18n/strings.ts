@@ -52,12 +52,12 @@ export const STRINGS = {
       git: {
         label: 'Git',
         summary:
-          'The version control system, built here from its signed source with curl, GnuTLS, nettle, GMP and zlib. The sample project has a README to commit; every page installs git, so jj can run it too. git clone https://github.com/<owner>/<repo> works through the relay, to github.com only.',
+          'The version control system. The sample project has a README to commit, and git clone and fetch read public repositories on github.com (no push: the page has no credentials).',
       },
       jj: {
         label: 'jj',
         summary:
-          'Jujutsu, a version control system that works with Git repositories. The sample project has a note to record. jj describe opens nano for the message (save with Ctrl-O, leave with Ctrl-X). jj git clone https://github.com/<owner>/<repo> and jj git fetch reach github.com through the relay; push does not work, since the page has no credentials.',
+          'Jujutsu, a version control system that works with Git repositories. The sample project has a note to record; jj describe opens nano (save with Ctrl-O, leave with Ctrl-X), and jj git clone and fetch read public repositories on github.com (no push: the page has no credentials).',
       },
       nano: {
         label: 'nano',
@@ -117,12 +117,12 @@ export const STRINGS = {
       git: {
         label: 'Git',
         summary:
-          'version control system。署名された source から curl、GnuTLS、nettle、GMP、zlib と一緒にここで build しています。試しの project に commit する README があります。どの page でも git を導入するので、jj からも動かせます。git clone https://github.com/<owner>/<repo> は relay を通して github.com にだけつながります。',
+          'version control system。試しの project に commit する README があり、git clone と fetch で github.com の公開 repository を取得できます（page に認証情報がないので push はできません）。',
       },
       jj: {
         label: 'jj',
         summary:
-          'Git の repository で使える version control system の Jujutsu。試しの project に記録するメモがあります。jj describe は message を書くために nano を開きます（Ctrl-O で保存し、Ctrl-X で終わります）。jj git clone https://github.com/<owner>/<repo> と jj git fetch は relay を通して github.com につながります。page には認証情報が無いので push はできません。',
+          'Git の repository で使える version control system の Jujutsu。試しの project に記録するメモがあります。jj describe は nano を開き（Ctrl-O で保存、Ctrl-X で終了）、jj git clone と fetch で github.com の公開 repository を取得できます（page に認証情報がないので push はできません）。',
       },
       nano: {
         label: 'nano',

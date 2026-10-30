@@ -24,8 +24,9 @@ formicarium は、[blink](https://github.com/jart/blink) に相当するもの�
 
 - **ブラウザの中で動く。** ツールと試しの project はこの tab の Web Worker で
   動きます。command を実行する server はありません。
-- **データはブラウザの外へ出ない。** 作った file は page の session の中だけに
-  あり、再読み込みで消えます。
+- **データはこの page の中だけ。** 作った file は page の session の中だけに
+  あり、再読み込みで消えます。外へ出るのは git と jj での github.com からの取得
+  （clone、fetch、pull）だけで、Aletheia Works の relay を通ります。
 - **本物の binary。** showcase は、Node・Chromium・Firefox・WebKit・Safari の受入を通った
   最新の安定版の aube・pitchfork・Biome・nano・jj・git を導入します。
 
