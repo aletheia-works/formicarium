@@ -125,6 +125,30 @@ test('the site writes the CA bundle where the config guards it and git and curl 
   assert.ok(curl.configure.includes(`--with-ca-bundle=${guestPath}`));
 });
 
+test('git commits as the same user as jj and git init prints no warning', async () => {
+  // The git fixture asks for git init, add and commit; without a name git
+  // refuses the commit, and the page has no templates for git init to copy.
+  const tools = (await current()).tools;
+  const gitconfig = (
+    tools.find((item) => item.tool === 'git')!.homeFiles as Record<
+      string,
+      string
+    >
+  )['.gitconfig']!;
+  const jjconfig = (
+    tools.find((item) => item.tool === 'jj')!.homeFiles as Record<
+      string,
+      string
+    >
+  )['.config/jj/config.toml']!;
+  for (const [, key, value] of jjconfig.matchAll(/^(name|email) = "(.*)"$/gm))
+    assert.match(gitconfig, new RegExp(`^\\t${key} = ${value}$`, 'm'));
+  assert.match(
+    gitconfig,
+    /^\[init\]\n\tdefaultBranch = main\n\ttemplateDir =$/m,
+  );
+});
+
 test('GMP is built for plain x86_64, not for the runner CPU', async () => {
   // GMP's configure picks assembly and -march for the CPU it runs on; on a
   // CI runner that is BMI2/ADX code (mulx, adcx, adox), which the emulator

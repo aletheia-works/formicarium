@@ -146,6 +146,17 @@ for (const [tool, version] of TOOLS)
         expect(log).not.toContain('pager');
         expect(await terminalText(site)).not.toContain('not configured');
       }
+      // The fixture's README asks for git init, add and commit; the home
+      // config gives git the name jj has and leaves git init without warnings.
+      if (tool === 'git') {
+        const init = await run(site, 'git init');
+        expect(init).not.toContain('warning');
+        expect(init).not.toContain('hint');
+        await run(site, 'git add README.md');
+        await run(site, 'git commit -m "Committed in the page"');
+        const log = await run(site, 'git log -1 --format=%an:%s');
+        expect(occurrences(log, 'Showcase:Committed in the page'), log).toBe(1);
+      }
       // aube's link target lies beside app/ (paths with `..` are refused by the builtins).
       if (tool === 'aube')
         expect(

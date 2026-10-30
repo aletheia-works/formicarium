@@ -115,7 +115,7 @@
       "everyPage": true,
       "network": true,
       "homeFiles": {
-        ".gitconfig": "[http]\n\tsslCAInfo = /root/.config/ssl/cacert.pem\n"
+        ".gitconfig": "[http]\n\tsslCAInfo = /root/.config/ssl/cacert.pem\n[init]\n\tdefaultBranch = main\n\ttemplateDir =\n[user]\n\tname = Showcase\n\temail = showcase@example.com\n"
       },
       "acquire": {
         "kind": "gnu-source",
