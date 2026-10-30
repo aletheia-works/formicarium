@@ -7,7 +7,8 @@ description: formicarium package releases and the showcase deployment.
 ## The package
 
 release-please prepares a release PR from Conventional Commits. Merging it
-after the required checks creates the `v<version>` tag and GitHub Release, and
+after the required checks (by hand, or by the weekly `release-merge.yml` when
+it is turned on) creates the `v<version>` tag and GitHub Release, and
 `publish.yml` publishes the verified tarball to npm with trusted publishing and
 provenance. An existing version is never replaced. The
 [package releases](/formicarium/development/releases/) page describes the
@@ -16,8 +17,9 @@ checks in detail.
 ## The showcase
 
 `showcase-site.yml` runs when a push to `main` changes the site
-(`showcase/site/**`, `showcase/scripts/**`, the workflow itself or the pinned
-release `showcase/formicarium-release.json`) and can be started by hand on
+(`showcase/site/**`, `showcase/scripts/**`, the Safari WebDriver client
+`showcase/tests/webdriver.ts`, the workflow itself or the pinned release
+`showcase/formicarium-release.json`) and can be started by hand on
 `main`. There is no daily run, so a new guest candidate is
 deployed by a manual run. Only these two runs distribute:
 1. `showcase.yml` builds and accepts a candidate in `distribute` mode, with the

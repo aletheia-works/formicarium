@@ -25,8 +25,11 @@ deploys on its own, and the npm package would not change. release-please skips
 it through `exclude-paths`, which matches directories only, so a commit that
 also changes a `showcase*.yml` workflow still counts.
 
-The `RELEASE_AUTOMATION_ENABLED` variable controls release-please. Release PRs
-are not merged on a schedule. The organisation's bot (`BOT_CLIENT_ID`,
+The `RELEASE_AUTOMATION_ENABLED` variable controls release-please.
+`release-merge.yml` turns on auto-merge for the pending release PR every
+Monday at 00:23 UTC, but only while the variable
+`WEEKLY_RELEASE_MERGE_ENABLED` is also `true`; it is `false`, so release PRs
+are merged by hand. The organisation's bot (`BOT_CLIENT_ID`,
 `BOT_PRIVATE_KEY`) creates the tag so that it can trigger Actions. npm trusts
 exactly the repository `aletheia-works/formicarium`, the workflow
 `publish.yml` and the environment `release`.

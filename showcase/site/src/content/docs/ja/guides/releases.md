@@ -7,7 +7,8 @@ description: formicarium の package の公開と、showcase の配布。
 ## package
 
 release-please が Conventional Commits から release の PR を作ります。必須の
-check の後に merge すると `v<version>` の tag と GitHub Release ができ、
+check の後に merge する（手で、または有効にしたときは毎週の `release-merge.yml` で）と
+`v<version>` の tag と GitHub Release ができ、
 `publish.yml` が検証済みの tarball を trusted publishing と provenance で npm に
 公開します。既にある版を置き換えることはありません。チェックの詳細は
 [パッケージの公開](/formicarium/ja/development/releases/)にあります。
@@ -15,7 +16,8 @@ check の後に merge すると `v<version>` の tag と GitHub Release がで�
 ## showcase
 
 `showcase-site.yml` は、`main` への push がサイト（`showcase/site/**`・
-`showcase/scripts/**`・この workflow）か、固定した版（`showcase/formicarium-release.json`）を
+`showcase/scripts/**`・Safari の WebDriver の client の `showcase/tests/webdriver.ts`・
+この workflow）か、固定した版（`showcase/formicarium-release.json`）を
 変えたときに動き、`main` から手動でも
 起動できます。日次の run は無いので、ゲストの新しい候補は手動の実行で配布します。
 配布するのはこの2つの run だけです。

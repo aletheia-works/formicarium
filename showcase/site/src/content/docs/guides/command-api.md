@@ -132,7 +132,7 @@ start with `/` resolves against the Session's current working directory (with
 `/work`). `cat`, `cd`, `rm`, `cp` and `mv` resolve after taking the filesystem reservation,
 and `ls` calls `listEntries` in the same tick as it resolves, so the directory
 used to resolve is the one the operation sees. An empty path, a path containing
-NUL and a path containing `..` (relative or absolute) are refused with
+NUL and a path with a `..` segment (relative or absolute; `a..b` is a name) are refused with
 `INVALID_INPUT` before the reservation and change nothing. A path outside the
 persisted roots, or removing a root itself, is the Session's `INVALID_INPUT` as
 before.

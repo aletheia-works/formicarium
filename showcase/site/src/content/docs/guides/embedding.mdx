@@ -10,9 +10,10 @@ import preinstall from '../../../examples/preinstall.ts?raw';
 
 The showcase terminals use only the public exports of
 `@aletheia-works/formicarium`: `createSession` from `/browser`, and
-`createCommandSession` and `createInstaller` from the package root (the
-installer quietly installs the tools every page gets, such as nano). Your page
-can do the same.
+`createCommandSession`, `createInstaller` and `fixtureToFsEntries` from the
+package root (the installer quietly installs the tools every page gets, such as
+nano, and `fixtureToFsEntries` checks the demo files and home settings the
+session starts with). Your page can do the same.
 
 <PackageInstall locale="en" />
 

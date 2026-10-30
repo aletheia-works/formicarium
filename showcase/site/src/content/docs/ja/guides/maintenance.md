@@ -14,8 +14,9 @@ deploy が古いことは失敗になりません。**Showcase guests** の新�
 
 ## 候補が無いとき
 
-PR は `main` の `showcase.yml` の、最新の成功した push か手動の run の候補を使い
-ます。その artifact が無い・期限切れのときは `fetch-candidate` の job が失敗し、
+ゲスト（`showcase/tools.json` か `showcase/fixtures/`）を変える PR は、自分で候補を
+作って受け入れます。それ以外の PR は `main` の `showcase.yml` の、最新の成功した push か
+手動の run の候補を使います。その artifact が無い・期限切れのときは `fetch-candidate` の job が失敗し、
 手動の実行を求めます。`main` で **Showcase guests** を起動し、成功を待ってから
 PR の run をやり直します。
 

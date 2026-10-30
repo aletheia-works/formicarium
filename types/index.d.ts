@@ -142,7 +142,7 @@ export interface CommandResult {
  * one of these names (for example by `install ls@x`) cannot be run from a
  * command, and the builtin keeps running. Paths are guest paths resolved by the
  * Session: a relative path resolves against its current cwd, and an empty
- * path or one containing `..` or NUL is `INVALID_INPUT`. Each call takes the Session's single reservation once, so it
+ * path, one with a `..` segment or one containing NUL is `INVALID_INPUT`. Each call takes the Session's single reservation once, so it
  * competes with direct Session/installer calls and other command sessions on
  * the same Session with `BUSY`; after dispose it rejects with `DISPOSED`.
  */

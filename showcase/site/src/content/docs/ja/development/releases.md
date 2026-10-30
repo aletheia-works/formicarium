@@ -19,7 +19,7 @@ showcase（`showcase/`、`mise-tasks/showcase/`、`mise-tasks/showcase-site/`）
 サイトは単独で配布され、npm のパッケージは変わらないからです。release-please は `exclude-paths` でそのコミットを飛ばします。
 `exclude-paths` はディレクトリしか照合しないので、`showcase*.yml` のワークフローも変えるコミットは数えられます。
 
-release-please は変数 `RELEASE_AUTOMATION_ENABLED` で有効にします。リリース PR を定期的にマージすることはしません。
+release-please は変数 `RELEASE_AUTOMATION_ENABLED` で有効にします。`release-merge.yml` は毎週月曜の 00:23 UTC に、待っているリリース PR の auto-merge を有効にしますが、変数 `WEEKLY_RELEASE_MERGE_ENABLED` も `true` のときだけです。今は `false` なので、リリース PR は手でマージします。
 タグは organization の bot（`BOT_CLIENT_ID`、`BOT_PRIVATE_KEY`）が作るので、Actions を起動できます。
 npm が信頼するのは、リポジトリ `aletheia-works/formicarium`、ワークフロー `publish.yml`、環境 `release` の組だけです。
 

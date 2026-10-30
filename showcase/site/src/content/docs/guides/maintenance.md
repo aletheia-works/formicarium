@@ -14,8 +14,10 @@ deployment is not a failure. To deploy a new guest candidate of
 
 ## When the candidate is missing
 
-Pull requests take the candidate of the newest successful push or manual run
-of `showcase.yml` on `main`. If that artifact is missing or expired, the
+A pull request that changes the guests (`showcase/tools.json` or
+`showcase/fixtures/`) builds and accepts its own candidate. Any other pull
+request takes the candidate of the newest successful push or manual run of
+`showcase.yml` on `main`. If that artifact is missing or expired, the
 `fetch-candidate` job fails and asks for a manual run: start **Showcase guests**
 on `main`, wait for it to succeed, then re-run the pull request.
 

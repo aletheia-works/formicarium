@@ -6,7 +6,7 @@ description: How the emulator, the public API and the showcase fit together.
 
 ```text
 showcase page (Astro + Starlight, xterm.js)
-  -> public API: createSession (/browser), createCommandSession, createInstaller (root)
+  -> public API: createSession (/browser), createCommandSession, createInstaller, fixtureToFsEntries (root)
      -> Session: files, cwd and one run at a time
         -> Web Worker per run: paludarium compiled to WebAssembly
            -> static x86-64 Linux ELF guest
@@ -26,10 +26,11 @@ embedded in the page.
 
 **Isolation and CSP.** GitHub Pages cannot set COOP/COEP headers, so the
 terminal pages register `coi-serviceworker.js` (scope `/formicarium/`) with COEP
-`require-corp`. Because that scope covers the whole site, no page loads any
-cross-origin resource. The terminal pages carry a CSP that allows only the same
-origin and WebAssembly compilation; documentation pages load neither
-the terminal nor the service worker.
+`require-corp`. Because that scope covers the whole site, no page embeds a
+cross-origin resource. The terminal pages carry a CSP that allows the same
+origin and WebAssembly compilation, and connections (`connect-src`) only to the
+same origin and Aletheia Works' relay: its token function and its WebSocket
+hosts. Documentation pages load neither the terminal nor the service worker.
 
 **Display.** Guest output is decoded as UTF-8 text for xterm.js and never
 interpreted as HTML. Escape sequences that xterm sends back are not typed into

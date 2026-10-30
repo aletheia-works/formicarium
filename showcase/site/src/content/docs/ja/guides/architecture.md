@@ -6,7 +6,7 @@ description: エミュレータ・公開 API・showcase のつながり。
 
 ```text
 showcase の page（Astro と Starlight、xterm.js）
-  -> 公開 API：createSession（/browser）、createCommandSession、createInstaller（root）
+  -> 公開 API：createSession（/browser）、createCommandSession、createInstaller、fixtureToFsEntries（root）
      -> Session：file・cwd、一度に1つの run
         -> run ごとの Web Worker：WebAssembly に compile した paludarium
            -> static な x86-64 Linux の ELF の guest
@@ -26,8 +26,10 @@ page に埋め込んだ SHA256 と照合します。
 **分離と CSP。** GitHub Pages は COOP・COEP の header を付けられないので、端末の
 page が `coi-serviceworker.js`（scope は `/formicarium/`）を COEP `require-corp`
 で登録します。scope がサイト全体なので、どの page も cross-origin の資源を
-読み込みません。端末の page の CSP は、同じ origin と WebAssembly の
-compile だけを許します。文書の page は端末も service worker も読み込みません。
+埋め込みません。端末の page の CSP は、同じ origin と WebAssembly の compile を
+許し、接続（`connect-src`）は同じ origin と Aletheia Works の relay（token 関数と
+WebSocket の host）にだけ許します。文書の page は端末も service worker も
+読み込みません。
 
 **表示。** guest の出力は UTF-8 の文字として xterm.js に書き、HTML として解釈
 しません。xterm が返す escape 列を command line に入れず、OSC 8 の link も開き

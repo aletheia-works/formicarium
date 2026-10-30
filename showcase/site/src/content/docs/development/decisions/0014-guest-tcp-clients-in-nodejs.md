@@ -51,8 +51,10 @@ has no TCP sockets.
   CA certificates (for example `/etc/ssl/certs/ca-certificates.crt`).
 - A run that uses the network is not compared with a native baseline, because
   the remote side can change.
-- The guest cannot listen for connections and has no UDP other than its name
-  lookups.
+- Nothing outside the guest can connect to it, and its UDP reaches no other
+  host than its name lookups. Since paludarium 0.9.0 (#194, 2026-10-30) the
+  guest may serve TCP and exchange UDP on its own loopback, which never leaves
+  the guest.
 - The command API passes `network` to guest runs only, as it does `stdin` and
   `terminal`.
 

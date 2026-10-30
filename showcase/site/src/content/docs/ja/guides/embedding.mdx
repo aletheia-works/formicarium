@@ -9,9 +9,10 @@ import example from '../../../../examples/embedding.ts?raw';
 import preinstall from '../../../../examples/preinstall.ts?raw';
 
 showcase の端末は `@aletheia-works/formicarium` の公開 export だけを使います：
-`/browser` の `createSession` と、package の root の `createCommandSession` と
-`createInstaller` です（installer は、nano のようにどの page にも入れるツールを、
-何も表示せずに導入します）。自分の page でも同じことができます。
+`/browser` の `createSession` と、package の root の `createCommandSession`・
+`createInstaller`・`fixtureToFsEntries` です（installer は、nano のようにどの page にも
+入れるツールを何も表示せずに導入し、`fixtureToFsEntries` は session が最初に持つ
+demo の file と home の設定を確かめます）。自分の page でも同じことができます。
 
 <PackageInstall locale="ja" />
 
