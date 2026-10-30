@@ -101,7 +101,8 @@ has a complete example.
 - **Network.** A guest has no network unless a run passes
   `network: { allow: ['github.com:443'] }`. It can then open TCP connections
   to the listed destinations only, and resolve only the listed names; anything
-  else fails with `ENETUNREACH`. TLS runs inside the guest, so give it CA
+  else fails with `ENETUNREACH` (a loopback address with no guest listener
+  with `ECONNREFUSED`); a guest may serve on its own loopback. TLS runs inside the guest, so give it CA
   certificates. A browser has no TCP sockets, so a browser run also needs
   `network.relay: { url, protocols? }`, a WebSocket relay such as
   `@aletheia-works/paludarium-wasm/relay` serves; without one it fails with

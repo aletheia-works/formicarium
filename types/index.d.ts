@@ -241,8 +241,10 @@ export interface RunOptions {
  * add a port. The guest resolves only the allowed
  * names, and a name reaches only global addresses (`localhost` also reaches
  * loopback); allow a local server by its address, such as `127.0.0.1:8080`.
- * Any other destination fails with `ENETUNREACH`. TCP clients only: no
- * listening sockets and no UDP other than name lookups.
+ * Any other destination fails with `ENETUNREACH`, and a loopback address
+ * with no guest listener with `ECONNREFUSED`. A guest may also serve TCP and
+ * exchange UDP on its own loopback, which never leaves the guest; other UDP
+ * reaches only name lookups.
  *
  * `relay` is the WebSocket relay that resolves and connects for the guest.
  * A browser has no TCP sockets, so a browser run needs one; Node.js uses it

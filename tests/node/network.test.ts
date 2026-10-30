@@ -117,12 +117,17 @@ describe('ゲストの TCP（Node.js の Worker）', () => {
     );
     assert.equal(allowed.exitCode, 0);
 
-    // 別の port だけを許可すると ENETUNREACH（101）、許可がなければ EAFNOSUPPORT（97）。
-    const other = await tcpEcho(target, {
-      allow: [`127.0.0.1:${port === 65535 ? port - 1 : port + 1}`],
-    });
-    assert.match(other.stdout, /^FAIL tcp-echo: connect: .*\(errno 101\)$/m);
+    // 別の port だけを許可すると、loopback の宛先は guest の socket が listen して
+    // いないので ECONNREFUSED（111）、ほかの宛先は ENETUNREACH（101）、許可が
+    // なければ EAFNOSUPPORT（97）。
+    const otherPort = `127.0.0.1:${port === 65535 ? port - 1 : port + 1}`;
+    const other = await tcpEcho(target, { allow: [otherPort] });
+    assert.match(other.stdout, /^FAIL tcp-echo: connect: .*\(errno 111\)$/m);
     assert.equal(other.exitCode, 1);
+    // 192.0.2.1 は文書用の TEST-NET-1 で、接続を試みる前に断られる。
+    const unlisted = await tcpEcho('192.0.2.1:7', { allow: [otherPort] });
+    assert.match(unlisted.stdout, /^FAIL tcp-echo: connect: .*\(errno 101\)$/m);
+    assert.equal(unlisted.exitCode, 1);
     const none = await tcpEcho(target);
     assert.match(none.stdout, /^FAIL tcp-echo: connect: .*\(errno 97\)$/m);
     assert.equal(none.exitCode, 1);
