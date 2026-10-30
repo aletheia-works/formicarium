@@ -266,6 +266,40 @@ test('a transport failure of a GNU request is retried; a bad answer is not', asy
   assert.equal(missing.calls.filter((call) => call.url === listing).length, 1);
 });
 
+test('a listing without the tarball is asked again, then named in the failure', async () => {
+  // zlib.net has twice given CI a listing without its tarball while the
+  // same request from elsewhere, and a second job of the same run, had it.
+  const listing = 'https://ftp.gnu.org/gnu/nano/';
+  const stub = '<html><head><title>Please wait</title></head></html>';
+  const routes = gnuRoutes();
+  const good = routes[listing]!;
+  let attempts = 0;
+  routes[listing] = () => {
+    attempts++;
+    if (attempts === 1) return new Response(stub);
+    return typeof good === 'function' ? good() : good;
+  };
+  const found = await resolveGnuTool(api(), nano, {
+    ...gnuOptions(),
+    fetchImpl: fakeFetch(routes),
+  });
+  assert.equal(found.resolution.version, '9.3');
+  assert.equal(attempts, 2);
+  const never = fakeFetch({
+    ...gnuRoutes(),
+    [listing]: () => new Response(stub),
+  });
+  await assert.rejects(
+    resolveGnuTool(api(), nano, { ...gnuOptions(), fetchImpl: never }),
+    (error: Error) =>
+      causeOf(error) === 'release-invalid' &&
+      error.message.includes(`${stub.length} bytes`) &&
+      error.message.includes(sha(stub)) &&
+      error.message.includes('"Please wait"'),
+  );
+  assert.equal(never.calls.filter((call) => call.url === listing).length, 3);
+});
+
 test('the license is the COPYING at the tarball root', async () => {
   assert.equal(
     new TextDecoder().decode(await copyingOf(gnuTarball('nano', '9.3'))),

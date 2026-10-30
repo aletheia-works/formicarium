@@ -41,8 +41,9 @@ export interface GnuTransferOptions {
 /**
  * ftp.gnu.org, Savannah and the other release servers drop some connections
  * from CI runners, so a transport failure of a request to them is retried
- * twice. The GitHub API stays unretried, and a bad answer (status, size,
- * signature) never is.
+ * twice (fetchGnu), and so is a release listing that names no signed tarball
+ * (resolveGnuPackage), which zlib.net has given CI. The GitHub API stays
+ * unretried, and any other bad answer (status, size, signature) never is.
  */
 export const GNU_RETRY_DELAYS_MS = Object.freeze([10_000, 30_000]);
 
@@ -66,6 +67,15 @@ async function retrying<T>(
 const transportError = (error: unknown) =>
   error instanceof ShowcaseError &&
   (error.code === 'offline' || error.code === 'deadline');
+
+/** A listing that answered but named no signed tarball of the package. */
+class ListingWithoutTarball extends ShowcaseError {
+  constructor(message: string, cause: unknown) {
+    super('release-invalid', message.replace(/^release-invalid: /, ''), {
+      cause,
+    });
+  }
+}
 
 /** fetchBounded for a release server, with the transport retries above. */
 export const fetchGnu = (
@@ -363,18 +373,33 @@ export async function resolveGnuPackage(
   pkg: GnuPackage,
   options: GnuTransferOptions = {},
 ) {
-  const listing = await fetchGnu(
-    sourceOf(pkg).listing,
-    TRANSFER_POLICY.maxMetadataBytes,
-    options,
-  );
-  const version = latestVersion(
-    new TextDecoder().decode(listing.bytes),
-    pkg.package,
-    {
-      anyPrefix: pkg.source !== undefined,
-      suffix: sourceOf(pkg).tarball.endsWith('.tar.xz') ? '.tar.xz' : '.tar.gz',
+  // zlib.net has given CI a listing without its tarball while the same
+  // request elsewhere had it, so such a listing is asked again like a
+  // dropped connection, and the last one is described in the failure.
+  const version = await retrying(
+    async () => {
+      const listing = await fetchBounded(sourceOf(pkg).listing, {
+        maxBytes: TRANSFER_POLICY.maxMetadataBytes,
+        fetchImpl: options.fetchImpl,
+      });
+      const text = new TextDecoder().decode(listing.bytes);
+      try {
+        return latestVersion(text, pkg.package, {
+          anyPrefix: pkg.source !== undefined,
+          suffix: sourceOf(pkg).tarball.endsWith('.tar.xz')
+            ? '.tar.xz'
+            : '.tar.gz',
+        });
+      } catch (error) {
+        const title = /<title>([^<]{0,80})/i.exec(text)?.[1]?.trim() ?? '';
+        throw new ListingWithoutTarball(
+          `${error instanceof Error ? error.message : 'no tarball'} (${listing.bytes.length} bytes, sha256 ${sha256(listing.bytes)}, title ${JSON.stringify(title)})`,
+          error,
+        );
+      }
     },
+    (error) => transportError(error) || error instanceof ListingWithoutTarball,
+    options.retryDelaysMs,
   );
   return {
     version,
