@@ -12,6 +12,8 @@ import type { TerminalPageData } from '../../src/terminal/page-data.ts';
 import {
   attachPageEvents,
   type HostOptions,
+  type KeyMods,
+  keyPlatform,
   nextCwd,
   passKey,
   TerminalHost,
@@ -721,6 +723,37 @@ test('pagehide disposes; pageshow from the back-forward cache reloads; Tab is pa
   assert.equal(reloads, 1);
   assert.equal(passKey({ key: 'Tab' }), false);
   assert.equal(passKey({ key: 'a' }), true);
+});
+
+test('Ctrl+V and Ctrl+Shift+V paste through the browser off macOS', () => {
+  const key = (key: string, mods: Partial<KeyMods> = {}) => ({
+    key,
+    ctrlKey: false,
+    shiftKey: false,
+    altKey: false,
+    metaKey: false,
+    ...mods,
+  });
+  // Returning false leaves the key to the browser, whose paste event xterm
+  // then reads; xterm itself would send ^V.
+  for (const event of [
+    key('v', { ctrlKey: true }),
+    key('V', { ctrlKey: true, shiftKey: true }),
+  ]) {
+    assert.equal(passKey(event, 'other'), false);
+    assert.equal(passKey(event, 'mac'), true);
+  }
+  // Cmd+V on macOS already pastes; other control keys still reach xterm.
+  assert.equal(passKey(key('c', { ctrlKey: true }), 'other'), true);
+  assert.equal(
+    passKey(key('v', { ctrlKey: true, altKey: true }), 'other'),
+    true,
+  );
+  assert.equal(passKey(key('v'), 'other'), true);
+  assert.equal(keyPlatform('MacIntel'), 'mac');
+  assert.equal(keyPlatform('iPhone'), 'mac');
+  assert.equal(keyPlatform('Win32'), 'other');
+  assert.equal(keyPlatform('Linux x86_64'), 'other');
 });
 
 test('more than 1 MiB of output redraws the tail and shows the omitted notice', async () => {

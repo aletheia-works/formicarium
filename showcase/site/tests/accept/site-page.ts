@@ -10,7 +10,18 @@ import { createSession, webdriver } from '../../../tests/webdriver.ts';
 import { SITE_ROOT } from '../../scripts/common.ts';
 
 /** Keys the tests press. */
-export type Key = 'Enter' | 'Tab' | 'Alt+Tab' | 'Control+c' | 'Control+x' | 'q';
+export type Key =
+  | 'Enter'
+  | 'Tab'
+  | 'Alt+Tab'
+  | 'Control+c'
+  | 'Control+x'
+  | 'q'
+  // The platform's copy and paste keys (paste.spec.ts).
+  | 'Control+v'
+  | 'Control+Shift+v'
+  | 'Meta+c'
+  | 'Meta+v';
 
 /**
  * One browser tab as the site acceptance sees it. Playwright drives Chromium,
@@ -86,6 +97,8 @@ const WEBDRIVER_KEYS: Readonly<Record<string, string>> = Object.freeze({
   Tab: '\uE004',
   Control: '\uE009',
   Alt: '\uE00A',
+  Shift: '\uE008',
+  Meta: '\uE03D',
 });
 const keyActions = (keys: string[]) => [
   ...keys.map((value) => ({ type: 'keyDown', value })),

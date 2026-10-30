@@ -671,8 +671,35 @@ export class TerminalHost {
   }
 }
 
-/** Tab and Shift+Tab move the page focus instead of reaching xterm. */
-export const passKey = (event: { key: string }) => event.key !== 'Tab';
+export interface KeyMods {
+  ctrlKey: boolean;
+  shiftKey: boolean;
+  altKey: boolean;
+  metaKey: boolean;
+}
+/** macOS pastes with Cmd+V itself; elsewhere Ctrl+V is the paste key. */
+export type KeyPlatform = 'mac' | 'other';
+export const keyPlatform = (platform: string): KeyPlatform =>
+  /^(?:Mac|iPhone|iPad|iPod)/.test(platform) ? 'mac' : 'other';
+
+/**
+ * Keys xterm must not take (false leaves them to the browser): Tab and
+ * Shift+Tab move the page focus, and off macOS Ctrl+V and Ctrl+Shift+V
+ * paste through the browser's paste event, which xterm reads, instead of
+ * reaching the terminal as ^V.
+ */
+export const passKey = (
+  event: { key: string } & Partial<KeyMods>,
+  platform: KeyPlatform = 'other',
+) =>
+  event.key !== 'Tab' &&
+  !(
+    platform === 'other' &&
+    event.ctrlKey &&
+    !event.altKey &&
+    !event.metaKey &&
+    event.key.toLowerCase() === 'v'
+  );
 
 /**
  * pagehide disposes the terminal; a page restored from the back-forward cache
@@ -743,7 +770,8 @@ export async function startTerminalPage(
   const fit = new FitAddon();
   terminal.loadAddon(fit);
   terminal.open(element);
-  terminal.attachCustomKeyEventHandler(passKey);
+  const platform = keyPlatform(navigator.platform);
+  terminal.attachCustomKeyEventHandler((event) => passKey(event, platform));
   new ResizeObserver(() => {
     if (element.clientWidth && element.clientHeight) fit.fit();
   }).observe(element);

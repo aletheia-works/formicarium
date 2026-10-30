@@ -9,8 +9,9 @@ import { test } from './site-page.ts';
 import {
   cspViolations,
   run,
+  segmentAfter,
   startServer,
-  statusText,
+  terminalText,
   waitState,
 } from './support.ts';
 
@@ -121,10 +122,13 @@ test('[relay-network] without a token the command runs without the network and s
 }) => {
   await site.goto(`${server.origin}/formicarium/ja/terminal/`);
   await waitState(site, ['ready']);
-  const output = await run(site, CLONE);
-  expect(output).toContain(
-    'relay に届かないので、network なしで実行します。clone と fetch は失敗します。',
-  );
+  await run(site, CLONE);
+  // The stand-in answers at once, so xterm may draw the rows a frame later.
+  await expect
+    .poll(async () => segmentAfter(await terminalText(site), CLONE))
+    .toContain(
+      'relay に届かないので、network なしで実行します。clone と fetch は失敗します。',
+    );
   expect(server.requests).toContain(MISSING_PATH);
   expect(await network(site)).toEqual([[CLONE, null]]);
   await run(site, 'ls');
