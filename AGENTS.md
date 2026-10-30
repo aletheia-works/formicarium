@@ -6,6 +6,7 @@
 - Correctness claims require observed commands/output, named test results, or specific log lines. Label claims 検証済み / ドキュメント根拠 / 推測; explicitly mark unverified claims 未検証.
 - For review feedback, turn the claim into a falsifiable sentence and verify it before replying. Replies must be at most five lines. Obtain the user's approval before posting a rebuttal; agreeing and fixing needs no extra approval.
 - Keep fixes within the requested scope. If verification cannot be run, mark it 未検証 and provide concrete verification commands.
+- When the code and a document (the site's `showcase/site/src/content/docs/`, README.md, `showcase/README.md`, this file) disagree, trust the code, not the text. After the change, always tell the user about every mismatch you found, whether you fixed it (in both English and `ja/` when the page has both) or left it, even if that makes the final response longer. Agents that trusted a stale instruction file over the code have broken working systems ([arXiv:2605.30777](https://arxiv.org/abs/2605.30777)).
 
 ## Team practices
 
