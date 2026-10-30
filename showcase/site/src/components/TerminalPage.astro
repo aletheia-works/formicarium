@@ -16,7 +16,8 @@ interface Props {
   title: string;
   description: string;
   intro: string;
-  help: string;
+  /** Short sentences, one list item each. */
+  help: readonly string[];
   stop: string;
   hintsTitle: string;
   hints: readonly string[];
@@ -64,7 +65,9 @@ const host = { [TERMINAL_ATTRIBUTE]: JSON.stringify(data) };
     data-testid="terminal-stop"
     hidden>{stop}</button
   >
-  <p>{help}</p>
+  <ul class="terminal-help" data-testid="terminal-help">
+    {help.map((item) => <li>{item}</li>)}
+  </ul>
   <p>{hintsTitle}</p>
   <ul class="terminal-hints" data-testid="terminal-hints">
     {hints.map((hint) => <li><code>{hint}</code></li>)}

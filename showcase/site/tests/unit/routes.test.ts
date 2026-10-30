@@ -129,10 +129,13 @@ test('only the tool pages and /terminal/ are terminal pages, with their page dat
     ],
   );
   // The help names the network tools and the relay they go through.
-  assert.match(page, /git, jj は github\.com から clone できます/);
+  assert.match(
+    page,
+    /git, jj は github\.com の公開 repository を clone・fetch できます/,
+  );
   assert.match(
     await read('tools/git/index.html'),
-    /git, jj can clone from github\.com.*Aletheia Works(?:'|&#39;|&#x27;) relay on AWS/s,
+    /git, jj can clone and fetch public repositories from github\.com.*Aletheia Works(?:'|&#39;|&#x27;) relay on AWS/s,
   );
   const empty = parsePageData(
     /data-terminal-host="([^"]*)"/

@@ -38,12 +38,17 @@ export const STRINGS = {
         'Install one of the tools below, then run it. The working directory /work/app is empty.',
       hints: 'Install a tool:',
     },
-    terminalHelp:
-      'Builtins: ls, cat, cd, rm -rf, cp, mv and install; clear (or Ctrl-L) empties the screen. Tab moves the focus out of the terminal; Ctrl-C cancels a running command (an interactive tool gets Ctrl-C; Stop ends it).',
+    terminalHelp: [
+      'Builtins: ls, cat, cd, rm -rf, cp, mv, install <tool>, clear and help.',
+      'Ctrl-C cancels a running command or drops the typed line.',
+      'With text selected, Ctrl-C copies it (Cmd-C on macOS); Ctrl-V (Cmd-V) pastes.',
+      'Ctrl-L clears the screen; Tab moves the focus out of the terminal.',
+      'An interactive tool such as nano gets Ctrl-C itself; the Stop button ends it.',
+    ],
     everyPageHelp: (tools: string) =>
-      `Every page installs ${tools} when it starts, so other tools can open it too.`,
+      `Every page installs ${tools} when it starts, so the other tools can use them.`,
     networkHelp: (tools: string) =>
-      `${tools} can clone from github.com, for example git clone https://github.com/octocat/Hello-World: the page asks Aletheia Works' relay on AWS for a short-lived token, and the connection goes through that relay to github.com only (the relay checks that the request comes from this site).`,
+      `${tools} can clone and fetch public repositories from github.com, for example git clone https://github.com/octocat/Hello-World. The connection goes through Aletheia Works' relay on AWS, which reaches github.com only and answers only this site.`,
     terminalStop: 'Stop',
     /** What the terminal itself prints: `help` and the mistakes it explains. */
     shell: {
@@ -130,12 +135,17 @@ export const STRINGS = {
         '下のツールを導入してから実行してください。作業 dir の /work/app は空です。',
       hints: 'ツールの導入：',
     },
-    terminalHelp:
-      '組込みの command：ls、cat、cd、rm -rf、cp、mv、install。clear（または Ctrl-L）で画面を消します。Tab で端末の外へ focus を移し、Ctrl-C で実行中の command を取り消します（対話的なツールには Ctrl-C が渡るので、「停止」で終わらせます）。',
+    terminalHelp: [
+      '組込みの command：ls、cat、cd、rm -rf、cp、mv、install <ツール>、clear、help。',
+      'Ctrl-C で実行中の command を取り消すか、入力中の行を捨てます。',
+      '文字を選択しているときは Ctrl-C で copy し（macOS では Cmd-C）、Ctrl-V（Cmd-V）で貼り付けます。',
+      'Ctrl-L で画面を消し、Tab で端末の外へ focus を移します。',
+      'nano のような対話的なツールには Ctrl-C が渡るので、「停止」で終わらせます。',
+    ],
     everyPageHelp: (tools: string) =>
-      `${tools} は、どの page でも開いたときに導入するので、ほかのツールからも開けます。`,
+      `${tools} は、どの page でも開いたときに導入するので、ほかのツールからも使えます。`,
     networkHelp: (tools: string) =>
-      `${tools} は github.com から clone できます（例：git clone https://github.com/octocat/Hello-World）。page は Aletheia Works が AWS で動かす relay に短い間だけ使える token を求め、接続はその relay を通って github.com にだけつながります（relay は、要求がこのサイトから来たことを確かめます）。`,
+      `${tools} は github.com の公開 repository を clone・fetch できます（例：git clone https://github.com/octocat/Hello-World）。接続は Aletheia Works が AWS で動かす relay を通り、relay は github.com にだけつなぎ、このサイトにだけ応えます。`,
     terminalStop: '停止',
     shell: {
       help: (installed: readonly string[], tools: readonly string[]) =>

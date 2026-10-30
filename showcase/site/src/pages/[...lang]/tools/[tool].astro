@@ -54,14 +54,14 @@ const data: TerminalPageData = {
   caBundle: caBundleOf(site),
 };
 const helpText = [
-  strings.terminalHelp,
+  ...strings.terminalHelp,
   ...(data.everyPage.length
     ? [strings.everyPageHelp(data.everyPage.join(', '))]
     : []),
   ...(data.network.length
     ? [strings.networkHelp(data.network.join(', '))]
     : []),
-].join(' ');
+];
 ---
 
 <TerminalPage
