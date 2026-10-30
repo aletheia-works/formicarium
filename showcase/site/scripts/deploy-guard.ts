@@ -23,15 +23,19 @@ export interface DeployedRun {
 type Json = Record<string, unknown>;
 const isRecord = (value: unknown): value is Json =>
   !!value && typeof value === 'object' && !Array.isArray(value);
+/** The cause's message, so a failed run's log says which request failed how. */
+const reason = (error: unknown) =>
+  error instanceof Error ? error.message : String(error);
 
 /**
  * Runs of this workflow whose `deploy` job succeeded, newest run number first.
- * Every API failure propagates: the guard and the summary fail closed.
+ * `first` stops at the newest one, reading no older jobs. Every API failure
+ * propagates: the guard and the summary fail closed.
  */
 export async function deployedRuns(
   api: GitHubApi,
   repository: string,
-  options: { above?: number; limit?: number } = {},
+  options: { above?: number; limit?: number; first?: boolean } = {},
 ): Promise<DeployedRun[]> {
   if (!REPOSITORY_SLUG.test(repository))
     fail('config-invalid', 'repository owner/repo required');
@@ -41,7 +45,11 @@ export async function deployedRuns(
       `repos/${repository}/actions/workflows/${SITE_WORKFLOW}/runs?branch=main&per_page=${MAX_RUNS}`,
     );
   } catch (error) {
-    return fail('api-failed', 'workflow runs could not be listed', error);
+    return fail(
+      'api-failed',
+      `workflow runs could not be listed: ${reason(error)}`,
+      error,
+    );
   }
   const runs =
     (isRecord(listed) && Array.isArray(listed.workflow_runs)
@@ -68,7 +76,7 @@ export async function deployedRuns(
     } catch (error) {
       return fail(
         'api-failed',
-        `jobs of run ${run.id} could not be read`,
+        `jobs of run ${run.id} could not be read: ${reason(error)}`,
         error,
       );
     }
@@ -85,6 +93,7 @@ export async function deployedRuns(
         runNumber: run.run_number as number,
         deployedAt: String(deploy.completed_at ?? run.updated_at ?? ''),
       });
+    if (deploy && options.first) break;
   }
   return found;
 }

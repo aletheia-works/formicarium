@@ -169,7 +169,7 @@ else if (import.meta.main)
     const runs = await deployedRuns(
       createGitHubApi({ token: process.env.GITHUB_TOKEN }),
       repository,
-      { limit: 30 },
+      { limit: 30, first: true },
     );
     const result = summarize({
       distribute: process.env.SHOWCASE_DIST === 'true',

@@ -128,6 +128,37 @@ test('an API failure fails closed', async () => {
   );
 });
 
+test('a failed request names its cause in the message', async () => {
+  await assert.rejects(
+    deployedRuns(api([], { failRuns: true }), REPO),
+    /could not be listed: http-status: GitHub API answered 500$/,
+  );
+  await assert.rejects(
+    deployedRuns(api([{ id: 3, run_number: 11 }], { failJobs: 3 }), REPO),
+    /jobs of run 3 could not be read: offline$/,
+  );
+});
+
+test('first stops reading jobs at the newest deployed run', async () => {
+  const fake = api([
+    { id: 1, run_number: 5, deploy: 'success' },
+    { id: 2, run_number: 7, deploy: 'failure' },
+    { id: 3, run_number: 6, deploy: 'success' },
+    { id: 4, run_number: 8 },
+  ]);
+  const runs = await deployedRuns(fake, REPO, { first: true });
+  assert.deepEqual(
+    runs.map((run) => run.runNumber),
+    [6],
+  );
+  assert.deepEqual(
+    fake.paths
+      .filter((path) => path.includes('/jobs'))
+      .map((path) => Number(/runs\/(\d+)\/jobs/.exec(path)?.[1])),
+    [4, 2, 3],
+  );
+});
+
 test('the run number and repository are checked first', async () => {
   await assert.rejects(runGuard(api([]), REPO, Number.NaN), /config-invalid/);
   await assert.rejects(runGuard(api([]), '../x', 3), /config-invalid/);
