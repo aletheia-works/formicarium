@@ -42,9 +42,10 @@ so each step starts from a known filesystem ([ADR 0008](/formicarium/development
 Files that share an `inodeId` stay hard links, and symlinks and modes are kept.
 
 When a run fails inside the Worker, the Worker sends the error code and what it
-may tell about the original errors: the name of each error in the cause chain,
-and the message only of an engine `RangeError` (one without Node's `ERR_` code,
-which can quote the received value), a WebAssembly error or the core's
+may tell about the original errors, the first four of the cause chain (the
+error and up to three causes): the name of each, and the message only of an
+engine `RangeError` (one without Node's `ERR_` code, which can quote the
+received value), a WebAssembly error or the core's
 `PaludariumError` (with its `kind`), up to 300 characters. Other messages can
 hold caller data such as paths or env values, so they stay in the Worker. The
 Session puts these errors in the `ExecutionError`'s `cause`.
@@ -59,6 +60,7 @@ Session puts these errors in the `ExecutionError`'s `cause`.
 | Worker        | `protocol.ts`, `worker-execution.ts`, `*/package-worker.ts`    | Messages between the Session and the Worker, one run per Worker                                                 |
 | Guest I/O     | `guest-io.ts`                                                  | Placing files, collecting output, taking the snapshot                                                           |
 | Core boundary | `core.ts`                                                      | The only file that knows the emulator core ([ADR 0003](/formicarium/development/decisions/0003-core-boundary/)) |
+| Shared        | `errors.ts`, `contracts.ts`                                    | `ERROR_CODES` and `ExecutionError`, and the types the layers pass to each other                                 |
 
 `types/` holds the published declarations. `scripts/`, `tests/` and `web/`
 are development tools and are not part of the package. The `web/` page, which

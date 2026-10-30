@@ -35,7 +35,7 @@ Session がその写しを取り込むのは、実行が成功したときだけ
 同じ `inodeId` を持つファイルは hard link のまま残り、symlink と mode も保たれます。
 
 Worker の中で実行が失敗すると、Worker はエラーコードと、元のエラーについて伝えてよいことを送ります。
-cause の連なりにある各エラーの名前と、エンジンの `RangeError`（受け取った値を引用しうる Node の `ERR_` code 付きのものは除く）・WebAssembly のエラー・core の `PaludariumError`（`kind` も）に限ったメッセージ（300 文字まで）です。
+cause の連なりの先頭の 4 つ（そのエラーと、3 つまでの cause）について、それぞれの名前と、エンジンの `RangeError`（受け取った値を引用しうる Node の `ERR_` code 付きのものは除く）・WebAssembly のエラー・core の `PaludariumError`（`kind` も）に限ったメッセージ（300 文字まで）です。
 ほかのメッセージには path や環境変数の値のような呼び出し元のデータが入りうるので、Worker の外に出しません。
 Session はこれらのエラーを `ExecutionError` の `cause` に入れます。
 
@@ -49,6 +49,7 @@ Session はこれらのエラーを `ExecutionError` の `cause` に入れます
 | Worker         | `protocol.ts`、`worker-execution.ts`、`*/package-worker.ts`    | Session と Worker の間のメッセージ、Worker 1 つにつき 1 回の実行                                                |
 | ゲストの入出力 | `guest-io.ts`                                                  | ファイルの配置、出力の取得、写し取り                                                                            |
 | コアとの境界   | `core.ts`                                                      | エミュレータのコアを知る唯一のファイル（[ADR 0003](/formicarium/ja/development/decisions/0003-core-boundary/)） |
+| 共通           | `errors.ts`、`contracts.ts`                                    | `ERROR_CODES` と `ExecutionError`、層の間で受け渡す型                                                           |
 
 `types/` には公開する型宣言があります。`scripts/`・`tests/`・`web/` は開発用の道具で、パッケージには含みません。
 ブラウザの回帰テストが開く `web/` のページは、パッケージ自身のブラウザ API（`createSession`）でゲストを実行します。

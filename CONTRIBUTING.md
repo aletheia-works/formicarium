@@ -68,11 +68,13 @@ mise run native-baseline aube-1645 --check-reproducible
 mise run native-baseline pitchfork-basic --check-reproducible
 ```
 
-CI builds aube v2.7.0 and pitchfork v2.30.1 (`AUBE_REF`, `PITCHFORK_REF`),
-and nano 9.3 with ncurses 6.6 (`NANO_VERSION`, `NCURSES_VERSION`). The nano and
-ncurses tarballs are checked against SHA-256 digests in the build script,
-taken from tarballs whose signatures were checked with the GNU keyring; a
-different version needs its digest too (`NANO_SHA256`, `NCURSES_SHA256`).
+CI builds aube v2.7.0 and pitchfork v2.30.1 (`AUBE_REF`, `PITCHFORK_REF`;
+the script's own default is still aube v2.6.1, so pass `AUBE_REF=v2.7.0` to
+build what CI builds), and nano 9.3 with ncurses 6.6 (`NANO_VERSION`,
+`NCURSES_VERSION`). The nano and ncurses tarballs are checked against SHA-256
+digests in the build script, taken from tarballs whose signatures were checked
+with the GNU keyring; a different version needs its digest too
+(`NANO_SHA256`, `NCURSES_SHA256`).
 ncurses is built with the xterm-256color definition compiled in, so nano needs
 no terminfo files, only `TERM=xterm-256color`. git 2.56.0 and curl 8.23.0
 (`GIT_VERSION`, `CURL_VERSION`) are checked the same way (`GIT_SHA256`,
@@ -144,11 +146,13 @@ them (ABBA).
 
 `ci.yml` maps the changed files of a pull request to job groups with
 `scripts/ci-changes.py`: quality (lint, types, build, light tests), product
-(guest builds, native baselines, and the Node, Chromium, Firefox and WebKit
-regressions) and candidate (the release candidate with package coverage).
-`ci-required` passes only when every needed job passed and every other job was
-skipped. Product jobs keep their diagnostics, including each browser's own log
-and, after a failure, the kernel log. The release process is described in
+(guest builds, native baselines, the Node, Chromium, Firefox and WebKit
+regressions, and real Safari on macOS and in an iOS Simulator) and candidate
+(the release candidate with package coverage). `commit-format` checks every
+commit subject of the change on every run. `ci-required` passes only when every
+needed job passed and every other job was skipped. Product jobs keep their
+diagnostics, including each browser's own log and, after a failure, the kernel
+log. The release process is described in
 [Package releases](https://aletheia-works.github.io/formicarium/development/releases/).
 
 ## Verification

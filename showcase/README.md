@@ -49,7 +49,7 @@ fixture の共有は `scripts/boundary.ts` と Biome の `noRestrictedImports` �
 | 解決         | `scripts/resolve.ts`                                                       | `releases/latest`（draft・prerelease を除く）、annotated tag を辿った 40 桁の commit、資産の digest・size・URL、license。`resolutions.json` に 1 回だけ書く  |
 | pack         | `scripts/pack.ts`                                                          | `verify`：同じ commit を本体の stager と `npm pack` で包む。`distribute`：`formicarium-release.json` の版を npm から取得し、integrity とタグのコミットを照合 |
 | 取得         | `scripts/acquire.ts`                                                       | TransferPolicy の規則（HTTPS、credential なし、redirect 5 hop、120 s、128 MiB）で取得し、SHA256・size を照合、tar.gz を検査、公開 `validateGuest` で検証     |
-| source build | `scripts/build.ts`、`builders/cargo.sh`                                    | `prepare`：tag と commit の一致、codeload の source、toolchain の選択、buildKey。`compile`：token なしの独立した process group で build                      |
+| source build | `scripts/build.ts`、`builders/cargo.sh`、`builders/autotools.sh`           | `prepare`：tag と commit の一致、codeload の source、toolchain の選択、buildKey。`compile`：token なしの独立した process group で build                      |
 | 再利用       | `scripts/reuse.ts`                                                         | main の信頼した workflow の成功 run の `showcase-candidate` から、buildKey・ELF・build-info を照合して再利用                                                 |
 | catalog      | `scripts/catalog.ts`                                                       | `GuestCatalog`（same-origin の相対 URL）。公開 `createInstaller` で受理を確かめる                                                                            |
 | 受入         | `scripts/accept-node.ts`、`tests/accept.spec.ts`、`tests/accept-safari.ts` | `install <tool>` と `<tool> --version`。6 ツール × Node・Chromium・Firefox・WebKit・実機 Safari の 30 行                                                     |
@@ -181,7 +181,10 @@ Safari の job は macOS の System keychain に job CA を信頼させ、leaf �
 ## mode と showcase site
 
 `showcase.yml` は `pull_request`・`push`（main）・`workflow_dispatch`・
-`workflow_call` で動く。直接の実行には `mode` の入力がなく、常に `verify` になる。
+`workflow_call` で動く。main への push と PR のゲストの job は、`showcase/`（`showcase/site/` を
+除く）・`runtime/`・`types/`・`package.json`・この workflow を変えたときだけ動く（PR では
+`changes` job が決め、ほかの PR でも必須の check は報告する）。手動の実行と showcase site
+からの呼び出しは常に build する。直接の実行には `mode` の入力がなく、常に `verify` になる。
 `distribute` は、`trusted-callers.json` の `distributeCaller` が main への
 `push` か main の `workflow_dispatch` で呼んだときだけ受け付ける（`schedule` は
 拒否する。showcase site は日次の実行をやめた）。showcase site は `candidate`
@@ -210,10 +213,12 @@ tag `v<version>` のコミットが `sourceCommit` に一致したときだけ�
 
 ## 配布の契機
 
-showcase site は日次の実行をやめ、サイトの変更が main に入ったときと main からの手動の実行で
-配布する。ゲストの新しい候補（新しい release の取込み）は自動では配布されないので、
+showcase site は日次の実行をやめ、main への push が `showcase/site/`・`showcase/scripts/`・
+`showcase/tests/webdriver.ts`・`showcase/formicarium-release.json`・`showcase-site.yml` を
+変えたときと、main からの手動の実行で配布する。ゲストの新しい候補（新しい release の取込み）は自動では配布されないので、
 人間が main から showcase-site の workflow を手動で実行する。各 run の `candidate` job の
-summary には「最後に配布可能な候補を作った run からの日数」が出る。
+summary には「最後に配布可能な候補を作った run からの日数」が出る。`showcase-site.yml` の
+`summary` job は、最後に deploy した run からの日数と、失敗した job を書く。
 
 ## 切り戻し（Rollback）
 

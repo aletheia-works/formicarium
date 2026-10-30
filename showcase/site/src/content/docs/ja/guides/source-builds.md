@@ -13,8 +13,7 @@ showcase のツールは
   公開の `validateGuest` で ELF を検証します。
 - **source build。** pitchfork には musl の資産が無いので、showcase は tag の
   source を Cargo で `x86_64-unknown-linux-musl` 向けに compile します。build の
-  工程には network の token を渡しません。以前の信頼できる main の run に同じ
-  `buildKey` の build があれば、compile せずに再利用します。
+  工程には network の token を渡しません。
 - **署名された GNU の tarball。** nano は GitHub ではなく GNU の tarball で公開されて
   います。showcase は `ftp.gnu.org` の一覧から最も新しい版を選び、`showcase/keys/` に
   置いた作者の鍵で、`gpgv` を使って署名を確かめます。ncurses も同じです。source は、
@@ -37,6 +36,9 @@ mirrors.kernel.org と mirrors.dotsrc.org、GnuTLS は gnupg.org の 2 つの mi
 残りのファイルは、答えた mirror から取ります。tarball がどこから来ても、同じ固定した鍵で署名を
 確かめます。答え・大きさ・署名の誤りでは mirror に移りません。mirror の一覧が遅れていれば、
 その一覧の最も新しい署名付きの版を使います。
+
+source の build（pitchfork、nano、`git-remote-https` を含む git）はどれも、以前の信頼できる
+main の run に同じ `buildKey` の build があれば、compile せずに再利用します。
 
 その後、run は catalog を書き、Node・Chromium・Firefox・WebKit・macOS の実機の Safari で
 公開 API を通して各ツールを導入して `--version` を実行し、30件の確認がすべて通ったときだけ候補を
