@@ -69,3 +69,16 @@ test('status-like UI strings keep tool names untranslated in both languages', ()
     assert.equal(en, ja, tool);
   }
 });
+
+test('the help under the terminal joins its tool names as a sentence', () => {
+  const en = stringsFor('en');
+  const ja = stringsFor('ja');
+  assert.match(en.everyPageHelp(['nano']), /^Every page installs nano when/);
+  assert.match(en.everyPageHelp(['git', 'nano']), /installs git and nano when/);
+  assert.match(
+    en.networkHelp(['git', 'jj', 'curl']),
+    /^git, jj and curl can clone/,
+  );
+  assert.match(ja.everyPageHelp(['git', 'nano']), /^git と nano は、/);
+  assert.match(ja.networkHelp(['git', 'jj', 'curl']), /^git・jj・curl は /);
+});

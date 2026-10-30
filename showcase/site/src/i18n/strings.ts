@@ -5,6 +5,14 @@ const listEn = (items: readonly string[]) =>
   items.length ? items.join(', ') : 'none';
 const listJa = (items: readonly string[]) =>
   items.length ? items.join('、') : 'なし';
+/** Tool names inside a sentence: "a", "a and b", "a, b and c". */
+const sentenceEn = (items: readonly string[]) =>
+  items.length > 1
+    ? `${items.slice(0, -1).join(', ')} and ${items.at(-1)}`
+    : items.join('');
+/** 「a」「a と b」「a・b・c」. */
+const sentenceJa = (items: readonly string[]) =>
+  items.length === 2 ? items.join(' と ') : items.join('・');
 
 /**
  * UI strings of the Astro pages and the terminal's own messages (en and ja
@@ -45,10 +53,10 @@ export const STRINGS = {
       'Ctrl-L clears the screen; Tab moves the focus out of the terminal.',
       'An interactive tool such as nano gets Ctrl-C itself; the Stop button ends it.',
     ],
-    everyPageHelp: (tools: string) =>
-      `Every page installs ${tools} when it starts, so the other tools can use them.`,
-    networkHelp: (tools: string) =>
-      `${tools} can clone and fetch public repositories from github.com, for example git clone https://github.com/octocat/Hello-World. The connection goes through Aletheia Works' relay on AWS, which reaches github.com only and answers only this site.`,
+    everyPageHelp: (tools: readonly string[]) =>
+      `Every page installs ${sentenceEn(tools)} when it starts, so the other tools can use them.`,
+    networkHelp: (tools: readonly string[]) =>
+      `${sentenceEn(tools)} can clone and fetch public repositories from github.com, for example git clone https://github.com/octocat/Hello-World. The connection goes through Aletheia Works' relay on AWS, which reaches github.com only and answers only this site.`,
     terminalStop: 'Stop',
     /** What the terminal itself prints: `help` and the mistakes it explains. */
     shell: {
@@ -142,10 +150,10 @@ export const STRINGS = {
       'Ctrl-L で画面を消し、Tab で端末の外へ focus を移します。',
       'nano のような対話的なツールには Ctrl-C が渡るので、「停止」で終わらせます。',
     ],
-    everyPageHelp: (tools: string) =>
-      `${tools} は、どの page でも開いたときに導入するので、ほかのツールからも使えます。`,
-    networkHelp: (tools: string) =>
-      `${tools} は github.com の公開 repository を clone・fetch できます（例：git clone https://github.com/octocat/Hello-World）。接続は Aletheia Works が AWS で動かす relay を通り、relay は github.com にだけつなぎ、このサイトにだけ応えます。`,
+    everyPageHelp: (tools: readonly string[]) =>
+      `${sentenceJa(tools)} は、どの page でも開いたときに導入するので、ほかのツールからも使えます。`,
+    networkHelp: (tools: readonly string[]) =>
+      `${sentenceJa(tools)} は github.com の公開 repository を clone・fetch できます（例：git clone https://github.com/octocat/Hello-World）。接続は Aletheia Works が AWS で動かす relay を通り、relay は github.com にだけつなぎ、このサイトにだけ応えます。`,
     terminalStop: '停止',
     shell: {
       help: (installed: readonly string[], tools: readonly string[]) =>

@@ -43,12 +43,8 @@ const data: TerminalPageData = {
 };
 const helpText = [
   ...strings.terminalHelp,
-  ...(data.everyPage.length
-    ? [strings.everyPageHelp(data.everyPage.join(', '))]
-    : []),
-  ...(data.network.length
-    ? [strings.networkHelp(data.network.join(', '))]
-    : []),
+  ...(data.everyPage.length ? [strings.everyPageHelp(data.everyPage)] : []),
+  ...(data.network.length ? [strings.networkHelp(data.network)] : []),
 ];
 ---
 

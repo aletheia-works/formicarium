@@ -25,9 +25,10 @@ installed. Type `install aube`, `install pitchfork`, `install biome`,
 - `install <tool>` installs a tool of the showcase catalog. Only the accepted
   versions listed on the Tools page can be installed.
 - Any other first word runs the installed tool of that name.
-- A tool the catalog marks for every page (nano) is installed quietly when any
-  terminal page starts, so it is there from the start and other tools can open
-  it too: `jj describe` without `-m` opens nano to edit the description.
+- The tools the catalog marks for every page (git and nano) are installed
+  quietly when any terminal page starts, so they are there from the start and
+  other tools can use them too: `jj describe` without `-m` opens nano to edit
+  the description, and jj's fetch runs git.
 - git and jj can clone from github.com:
   `git clone https://github.com/<owner>/<repo>` or
   `jj git clone https://github.com/<owner>/<repo>`. See [Network](#network).

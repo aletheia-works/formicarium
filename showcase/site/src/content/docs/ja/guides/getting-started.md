@@ -21,10 +21,10 @@ description: formicarium の showcase の端末の使い方と制限。
 - `install <tool>` は showcase の catalog のツールを導入します。導入できるのは
   ツールの page にある受入済みの版だけです。
 - それ以外の最初の語は、その名前の導入済みのツールを実行します。
-- catalog がすべての page に入れると決めたツール（nano）は、どの端末の page でも
+- catalog がすべての page に入れると決めたツール（git と nano）は、どの端末の page でも
   開いたときに端末に何も出さずに導入するので、最初から入っていて、ほかのツール
-  からも開けます。`-m` を付けない
-  `jj describe` は、nano を開いて説明を編集させます。
+  からも使えます。`-m` を付けない
+  `jj describe` は、nano を開いて説明を編集させ、jj の fetch は git を実行します。
 - git と jj は github.com から clone できます：
   `git clone https://github.com/<owner>/<repo>` か
   `jj git clone https://github.com/<owner>/<repo>`。[network](#network) を見てください。
