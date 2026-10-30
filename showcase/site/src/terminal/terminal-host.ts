@@ -5,12 +5,14 @@ import type {
   Progress,
   Session,
 } from '@aletheia-works/formicarium';
+import { stringsFor } from '../i18n/strings.ts';
 import { DisplayBuffer } from './buffer.ts';
 import { loadCatalog, siteRootFrom } from './catalog.ts';
 import { FetchFailure, type Timers } from './fetch-limited.ts';
 import {
   emptyEntries,
   fixtureToEntries,
+  HOME,
   homeEntries,
   loadCaBundle,
   loadFixtureIndex,
@@ -24,7 +26,7 @@ import {
 } from './formicarium-loader.ts';
 import { type EditorAction, LineEditor } from './keys.ts';
 import { renderOmitted } from './omitted-notice.ts';
-import { CommandOutput } from './output.ts';
+import { CommandOutput, failureOf, plainText } from './output.ts';
 import {
   parsePageData,
   TERMINAL_ATTRIBUTE,
@@ -92,6 +94,36 @@ const INPUT: readonly HostState[] = [
   'installing',
 ];
 
+/**
+ * The public command API's failures that are a user's mistake, by code and
+ * message (formicarium 0.9.0, runtime/state.js and install-catalog.js): an
+ * unregistered guest; an install selection whose tool has no catalog default
+ * or whose name or version is malformed; and a path outside the persistence
+ * roots (/work and the home). A unit test finds each message in the
+ * package the site ships, so a reworded core fails it rather than silently
+ * falling back to the raw codes.
+ */
+export const API_MISTAKES = Object.freeze({
+  notRegistered: { code: 'NOT_FOUND', message: 'Guest is not registered' },
+  badIdentifier: {
+    code: 'INVALID_INPUT',
+    message: 'install identifier invalid',
+  },
+  outsideRoots: {
+    code: 'INVALID_INPUT',
+    message: 'path lies outside persistence roots',
+  },
+});
+const {
+  notRegistered: NOT_REGISTERED,
+  badIdentifier: BAD_IDENTIFIER,
+  outsideRoots: OUTSIDE_ROOTS,
+} = API_MISTAKES;
+const isFailure = (
+  failure: { code: string; message: string },
+  known: { code: string; message: string },
+) => failure.code === known.code && failure.message === known.message;
+
 /** Resolves the argument of a successful `cd` against the current directory. */
 export function nextCwd(cwd: string, line: string): string | null {
   const words = line.trim().split(/[ \t]+/);
@@ -126,6 +158,10 @@ export class TerminalHost {
   readonly #encoder = new TextEncoder();
   /** The last tool an install command registered (shown in the ready text). */
   #installed: { tool: string; version: string } | null = null;
+  /** Every tool installed so far (companions apart), for help and mistakes. */
+  readonly #tools = new Set<string>();
+  /** The tools `install <tool>` adds: the catalog's defaults, companions apart. */
+  #catalogTools: string[] = [];
   /** The relay token of the network runs, fetched at the first of them. */
   readonly #relay: RelayTokens;
 
@@ -183,6 +219,69 @@ export class TerminalHost {
       this.display,
       this.#options.data.locale,
     );
+  }
+
+  /** `help`: the page prints it itself (no command runs); the state stays. */
+  #help(): void {
+    this.#print(
+      `${stringsFor(this.#options.data.locale).shell.help(
+        [...this.#tools].sort(),
+        this.#catalogTools,
+      )}\n`,
+    );
+    // After a failed page install the state and status stay, so that the
+    // failure remains in view and typing install still retries it.
+    if (this.state !== 'ready_failed_install') {
+      this.#setState('ready');
+      this.#readyStatus();
+    }
+    this.#prompt();
+  }
+
+  #readyStatus(): void {
+    this.#status({
+      kind: 'ready',
+      tool: this.#installed?.tool ?? null,
+      version: this.#installed?.version ?? null,
+    });
+  }
+
+  /**
+   * A typed line's failure that is a user's mistake, explained in the page's
+   * locale with its status; null for any other failure, which keeps its code.
+   */
+  #mistake(
+    words: string[],
+    failure: { code: string; message: string },
+  ): { text: string; status: Status } | null {
+    const shell = stringsFor(this.#options.data.locale).shell;
+    const name = plainText(words[0] ?? '');
+    const argument = plainText(words[1] ?? '');
+    const installed = [...this.#tools].sort();
+    if (isFailure(failure, NOT_REGISTERED))
+      return {
+        text: shell.notFound(name, installed, this.#catalogTools),
+        status: { kind: 'command-not-found', name },
+      };
+    if (
+      name === 'install' &&
+      words.length === 2 &&
+      isFailure(failure, BAD_IDENTIFIER)
+    )
+      return {
+        text: shell.unknownTool(argument, this.#catalogTools),
+        status: { kind: 'unknown-tool', selection: argument },
+      };
+    if (
+      name === 'cd' &&
+      words.length === 2 &&
+      isFailure(failure, OUTSIDE_ROOTS)
+    )
+      return {
+        text: shell.outsideRoots(argument, WORK_ROOT, HOME),
+        status: { kind: 'outside-roots', work: WORK_ROOT, home: HOME },
+      };
+    return null;
   }
 
   /** isolating -> loading -> installing / ready, or failed. */
@@ -255,6 +354,10 @@ export class TerminalHost {
         siteRoot,
         fetch: fetchOptions,
       });
+      const companions = Object.values(data.companions).flat();
+      this.#catalogTools = Object.keys(catalog.defaults ?? {})
+        .filter((tool) => !companions.includes(tool))
+        .sort();
       // The persistence roots are /work (app/ and the directories beside it)
       // and the home with the tools' settings; the shell starts in /work/app.
       const session = await loaded.browser.createSession({
@@ -322,6 +425,7 @@ export class TerminalHost {
         current.tool = tool;
         const installed = await this.#installOne(installer, tool, run.signal);
         if (this.state === 'disposed') return;
+        this.#tools.add(installed.tool);
         await this.#installCompanions(
           installer,
           installed,
@@ -431,10 +535,12 @@ export class TerminalHost {
         return;
       case 'submit':
         this.#print('\n');
+        // `help foo` asks for help too; no tool is named help.
         if (action.line.trim() === 'clear') {
           this.#clear();
           this.#prompt();
-        } else if (action.line.trim() === '') this.#prompt();
+        } else if (/^help(?:\s|$)/.test(action.line.trim())) this.#help();
+        else if (action.line.trim() === '') this.#prompt();
         else void this.#execute(action.line, false);
     }
   }
@@ -544,6 +650,7 @@ export class TerminalHost {
         });
     };
     let failure: { code: string; message: string } | null = null;
+    let mistake: Status | null = null;
     let succeeded = false;
     const companion = { tool: '' };
     try {
@@ -575,6 +682,12 @@ export class TerminalHost {
             tool: result.installation.tool,
             version: result.installation.versionOrName,
           };
+        if (
+          result.kind === 'install' &&
+          result.exitCode === 0 &&
+          result.installation
+        )
+          this.#tools.add(result.installation.tool);
         // A tool's companions follow its install quietly, named on failure.
         if (
           result.exitCode === 0 &&
@@ -594,19 +707,26 @@ export class TerminalHost {
       }
     } catch (error) {
       if (this.state === 'disposed') return false;
-      failure = run.signal.aborted
-        ? this.#aborted()
-        : companion.tool
-          ? new CommandOutput({
-              write: (text) => this.#print(`${companion.tool}: ${text}`),
-            }).fail(error)
-          : output.fail(error);
+      if (run.signal.aborted) failure = this.#aborted();
+      else if (companion.tool)
+        failure = new CommandOutput({
+          write: (text) => this.#print(`${companion.tool}: ${text}`),
+        }).fail(error);
+      else {
+        // Only a typed line's mistake is explained; the page's own installs
+        // keep the code, as their retry needs it.
+        const explained = automatic
+          ? null
+          : this.#mistake(words, failureOf(error));
+        failure = output.fail(error, explained?.text);
+        mistake = explained?.status ?? null;
+      }
     } finally {
       if (this.#run === run) this.#run = null;
       if (interactive) this.#endInput();
     }
     if (!last && succeeded) return true;
-    this.#finish(automatic, failure, output.wrote);
+    this.#finish(automatic, failure, output.wrote, mistake);
     return succeeded;
   }
 
@@ -615,6 +735,7 @@ export class TerminalHost {
     automatic: boolean,
     failure: { code: string; message: string } | null,
     wrote: boolean,
+    mistake: Status | null = null,
   ): void {
     if (automatic && failure) {
       this.#setState('ready_failed_install');
@@ -622,14 +743,10 @@ export class TerminalHost {
     } else {
       this.#setState('ready');
       if (failure?.code === 'ABORTED') this.#status({ kind: 'aborted' });
+      else if (mistake) this.#status(mistake);
       else if (failure) this.#status({ kind: 'command-failed', ...failure });
       else if (!failure && !wrote) this.#status({ kind: 'no-output' });
-      else
-        this.#status({
-          kind: 'ready',
-          tool: this.#installed?.tool ?? null,
-          version: this.#installed?.version ?? null,
-        });
+      else this.#readyStatus();
     }
     this.#prompt();
   }

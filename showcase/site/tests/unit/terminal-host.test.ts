@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { readdir, readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import test from 'node:test';
 import type {
   CommandOptions,
@@ -10,6 +12,7 @@ import type {
 import type { LoadedFormicarium } from '../../src/terminal/formicarium-loader.ts';
 import type { TerminalPageData } from '../../src/terminal/page-data.ts';
 import {
+  API_MISTAKES,
   attachPageEvents,
   copyAction,
   type HostOptions,
@@ -238,6 +241,16 @@ test('a failed or cancelled automatic install leaves ready_failed_install and ac
     /Install failed \(ASSET_LOAD: HTTP 404\)/,
   );
   assert.match(h.writes.join(''), /ASSET_LOAD: HTTP 404\n/);
+  // help prints its list but keeps the failed install in view.
+  type(h.host, 'help');
+  await settle();
+  assert.match(afterLast(h.writes, 'help'), /\nBuiltins: /);
+  assert.equal(h.host.state, 'ready_failed_install');
+  assert.match(
+    h.status.textContent!,
+    /Install failed \(ASSET_LOAD: HTTP 404\)/,
+  );
+  assert.equal(calls, 1);
   type(h.host, 'install aube');
   await settle();
   assert.equal(h.host.state, 'ready');
@@ -654,6 +667,217 @@ test('clear and Ctrl-L wipe the screen and scrollback without running a command'
   h.host.onData('\r');
   await settle();
   assert.deepEqual(h.lines, ['ls', 'cat']);
+});
+
+/** An API failure as ExecutionError carries it: a code and a message. */
+const failure = (code: string, message: string) =>
+  Object.assign(new Error(message), { code });
+/** A catalog with git (and its companion) beside aube; git is on every page. */
+const gitCatalogText = JSON.stringify({
+  schemaVersion: 1,
+  catalogId: 'c',
+  defaults: { git: '2.7.2', aube: '2.7.2', 'git-remote-https': '2.7.2' },
+  entries: [],
+});
+function gitHarness(execute: Execute, locale: 'en' | 'ja' = 'en') {
+  return harness('empty', execute, {
+    data: data('empty', {
+      locale,
+      catalog: { path: 'catalog.json', sha256: sha(gitCatalogText) },
+      everyPage: ['git'],
+      companions: { git: ['git-remote-https'] },
+    }),
+    fetchImpl: (async () =>
+      chunked([encode(gitCatalogText)])) as unknown as typeof fetch,
+  });
+}
+const installs = async (line: string) =>
+  installed(line.slice('install '.length).split('@')[0]);
+const afterLast = (writes: string[], line: string) => {
+  const text = writes.join('');
+  return text.slice(text.lastIndexOf(`$ ${line}`) + `$ ${line}`.length);
+};
+
+test('help prints the builtins, the installed and installable tools and the keys without a run', async () => {
+  const h = gitHarness(installs);
+  await h.host.start();
+  const before = [...h.lines];
+  type(h.host, '  help ');
+  await settle();
+  assert.deepEqual(h.lines, before);
+  assert.equal(h.host.state, 'ready');
+  assert.equal(
+    h.status.textContent,
+    'Ready. Type install <tool> to add a tool.',
+  );
+  const shown = afterLast(h.writes, '  help ');
+  assert.equal(
+    shown,
+    [
+      '',
+      'Builtins: ls, cat, cd, rm -rf, cp, mv, install <tool>, clear, help',
+      'Installed: git',
+      'install <tool> adds: aube, git',
+      'Keys: Ctrl-C cancels a run or drops the line; with text selected it copies, off macOS.',
+      '      Ctrl-V / Cmd-V pastes; Ctrl-L clears the screen.',
+      '/work/app$ ',
+    ].join('\n'),
+  );
+  assert.ok(shown.split('\n').length <= 12);
+  // Arguments ask for the same help; a longer word is a command.
+  type(h.host, 'help install');
+  await settle();
+  assert.deepEqual(h.lines, before);
+  assert.match(afterLast(h.writes, 'help install'), /\nInstalled: git\n/);
+  // A typed install joins the installed tools; its companion does not.
+  type(h.host, 'install aube');
+  await settle();
+  type(h.host, 'help');
+  await settle();
+  assert.match(afterLast(h.writes, 'help'), /\nInstalled: aube, git\n/);
+  assert.equal(h.status.textContent, 'Ready: aube 2.7.2');
+
+  const ja = gitHarness(installs, 'ja');
+  await ja.host.start();
+  type(ja.host, 'help');
+  await settle();
+  assert.match(
+    afterLast(ja.writes, 'help'),
+    /\n導入済み：git\ninstall <ツール> で導入できるもの：aube、git\n/,
+  );
+  assert.equal(
+    ja.status.textContent,
+    '準備完了。install <ツール> でツールを導入できます。',
+  );
+});
+
+test('each API mistake the terminal explains is a message of the formicarium package it ships', async () => {
+  // The site's own pack (showcase/site/node_modules), as the pages load it.
+  const runtime = join(
+    import.meta.dirname,
+    '../../node_modules/@aletheia-works/formicarium/runtime',
+  );
+  const sources = (
+    await Promise.all(
+      (
+        await readdir(runtime, { recursive: true })
+      )
+        .filter((file) => file.endsWith('.js'))
+        .map((file) => readFile(join(runtime, file), 'utf8')),
+    )
+  ).join('\n');
+  for (const { code, message } of Object.values(API_MISTAKES)) {
+    assert.ok(
+      sources.includes(`'${message}'`) || sources.includes(`"${message}"`),
+      message,
+    );
+    assert.ok(sources.includes(code), code);
+  }
+});
+
+test('the mistakes the API reports are explained in the locale; other failures keep their code', async () => {
+  const execute: Execute = async (line) => {
+    if (line === 'python3 --version' || line === 'gti status')
+      throw failure('NOT_FOUND', 'Guest is not registered');
+    if (line === 'install foo')
+      throw failure('INVALID_INPUT', 'install identifier invalid');
+    if (line === 'cd /nope' || line === 'cat /nope')
+      throw failure('INVALID_INPUT', 'path lies outside persistence roots');
+    if (line === 'cat missing')
+      throw failure('NOT_FOUND', 'Entry does not exist');
+    if (line === 'git log') throw failure('BUSY', 'Session is busy');
+    return installs(line);
+  };
+  const h = gitHarness(execute);
+  await h.host.start();
+  type(h.host, 'python3 --version');
+  await settle();
+  assert.equal(h.host.state, 'ready');
+  assert.equal(
+    afterLast(h.writes, 'python3 --version'),
+    '\npython3: command not found. Installed: git. Add a tool with install <tool> (aube, git).\n/work/app$ ',
+  );
+  assert.equal(
+    h.status.textContent,
+    'python3: command not found. Type help for the commands.',
+  );
+  type(h.host, 'gti status');
+  await settle();
+  assert.match(
+    afterLast(h.writes, 'gti status'),
+    /^\ngti: command not found\./,
+  );
+
+  type(h.host, 'install foo');
+  await settle();
+  assert.equal(
+    afterLast(h.writes, 'install foo'),
+    '\ninstall: no tool named foo. Tools: aube, git.\n/work/app$ ',
+  );
+  assert.equal(
+    h.status.textContent,
+    'No tool named foo. Type help for the tools.',
+  );
+
+  type(h.host, 'cd /nope');
+  await settle();
+  assert.equal(h.host.cwd, '/work/app');
+  assert.equal(
+    afterLast(h.writes, 'cd /nope'),
+    '\ncd: /nope is outside /work and the home directory /root.\n/work/app$ ',
+  );
+  assert.equal(h.status.textContent, 'cd goes only inside /work and /root.');
+
+  // The same message from another builtin, a missing entry and an
+  // unrelated code are shown as the API gives them.
+  for (const [line, shown] of [
+    ['cat /nope', 'INVALID_INPUT: path lies outside persistence roots'],
+    ['cat missing', 'NOT_FOUND: Entry does not exist'],
+    ['git log', 'BUSY: Session is busy'],
+  ] as const) {
+    type(h.host, line);
+    await settle();
+    assert.equal(afterLast(h.writes, line), `\n${shown}\n/work/app$ `);
+    assert.equal(h.status.textContent, `The last command failed (${shown}).`);
+  }
+
+  const ja = gitHarness(execute, 'ja');
+  await ja.host.start();
+  for (const [line, shown, status] of [
+    [
+      'python3 --version',
+      'python3：command が見つかりません。導入済み：git。install <ツール> でツールを追加できます（aube、git）。',
+      'python3：command が見つかりません。help で使える command を表示します。',
+    ],
+    [
+      'install foo',
+      'install：foo という名前のツールはありません。ツール：aube、git。',
+      'foo という名前のツールはありません。help でツールの一覧を表示します。',
+    ],
+    [
+      'cd /nope',
+      'cd：/nope は /work と home directory の /root の外にあります。',
+      'cd で移れるのは /work と /root の中だけです。',
+    ],
+  ] as const) {
+    type(ja.host, line);
+    await settle();
+    assert.equal(afterLast(ja.writes, line), `\n${shown}\n/work/app$ `);
+    assert.equal(ja.status.textContent, status);
+  }
+});
+
+test("the page's own install keeps the code of an invalid identifier for its retry", async () => {
+  const h = harness('preinstalled', async () => {
+    throw failure('INVALID_INPUT', 'install identifier invalid');
+  });
+  await h.host.start();
+  assert.equal(h.host.state, 'ready_failed_install');
+  assert.match(
+    h.writes.join(''),
+    /INVALID_INPUT: install identifier invalid\n/,
+  );
+  assert.match(h.status.textContent ?? '', /INVALID_INPUT/);
 });
 
 test('isolation that never comes fails the page after the wait; no input is taken', async () => {

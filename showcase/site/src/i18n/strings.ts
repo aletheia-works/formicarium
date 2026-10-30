@@ -1,7 +1,14 @@
 import type { Locale } from '../terminal/page-data.ts';
 
+/** Tool lists in the terminal's own messages; an empty one is named. */
+const listEn = (items: readonly string[]) =>
+  items.length ? items.join(', ') : 'none';
+const listJa = (items: readonly string[]) =>
+  items.length ? items.join('、') : 'なし';
+
 /**
- * UI strings of the Astro pages (en and ja must have the same keys).
+ * UI strings of the Astro pages and the terminal's own messages (en and ja
+ * must have the same keys).
  * Tool names, versions, commands and file names are not translated.
  */
 export const STRINGS = {
@@ -38,6 +45,33 @@ export const STRINGS = {
     networkHelp: (tools: string) =>
       `${tools} can clone from github.com, for example git clone https://github.com/octocat/Hello-World: the page asks Aletheia Works' relay on AWS for a short-lived token, and the connection goes through that relay to github.com only (the relay checks that the request comes from this site).`,
     terminalStop: 'Stop',
+    /** What the terminal itself prints: `help` and the mistakes it explains. */
+    shell: {
+      help: (installed: readonly string[], tools: readonly string[]) =>
+        [
+          'Builtins: ls, cat, cd, rm -rf, cp, mv, install <tool>, clear, help',
+          `Installed: ${listEn(installed)}`,
+          `install <tool> adds: ${listEn(tools)}`,
+          'Keys: Ctrl-C cancels a run or drops the line; with text selected it copies, off macOS.',
+          '      Ctrl-V / Cmd-V pastes; Ctrl-L clears the screen.',
+        ].join('\n'),
+      notFound: (
+        name: string,
+        installed: readonly string[],
+        tools: readonly string[],
+      ) =>
+        `${name}: command not found. Installed: ${listEn(installed)}. Add a tool with install <tool> (${listEn(tools)}).`,
+      notFoundStatus: (name: string) =>
+        `${name}: command not found. Type help for the commands.`,
+      unknownTool: (selection: string, tools: readonly string[]) =>
+        `install: no tool named ${selection}. Tools: ${listEn(tools)}.`,
+      unknownToolStatus: (selection: string) =>
+        `No tool named ${selection}. Type help for the tools.`,
+      outsideRoots: (path: string, work: string, home: string) =>
+        `cd: ${path} is outside ${work} and the home directory ${home}.`,
+      outsideRootsStatus: (work: string, home: string) =>
+        `cd goes only inside ${work} and ${home}.`,
+    },
     tool: {
       aube: {
         label: 'aube',
@@ -103,6 +137,32 @@ export const STRINGS = {
     networkHelp: (tools: string) =>
       `${tools} は github.com から clone できます（例：git clone https://github.com/octocat/Hello-World）。page は Aletheia Works が AWS で動かす relay に短い間だけ使える token を求め、接続はその relay を通って github.com にだけつながります（relay は、要求がこのサイトから来たことを確かめます）。`,
     terminalStop: '停止',
+    shell: {
+      help: (installed: readonly string[], tools: readonly string[]) =>
+        [
+          '組込みの command：ls、cat、cd、rm -rf、cp、mv、install <ツール>、clear、help',
+          `導入済み：${listJa(installed)}`,
+          `install <ツール> で導入できるもの：${listJa(tools)}`,
+          'キー：Ctrl-C で実行を取り消すか、入力中の行を捨てます。macOS 以外では、文字を選択していると copy します。',
+          '　　　Ctrl-V / Cmd-V で貼り付け、Ctrl-L で画面を消します。',
+        ].join('\n'),
+      notFound: (
+        name: string,
+        installed: readonly string[],
+        tools: readonly string[],
+      ) =>
+        `${name}：command が見つかりません。導入済み：${listJa(installed)}。install <ツール> でツールを追加できます（${listJa(tools)}）。`,
+      notFoundStatus: (name: string) =>
+        `${name}：command が見つかりません。help で使える command を表示します。`,
+      unknownTool: (selection: string, tools: readonly string[]) =>
+        `install：${selection} という名前のツールはありません。ツール：${listJa(tools)}。`,
+      unknownToolStatus: (selection: string) =>
+        `${selection} という名前のツールはありません。help でツールの一覧を表示します。`,
+      outsideRoots: (path: string, work: string, home: string) =>
+        `cd：${path} は ${work} と home directory の ${home} の外にあります。`,
+      outsideRootsStatus: (work: string, home: string) =>
+        `cd で移れるのは ${work} と ${home} の中だけです。`,
+    },
     tool: {
       aube: {
         label: 'aube',

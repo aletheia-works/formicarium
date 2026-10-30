@@ -19,6 +19,9 @@ installed. Type `install aube`, `install pitchfork`, `install biome`,
 - `ls [path]`, `cat path`, `cd path`, `rm -rf path`, `cp [-r] src dst` and
   `mv src dst` are built in.
 - `clear` empties the terminal and its scrollback in the page; no command runs.
+- `help` lists the builtins, the installed tools, the tools `install` adds and
+  the keys; no command runs. A mistake, such as an unknown command, is
+  explained the same way.
 - `install <tool>` installs a tool of the showcase catalog. Only the accepted
   versions listed on the Tools page can be installed.
 - Any other first word runs the installed tool of that name.

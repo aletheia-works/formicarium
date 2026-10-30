@@ -1,4 +1,5 @@
 import type { Progress } from '@aletheia-works/formicarium';
+import { stringsFor } from '../i18n/strings.ts';
 import type { Locale } from './page-data.ts';
 
 /** What the status line shows (StatusLine). */
@@ -21,6 +22,10 @@ export type Status =
   | { kind: 'no-output' }
   | { kind: 'aborted' }
   | { kind: 'command-failed'; code: string; message: string }
+  /** The mistakes the terminal explains itself (see terminal-host.ts). */
+  | { kind: 'command-not-found'; name: string }
+  | { kind: 'unknown-tool'; selection: string }
+  | { kind: 'outside-roots'; work: string; home: string }
   | { kind: 'failed'; code: string; message: string }
   | { kind: 'line-too-long' }
   | { kind: 'paste-truncated' };
@@ -114,6 +119,15 @@ export function statusText(status: Status, locale: Locale): string {
       return ja
         ? `直前の command が失敗しました（${status.code}: ${status.message}）。`
         : `The last command failed (${status.code}: ${status.message}).`;
+    case 'command-not-found':
+      return stringsFor(locale).shell.notFoundStatus(status.name);
+    case 'unknown-tool':
+      return stringsFor(locale).shell.unknownToolStatus(status.selection);
+    case 'outside-roots':
+      return stringsFor(locale).shell.outsideRootsStatus(
+        status.work,
+        status.home,
+      );
     case 'failed':
       return ja
         ? `${status.code}: ${status.message}。再読み込みしてください。`

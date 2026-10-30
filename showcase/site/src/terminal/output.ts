@@ -13,6 +13,16 @@ export const plainText = (text: string) =>
     .map((character) => (isControl(character.charCodeAt(0)) ? '�' : character))
     .join('');
 
+/** The code and message of a failure, as plain text (EXECUTION without a code). */
+export function failureOf(error: unknown): { code: string; message: string } {
+  return {
+    code: plainText(
+      String((error as { code?: unknown } | null)?.code ?? 'EXECUTION'),
+    ),
+    message: plainText(error instanceof Error ? error.message : String(error)),
+  };
+}
+
 /**
  * Output of one command: guest output arrives only through onOutput
  * and its result bytes are not written again; builtin and install results
@@ -65,16 +75,15 @@ export class CommandOutput {
     this.#active = false;
   }
 
-  /** ExecutionError and other failures: `<code>: <message>` as plain text. */
-  fail(error: unknown): { code: string; message: string } {
-    const code = plainText(
-      String((error as { code?: unknown } | null)?.code ?? 'EXECUTION'),
-    );
-    const message = plainText(
-      error instanceof Error ? error.message : String(error),
-    );
+  /**
+   * ExecutionError and other failures: `<code>: <message>` as plain text, or
+   * `explained` instead when the caller recognized the failure.
+   */
+  fail(error: unknown, explained?: string): { code: string; message: string } {
+    const { code, message } = failureOf(error);
+    const text = explained === undefined ? `${code}: ${message}` : explained;
     if (this.#active)
-      this.#write(`${this.#endsWithLf ? '' : '\n'}${code}: ${message}\n`);
+      this.#write(`${this.#endsWithLf ? '' : '\n'}${plainText(text)}\n`);
     this.#active = false;
     return { code, message };
   }

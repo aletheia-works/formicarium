@@ -85,6 +85,19 @@ test('errors are one plain-text line; control characters are neutralised', () =>
   assert.equal(plainText('a\tb\nc\u0085'), 'a\tb\nc�');
 });
 
+test('a recognized failure is written as its explanation, still returning its code', () => {
+  const out = sink();
+  const output = new CommandOutput(out);
+  const failure = Object.assign(new Error('Guest is not registered'), {
+    code: 'NOT_FOUND',
+  });
+  assert.deepEqual(output.fail(failure, 'x\x1b: command not found.'), {
+    code: 'NOT_FOUND',
+    message: 'Guest is not registered',
+  });
+  assert.deepEqual(out.written, ['x�: command not found.\n']);
+});
+
 test('after cancel, late chunks and results are not shown', () => {
   const out = sink();
   const output = new CommandOutput(out);
