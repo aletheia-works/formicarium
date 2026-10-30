@@ -172,6 +172,11 @@ Safari の job は macOS の System keychain に job CA を信頼させ、leaf �
    `git ls-remote` の通信の失敗だけは 10 秒・30 秒あけて 2 回までやり直す（GitHub API と、
    状態・大きさ・署名の誤りはやり直さない）。`git ls-remote` は取得と同じ 120 秒で打ち切る
    （git には期限がなく、TLS の握手で止まると job の時間を使い切る）。
+   やり直しても届かない tarball の server は、`source` の `mirrors`（ftp.gnu.org の既定は
+   mirrors.kernel.org と mirrors.dotsrc.org）を順に使い、その package の残りの取得もそこから
+   始める。署名の照合は同じなので、どの server の tarball も固定した鍵で確かめる。状態・大きさ・
+   一覧・署名の誤りでは mirror に移らない。mirror の一覧が遅れていれば、その一覧の最も新しい
+   署名付きの版を使い、record にはその mirror の URL が残る。
 
 ## mode と showcase site
 

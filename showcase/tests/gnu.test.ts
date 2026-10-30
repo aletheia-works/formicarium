@@ -266,6 +266,64 @@ test('a transport failure of a GNU request is retried; a bad answer is not', asy
   assert.equal(missing.calls.filter((call) => call.url === listing).length, 1);
 });
 
+test('an unreachable GNU server falls back to its mirrors; a bad answer does not', async () => {
+  // gnupg.org and ftp.gnu.org have refused CI's connections for whole runs.
+  const down = () => {
+    throw new TypeError('fetch failed');
+  };
+  const routes = gnuRoutes();
+  for (const url of Object.keys(routes))
+    if (url.startsWith('https://ftp.gnu.org/gnu/nano/')) {
+      routes[url.replace('ftp.gnu.org', 'mirrors.dotsrc.org')] = routes[url]!;
+      routes[url] = down;
+    }
+  routes['https://mirrors.kernel.org/gnu/nano/'] = down;
+  routes['https://mirrors.kernel.org/gnu/nano/nano-9.3.tar.gz'] = down;
+  routes['https://mirrors.kernel.org/gnu/nano/nano-9.3.tar.gz.sig'] = down;
+  const fetchImpl = fakeFetch(routes);
+  const found = await resolveGnuTool(api(), nano, {
+    ...gnuOptions(),
+    fetchImpl,
+  });
+  assert.equal(found.resolution.version, '9.3');
+  // The record names the server the bytes came from.
+  assert.equal(
+    found.resolution.gnu!.tarball.url,
+    'https://mirrors.dotsrc.org/gnu/nano/nano-9.3.tar.gz',
+  );
+  assert.equal(
+    found.resolution.gnu!.tarball.signatureUrl,
+    'https://mirrors.dotsrc.org/gnu/nano/nano-9.3.tar.gz.sig',
+  );
+  // Each server keeps its own retries before the next one is asked, and the
+  // tarball and signature start at the mirror that answered the listing.
+  assert.equal(
+    fetchImpl.calls.filter(
+      (call) => call.url === 'https://ftp.gnu.org/gnu/nano/',
+    ).length,
+    3,
+  );
+  assert.deepEqual(
+    fetchImpl.calls
+      .map((call) => call.url)
+      .filter((url) => url.includes('/nano/nano-')),
+    [
+      'https://mirrors.dotsrc.org/gnu/nano/nano-9.3.tar.gz',
+      'https://mirrors.dotsrc.org/gnu/nano/nano-9.3.tar.gz.sig',
+    ],
+  );
+  const missing = fakeFetch({
+    ...gnuRoutes(),
+    'https://ftp.gnu.org/gnu/nano/': () =>
+      new Response('gone', { status: 404 }),
+  });
+  await rejects(
+    resolveGnuTool(api(), nano, { ...gnuOptions(), fetchImpl: missing }),
+    'http-status',
+  );
+  assert.ok(missing.calls.every((call) => !call.url.includes('mirrors.')));
+});
+
 test('a listing without the tarball is asked again, then named in the failure', async () => {
   // zlib.net has twice given CI a listing without its tarball while the
   // same request from elsewhere, and a second job of the same run, had it.
@@ -532,7 +590,8 @@ test('a tag outside tagPattern, or a failed signature, stops the resolution', as
     resolveGnuTool(api(), nano, gnuOptions(gnuExec({ status: '' }))),
     'signature-invalid',
   );
-  // A transport failure names the request and the system code, never a query.
+  // A transport failure names the request and the system code, never a query;
+  // when every mirror failed too, the last mirror's request is named.
   const reset = Object.assign(new TypeError('fetch failed'), {
     cause: Object.assign(new Error('socket'), { code: 'ECONNRESET' }),
   });
@@ -543,7 +602,7 @@ test('a tag outside tagPattern, or a failed signature, stops the resolution', as
         throw reset;
       }) as never,
     }),
-    /offline: network request failed \(https:\/\/ftp\.gnu\.org\/gnu\/nano\/, ECONNRESET\)/,
+    /offline: network request failed \(https:\/\/mirrors\.dotsrc\.org\/gnu\/nano\/, ECONNRESET\)/,
   );
   const routes = gnuRoutes();
   delete routes['https://ftp.gnu.org/gnu/nano/nano-9.3.tar.gz.sig'];

@@ -355,6 +355,17 @@ test('git names its own source servers, GnuTLS and nettle, make variables and a 
     'https://www.kernel.org/pub/software/scm/git/git-{major}.{minor}.{patch}.tar.asc';
   delete source(accepted).signedData;
   validateToolsConfig(accepted, allowed);
+  // Mirrors are directories that hold the listing's files.
+  const mirrored = await current();
+  source(mirrored).mirrors = ['https://mirrors.example.org/git/'];
+  assert.deepEqual(
+    (
+      validateToolsConfig(mirrored, allowed).tools.find(
+        (item) => item.tool === 'git',
+      )!.acquire as { source: { mirrors: string[] } }
+    ).source.mirrors,
+    ['https://mirrors.example.org/git/'],
+  );
   // A library without a repository may also keep the plain GNU defaults.
   const plain = await current();
   delete lib(plain, 1).source;
@@ -386,6 +397,30 @@ test('git names its own source servers, GnuTLS and nettle, make variables and a 
     (config) => (source(config).license = '../COPYING'),
     (config) => (source(config).extra = true),
     (config) => (git(config).acquire.source = 'https://kernel.org/'),
+    // Mirrors: one to four distinct HTTPS directories, no placeholders, and
+    // only when the tarball and signature are in the listing's directory.
+    (config) => (source(config).mirrors = []),
+    (config) => (source(config).mirrors = 'https://mirrors.example.org/git/'),
+    (config) => (source(config).mirrors = ['http://mirrors.example.org/git/']),
+    (config) => (source(config).mirrors = ['https://mirrors.example.org/git']),
+    (config) =>
+      (source(config).mirrors = ['https://mirrors.example.org/{version}/']),
+    (config) =>
+      (source(config).mirrors = ['https://mirrors.example.org/../git/']),
+    (config) =>
+      (source(config).mirrors = [
+        'https://mirrors.example.org/git/',
+        'https://mirrors.example.org/git/',
+      ]),
+    (config) =>
+      (source(config).mirrors = ['a', 'b', 'c', 'd', 'e'].map(
+        (name) => `https://${name}.example.org/git/`,
+      )),
+    (config) => {
+      source(config).mirrors = ['https://mirrors.example.org/git/'];
+      source(config).signature =
+        'https://www.kernel.org/pub/software/scm/sig/git-{version}.tar.sign';
+    },
     // No library builder but autotools, and autotools arguments only.
     (config) => (lib(config, 2).builder = 'openssl'),
     (config) => (lib(config, 0).configure = ['linux x86_64']),

@@ -32,6 +32,12 @@ showcase のツールは
   `git-remote-https` は独立したゲストで、どの page も git と一緒に何も出さずに導入する
   ので、jj からも git を動かせます。
 
+やり直しても届かない release の server は、`source` が挙げる mirror に替えます（ftp.gnu.org は
+mirrors.kernel.org と mirrors.dotsrc.org、GnuTLS は gnupg.org の 2 つの mirror）。その package の
+残りのファイルは、答えた mirror から取ります。tarball がどこから来ても、同じ固定した鍵で署名を
+確かめます。答え・大きさ・署名の誤りでは mirror に移りません。mirror の一覧が遅れていれば、
+その一覧の最も新しい署名付きの版を使います。
+
 その後、run は catalog を書き、Node・Chromium・Firefox・WebKit・macOS の実機の Safari で
 公開 API を通して各ツールを導入して `--version` を実行し、30件の確認がすべて通ったときだけ候補を
 作ります。このサイトはその候補から作り、`latest` を解決し直しません。

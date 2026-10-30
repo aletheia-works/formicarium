@@ -37,6 +37,14 @@ commit for the rest of the run.
   also gives `git-remote-https`, a guest of its own that every page installs
   quietly with git, so jj can run git too.
 
+A release server that stays unreachable after the retries is replaced by the
+mirrors its `source` names (ftp.gnu.org falls back to mirrors.kernel.org and
+mirrors.dotsrc.org, GnuTLS to two mirrors of gnupg.org), and the package's
+remaining files are fetched from the mirror that answered. The signature is
+checked against the same pinned keys wherever the tarball came from, and a
+wrong answer, size or signature never moves on to a mirror. A mirror whose
+listing lags gives its own newest signed version.
+
 The run then writes the catalog, installs and runs each tool with
 `--version` through the public API in Node, Chromium, Firefox, WebKit and real
 Safari on macOS, and assembles the candidate only when all thirty checks pass. This site is built

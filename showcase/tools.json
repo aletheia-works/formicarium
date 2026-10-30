@@ -182,7 +182,11 @@
               "listing": "https://ftp.gnu.org/gnu/gmp/",
               "tarball": "https://ftp.gnu.org/gnu/gmp/gmp-{version}.tar.gz",
               "signature": "{tarball}.sig",
-              "license": "COPYINGv2"
+              "license": "COPYINGv2",
+              "mirrors": [
+                "https://mirrors.kernel.org/gnu/gmp/",
+                "https://mirrors.dotsrc.org/gnu/gmp/"
+              ]
             },
             "configure": [
               "--disable-shared",
@@ -202,7 +206,11 @@
               "listing": "https://ftp.gnu.org/gnu/nettle/",
               "tarball": "https://ftp.gnu.org/gnu/nettle/nettle-{version}.tar.gz",
               "signature": "{tarball}.sig",
-              "license": "COPYINGv2"
+              "license": "COPYINGv2",
+              "mirrors": [
+                "https://mirrors.kernel.org/gnu/nettle/",
+                "https://mirrors.dotsrc.org/gnu/nettle/"
+              ]
             },
             "configure": [
               "--disable-shared",
@@ -223,7 +231,11 @@
               "listing": "https://www.gnupg.org/ftp/gcrypt/gnutls/v3.8/",
               "tarball": "https://www.gnupg.org/ftp/gcrypt/gnutls/v3.8/gnutls-{version}.tar.xz",
               "signature": "{tarball}.sig",
-              "license": "COPYING.LESSERv2"
+              "license": "COPYING.LESSERv2",
+              "mirrors": [
+                "https://mirrors.dotsrc.org/gcrypt/gnutls/v3.8/",
+                "https://www.mirrorservice.org/sites/ftp.gnupg.org/gcrypt/gnutls/v3.8/"
+              ]
             },
             "configure": [
               "--disable-shared",

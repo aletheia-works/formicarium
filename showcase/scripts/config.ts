@@ -41,6 +41,12 @@ export interface GnuSource {
   signedData?: 'tar';
   /** The license file, relative to the tarball's single root. */
   license: string;
+  /**
+   * Other servers with the same files, tried in order when the listing's
+   * server cannot be reached: each replaces the `listing` prefix of the
+   * listing, tarball and signature URLs. The signature check stays the same.
+   */
+  mirrors?: string[];
 }
 /**
  * A package built from its signed release tarball: by default the GNU one
@@ -282,6 +288,26 @@ function urlTemplate(value: unknown, where: string): string {
 /** `{tarball}` and a file suffix, such as `{tarball}.asc`. */
 const TARBALL_SUFFIX = /^\{tarball\}[A-Za-z0-9._+-]+$/;
 
+/** One to four distinct https directories, without placeholders. */
+function mirrorList(value: unknown, where: string): string[] {
+  const mirrors = strings(value, where).map((item) => {
+    const url = text(item, where, SOURCE_URL);
+    if (!url.endsWith('/') || /[{}]/.test(url) || url.split('/').includes('..'))
+      fail(
+        'config-invalid',
+        `${where} entries must be directories without placeholders`,
+      );
+    return url;
+  });
+  if (
+    mirrors.length < 1 ||
+    mirrors.length > 4 ||
+    new Set(mirrors).size !== mirrors.length
+  )
+    fail('config-invalid', `${where} must name one to four distinct mirrors`);
+  return mirrors;
+}
+
 function gnuSourceSettings(
   value: unknown,
   where: string,
@@ -290,7 +316,7 @@ function gnuSourceSettings(
   const raw = record(value, where);
   only(
     raw,
-    ['listing', 'tarball', 'signature', 'signedData', 'license'],
+    ['listing', 'tarball', 'signature', 'signedData', 'license', 'mirrors'],
     where,
   );
   const tarball = urlTemplate(raw.tarball, `${where}.tarball`);
@@ -318,12 +344,29 @@ function gnuSourceSettings(
     );
   if (raw.signedData !== undefined && raw.signedData !== 'tar')
     fail('config-invalid', `${where}.signedData must be tar when present`);
+  const listing = urlTemplate(raw.listing, `${where}.listing`);
+  const mirrors =
+    raw.mirrors === undefined
+      ? undefined
+      : mirrorList(raw.mirrors, `${where}.mirrors`);
+  // A mirror holds the listing's directory, so the files must be in it.
+  if (
+    mirrors &&
+    (!listing.endsWith('/') ||
+      !tarball.startsWith(listing) ||
+      !expanded.startsWith(listing))
+  )
+    fail(
+      'config-invalid',
+      `${where} with mirrors needs the tarball and signature in the listing's directory`,
+    );
   return {
-    listing: urlTemplate(raw.listing, `${where}.listing`),
+    listing,
     tarball,
     signature,
     ...(raw.signedData === 'tar' ? { signedData: 'tar' as const } : {}),
     license: relativePath(raw.license, `${where}.license`),
+    ...(mirrors ? { mirrors } : {}),
   };
 }
 

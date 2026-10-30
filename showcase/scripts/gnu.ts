@@ -12,6 +12,11 @@ import { SOURCE_ARCHIVE_LIMITS, TRANSFER_POLICY } from './limits.ts';
 import { SHOWCASE_ROOT } from './paths.ts';
 
 export const GNU_MIRROR = 'https://ftp.gnu.org/gnu';
+/** Mirrors of ftp.gnu.org, tried when it cannot be reached. */
+export const GNU_MIRRORS = Object.freeze([
+  'https://mirrors.kernel.org/gnu',
+  'https://mirrors.dotsrc.org/gnu',
+]);
 
 /** A tarball whose detached signature was checked against a pinned key. */
 export interface SignedTarball {
@@ -77,6 +82,52 @@ class ListingWithoutTarball extends ShowcaseError {
   }
 }
 
+/**
+ * The same file on each server: the source's own URL first, then the URL on
+ * each mirror (the listing's prefix replaced).
+ */
+export function mirrorUrls(source: GnuSource, url: string): string[] {
+  return [
+    url,
+    ...(source.mirrors ?? []).map(
+      (mirror) => mirror + url.slice(source.listing.length),
+    ),
+  ];
+}
+
+/**
+ * Runs one request against the source's server and, when it still cannot be
+ * reached after its retries, against each mirror in turn. Only a transport
+ * failure moves on: a bad answer from any server fails at once, and every
+ * tarball is checked against the pinned keys wherever it came from. `first`
+ * starts at the server that answered the package's previous request, so an
+ * unreachable one costs its retries only once; an earlier server is not asked
+ * again within the package. A mirror's listing that lags the origin gives its
+ * own highest signed version, which the run records with the mirror's URL.
+ */
+async function fromMirrors<T>(
+  source: GnuSource,
+  url: string,
+  run: (url: string) => Promise<T>,
+  first = 0,
+): Promise<{ url: string; value: T; server: number }> {
+  const urls = mirrorUrls(source, url);
+  for (let index = first; ; index++) {
+    try {
+      return {
+        url: urls[index]!,
+        value: await run(urls[index]!),
+        server: index,
+      };
+    } catch (error) {
+      if (!transportError(error) || index === urls.length - 1) throw error;
+      console.warn(
+        `${error instanceof Error ? error.message : 'failed'}; trying ${new URL(urls[index + 1]!).origin}`,
+      );
+    }
+  }
+}
+
 /** fetchBounded for a release server, with the transport retries above. */
 export const fetchGnu = (
   url: string,
@@ -133,6 +184,7 @@ export const gnuDefaults = (name: string): GnuSource => ({
   tarball: `${GNU_MIRROR}/${name}/${name}-{version}.tar.gz`,
   signature: '{tarball}.sig',
   license: 'COPYING',
+  mirrors: GNU_MIRRORS.map((mirror) => `${mirror}/${name}/`),
 });
 /** A package's source settings, with the GNU defaults when it names none. */
 export const sourceOf = (pkg: Pick<GnuPackage, 'package' | 'source'>) =>
@@ -319,6 +371,8 @@ export async function fetchSignedTarball(
   pkg: GnuPackage,
   version: string,
   options: GnuTransferOptions = {},
+  /** The mirror index to start at (0: the source's own server). */
+  server = 0,
 ): Promise<{
   record: SignedTarball;
   bytes: Uint8Array;
@@ -326,15 +380,18 @@ export async function fetchSignedTarball(
 }> {
   const source = sourceOf(pkg);
   const urls = sourceUrls(source, version);
-  const fetched = await fetchGnu(
+  const tarball = await fromMirrors(
+    source,
     urls.tarball,
-    SOURCE_ARCHIVE_LIMITS.maxDownloadBytes,
-    options,
+    (url) => fetchGnu(url, SOURCE_ARCHIVE_LIMITS.maxDownloadBytes, options),
+    server,
   );
-  const signature = await fetchGnu(
+  const fetched = tarball.value;
+  const { url: signatureUrl, value: signature } = await fromMirrors(
+    source,
     urls.signature,
-    TRANSFER_POLICY.maxMetadataBytes,
-    options,
+    (url) => fetchGnu(url, TRANSFER_POLICY.maxMetadataBytes, options),
+    tarball.server,
   );
   const signed =
     source.signedData === 'tar'
@@ -351,10 +408,10 @@ export async function fetchSignedTarball(
   return {
     record: {
       name: urls.name,
-      url: urls.tarball,
+      url: tarball.url,
       sha256: sha256(fetched.bytes),
       size: fetched.bytes.length,
-      signatureUrl: urls.signature,
+      signatureUrl,
       signatureSha256: sha256(signature.bytes),
       signatureName: urls.signatureName,
       signer,
@@ -376,35 +433,41 @@ export async function resolveGnuPackage(
   // zlib.net has given CI a listing without its tarball while the same
   // request elsewhere had it, so such a listing is asked again like a
   // dropped connection, and the last one is described in the failure.
-  const version = await retrying(
-    async () => {
-      const listing = await fetchBounded(sourceOf(pkg).listing, {
-        maxBytes: TRANSFER_POLICY.maxMetadataBytes,
-        fetchImpl: options.fetchImpl,
-      });
-      const text = new TextDecoder().decode(listing.bytes);
-      try {
-        return latestVersion(text, pkg.package, {
-          anyPrefix: pkg.source !== undefined,
-          suffix: sourceOf(pkg).tarball.endsWith('.tar.xz')
-            ? '.tar.xz'
-            : '.tar.gz',
+  const source = sourceOf(pkg);
+  const listed = (url: string) =>
+    retrying(
+      async () => {
+        const listing = await fetchBounded(url, {
+          maxBytes: TRANSFER_POLICY.maxMetadataBytes,
+          fetchImpl: options.fetchImpl,
         });
-      } catch (error) {
-        const title = /<title>([^<]{0,80})/i.exec(text)?.[1]?.trim() ?? '';
-        throw new ListingWithoutTarball(
-          `${error instanceof Error ? error.message : 'no tarball'} (${listing.bytes.length} bytes, sha256 ${sha256(listing.bytes)}, title ${JSON.stringify(title)})`,
-          error,
-        );
-      }
-    },
-    (error) => transportError(error) || error instanceof ListingWithoutTarball,
-    options.retryDelaysMs,
+        const text = new TextDecoder().decode(listing.bytes);
+        try {
+          return latestVersion(text, pkg.package, {
+            anyPrefix: pkg.source !== undefined,
+            suffix: source.tarball.endsWith('.tar.xz') ? '.tar.xz' : '.tar.gz',
+          });
+        } catch (error) {
+          const title = /<title>([^<]{0,80})/i.exec(text)?.[1]?.trim() ?? '';
+          throw new ListingWithoutTarball(
+            `${error instanceof Error ? error.message : 'no tarball'} (${listing.bytes.length} bytes, sha256 ${sha256(listing.bytes)}, title ${JSON.stringify(title)})`,
+            error,
+          );
+        }
+      },
+      (error) =>
+        transportError(error) || error instanceof ListingWithoutTarball,
+      options.retryDelaysMs,
+    );
+  const { value: version, server } = await fromMirrors(
+    source,
+    source.listing,
+    listed,
   );
   return {
     version,
     tag: pkg.tag === null ? null : gnuTag(pkg.tag, version),
-    ...(await fetchSignedTarball(pkg, version, options)),
+    ...(await fetchSignedTarball(pkg, version, options, server)),
   };
 }
 
