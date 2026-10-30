@@ -1,16 +1,13 @@
 {
+  # Daily: Dependabot's default cooldown already waits three days after a
+  # release, so a weekly run left a new version out for up to ten days.
   'version': 2,
   'updates': [
       {
         'package-ecosystem': 'bun',
         'directory': '/',
         'schedule':
-          {
-            'interval': 'weekly',
-            'day': 'monday',
-            'time': '05:00',
-            'timezone': 'Asia/Tokyo',
-          },
+          { 'interval': 'daily', 'time': '05:00', 'timezone': 'Asia/Tokyo' },
         'labels': ['dependencies'],
         'commit-message': { 'prefix': 'chore(deps)' },
         'open-pull-requests-limit': 5,
@@ -19,12 +16,7 @@
         'package-ecosystem': 'bun',
         'directory': '/showcase/site',
         'schedule':
-          {
-            'interval': 'weekly',
-            'day': 'monday',
-            'time': '05:00',
-            'timezone': 'Asia/Tokyo',
-          },
+          { 'interval': 'daily', 'time': '05:00', 'timezone': 'Asia/Tokyo' },
         'labels': ['dependencies'],
         'commit-message': { 'prefix': 'chore(deps)' },
         'open-pull-requests-limit': 5,
@@ -35,12 +27,7 @@
         'package-ecosystem': 'bun',
         'directory': '/showcase/site/tooling/astro-check',
         'schedule':
-          {
-            'interval': 'weekly',
-            'day': 'monday',
-            'time': '05:00',
-            'timezone': 'Asia/Tokyo',
-          },
+          { 'interval': 'daily', 'time': '05:00', 'timezone': 'Asia/Tokyo' },
         'labels': ['dependencies'],
         'commit-message': { 'prefix': 'chore(deps)' },
         'open-pull-requests-limit': 5,
@@ -56,12 +43,7 @@
         'package-ecosystem': 'github-actions',
         'directory': '/',
         'schedule':
-          {
-            'interval': 'weekly',
-            'day': 'monday',
-            'time': '05:00',
-            'timezone': 'Asia/Tokyo',
-          },
+          { 'interval': 'daily', 'time': '05:00', 'timezone': 'Asia/Tokyo' },
         'labels': ['dependencies'],
         'commit-message': { 'prefix': 'chore(deps)' },
         'open-pull-requests-limit': 5,
