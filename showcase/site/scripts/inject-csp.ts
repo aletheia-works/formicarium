@@ -2,13 +2,16 @@ import { createHash } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { TERMINAL_ATTRIBUTE } from '../src/terminal/page-data.ts';
+import { RELAY_CONNECT_SOURCES } from '../src/terminal/relay.ts';
 import { fail } from './common.ts';
 
 export { TERMINAL_ATTRIBUTE };
 
 /**
- * Same origin and wasm only; no external origin. The paludarium core loads its
- * modules and Workers from same-origin URLs, so blob: is not needed.
+ * Same origin and wasm only. The paludarium core loads its modules and
+ * Workers from same-origin URLs, so blob: is not needed. The only external
+ * sources are the relay's, in connect-src alone: its token function and its
+ * WebSocket host (src/terminal/relay.ts).
  */
 export function terminalPolicy(hashes: readonly string[]): string {
   return [
@@ -18,7 +21,7 @@ export function terminalPolicy(hashes: readonly string[]): string {
       ...hashes.map((hash) => `'sha256-${hash}'`),
     ].join(' '),
     "worker-src 'self'",
-    "connect-src 'self'",
+    ["connect-src 'self'", ...RELAY_CONNECT_SOURCES].join(' '),
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data:",
     "font-src 'self'",

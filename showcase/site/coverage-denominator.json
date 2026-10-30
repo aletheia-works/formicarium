@@ -29,6 +29,7 @@
     "scripts/serve-pages-like.ts",
     "scripts/summary.ts",
     "src/terminal/page-data.ts",
+    "src/terminal/relay.ts",
     "src/model/model-error.ts",
     "src/model/fixture-index.ts",
     "src/model/site-identity.ts",
@@ -41,7 +42,11 @@
   "addedBeyondS2": [
     {
       "path": "src/terminal/page-data.ts",
-      "reason": "端末の page の埋込み data の型と検証（terminal-host と check-site が共有）。人の承認待ち"
+      "reason": "端末の page の埋込み data の型と検証（terminal-host と check-site が共有）。利用者が承認（2026-10-30、#196）"
+    },
+    {
+      "path": "src/terminal/relay.ts",
+      "reason": "relay の token 関数の取得・検証・再利用と、CSP の connect-src に足す relay の source（terminal-host と inject-csp・check-site が共有）。利用者が承認（2026-10-30、#196）"
     },
     {
       "path": "src/model/model-error.ts",

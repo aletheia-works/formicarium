@@ -28,9 +28,18 @@ showcase の端末は `@aletheia-works/formicarium` の公開 export だけを�
   たとえば `script-src 'self' 'wasm-unsafe-eval'; worker-src 'self';
   connect-src 'self'` です。`blob:` は要りません。コアは SHA-256 を照合した後に
   資産の URL から読み込むので、信頼できる origin から配ります。
+  relay を通してゲストに network を渡す page は、relay の `wss:` の URL と、relay の token を
+  取りに行く URL があればそれも `connect-src` で許します。showcase の端末が足すのは、token 関数の
+  origin と `wss://*.lambda-microvm.ap-northeast-1.on.aws` だけです。
 - **guest。** 同じ origin の guest の file と、その SHA256 と `build-info.json`
   を書いた catalog（`GuestCatalog`）を使います。`install <tool>` はすべての bytes
   を確かめてから guest を登録します。
+- **network。** ブラウザでは、ゲストは `network.relay` に渡した WebSocket の relay を通してだけ
+  TCP の行き先につながります（[command API](/formicarium/ja/guides/command-api/)）。showcase は
+  git と jj にだけ `network` を渡し、`allow: ['github.com:443']` と、Aletheia Works が AWS で動かす
+  token 関数（サイトの `Origin` にだけ答える）から得た短い間だけ使える token の relay を付けます。
+  Session はファイルを作るときにしか受け取らないので、curl が取り出した Mozilla の CA 証明書を、
+  session を始めるときに home の下に置きます。
 
 ## 例
 

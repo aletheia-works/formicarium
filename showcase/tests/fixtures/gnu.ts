@@ -1,7 +1,8 @@
 import { execFileSync } from 'node:child_process';
 import { gunzipSync } from 'node:zlib';
 import type { Exec } from '../../scripts/gnu.ts';
-import { commit, fakeFetch, json, type Route } from './github.ts';
+import { commit, fakeFetch, json, type Route, sha } from './github.ts';
+import { CA_BODY } from './records.ts';
 import { tgz } from './tar.ts';
 
 /** The signer fingerprints of the committed tools.json, by keyring name. */
@@ -185,8 +186,18 @@ export function gnuRoutes(): Record<string, Route> {
     routes[source.signature] = () =>
       new Response(`signature of ${source.name}`);
   }
+  Object.assign(routes, caBundleRoutes());
   return routes;
 }
+
+/** curl's CA bundle and its digest file, as curl.se serves them. */
+export const caBundleRoutes = (
+  body = CA_BODY,
+  digest = `${sha(body)}  cacert.pem\n`,
+): Record<string, Route> => ({
+  'https://curl.se/ca/cacert.pem': () => new Response(body),
+  'https://curl.se/ca/cacert.pem.sha256': () => new Response(digest),
+});
 
 /** GitHub route of the ncurses snapshot tag (a lightweight tag). */
 export const ncursesTagRoutes = (): Record<string, Route> => ({

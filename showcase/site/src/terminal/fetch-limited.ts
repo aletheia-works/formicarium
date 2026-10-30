@@ -2,6 +2,8 @@
 export const FETCH_DEADLINE_MS = 120000;
 export const MAX_CATALOG_BYTES = 4194304;
 export const MAX_FIXTURE_INDEX_BYTES = 268435456;
+/** The site's CA bundle (curl's cacert.pem is about 200 KiB). */
+export const MAX_CA_BUNDLE_BYTES = 1048576;
 
 export type FetchFailureKind =
   | 'http-status'

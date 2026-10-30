@@ -2,14 +2,17 @@
 import TerminalPage from '../../../components/TerminalPage.astro';
 import { HINTS, requireStrings, stringsFor } from '../../../i18n/strings.ts';
 import {
+  caBundleOf,
   companionsOf,
   everyPageTools,
   homeFilesOf,
   interactiveTools,
   loadSiteData,
+  networkTools,
   toolOf,
 } from '../../../site-data.ts';
 import type { TerminalPageData } from '../../../terminal/page-data.ts';
+import { SITE_RELAY } from '../../../terminal/relay.ts';
 
 export function getStaticPaths() {
   const site = loadSiteData();
@@ -46,10 +49,19 @@ const data: TerminalPageData = {
   everyPage: everyPageTools(site),
   homeFiles: homeFilesOf(site),
   companions: companionsOf(site),
+  network: networkTools(site),
+  relay: SITE_RELAY,
+  caBundle: caBundleOf(site),
 };
-const helpText = data.everyPage.length
-  ? `${strings.terminalHelp} ${strings.everyPageHelp(data.everyPage.join(', '))}`
-  : strings.terminalHelp;
+const helpText = [
+  strings.terminalHelp,
+  ...(data.everyPage.length
+    ? [strings.everyPageHelp(data.everyPage.join(', '))]
+    : []),
+  ...(data.network.length
+    ? [strings.networkHelp(data.network.join(', '))]
+    : []),
+].join(' ');
 ---
 
 <TerminalPage

@@ -49,6 +49,19 @@ refuses `network` in a browser.
   TCP stream. TLS stays inside the guest, so the relay sees ciphertext for
   HTTPS.
 - A page needs a relay it can reach; GitHub Pages alone cannot serve one.
+- The showcase site uses Aletheia Works' relay on AWS (`infra/aws`): `git
+  clone` and `jj git clone` of `https://github.com/...` work in its terminals.
+  Only the tools that `tools.json` marks `network` (git and jj) get `network`,
+  with `allow: ['github.com:443']`, which the relay also enforces. Before the
+  first such run the page fetches a 15-minute token from the relay's Lambda
+  function URL, which answers only the site's `Origin`, and reuses it until a
+  minute before it expires; without a token the command runs
+  without the network, after a notice, so local git and jj work goes on. The
+  terminal pages' CSP adds only that function's origin and
+  `wss://*.lambda-microvm.ap-northeast-1.on.aws` to `connect-src`. git and
+  curl check certificates against curl's extract of Mozilla's CA store
+  (MPL-2.0), which the showcase resolves with its published SHA-256 and the
+  page writes to `/root/.config/ssl/cacert.pem` when the session starts.
 
 ## Alternatives rejected
 

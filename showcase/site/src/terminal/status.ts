@@ -15,6 +15,8 @@ export type Status =
   | { kind: 'ready'; tool: string | null; version: string | null }
   | { kind: 'ready-failed-install'; code: string; message: string }
   | { kind: 'running' }
+  | { kind: 'relay' }
+  | { kind: 'relay-unreachable' }
   | { kind: 'interactive' }
   | { kind: 'no-output' }
   | { kind: 'aborted' }
@@ -92,6 +94,14 @@ export function statusText(status: Status, locale: Locale): string {
       return ja
         ? '実行中… Ctrl-C で取り消します。'
         : 'Running… Press Ctrl-C to cancel.';
+    case 'relay':
+      return ja
+        ? 'relay に接続の token を求めています… Ctrl-C で取り消します。'
+        : 'Asking the relay for a connection token… Press Ctrl-C to cancel.';
+    case 'relay-unreachable':
+      return ja
+        ? 'relay に届かないので、network なしで実行します。clone と fetch は失敗します。'
+        : 'Relay unreachable, so this runs without the network; clone and fetch will fail.';
     case 'interactive':
       return ja
         ? '対話モードで実行中です。キー入力（Ctrl-C も）はツールに渡ります。止めるには「停止」を押してください。'

@@ -96,6 +96,7 @@
       "tagPattern": "^v(\\d+\\.\\d+\\.\\d+)$",
       "fixture": "jj-basic",
       "interactive": true,
+      "network": true,
       "homeFiles": {
         ".config/jj/config.toml": "[ui]\npaginate = \"never\"\n\n[user]\nname = \"Showcase\"\nemail = \"showcase@example.com\"\n"
       },
@@ -112,6 +113,7 @@
       "tagPattern": "^v(\\d+\\.\\d+\\.\\d+)$",
       "fixture": "git-basic",
       "everyPage": true,
+      "network": true,
       "homeFiles": {
         ".gitconfig": "[http]\n\tsslCAInfo = /root/.config/ssl/cacert.pem\n"
       },

@@ -236,6 +236,10 @@ async function siteData(
     schemaVersion: 1,
     candidateId: manifest.candidateId,
     catalog: { path: 'catalog.json', sha256: manifest.catalogSha256 },
+    caBundle: {
+      path: manifest.caBundle.path,
+      sha256: manifest.caBundle.sha256,
+    },
     tools: manifest.resolvedTools.map((tool) => {
       const entry = config.tools.find((item) => item.tool === tool.tool)!;
       const index = indexes.find((item) => item.fixture === entry.fixture)!;
@@ -247,6 +251,7 @@ async function siteData(
         fixtureIndex: { path: index.path, sha256: index.sha256 },
         ...(entry.interactive ? { interactive: true as const } : {}),
         ...(entry.everyPage ? { everyPage: true as const } : {}),
+        ...(entry.network ? { network: true as const } : {}),
         ...(entry.homeFiles ? { homeFiles: entry.homeFiles } : {}),
         ...(companionNames(entry).length
           ? { companions: companionNames(entry) }

@@ -35,6 +35,8 @@ export const STRINGS = {
       'Builtins: ls, cat, cd, rm -rf, cp, mv and install; clear (or Ctrl-L) empties the screen. Tab moves the focus out of the terminal; Ctrl-C cancels a running command (an interactive tool gets Ctrl-C; Stop ends it).',
     everyPageHelp: (tools: string) =>
       `Every page installs ${tools} when it starts, so other tools can open it too.`,
+    networkHelp: (tools: string) =>
+      `${tools} can clone from github.com, for example git clone https://github.com/octocat/Hello-World: the page asks Aletheia Works' relay on AWS for a short-lived token, and the connection goes through that relay to github.com only (the relay checks that the request comes from this site).`,
     terminalStop: 'Stop',
     tool: {
       aube: {
@@ -50,12 +52,12 @@ export const STRINGS = {
       git: {
         label: 'Git',
         summary:
-          'The version control system, built here from its signed source with curl, GnuTLS, nettle, GMP and zlib. The sample project has a README to commit; every page installs git, so jj can run it too.',
+          'The version control system, built here from its signed source with curl, GnuTLS, nettle, GMP and zlib. The sample project has a README to commit; every page installs git, so jj can run it too. git clone https://github.com/<owner>/<repo> works through the relay, to github.com only.',
       },
       jj: {
         label: 'jj',
         summary:
-          'Jujutsu, a version control system that works with Git repositories. The sample project has a note to record. jj describe opens nano for the message (save with Ctrl-O, leave with Ctrl-X); fetch and push need a network, so they do not work here.',
+          'Jujutsu, a version control system that works with Git repositories. The sample project has a note to record. jj describe opens nano for the message (save with Ctrl-O, leave with Ctrl-X). jj git clone https://github.com/<owner>/<repo> and jj git fetch reach github.com through the relay; push does not work, since the page has no credentials.',
       },
       nano: {
         label: 'nano',
@@ -98,6 +100,8 @@ export const STRINGS = {
       '組込みの command：ls、cat、cd、rm -rf、cp、mv、install。clear（または Ctrl-L）で画面を消します。Tab で端末の外へ focus を移し、Ctrl-C で実行中の command を取り消します（対話的なツールには Ctrl-C が渡るので、「停止」で終わらせます）。',
     everyPageHelp: (tools: string) =>
       `${tools} は、どの page でも開いたときに導入するので、ほかのツールからも開けます。`,
+    networkHelp: (tools: string) =>
+      `${tools} は github.com から clone できます（例：git clone https://github.com/octocat/Hello-World）。page は Aletheia Works が AWS で動かす relay に短い間だけ使える token を求め、接続はその relay を通って github.com にだけつながります（relay は、要求がこのサイトから来たことを確かめます）。`,
     terminalStop: '停止',
     tool: {
       aube: {
@@ -113,12 +117,12 @@ export const STRINGS = {
       git: {
         label: 'Git',
         summary:
-          'version control system。署名された source から curl、GnuTLS、nettle、GMP、zlib と一緒にここで build しています。試しの project に commit する README があります。どの page でも git を導入するので、jj からも動かせます。',
+          'version control system。署名された source から curl、GnuTLS、nettle、GMP、zlib と一緒にここで build しています。試しの project に commit する README があります。どの page でも git を導入するので、jj からも動かせます。git clone https://github.com/<owner>/<repo> は relay を通して github.com にだけつながります。',
       },
       jj: {
         label: 'jj',
         summary:
-          'Git の repository で使える version control system の Jujutsu。試しの project に記録するメモがあります。jj describe は message を書くために nano を開きます（Ctrl-O で保存し、Ctrl-X で終わります）。network が無いので fetch と push はできません。',
+          'Git の repository で使える version control system の Jujutsu。試しの project に記録するメモがあります。jj describe は message を書くために nano を開きます（Ctrl-O で保存し、Ctrl-X で終わります）。jj git clone https://github.com/<owner>/<repo> と jj git fetch は relay を通して github.com につながります。page には認証情報が無いので push はできません。',
       },
       nano: {
         label: 'nano',
@@ -145,7 +149,13 @@ export const HINTS: Readonly<Record<string, readonly string[]>> = Object.freeze(
       'aube --help',
     ],
     biome: ['biome --version', 'ls', 'cat example.js', 'biome --help'],
-    git: ['git --version', 'ls', 'cat README.md', 'git init demo'],
+    git: [
+      'git --version',
+      'ls',
+      'cat README.md',
+      'git init demo',
+      'git clone https://github.com/octocat/Hello-World',
+    ],
     jj: [
       'jj --version',
       'ls',
@@ -153,6 +163,7 @@ export const HINTS: Readonly<Record<string, readonly string[]>> = Object.freeze(
       'jj git init',
       'jj describe',
       'jj log',
+      'jj git clone https://github.com/octocat/Hello-World',
     ],
     nano: ['nano --version', 'ls', 'cat note.txt', 'nano note.txt'],
     pitchfork: [

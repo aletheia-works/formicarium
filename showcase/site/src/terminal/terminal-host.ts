@@ -1,16 +1,18 @@
 import type {
   CommandSession,
   Installer,
+  NetworkOptions,
   Progress,
   Session,
 } from '@aletheia-works/formicarium';
 import { DisplayBuffer } from './buffer.ts';
 import { loadCatalog, siteRootFrom } from './catalog.ts';
-import type { Timers } from './fetch-limited.ts';
+import { FetchFailure, type Timers } from './fetch-limited.ts';
 import {
   emptyEntries,
   fixtureToEntries,
   homeEntries,
+  loadCaBundle,
   loadFixtureIndex,
   WORK_CWD,
   WORK_ROOT,
@@ -28,6 +30,7 @@ import {
   TERMINAL_ATTRIBUTE,
   type TerminalPageData,
 } from './page-data.ts';
+import { RelayTokens } from './relay.ts';
 import { type Status, statusText } from './status.ts';
 
 /** functional-spec TerminalSession states. */
@@ -77,6 +80,8 @@ export interface HostOptions {
   ) => Promise<LoadedFormicarium>;
   fetchImpl?: typeof fetch;
   timers?: Timers;
+  /** The clock of the relay token's lifetime (Date.now). */
+  now?: () => number;
 }
 
 const BUSY: readonly HostState[] = ['running', 'installing'];
@@ -121,9 +126,17 @@ export class TerminalHost {
   readonly #encoder = new TextEncoder();
   /** The last tool an install command registered (shown in the ready text). */
   #installed: { tool: string; version: string } | null = null;
+  /** The relay token of the network runs, fetched at the first of them. */
+  readonly #relay: RelayTokens;
 
   constructor(options: HostOptions) {
     this.#options = options;
+    this.#relay = new RelayTokens({
+      tokenUrl: options.data.relay.tokenUrl,
+      fetchImpl: options.fetchImpl,
+      timers: options.timers,
+      now: options.now,
+    });
   }
 
   #setState(state: HostState): void {
@@ -224,6 +237,18 @@ export class TerminalHost {
             }),
           )
         : emptyEntries();
+      // The Session takes files only when it is created, so the CA bundle of
+      // the network tools is written then, below the home that every run
+      // keeps (a page without network tools fetches none).
+      const caBundle = data.caBundle
+        ? [
+            await loadCaBundle({
+              url: new URL(data.caBundle.path, siteRoot).href,
+              sha256: data.caBundle.sha256,
+              fetch: fetchOptions,
+            }),
+          ]
+        : [];
       const catalog = await loadCatalog({
         url: new URL(data.catalog.path, siteRoot).href,
         sha256: data.catalog.sha256,
@@ -237,7 +262,7 @@ export class TerminalHost {
         cwd: WORK_ROOT,
         entries: loaded.root.fixtureToFsEntries([
           ...entries,
-          ...homeEntries(data.homeFiles),
+          ...homeEntries(data.homeFiles, caBundle),
         ]),
       });
       await session.setCwd(WORK_CWD);
@@ -445,6 +470,12 @@ export class TerminalHost {
     const shownVersion = ownTool ? (this.#options.data.version ?? '') : '';
     const interactive =
       !installing && this.#options.data.interactive.includes(words[0] ?? '');
+    // Only a network tool's run gets the network, through the site's relay.
+    const networked =
+      !installing && this.#options.data.network.includes(words[0] ?? '');
+    const runningStatus: Status = interactive
+      ? { kind: 'interactive' }
+      : { kind: 'running' };
     this.#setState(installing ? 'installing' : 'running');
     this.#status(
       installing
@@ -454,12 +485,37 @@ export class TerminalHost {
             version: shownVersion,
             progress: null,
           }
-        : interactive
-          ? { kind: 'interactive' }
-          : { kind: 'running' },
+        : networked
+          ? { kind: 'relay' }
+          : runningStatus,
     );
     const run = new AbortController();
     this.#run = run;
+    let network: NetworkOptions | undefined;
+    if (networked) {
+      try {
+        network = {
+          allow: [...this.#options.data.relay.allow],
+          relay: await this.#relay.get(run.signal),
+        };
+      } catch (error) {
+        if (this.#isDisposed()) return false;
+        if (
+          run.signal.aborted ||
+          (error instanceof FetchFailure && error.kind === 'aborted')
+        ) {
+          if (this.#run === run) this.#run = null;
+          this.#finish(automatic, this.#aborted(), true);
+          return false;
+        }
+        // Without a token the command still runs, with no network: most of
+        // git and jj works offline, and only clone and fetch then fail.
+        this.#print(
+          `${statusText({ kind: 'relay-unreachable' }, this.#options.data.locale)}\n`,
+        );
+      }
+      this.#status(runningStatus);
+    }
     const { terminal } = this.#options;
     let stdin: ReadableStream<Uint8Array> | undefined;
     if (interactive) {
@@ -495,6 +551,7 @@ export class TerminalHost {
         signal: run.signal,
         onOutput: output.onOutput,
         onProgress,
+        ...(network ? { network } : {}),
         ...(stdin
           ? {
               stdin,

@@ -68,7 +68,11 @@ const transportError = (error: unknown) =>
   (error.code === 'offline' || error.code === 'deadline');
 
 /** fetchBounded for a release server, with the transport retries above. */
-const fetchGnu = (url: string, maxBytes: number, options: GnuTransferOptions) =>
+export const fetchGnu = (
+  url: string,
+  maxBytes: number,
+  options: GnuTransferOptions,
+) =>
   retrying(
     () => fetchBounded(url, { maxBytes, fetchImpl: options.fetchImpl }),
     transportError,

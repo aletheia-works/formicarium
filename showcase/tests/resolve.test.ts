@@ -13,6 +13,7 @@ import {
   datedTag,
   loadResolutions,
   loadVerifiedTools,
+  resolveCaBundle,
   resolveTool,
   runResolveJob,
 } from '../scripts/resolve.ts';
@@ -23,7 +24,13 @@ import {
   type Route,
   releaseRoutes,
 } from './fixtures/github.ts';
-import { gitTagRoutes, gnuOptions, ncursesTagRoutes } from './fixtures/gnu.ts';
+import {
+  caBundleRoutes,
+  gitTagRoutes,
+  gnuOptions,
+  ncursesTagRoutes,
+} from './fixtures/gnu.ts';
+import { CA_BODY, caBundleOf } from './fixtures/records.ts';
 import { MAIN_ALLOWED, readMain, withLayout } from './fixtures/work.ts';
 
 const tools = validateToolsConfig(
@@ -108,6 +115,10 @@ test('resolves every tool once, peels annotated tags and writes resolutions once
       await readFile(join(layout.licenses, 'aube-LICENSE'), 'utf8'),
       'MIT License\n',
     );
+    // One CA bundle for the site, checked against its digest file.
+    assert.deepEqual(resolutions.caBundle, caBundleOf());
+    assert.deepEqual((await loadResolutions(layout)).caBundle, caBundleOf());
+    assert.equal(await readFile(layout.caBundle, 'utf8'), CA_BODY);
     await rejects(
       runResolveJob({ api: api(all()), readMain, layout, gnu: gnuOptions() }),
       'output-exists',
@@ -234,4 +245,59 @@ test('a dated tag is the one GitHub tag that fits its template', async () => {
   ])
     await rejects(datedTag(with_(refs), nettle, template), 'tag-mismatch');
   await rejects(datedTag(with_({}), nettle, template), 'bad-body');
+});
+
+test('the CA bundle must match its digest file and hold PEM certificates', async () => {
+  const resolve = (routes: Record<string, Route>) =>
+    resolveCaBundle({ fetchImpl: fakeFetch(routes), retryDelaysMs: [0, 0] });
+  const found = await resolve(caBundleRoutes());
+  assert.deepEqual(found.resolution, caBundleOf());
+  assert.equal(new TextDecoder().decode(found.bytes), CA_BODY);
+  // `sha256sum -b` marks binary mode with `*`; that shape is accepted too.
+  await resolve(caBundleRoutes(CA_BODY, `${caBundleOf().sha256} *cacert.pem`));
+  await rejects(
+    resolve(caBundleRoutes(CA_BODY, `${'0'.repeat(64)}  cacert.pem\n`)),
+    'checksum-mismatch',
+  );
+  for (const digest of [
+    `${caBundleOf().sha256}  other.pem\n`,
+    `${caBundleOf().sha256}  cacert.pem\nextra\n`,
+    'not a digest\n',
+    '',
+  ])
+    await rejects(resolve(caBundleRoutes(CA_BODY, digest)), 'bad-body');
+  await rejects(resolve(caBundleRoutes('no certificates here\n')), 'bad-body');
+  await rejects(
+    resolve({
+      ...caBundleRoutes(),
+      'https://curl.se/ca/cacert.pem.sha256': () =>
+        new Response(new Uint8Array([0xff, 0xfe])),
+    }),
+    'bad-body',
+  );
+});
+
+test('resolutions without a valid CA bundle are refused', async () => {
+  await withLayout(async (layout) => {
+    await runResolveJob({
+      api: api(all()),
+      readMain,
+      layout,
+      gnu: gnuOptions(),
+    });
+    const written = JSON.parse(await readFile(layout.resolutions, 'utf8'));
+    const { writeFile } = await import('node:fs/promises');
+    for (const caBundle of [
+      undefined,
+      { ...written.caBundle, sha256: 'x' },
+      { ...written.caBundle, url: 'https://example.com/cacert.pem' },
+      { ...written.caBundle, size: 0 },
+    ]) {
+      await writeFile(
+        layout.resolutions,
+        JSON.stringify({ ...written, caBundle }),
+      );
+      await rejects(loadResolutions(layout), 'config-invalid');
+    }
+  });
 });

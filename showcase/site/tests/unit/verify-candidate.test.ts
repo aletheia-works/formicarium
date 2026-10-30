@@ -97,6 +97,40 @@ test('(3) an extra, changed or missing site file and a changed catalog fail', as
   );
 });
 
+test('(3) the CA bundle must be at its fixed path with the manifest digest', async () => {
+  const changed = await setup();
+  await appendFile(join(changed.candidateDir, 'site', 'ca', 'cacert.pem'), 'x');
+  assert.deepEqual(
+    mismatches(
+      await verifyCandidate({
+        mode: 'verify',
+        candidateDir: changed.candidateDir,
+        fixturesDir: changed.fixturesDir,
+        pack: packRecord(),
+      }),
+    ).map((line) => `${line.item} ${line.path}`),
+    ['3-asset site/ca/cacert.pem', '3-ca-bundle site/ca/cacert.pem'],
+  );
+  const missing = await setup();
+  await rm(join(missing.candidateDir, 'site', 'ca', 'cacert.pem'));
+  const { caBundle: _ca, ...withoutCa } = missing.manifest;
+  await writeFile(
+    join(missing.candidateDir, 'manifest.json'),
+    JSON.stringify(withoutCa),
+  );
+  assert.deepEqual(
+    items(
+      await verifyCandidate({
+        mode: 'verify',
+        candidateDir: missing.candidateDir,
+        fixturesDir: missing.fixturesDir,
+        pack: packRecord(),
+      }),
+    ),
+    ['1-candidate-id', '3-asset', '3-ca-bundle-path', '3-ca-bundle'],
+  );
+});
+
 test('(4) a failed, missing or other-version log row fails, and so does the log digest', async () => {
   const { candidateDir, fixturesDir } = await setup({
     logRows: (rows) => [

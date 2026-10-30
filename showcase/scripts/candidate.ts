@@ -39,6 +39,13 @@ export interface ResolvedTool {
   elfSha256: string;
   provenance: AcquiredTool['provenance'];
 }
+/** Where the candidate serves the CA bundle, relative to its site/. */
+export const CA_BUNDLE_SITE_PATH = 'ca/cacert.pem';
+export interface CandidateCaBundle {
+  path: typeof CA_BUNDLE_SITE_PATH;
+  sha256: string;
+  spdx: string;
+}
 /** ShowcaseCandidateManifest plus the fields the site needs from the run. */
 export interface CandidateManifest {
   schemaVersion: 1;
@@ -51,6 +58,8 @@ export interface CandidateManifest {
   assets: InventoryFile[];
   resolvedTools: ResolvedTool[];
   acceptanceLogSha256: string;
+  /** The site's CA bundle (resolutions caBundle), by path below site/. */
+  caBundle: CandidateCaBundle;
   distributable: boolean;
   /** Run records (acceptance log, resolutions with their times); not identity. */
   records: InventoryFile[];
@@ -158,7 +167,11 @@ export function noticesText(resolutions: Resolutions): string {
           `${signatureNameOf(tarball)} (sha256 ${tarball.sha256}, from ${tarball.url})`,
       );
   }
+  const ca = resolutions.caBundle;
   lines.push(
+    `- CA certificates: ${CA_BUNDLE_SITE_PATH} (sha256 ${ca.sha256}, from ${ca.url}): ` +
+      `${ca.spdx} — Mozilla's CA certificate store as extracted by curl; ` +
+      'the file carries its own MPL-2.0 notice',
     '- formicarium: licenses/formicarium-LICENSE, licenses/formicarium-THIRD_PARTY_NOTICES.md',
     '',
   );
@@ -238,6 +251,14 @@ export async function assembleCandidate(
       }
     }
   }
+  // The one CA bundle of the site, as resolve checked it.
+  const ca = await readFile(layout.caBundle);
+  if (
+    sha256(ca) !== resolutions.caBundle.sha256 ||
+    ca.length !== resolutions.caBundle.size
+  )
+    fail('checksum-mismatch', 'the CA bundle differs from resolve');
+  await writeOnce(join(site, CA_BUNDLE_SITE_PATH), ca);
   await copyFile(
     join(packageRoot, 'LICENSE'),
     join(site, 'licenses', 'formicarium-LICENSE'),
@@ -277,6 +298,11 @@ export async function assembleCandidate(
     assets,
     resolvedTools: tools,
     acceptanceLogSha256: sha256(logBytes),
+    caBundle: {
+      path: CA_BUNDLE_SITE_PATH,
+      sha256: resolutions.caBundle.sha256,
+      spdx: resolutions.caBundle.spdx,
+    },
     distributable: options.mode === 'distribute',
     records,
   };
@@ -344,6 +370,7 @@ export function summaryMarkdown(
     `- distributable: \`${manifest.distributable}\``,
     `- formicariumPackSha256: \`${manifest.formicariumPackSha256}\``,
     `- catalogSha256: \`${manifest.catalogSha256}\``,
+    `- CA bundle: \`${manifest.caBundle.path}\` sha256 \`${manifest.caBundle.sha256}\` (${manifest.caBundle.spdx})`,
     ...manifest.resolvedTools.map(
       (tool) =>
         `- ${tool.tool} ${tool.version} \`${tool.source.commit}\` (${tool.provenance.kind}${tool.provenance.reusedFromRun ? `, reused from run ${tool.provenance.reusedFromRun.runId}` : ''})`,

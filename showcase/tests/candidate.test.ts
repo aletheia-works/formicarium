@@ -37,7 +37,12 @@ import {
   type Route,
   redirect,
 } from './fixtures/github.ts';
-import { officialRecord, resolutionsOf } from './fixtures/records.ts';
+import {
+  CA_BODY,
+  caBundleOf,
+  officialRecord,
+  resolutionsOf,
+} from './fixtures/records.ts';
 import { zip } from './fixtures/tar.ts';
 import { withLayout } from './fixtures/work.ts';
 
@@ -82,6 +87,7 @@ const manifest = (
     provenance: record.provenance,
   })),
   acceptanceLogSha256: 'e'.repeat(64),
+  caBundle: { path: 'ca/cacert.pem', sha256: '9'.repeat(64), spdx: 'MPL-2.0' },
   distributable: false,
   records: [{ path: 'acceptance-log.json', sha256: 'e'.repeat(64), bytes: 1 }],
   ...overrides,
@@ -120,6 +126,13 @@ test('changing one identity input changes the candidateId', () => {
     manifest({ distributable: true }),
     manifest({ assets: [] }),
     manifest({ resolvedTools: manifest().resolvedTools.slice(1) }),
+    manifest({
+      caBundle: {
+        path: 'ca/cacert.pem',
+        sha256: '8'.repeat(64),
+        spdx: 'MPL-2.0',
+      },
+    }),
   ].map(computeCandidateId);
   assert.ok(changed.every((id) => id !== base));
   assert.equal(new Set(changed).size, changed.length);
@@ -166,6 +179,8 @@ async function seed(layout: WorkLayout) {
   for (const fixture of fixtures)
     await storeAcquired(layout, fixture.record, fixture.download, fixture.elf);
   await writeJson(layout.resolutions, resolutionsOf(fixtures));
+  await mkdir(join(layout.caBundle, '..'), { recursive: true });
+  await writeFile(layout.caBundle, CA_BODY);
   await mkdir(layout.licenses, { recursive: true });
   for (const fixture of fixtures)
     await writeFile(
@@ -242,6 +257,33 @@ test('verify assembles a non-distributable candidate whose id matches its manife
       written.records.map((item) => item.path),
       ['acceptance-log.json', 'resolutions.json'],
     );
+    // The site's one CA bundle, with the digest resolve recorded.
+    assert.deepEqual(written.caBundle, {
+      path: 'ca/cacert.pem',
+      sha256: sha256(CA_BODY),
+      spdx: 'MPL-2.0',
+    });
+    assert.equal(
+      await readFile(
+        join(layout.candidate, 'site', 'ca', 'cacert.pem'),
+        'utf8',
+      ),
+      CA_BODY,
+    );
+    assert.ok(
+      written.assets.some(
+        (asset) =>
+          asset.path === 'site/ca/cacert.pem' &&
+          asset.sha256 === sha256(CA_BODY),
+      ),
+    );
+    assert.match(
+      await readFile(join(layout.candidate, 'site', 'NOTICES.md'), 'utf8'),
+      new RegExp(
+        `CA certificates: ca/cacert.pem \\(sha256 ${sha256(CA_BODY)}, from https://curl\\.se/ca/cacert\\.pem\\): MPL-2\\.0`,
+      ),
+    );
+    assert.match(summaryMarkdown(result, null), /CA bundle: `ca\/cacert\.pem`/);
     await access(
       join(
         layout.candidate,
@@ -253,6 +295,26 @@ test('verify assembles a non-distributable candidate whose id matches its manife
       ),
     );
   });
+});
+
+test('a CA bundle that differs from resolve creates no candidate', async () => {
+  for (const body of [`${CA_BODY}x`, CA_BODY.replace('AAAA', 'BBBB')])
+    await withLayout(async (layout) => {
+      const { packageRoot, pack } = await seed(layout);
+      await writeFile(layout.caBundle, body);
+      await assert.rejects(
+        assembleCandidate({
+          layout,
+          mode: 'verify',
+          sourceCommit,
+          pack,
+          log: logOf(rowsFor()),
+          packageRoot,
+        }),
+        (error) => causeOf(error) === 'checksum-mismatch',
+      );
+    });
+  assert.equal(caBundleOf().sha256, sha256(CA_BODY));
 });
 
 /**

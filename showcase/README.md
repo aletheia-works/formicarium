@@ -132,6 +132,13 @@ Safari の job は macOS の System keychain に job CA を信頼させ、leaf �
    開いたときに公開の `createInstaller` でそのツールを導入し、端末には何も出さない。
    最初から入っているように見え、ほかのツールからも起動できる。失敗したときだけ、
    ツールの名前を付けて端末に出す。
+   network を使うツールには `network: true` を足す（git と jj）。端末の page は、そのツールの
+   実行の前にだけ relay の token 関数（`site/src/terminal/relay.ts`）から token を取り、
+   `network: { allow: ['github.com:443'], relay }` を渡す。ほかのツールには network を渡さない。
+   TLS の検証に使う CA の一覧は、resolve が `https://curl.se/ca/cacert.pem` を公開の
+   `cacert.pem.sha256` と照合して取り（MPL-2.0、resolutions の `caBundle`）、候補が
+   `site/ca/cacert.pem` に置き（manifest の `caBundle`、NOTICES）、端末の page が session を
+   始めるときに SHA-256 を確かめて `/root/.config/ssl/cacert.pem` に書く。homeFiles はその path を使えない。
    ツールが設定ファイルを home から読むなら、`homeFiles` に home からの相対 path と
    中身（4096 bytes まで）を書く。端末の page は、どのツールの page でもそれを
    `/root` の下に置く（例：jj の pager を止める `.config/jj/config.toml`）。

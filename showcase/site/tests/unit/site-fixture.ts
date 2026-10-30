@@ -21,12 +21,17 @@ export function testSiteData(overrides: Partial<SiteData> = {}): SiteData {
     schemaVersion: 1,
     candidateId: SHA,
     catalog: { path: 'catalog.json', sha256: SHA },
+    caBundle: { path: 'ca/cacert.pem', sha256: SHA },
     tools: TEST_TOOLS.map((tool) => ({
       ...tool,
       repository: `https://github.com/example/${tool.tool}`,
       fixtureIndex: { path: `demo-fixtures/${tool.fixture}.json`, sha256: SHA },
       // git's build also gives git-remote-https, installed with it.
       ...(tool.tool === 'git' ? { companions: ['git-remote-https'] } : {}),
+      // As tools.json: git and jj reach github.com through the relay.
+      ...(tool.tool === 'git' || tool.tool === 'jj'
+        ? { network: true as const }
+        : {}),
     })),
     formicarium: {
       version: '0.3.0',

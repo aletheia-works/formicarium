@@ -4,6 +4,9 @@
 const encoder = new TextEncoder();
 const lines = [];
 globalThis.__harnessLines = lines;
+// The network option of each command, as the page passed it (relay test).
+const network = [];
+globalThis.__harnessNetwork = network;
 
 const HOSTILE = [
   '<script>window.__pwned = 1</script>\n',
@@ -33,6 +36,7 @@ export function createCommandSession() {
   return {
     async execute(line, options = {}) {
       lines.push(line);
+      network.push([line, options.network ?? null]);
       if (line === 'fail') {
         const error = new Error('<img src=x onerror="window.__pwned = 3"> \x1b[31mred');
         error.code = 'EXECUTION';

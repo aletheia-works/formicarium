@@ -2,11 +2,13 @@ import assert from 'node:assert/strict';
 import { join } from 'node:path';
 import test from 'node:test';
 import {
+  caBundleOf,
   companionsOf,
   everyPageTools,
   homeFilesOf,
   interactiveTools,
   loadSiteData,
+  networkTools,
   toolOf,
 } from '../../src/site-data.ts';
 import { tempDir, writeFiles } from './helpers.ts';
@@ -32,6 +34,18 @@ test('the every-page tools are the ones tools.json marks', () => {
   assert.deepEqual(everyPageTools(data), []);
   data.tools[2] = { ...data.tools[2]!, everyPage: true };
   assert.deepEqual(everyPageTools(data), [data.tools[2]!.tool]);
+});
+
+test('the network tools are the ones tools.json marks, and only they bring the CA bundle', () => {
+  const data = testSiteData();
+  assert.deepEqual(networkTools(data), ['git', 'jj']);
+  assert.deepEqual(caBundleOf(data), {
+    path: 'ca/cacert.pem',
+    sha256: 'a'.repeat(64),
+  });
+  data.tools = data.tools.map(({ network: _network, ...tool }) => tool);
+  assert.deepEqual(networkTools(data), []);
+  assert.equal(caBundleOf(data), null);
 });
 
 test('the companions of each tool are the ones tools.json names', () => {

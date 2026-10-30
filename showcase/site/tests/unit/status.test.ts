@@ -43,6 +43,8 @@ test('every state has an English and a Japanese sentence', () => {
     { kind: 'ready', tool: null, version: null },
     { kind: 'ready-failed-install', code: 'ASSET_LOAD', message: 'HTTP 404' },
     { kind: 'running' },
+    { kind: 'relay' },
+    { kind: 'relay-unreachable' },
     { kind: 'interactive' },
     { kind: 'no-output' },
     { kind: 'aborted' },

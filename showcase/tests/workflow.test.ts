@@ -239,6 +239,21 @@ test('real Safari accepts on macOS, trusts only the job CA and gates the candida
   );
 });
 
+test('the resolve artifact carries every file resolve writes for the later jobs', () => {
+  const upload = steps(jobs().get('resolve')!).find((step) =>
+    step.includes('name: showcase-work-resolve'),
+  )!;
+  // candidate places the CA bundle that resolve fetched and checked.
+  for (const path of [
+    'showcase/.work/resolutions.json',
+    'showcase/.work/licenses/',
+    'showcase/.work/pack/',
+    'showcase/.work/tarballs/',
+    'showcase/.work/ca/',
+  ])
+    assert.ok(upload.split('\n').includes(`            ${path}`), path);
+});
+
 test('the showcase CI does not copy the heavy body regressions', () => {
   for (const heavy of [
     'test-light',

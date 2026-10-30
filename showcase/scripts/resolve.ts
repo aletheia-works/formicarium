@@ -21,6 +21,7 @@ import {
 import {
   copyingOf,
   type Exec,
+  fetchGnu,
   type GnuTransferOptions,
   lsRemoteCommit,
   resolveGnuPackage,
@@ -74,11 +75,34 @@ export interface ToolResolution {
   /** gnu-source only: the tool's own tarball and its libraries, in build order. */
   gnu?: { tarball: SignedTarball; libraries: GnuPackageResolution[] };
 }
+/**
+ * The CA certificates the site gives git and curl in the guest: Mozilla's
+ * CA certificate store as curl extracts it (MPL-2.0; the file carries its
+ * own license notice). One bundle serves the whole site.
+ */
+export interface CaBundleResolution {
+  file: typeof CA_BUNDLE_FILE;
+  url: typeof CA_BUNDLE_URL;
+  /** The digest file published beside it, which the bundle must match. */
+  sha256Url: typeof CA_BUNDLE_SHA256_URL;
+  sha256: string;
+  size: number;
+  spdx: typeof CA_BUNDLE_SPDX;
+}
 export interface Resolutions {
   schemaVersion: 1;
   resolvedAt: string;
   tools: ToolResolution[];
+  caBundle: CaBundleResolution;
 }
+
+export const CA_BUNDLE_FILE = 'cacert.pem';
+export const CA_BUNDLE_URL = 'https://curl.se/ca/cacert.pem';
+export const CA_BUNDLE_SHA256_URL = 'https://curl.se/ca/cacert.pem.sha256';
+export const CA_BUNDLE_SPDX = 'MPL-2.0';
+/** The digest file: `<sha256>  cacert.pem` and a newline, nothing else. */
+const CA_BUNDLE_DIGEST = /^([a-f0-9]{64}) [ *]cacert\.pem\n?$/;
+const PEM_CERTIFICATE = '-----BEGIN CERTIFICATE-----';
 
 type Json = Record<string, unknown>;
 const object = (value: unknown, what: string): Json => {
@@ -386,6 +410,46 @@ export async function resolveTool(
   };
 }
 
+/**
+ * Fetches curl's extract of the Mozilla CA store and its published digest;
+ * the bundle must match the digest and hold PEM certificates.
+ */
+export async function resolveCaBundle(
+  options: GnuTransferOptions = {},
+): Promise<{ resolution: CaBundleResolution; bytes: Uint8Array }> {
+  const digest = await fetchGnu(CA_BUNDLE_SHA256_URL, 4096, options);
+  let expected: string | undefined;
+  try {
+    expected = CA_BUNDLE_DIGEST.exec(
+      new TextDecoder('utf-8', { fatal: true }).decode(digest.bytes),
+    )?.[1];
+  } catch {
+    // Not UTF-8: refused below like any other shape.
+  }
+  if (!expected)
+    fail('bad-body', `${CA_BUNDLE_SHA256_URL} is not one SHA256 line`);
+  const bundle = await fetchGnu(
+    CA_BUNDLE_URL,
+    TRANSFER_POLICY.maxMetadataBytes,
+    options,
+  );
+  if (sha256(bundle.bytes) !== expected)
+    fail('checksum-mismatch', `${CA_BUNDLE_URL} differs from its SHA256 file`);
+  if (!Buffer.from(bundle.bytes).toString('latin1').includes(PEM_CERTIFICATE))
+    fail('bad-body', `${CA_BUNDLE_URL} holds no PEM certificate`);
+  return {
+    resolution: {
+      file: CA_BUNDLE_FILE,
+      url: CA_BUNDLE_URL,
+      sha256Url: CA_BUNDLE_SHA256_URL,
+      sha256: expected,
+      size: bundle.bytes.length,
+      spdx: CA_BUNDLE_SPDX,
+    },
+    bytes: bundle.bytes,
+  };
+}
+
 /** Reads a file from the main branch definition, never from the PR head. */
 export function readFromMain(path: string): string {
   try {
@@ -433,10 +497,12 @@ export async function runResolveJob(options: {
     resolved.push(resolution);
     licenses.push([resolution.license.file, licenseBytes]);
   }
+  const ca = await resolveCaBundle(options.gnu);
   const resolutions: Resolutions = {
     schemaVersion: 1,
     resolvedAt: (options.now ?? (() => new Date()))().toISOString(),
     tools: resolved,
+    caBundle: ca.resolution,
   };
   await writeOnce(
     layout.resolutions,
@@ -446,6 +512,7 @@ export async function runResolveJob(options: {
     await writeOnce(join(layout.licenses, file), bytes);
   for (const [file, bytes] of tarballs)
     await writeOnce(join(layout.tarballs, file), bytes);
+  await writeOnce(layout.caBundle, ca.bytes);
   return resolutions;
 }
 
@@ -470,6 +537,19 @@ export async function loadResolutions(
     )
       fail('config-invalid', 'resolutions.json entry invalid');
   }
+  const ca = (value.caBundle ?? {}) as Json;
+  if (
+    ca.file !== CA_BUNDLE_FILE ||
+    ca.url !== CA_BUNDLE_URL ||
+    ca.sha256Url !== CA_BUNDLE_SHA256_URL ||
+    ca.spdx !== CA_BUNDLE_SPDX ||
+    typeof ca.sha256 !== 'string' ||
+    !/^[a-f0-9]{64}$/.test(ca.sha256) ||
+    typeof ca.size !== 'number' ||
+    !Number.isSafeInteger(ca.size) ||
+    ca.size <= 0
+  )
+    fail('config-invalid', 'resolutions.json caBundle invalid');
   return value as unknown as Resolutions;
 }
 

@@ -137,6 +137,7 @@ jobs:
             showcase/.work/licenses/
             showcase/.work/pack/
             showcase/.work/tarballs/
+            showcase/.work/ca/
   acquire:
     needs: resolve
     runs-on: ubuntu-24.04

@@ -8,6 +8,7 @@ import {
   FetchFailure,
   type FetchLimitedOptions,
   fetchVerified,
+  MAX_CA_BUNDLE_BYTES,
   MAX_FIXTURE_INDEX_BYTES,
   sha256Hex,
 } from './fetch-limited.ts';
@@ -18,6 +19,32 @@ export const WORK_ROOT = '/work';
 export const WORK_CWD = '/work/app';
 /** The session home, where tools read their settings. */
 export const HOME = '/root';
+/**
+ * The CA bundle below the home: git's `.gitconfig` names it as
+ * `http.sslCAInfo`, and curl was built with it as its default bundle.
+ */
+export const CA_BUNDLE_HOME_PATH = '.config/ssl/cacert.pem';
+
+/** A file below the home given as bytes (the CA bundle). */
+export interface HomeBytes {
+  path: string;
+  data: Uint8Array;
+}
+
+/** Fetches the site's CA bundle and checks its embedded SHA256. */
+export async function loadCaBundle(options: {
+  url: string;
+  sha256: string;
+  fetch?: Omit<FetchLimitedOptions, 'maxBytes'>;
+}): Promise<HomeBytes> {
+  return {
+    path: CA_BUNDLE_HOME_PATH,
+    data: await fetchVerified(options.url, options.sha256, {
+      ...options.fetch,
+      maxBytes: MAX_CA_BUNDLE_BYTES,
+    }),
+  };
+}
 
 /** Fetches demo-fixtures/<fixture>.json and checks its embedded SHA256. */
 export async function loadFixtureIndex(options: {
@@ -91,12 +118,23 @@ export const emptyEntries = (): FsEntry[] => [
 
 /**
  * The home files below /root, each with the directories above it, so a tool
- * finds its settings on every page (tools.json `homeFiles`).
+ * finds its settings on every page (tools.json `homeFiles`); `bytes` are
+ * further files given as bytes (the CA bundle), sharing those directories.
  */
-export function homeEntries(files: readonly HomeFile[]): FsEntry[] {
+export function homeEntries(
+  files: readonly HomeFile[],
+  bytes: readonly HomeBytes[] = [],
+): FsEntry[] {
   const directories = new Set<string>();
   const entries: FsEntry[] = [];
-  for (const [index, file] of files.entries()) {
+  const all = [
+    ...files.map((file) => ({
+      path: file.path,
+      data: new TextEncoder().encode(file.text),
+    })),
+    ...bytes,
+  ];
+  for (const [index, file] of all.entries()) {
     const parts = file.path.split('/');
     for (let depth = 1; depth < parts.length; depth++) {
       const path = `${HOME}/${parts.slice(0, depth).join('/')}`;
@@ -109,7 +147,7 @@ export function homeEntries(files: readonly HomeFile[]): FsEntry[] {
       type: 'file',
       mode: 0o644,
       inodeId: `home-${index + 1}`,
-      data: new TextEncoder().encode(file.text),
+      data: file.data,
     });
   }
   return entries;

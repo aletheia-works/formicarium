@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 import {
   assetName,
+  CA_BUNDLE_HOME_PATH,
   companionNames,
   gnuTag,
   MAX_HOME_FILE_BYTES,
@@ -14,6 +15,7 @@ import {
   validateTrustedCallers,
 } from '../scripts/config.ts';
 import { causeOf } from '../scripts/errors.ts';
+import { CA_BUNDLE_HOME_PATH as SITE_CA_BUNDLE_HOME_PATH } from '../site/src/terminal/fixture-index.ts';
 import { MAIN_ALLOWED, withLayout } from './fixtures/work.ts';
 
 const allowed = validateAllowedSources(JSON.parse(MAIN_ALLOWED));
@@ -91,6 +93,52 @@ test('everyPage is kept only as true, and any other value is refused', async () 
     bad.tools[0]!.everyPage = value;
     rejects(() => validateToolsConfig(bad, allowed), 'config-invalid');
   }
+});
+
+test('network is kept only as true (git and jj), and any other value is refused', async () => {
+  const tools = validateToolsConfig(await current(), allowed).tools;
+  assert.deepEqual(
+    tools.filter((item) => item.network).map((item) => item.tool),
+    ['jj', 'git'],
+  );
+  assert.equal(Object.hasOwn(tools[0]!, 'network'), false);
+  for (const value of [false, 'yes', 1, null]) {
+    const bad = await current();
+    bad.tools[0]!.network = value;
+    rejects(() => validateToolsConfig(bad, allowed), 'config-invalid');
+  }
+});
+
+test('the site writes the CA bundle where the config guards it and git and curl read it', async () => {
+  // The terminal writes the bundle at its own copy of the path; a change on
+  // one side would only show as a TLS error in the browser.
+  assert.equal(SITE_CA_BUNDLE_HOME_PATH, CA_BUNDLE_HOME_PATH);
+  const git = (await current()).tools.find((item) => item.tool === 'git')!;
+  const guestPath = `/root/${CA_BUNDLE_HOME_PATH}`;
+  assert.match(
+    (git.homeFiles as Record<string, string>)['.gitconfig']!,
+    new RegExp(`^\\s*sslCAInfo = ${guestPath.replaceAll('.', '\\.')}$`, 'm'),
+  );
+  const curl = (
+    git.acquire as { libraries: { package: string; configure: string[] }[] }
+  ).libraries.find((item) => item.package === 'curl')!;
+  assert.ok(curl.configure.includes(`--with-ca-bundle=${guestPath}`));
+});
+
+test('no home file may take the CA bundle path or a directory of it', async () => {
+  for (const path of [
+    CA_BUNDLE_HOME_PATH,
+    '.config/ssl',
+    '.config',
+    `${CA_BUNDLE_HOME_PATH}/x`,
+  ]) {
+    const bad = await current();
+    bad.tools[0]!.homeFiles = { [path]: 'x' };
+    rejects(() => validateToolsConfig(bad, allowed), 'config-invalid');
+  }
+  const beside = await current();
+  beside.tools[0]!.homeFiles = { '.config/ssl/other.pem': 'x' };
+  assert.doesNotThrow(() => validateToolsConfig(beside, allowed));
 });
 
 test('homeFiles keeps small text files at plain relative paths', async () => {

@@ -1,4 +1,5 @@
 import type { FormicariumManifest } from './formicarium-loader.ts';
+import type { RelaySettings } from './relay.ts';
 
 /**
  * Attribute of the terminal container. Its value is the build-time page data
@@ -41,6 +42,18 @@ export interface TerminalPageData {
    * `companions`): installing git also installs git-remote-https.
    */
   companions: Record<string, string[]>;
+  /**
+   * Tools whose runs get the network through the relay (tools.json
+   * `network`); every other run has none.
+   */
+  network: string[];
+  /** The site's relay: its token function and the allow list. */
+  relay: RelaySettings;
+  /**
+   * The site's CA bundle, written to /root/.config/ssl/cacert.pem when the
+   * session starts; null when no tool has the network.
+   */
+  caBundle: EmbeddedFile | null;
 }
 
 const SHA256 = /^[a-f0-9]{64}$/;
@@ -89,6 +102,37 @@ function companions(value: unknown): Record<string, string[]> {
   );
 }
 
+/** host:port or *.host:port, as formicarium's network.allow takes them. */
+const ALLOW =
+  /^(?:\*\.)?[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*:[1-9]\d{0,4}$/;
+
+function relay(value: unknown): RelaySettings {
+  const raw = value as Partial<RelaySettings> | null;
+  let url: URL | null = null;
+  try {
+    if (typeof raw?.tokenUrl === 'string') url = new URL(raw.tokenUrl);
+  } catch {
+    // Refused below.
+  }
+  if (
+    !url ||
+    (url.protocol !== 'https:' && url.protocol !== 'http:') ||
+    url.username ||
+    url.password ||
+    url.hash ||
+    !Array.isArray(raw!.allow) ||
+    raw!.allow.length === 0 ||
+    !raw!.allow.every(
+      (entry) =>
+        typeof entry === 'string' &&
+        ALLOW.test(entry) &&
+        Number(entry.split(':')[1]) <= 65535,
+    )
+  )
+    throw new Error('page data relay invalid');
+  return { tokenUrl: url.href, allow: [...raw!.allow] };
+}
+
 function embedded(value: unknown, name: string): EmbeddedFile {
   const file = value as EmbeddedFile | null;
   if (
@@ -127,7 +171,7 @@ export function parsePageData(
     throw new Error('preinstalled page needs a tool and version');
   if (!value.formicarium || typeof value.formicarium !== 'object')
     throw new Error('page data formicarium missing');
-  for (const name of ['interactive', 'everyPage'] as const) {
+  for (const name of ['interactive', 'everyPage', 'network'] as const) {
     const tools = value[name];
     if (
       !Array.isArray(tools) ||
@@ -135,6 +179,9 @@ export function parsePageData(
     )
       throw new Error(`page data ${name} invalid`);
   }
+  // git and curl verify TLS against the bundle: no network without it.
+  if (value.network!.length > 0 && !value.caBundle)
+    throw new Error('page data caBundle missing for the network tools');
   return {
     mode: value.mode,
     locale: value.locale,
@@ -148,5 +195,9 @@ export function parsePageData(
     everyPage: [...value.everyPage!],
     homeFiles: homeFiles(value.homeFiles),
     companions: companions(value.companions),
+    network: [...value.network!],
+    relay: relay(value.relay),
+    caBundle:
+      value.caBundle === null ? null : embedded(value.caBundle, 'caBundle'),
   };
 }

@@ -4,7 +4,15 @@ import {
   PROVENANCE_NOTE,
 } from '../../scripts/acquire.ts';
 import { canonicalSha256 } from '../../scripts/build-key.ts';
-import type { Resolutions, ToolResolution } from '../../scripts/resolve.ts';
+import {
+  CA_BUNDLE_FILE,
+  CA_BUNDLE_SHA256_URL,
+  CA_BUNDLE_SPDX,
+  CA_BUNDLE_URL,
+  type CaBundleResolution,
+  type Resolutions,
+  type ToolResolution,
+} from '../../scripts/resolve.ts';
 import { staticElf } from './elf.ts';
 import { commit, sha } from './github.ts';
 import { tgz } from './tar.ts';
@@ -76,10 +84,23 @@ export function officialRecord(
   return { record, download, elf, resolution };
 }
 
+/** A CA bundle shaped like curl's cacert.pem (the bytes resolve wrote). */
+export const CA_BODY =
+  '##\n## Bundle of CA Root Certificates\n##\n\nTest Root\n=========\n-----BEGIN CERTIFICATE-----\nAAAA\n-----END CERTIFICATE-----\n';
+export const caBundleOf = (body = CA_BODY): CaBundleResolution => ({
+  file: CA_BUNDLE_FILE,
+  url: CA_BUNDLE_URL,
+  sha256Url: CA_BUNDLE_SHA256_URL,
+  sha256: sha(body),
+  size: new TextEncoder().encode(body).length,
+  spdx: CA_BUNDLE_SPDX,
+});
+
 export const resolutionsOf = (
   fixtures: readonly RecordFixture[],
 ): Resolutions => ({
   schemaVersion: 1,
   resolvedAt: '2026-10-18T00:00:00.000Z',
   tools: fixtures.map((fixture) => fixture.resolution),
+  caBundle: caBundleOf(),
 });

@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { parseUniqueJson, sha256 } from '../../scripts/build-key.ts';
 import {
+  CA_BUNDLE_SITE_PATH,
   type CandidateManifest,
   computeCandidateId,
   fixtureInventorySha256,
@@ -188,6 +189,30 @@ export async function verifyCandidate(
       'site/catalog.json',
       manifest.catalogSha256,
       sha256(catalog.bytes),
+    ),
+  );
+  // The pages fetch the CA bundle by this path and digest (assets list it too).
+  const caPath = `site/${CA_BUNDLE_SITE_PATH}`;
+  lines.push(
+    line(
+      '3-ca-bundle-path',
+      'manifest.json#caBundle.path',
+      CA_BUNDLE_SITE_PATH,
+      manifest.caBundle?.path ?? 'absent',
+    ),
+  );
+  let caActual = 'missing';
+  try {
+    caActual = sha256(await readFile(join(candidateDir, caPath)));
+  } catch {
+    // Reported as missing.
+  }
+  lines.push(
+    line(
+      '3-ca-bundle',
+      caPath,
+      manifest.caBundle?.sha256 ?? 'absent',
+      caActual,
     ),
   );
   const log = await readCandidateJson(candidateDir, 'acceptance-log.json');

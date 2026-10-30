@@ -41,6 +41,9 @@ const catalogText = JSON.stringify({
   defaults: { aube: '2.7.2' },
   entries: [{ tool: 'aube', url: 'guests/aube/2.7.2/aube.tar.gz' }],
 });
+/** The relay's token function in these tests (never the real one). */
+const TOKEN_URL = 'https://relay-token.test/';
+const caText = '-----BEGIN CERTIFICATE-----\nAAAA\n-----END CERTIFICATE-----\n';
 const fetchImpl = (async (url: string) =>
   chunked([
     encode(url.endsWith('catalog.json') ? catalogText : fixtureText),
@@ -76,6 +79,9 @@ function data(
     everyPage: [],
     homeFiles: [],
     companions: {},
+    network: [],
+    relay: { tokenUrl: TOKEN_URL, allow: ['github.com:443'] },
+    caBundle: null,
     ...overrides,
   };
 }
@@ -740,4 +746,273 @@ test('more than 1 MiB of output redraws the tail and shows the omitted notice', 
   assert.equal(nextCwd('/work/app', 'cd ../x'), '/work/x');
   assert.equal(nextCwd('/work/app', 'cd /tmp'), '/tmp');
   assert.equal(nextCwd('/work/app', 'ls'), null);
+});
+
+// ---- network tools: the relay token, the CA bundle and their failures ----
+
+const tokenBody = (n: number, minutes = 15) =>
+  JSON.stringify({
+    url: `wss://vm${n}.lambda-microvm.ap-northeast-1.on.aws/`,
+    protocols: [
+      'lambda-microvms',
+      `lambda-microvms.authentication.t${n}`,
+      'lambda-microvms.port.8080',
+    ],
+    expiresInMinutes: minutes,
+  });
+type TokenAnswer = (
+  count: number,
+  init: RequestInit | undefined,
+) => Response | Promise<Response>;
+const tokenOk: TokenAnswer = (count) => chunked([encode(tokenBody(count))]);
+
+/** An empty terminal whose git and jj are network tools, with a fake clock. */
+function networkHarness(
+  execute: Execute,
+  token: TokenAnswer = tokenOk,
+  caBody = caText,
+) {
+  const tokenCalls: (RequestInit | undefined)[] = [];
+  const fetched: string[] = [];
+  let now = 1_000_000;
+  const fetch = (async (url: string, init?: RequestInit) => {
+    fetched.push(url);
+    if (url === TOKEN_URL) {
+      tokenCalls.push(init);
+      return token(tokenCalls.length, init);
+    }
+    if (url.endsWith('/ca/cacert.pem')) return chunked([encode(caBody)]);
+    return fetchImpl(url);
+  }) as unknown as typeof globalThis.fetch;
+  const h = harness('empty', execute, {
+    data: data('empty', {
+      network: ['git', 'jj'],
+      interactive: ['jj'],
+      caBundle: { path: 'ca/cacert.pem', sha256: sha(caText) },
+    }),
+    fetchImpl: fetch,
+    now: () => now,
+  });
+  return {
+    ...h,
+    tokenCalls,
+    fetched,
+    advance: (ms: number) => {
+      now += ms;
+    },
+  };
+}
+const RELAY_UNREACHABLE =
+  'Relay unreachable, so this runs without the network; clone and fetch will fail.';
+
+test('only a network tool gets the network, through the relay, with the CA bundle in the home', async () => {
+  const seen: [string, CommandOptions][] = [];
+  const h = networkHarness(async (line, options) => {
+    seen.push([line, options]);
+    return line.startsWith('install ') ? installed('git') : result('guest');
+  });
+  await h.host.start();
+  // The CA bundle is written below the home when the session starts, beside
+  // the directories it needs; no token is fetched before a network run.
+  const home = h.sessions[0]!.entries!.filter((entry) =>
+    entry.path.startsWith('/root'),
+  );
+  assert.deepEqual(
+    home.map((entry) => [entry.path, entry.type]),
+    [
+      ['/root/.config', 'dir'],
+      ['/root/.config/ssl', 'dir'],
+      ['/root/.config/ssl/cacert.pem', 'file'],
+    ],
+  );
+  assert.equal(
+    new TextDecoder().decode(
+      (home[2] as Extract<FsEntry, { type: 'file' }>).data,
+    ),
+    caText,
+  );
+  assert.ok(
+    h.fetched.includes('https://localhost:8443/formicarium/ca/cacert.pem'),
+  );
+  assert.equal(h.tokenCalls.length, 0);
+  for (const line of [
+    'git clone https://github.com/octocat/Hello-World',
+    'ls',
+    'install git',
+    'biome --version',
+    'jj git clone https://github.com/octocat/Hello-World',
+  ]) {
+    type(h.host, line);
+    await settle();
+    assert.equal(h.host.state, 'ready');
+  }
+  const network = Object.fromEntries(
+    seen.map(([line, options]) => [line, options.network]),
+  );
+  const relay = {
+    url: 'wss://vm1.lambda-microvm.ap-northeast-1.on.aws/',
+    protocols: [
+      'lambda-microvms',
+      'lambda-microvms.authentication.t1',
+      'lambda-microvms.port.8080',
+    ],
+  };
+  assert.deepEqual(network, {
+    'git clone https://github.com/octocat/Hello-World': {
+      allow: ['github.com:443'],
+      relay,
+    },
+    ls: undefined,
+    'install git': undefined,
+    'biome --version': undefined,
+    'jj git clone https://github.com/octocat/Hello-World': {
+      allow: ['github.com:443'],
+      relay,
+    },
+  });
+  // One GET without credentials or redirects served both network runs.
+  assert.equal(h.tokenCalls.length, 1);
+  assert.equal(h.tokenCalls[0]?.credentials, 'omit');
+  assert.equal(h.tokenCalls[0]?.redirect, 'error');
+  // An interactive network tool still gets its keys and terminal.
+  assert.ok(seen.at(-1)![1].stdin);
+});
+
+test('the token is reused until a minute before it expires, then fetched again', async () => {
+  const relays: string[] = [];
+  const h = networkHarness(async (_line, options) => {
+    relays.push(options.network?.relay?.protocols?.[1] ?? 'none');
+    return result('guest');
+  });
+  await h.host.start();
+  const clone = async () => {
+    type(h.host, 'git ls-remote https://github.com/octocat/Hello-World');
+    await settle();
+  };
+  await clone();
+  h.advance(14 * 60000 - 1);
+  await clone();
+  h.advance(1);
+  await clone();
+  await clone();
+  assert.deepEqual(relays, [
+    'lambda-microvms.authentication.t1',
+    'lambda-microvms.authentication.t1',
+    'lambda-microvms.authentication.t2',
+    'lambda-microvms.authentication.t2',
+  ]);
+  assert.equal(h.tokenCalls.length, 2);
+});
+
+test('without a token the network run still starts, with no network and a notice', async () => {
+  const answers: TokenAnswer[] = [
+    () =>
+      chunked([encode('{"error":"the relay is unavailable"}')], {
+        status: 503,
+      }),
+    () => {
+      throw new TypeError('offline');
+    },
+    () => chunked([encode('not json')]),
+    () =>
+      chunked([
+        encode(
+          JSON.stringify({
+            url: 'ws://relay.test/',
+            protocols: [],
+            expiresInMinutes: 15,
+          }),
+        ),
+      ]),
+    () => chunked([encode(JSON.stringify({ url: 'wss://relay.test/' }))]),
+    () => chunked([encode('x'.repeat(20000))]),
+  ];
+  const ran: [string, CommandOptions['network']][] = [];
+  const h = networkHarness(
+    async (line, options) => {
+      ran.push([line, options.network]);
+      options.onOutput?.({
+        runId: 'r',
+        sequence: 0,
+        stream: 'stdout',
+        bytes: encode('cloned\n'),
+      });
+      return result('guest', 'cloned\n');
+    },
+    (count, init) =>
+      count <= answers.length
+        ? answers[count - 1]!(count, init)
+        : tokenOk(count, init),
+  );
+  await h.host.start();
+  const line = 'git clone https://github.com/octocat/Hello-World';
+  for (let attempt = 0; attempt < answers.length; attempt++) {
+    const before = h.writes.length;
+    type(h.host, line);
+    await settle();
+    assert.equal(h.host.state, 'ready');
+    const printed = h.writes.slice(before).join('');
+    assert.ok(printed.includes(`${RELAY_UNREACHABLE}\n`), printed);
+    assert.ok(printed.endsWith('cloned\n/work/app$ '), printed);
+  }
+  // Each one ran without the network; a failure is not cached.
+  assert.deepEqual(
+    ran,
+    answers.map(() => [line, undefined]),
+  );
+  type(h.host, line);
+  await settle();
+  assert.equal(ran.length, answers.length + 1);
+  assert.deepEqual(ran.at(-1)![1]?.allow, ['github.com:443']);
+  assert.equal(
+    h.status.textContent,
+    'Ready. Type install <tool> to add a tool.',
+  );
+});
+
+test('Ctrl-C or dispose during the token fetch ends the line without running it', async () => {
+  const pending: TokenAnswer = (_count, init) =>
+    new Promise((_done, reject) =>
+      init?.signal?.addEventListener('abort', () =>
+        reject(new DOMException('aborted', 'AbortError')),
+      ),
+    );
+  const ran: string[] = [];
+  const h = networkHarness(async (line) => {
+    ran.push(line);
+    return result('guest');
+  }, pending);
+  await h.host.start();
+  type(h.host, 'git clone https://github.com/octocat/Hello-World');
+  await settle();
+  assert.equal(h.host.state, 'running');
+  assert.equal(
+    h.status.textContent,
+    'Asking the relay for a connection token… Press Ctrl-C to cancel.',
+  );
+  h.host.onData('\x03');
+  await settle();
+  assert.equal(h.host.state, 'ready');
+  assert.equal(h.status.textContent, 'Cancelled (ABORTED).');
+  assert.match(
+    h.writes.join(''),
+    /ABORTED: the command was cancelled\n\/work\/app\$ $/,
+  );
+  type(h.host, 'jj git clone https://github.com/octocat/Hello-World');
+  await settle();
+  const before = h.writes.length;
+  await h.host.dispose();
+  await settle();
+  assert.equal(h.host.state, 'disposed');
+  assert.deepEqual(ran, []);
+  // Nothing is printed after dispose (xterm is gone).
+  assert.deepEqual(h.writes.slice(before), ['<dispose>']);
+});
+
+test('a CA bundle that differs from the page data stops the page before any session', async () => {
+  const h = networkHarness(async () => result('guest'), tokenOk, `${caText}x`);
+  await h.host.start();
+  assert.equal(h.host.state, 'failed');
+  assert.match(h.status.textContent!, /digest-mismatch/);
+  assert.equal(h.sessions.length, 0);
 });

@@ -25,6 +25,9 @@ installed. Type `install aube`, `install pitchfork`, `install biome`,
 - A tool the catalog marks for every page (nano) is installed quietly when any
   terminal page starts, so it is there from the start and other tools can open
   it too: `jj describe` without `-m` opens nano to edit the description.
+- git and jj can clone from github.com:
+  `git clone https://github.com/<owner>/<repo>` or
+  `jj git clone https://github.com/<owner>/<repo>`. See [Network](#network).
 
 There is no shell: pipes, redirections, `$` expansion and globbing are refused
 with `INVALID_INPUT`. One line is limited to 65536 bytes. Use ↑ and ↓ for the
@@ -39,10 +42,28 @@ of the size the page's terminal has when the tool starts (it does not follow
 later resizes). A Stop button below the terminal ends the run
 (`ABORTED`).
 
+## Network
+
+Only git and jj get a network, and only to `github.com:443`. A browser page
+has no TCP sockets, so their connections go through Aletheia Works' relay on
+AWS (a WebSocket relay on AWS Lambda MicroVMs). Before the first git or jj
+command, the page asks the relay's token function for a token that lasts 15
+minutes and reuses it until a minute before it expires. The token function
+answers only requests whose `Origin` is this site, and the relay itself
+connects to github.com:443 and nowhere else. TLS runs inside the guest, so the
+relay sees only encrypted bytes. The guest checks github.com's certificate
+against Mozilla's CA certificates as curl extracts them, which the page writes
+to `/root/.config/ssl/cacert.pem` when the session starts. If the relay cannot
+be reached, the command runs without the network and says so first, so local
+work (`jj log`, `git status`) goes on while clone and fetch fail; type it
+again to retry. `git push` and `jj git push` do not work, since the page has
+no credentials.
+
 ## Limits
 
 - Nothing is saved. Reloading or leaving the page discards the session.
-- Guests have no network access, and package lifecycle scripts do not run.
+- Other tools have no network access, and package lifecycle scripts do not
+  run.
 - Very long output is trimmed on screen (1 MiB or 10000 lines); a note below
   the terminal says how much was omitted.
 

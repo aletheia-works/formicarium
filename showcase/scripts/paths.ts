@@ -21,6 +21,8 @@ export function workLayout(work = resolve(SHOWCASE_ROOT, '.work')) {
     licenses: join(work, 'licenses'),
     /** Signed GNU tarballs and their signatures (build input and site source). */
     tarballs: join(work, 'tarballs'),
+    /** The CA bundle the site serves (resolve writes it, candidate places it). */
+    caBundle: join(work, 'ca', 'cacert.pem'),
     acquired: join(work, 'acquired'),
     plans: join(work, 'build-plans'),
     sources: join(work, 'sources'),

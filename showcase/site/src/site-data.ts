@@ -17,6 +17,8 @@ export interface SiteTool {
   interactive?: true;
   /** tools.json `everyPage`: every terminal page installs it when it starts. */
   everyPage?: true;
+  /** tools.json `network`: its runs reach the relay's allow list. */
+  network?: true;
   /** tools.json `homeFiles`: text files below the home of every terminal page. */
   homeFiles?: Record<string, string>;
   /** tools.json `companions`: further programs installed with this tool. */
@@ -26,6 +28,8 @@ export interface SiteData {
   schemaVersion: 1;
   candidateId: string;
   catalog: EmbeddedFile;
+  /** The candidate's CA bundle (manifest `caBundle`), for git and curl. */
+  caBundle: EmbeddedFile;
   tools: SiteTool[];
   formicarium: FormicariumManifest;
   /** npm check: true only when npm has this version with this integrity. */
@@ -64,6 +68,14 @@ export const interactiveTools = (data: SiteData): string[] =>
 /** The tools every terminal page installs when it starts (page data `everyPage`). */
 export const everyPageTools = (data: SiteData): string[] =>
   data.tools.filter((tool) => tool.everyPage).map((tool) => tool.tool);
+
+/** The tools whose runs get the network (page data `network`). */
+export const networkTools = (data: SiteData): string[] =>
+  data.tools.filter((tool) => tool.network).map((tool) => tool.tool);
+
+/** The CA bundle a page writes, only when one of its tools has the network. */
+export const caBundleOf = (data: SiteData): EmbeddedFile | null =>
+  networkTools(data).length > 0 ? { ...data.caBundle } : null;
 
 /** The home files of every tool, by path (page data `homeFiles`). */
 export const homeFilesOf = (data: SiteData): HomeFile[] =>

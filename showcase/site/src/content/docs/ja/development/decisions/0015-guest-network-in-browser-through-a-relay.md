@@ -36,6 +36,15 @@ relay は `@aletheia-works/paludarium-wasm/relay` です。relay は自分の許
 - ブラウザでの実行の接続は relay のホストを通り、そのホストには TCP の中身が見えます。TLS はゲストの中で動くので、
   HTTPS なら relay に見えるのは暗号文です。
 - ページには、つなげる relay が必要です。GitHub Pages だけでは relay を置けません。
+- showcase のサイトは、Aletheia Works が AWS で動かす relay（`infra/aws`）を使い、その端末で
+  `https://github.com/...` の `git clone` と `jj git clone` ができます。`network` を受け取るのは、
+  `tools.json` が `network` と決めたツール（git と jj）だけで、`allow: ['github.com:443']` を付けます。
+  relay も同じ行き先だけを許します。page は最初のその実行の前に、サイトの `Origin` にだけ答える relay の
+  Lambda の function URL から 15 分の token を取り、切れる 1 分前まで使い回します。token が取れなければ、
+  そう示してから network なしで実行するので、手元の git と jj の作業は続けられます。端末の page の CSP が `connect-src` に足すのは、その関数の origin と
+  `wss://*.lambda-microvm.ap-northeast-1.on.aws` だけです。git と curl は、showcase が公開された
+  SHA-256 と照合して取得した、curl が取り出した Mozilla の CA の一覧（MPL-2.0）で証明書を確かめます。
+  page は session を始めるときに、それを `/root/.config/ssl/cacert.pem` に置きます。
 
 ## 採らなかった案
 

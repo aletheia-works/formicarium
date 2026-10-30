@@ -21,6 +21,9 @@ export const TOOLS = [
 ] as const;
 const ENVIRONMENTS = ['chromium', 'firefox', 'node', 'safari', 'webkit'];
 export const PACK_SHA = 'c'.repeat(64);
+/** The candidate's CA bundle (a stand-in for curl's cacert.pem). */
+export const CA_BUNDLE =
+  '-----BEGIN CERTIFICATE-----\nAAAA\n-----END CERTIFICATE-----\n';
 
 /** Small fixtures tree: aube's has the outside/ directory it links to. */
 export const FIXTURE_FILES: Record<string, string> = {
@@ -84,6 +87,7 @@ export async function writeCandidate(
     'catalog.json': catalog,
     'NOTICES.md': '# Showcase guest notices\n',
     'licenses/aube-LICENSE': 'MIT\n',
+    'ca/cacert.pem': CA_BUNDLE,
   };
   for (const tool of TOOLS) {
     site[`guests/${tool.tool}/${tool.version}/${tool.tool}`] =
@@ -121,6 +125,11 @@ export async function writeCandidate(
       } as CandidateManifest['resolvedTools'][number]['provenance'],
     })),
     acceptanceLogSha256: sha(log),
+    caBundle: {
+      path: 'ca/cacert.pem',
+      sha256: sha(CA_BUNDLE),
+      spdx: 'MPL-2.0',
+    },
     distributable: options.distributable ?? false,
     records: [],
   };

@@ -4,6 +4,7 @@ import { sha256 } from '../../scripts/build-key.ts';
 import { fileInventory } from '../../scripts/paths.ts';
 import { totalBytes } from '../src/model/inventory.ts';
 import { TERMINAL_ATTRIBUTE } from '../src/terminal/page-data.ts';
+import { RELAY_CONNECT_SOURCES } from '../src/terminal/relay.ts';
 import { IDENTITY_FILE } from './build-site-identity.ts';
 import {
   inlineScripts,
@@ -187,6 +188,23 @@ async function documentProblems(
   return problems;
 }
 
+/**
+ * True when the policy names a source other than a keyword (`'self'`), data:
+ * or the relay's two sources, which only connect-src may name.
+ */
+export function externalSources(policy: string): boolean {
+  return policy.split(';').some((directive) => {
+    const [name, ...sources] = directive.trim().split(/\s+/);
+    const rest =
+      name === 'connect-src'
+        ? sources.filter((source) => !RELAY_CONNECT_SOURCES.includes(source))
+        : sources;
+    return rest.some(
+      (source) => !/^'[^']*'$/.test(source) && source !== 'data:',
+    );
+  });
+}
+
 function terminalProblems(page: string, html: string): string[] {
   const head = /<head(?:\s[^>]*)?>/i.exec(html);
   const afterHead = head ? html.slice(head.index + head[0].length) : '';
@@ -200,7 +218,7 @@ function terminalProblems(page: string, html: string): string[] {
   const hashes = [...new Set(inlineScripts(html).map(scriptHash))];
   if (policy !== terminalPolicy(hashes))
     problems.push(`${page} CSP differs from the inline script hashes`);
-  if (/https?:|\*/.test(policy))
+  if (externalSources(policy))
     problems.push(`${page} CSP names an external origin`);
   if (!html.includes(`/${COI_FILE}`) || !html.includes(`/${COI_CONFIG_FILE}`))
     problems.push(`${page} does not load the isolation scripts`);

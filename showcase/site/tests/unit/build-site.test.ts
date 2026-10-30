@@ -114,8 +114,19 @@ test('the steps run in the build order and the site gets every placed file', asy
     'demo-fixtures/aube-local-deps.json',
     'THIRD_PARTY_NOTICES.md',
     'site-identity.json',
+    'ca/cacert.pem',
   ])
     assert.ok((await stat(join(layout.dist, path))).isFile(), path);
+  // The pages get the candidate's CA bundle and the tools.json network flag.
+  const data = context.siteData!;
+  assert.deepEqual(data.caBundle, {
+    path: 'ca/cacert.pem',
+    sha256: context.manifest!.caBundle.sha256,
+  });
+  assert.deepEqual(
+    data.tools.filter((tool) => tool.network).map((tool) => tool.tool),
+    ['git', 'jj'],
+  );
   assert.equal(
     result.inventorySha256,
     (await readInventory(join(layout.build, 'site-inventory.json'))).sha256,

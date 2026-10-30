@@ -29,9 +29,21 @@ can do the same.
   for example `script-src 'self' 'wasm-unsafe-eval'; worker-src 'self';
   connect-src 'self'`. `blob:` is not needed. The core is loaded from the asset
   URLs after its digests are checked, so serve them from an origin you trust.
+  A page that gives guests a network through a relay also allows the relay's
+  `wss:` URL in `connect-src`, and the URL it fetches relay tokens from, if
+  any. The showcase terminals add exactly their token function's origin and
+  `wss://*.lambda-microvm.ap-northeast-1.on.aws`.
 - **Guests.** Use a catalog (`GuestCatalog`) whose entries name same-origin
   guest files with their SHA256 and `build-info.json`. `install <tool>` checks
   every byte before it registers a guest.
+- **Network.** In the browser a guest reaches TCP destinations only through a
+  WebSocket relay you name in `network.relay`
+  ([command API](/formicarium/guides/command-api/)). The showcase passes
+  `network` only to git and jj, with `allow: ['github.com:443']` and the relay
+  of a short-lived token from Aletheia Works' token function on AWS, which
+  answers only the site's `Origin`. It writes curl's extract of Mozilla's CA
+  certificates below the home when the session starts, since the Session takes
+  files only then.
 
 ## Example
 

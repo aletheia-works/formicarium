@@ -24,6 +24,9 @@ description: formicarium の showcase の端末の使い方と制限。
   開いたときに端末に何も出さずに導入するので、最初から入っていて、ほかのツール
   からも開けます。`-m` を付けない
   `jj describe` は、nano を開いて説明を編集させます。
+- git と jj は github.com から clone できます：
+  `git clone https://github.com/<owner>/<repo>` か
+  `jj git clone https://github.com/<owner>/<repo>`。[network](#network) を見てください。
 
 shell はありません。pipe・redirect・`$` の展開・glob は `INVALID_INPUT` で拒否
 されます。1行は 65536 bytes までです。↑・↓ でこの page の中の履歴を辿り、
@@ -35,10 +38,23 @@ Enter や Ctrl-C を含むすべてのキーがツールに渡り、ツールか
 page の端末の大きさの端末に見えます（後で大きさが変わっても追わない）。端末の下の「停止」ボタンで実行を終わらせます
 （`ABORTED`）。
 
+## network
+
+network を使えるのは git と jj だけで、行き先は `github.com:443` だけです。ブラウザの page には
+TCP のソケットがないので、接続は Aletheia Works が AWS で動かす relay（AWS Lambda MicroVMs の上の
+WebSocket の relay）を通ります。最初の git か jj の command の前に、page は relay の token 関数に
+15 分使える token を求め、切れる 1 分前まで使い回します。token 関数は `Origin` がこのサイトの要求にだけ
+答え、relay 自身も github.com:443 にだけ接続します。TLS はゲストの中で動くので、relay に見えるのは
+暗号化された bytes だけです。ゲストは github.com の証明書を、curl が取り出した Mozilla の CA 証明書で
+確かめます。page は session を始めるときに、それを `/root/.config/ssl/cacert.pem` に置きます。relay に
+届かないときは、そう示してから network なしで実行します。手元の作業（`jj log`、`git status`）は
+続けられ、clone と fetch は失敗します。もう一度打つと再試行します。page には
+認証情報がないので、`git push` と `jj git push` はできません。
+
 ## 制限
 
 - 何も保存しません。再読み込みや page の移動で session を捨てます。
-- guest は network に接続できず、package の lifecycle の script は動きません。
+- ほかのツールは network に接続できず、package の lifecycle の script は動きません。
 - とても長い出力は画面の上で切り詰めます（1 MiB か 10000 行）。端末の下の
   通知が、省略した量を示します。
 

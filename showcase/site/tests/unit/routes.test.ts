@@ -14,6 +14,7 @@ import {
   isTerminalPage,
 } from '../../scripts/inject-csp.ts';
 import { parsePageData } from '../../src/terminal/page-data.ts';
+import { RELAY_TOKEN_URL } from '../../src/terminal/relay.ts';
 import { WORKFLOW, writeFiles } from './helpers.ts';
 import { buildTestSite, TEST_TOOLS } from './site-fixture.ts';
 
@@ -107,6 +108,9 @@ test('only the tool pages and /terminal/ are terminal pages, with their page dat
       data.everyPage,
       data.homeFiles,
       data.companions,
+      data.network,
+      data.relay,
+      data.caBundle,
     ],
     [
       'preinstalled',
@@ -119,7 +123,16 @@ test('only the tool pages and /terminal/ are terminal pages, with their page dat
       [],
       [],
       { git: ['git-remote-https'] },
+      ['git', 'jj'],
+      { tokenUrl: RELAY_TOKEN_URL, allow: ['github.com:443'] },
+      { path: 'ca/cacert.pem', sha256: 'a'.repeat(64) },
     ],
+  );
+  // The help names the network tools and the relay they go through.
+  assert.match(page, /git, jj は github\.com から clone できます/);
+  assert.match(
+    await read('tools/git/index.html'),
+    /git, jj can clone from github\.com.*Aletheia Works(?:'|&#39;|&#x27;) relay on AWS/s,
   );
   const empty = parsePageData(
     /data-terminal-host="([^"]*)"/
@@ -131,12 +144,60 @@ test('only the tool pages and /terminal/ are terminal pages, with their page dat
     ['empty', 'en', null],
   );
   // The tool lists must be tool names; anything else stops the page.
-  for (const name of ['interactive', 'everyPage'])
+  for (const name of ['interactive', 'everyPage', 'network'])
     for (const value of [undefined, 'nano', ['../nano'], [1]])
       assert.throws(
         () => parsePageData(JSON.stringify({ ...empty, [name]: value })),
         new RegExp(`page data ${name} invalid`),
       );
+  // The relay is an http(s) token URL without credentials and an allow list
+  // of host:port entries; network tools need the CA bundle.
+  for (const value of [
+    undefined,
+    {},
+    { tokenUrl: 'ftp://relay.test/', allow: ['github.com:443'] },
+    { tokenUrl: 'https://user:pw@relay.test/', allow: ['github.com:443'] },
+    { tokenUrl: 'https://relay.test/#x', allow: ['github.com:443'] },
+    { tokenUrl: 'not a url', allow: ['github.com:443'] },
+    { tokenUrl: RELAY_TOKEN_URL, allow: [] },
+    { tokenUrl: RELAY_TOKEN_URL, allow: ['github.com'] },
+    { tokenUrl: RELAY_TOKEN_URL, allow: ['github.com:65536'] },
+    { tokenUrl: RELAY_TOKEN_URL, allow: ['github.com:0'] },
+    { tokenUrl: RELAY_TOKEN_URL, allow: [1] },
+  ])
+    assert.throws(
+      () => parsePageData(JSON.stringify({ ...empty, relay: value })),
+      /page data relay invalid/,
+    );
+  assert.deepEqual(
+    parsePageData(
+      JSON.stringify({
+        ...empty,
+        relay: {
+          tokenUrl: 'http://localhost:8080/t',
+          allow: ['*.example.com:22'],
+        },
+      }),
+    ).relay,
+    { tokenUrl: 'http://localhost:8080/t', allow: ['*.example.com:22'] },
+  );
+  for (const value of [
+    'ca/cacert.pem',
+    { path: '../x', sha256: 'a'.repeat(64) },
+  ])
+    assert.throws(
+      () => parsePageData(JSON.stringify({ ...empty, caBundle: value })),
+      /page data caBundle invalid/,
+    );
+  assert.throws(
+    () => parsePageData(JSON.stringify({ ...empty, caBundle: null })),
+    /page data caBundle missing for the network tools/,
+  );
+  assert.equal(
+    parsePageData(JSON.stringify({ ...empty, network: [], caBundle: null }))
+      .caBundle,
+    null,
+  );
   // Companions are tool names by tool name, never an empty list.
   for (const value of [
     undefined,
