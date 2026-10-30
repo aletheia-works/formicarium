@@ -4,7 +4,9 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type {
   CommandSession,
+  FsEntry,
   GuestCatalog,
+  NetworkOptions,
   Session,
 } from '@aletheia-works/formicarium';
 import { startAcceptServer } from './accept-server.ts';
@@ -27,12 +29,45 @@ import { loadResolutions } from './resolve.ts';
 import { createJobTls, removeJobTls, tlsFromEnvironment } from './tls.ts';
 
 export interface CommandApi {
-  createSession(): Promise<Session>;
+  createSession(options?: { entries?: readonly FsEntry[] }): Promise<Session>;
   createCommandSession(
     session: Session,
     options: { catalog: GuestCatalog },
   ): CommandSession;
   decodeUtf8(bytes: Uint8Array): string;
+}
+
+/**
+ * A TLS run of a tool against the acceptance server: `--version` never
+ * reaches the TLS and bignum code, so a guest built with instructions the
+ * emulator cannot run (GMP's BMI2/ADX for the runner CPU) passed until a
+ * clone on the site died of SIGILL. The server answers 404 after the
+ * handshake and the certificate check, which is all the run needs.
+ */
+export interface TlsCheck {
+  /** Guests the run needs besides the tool, installed at their defaults. */
+  companions: readonly string[];
+  /** The run against `url`, trusting `caPath`, with localhost at `port`. */
+  line: (url: string, caPath: string, port: string) => string;
+}
+export const TLS_CHECKS: Readonly<Record<string, TlsCheck>> = Object.freeze({
+  git: {
+    companions: ['git-remote-https'],
+    // The job certificate names only localhost, and the server listens on
+    // 127.0.0.1, so curl is told where localhost is.
+    line: (url: string, caPath: string, port: string) =>
+      `git -c http.sslCAInfo=${caPath} -c http.curloptResolve=localhost:${port}:127.0.0.1 ls-remote ${url}`,
+  },
+});
+/** The job CA in the guest, for the TLS checks. */
+export const GUEST_CA_PATH = '/root/job-ca.pem';
+/** The server's answer to a missing repository, after a good handshake. */
+const REPOSITORY_NOT_FOUND = /^fatal: repository '[^']+' not found$/m;
+
+export interface TlsTarget {
+  /** https://localhost:<port> of the acceptance server. */
+  origin: string;
+  caPem: Uint8Array;
 }
 
 /** `install <tool>` then `<tool> --version` through the public command API. */
@@ -42,12 +77,28 @@ export async function acceptTool(
   tool: { tool: string; version: string },
   environment: EnvironmentId,
   clock: () => number = () => performance.now(),
+  tls: TlsTarget | null = null,
 ): Promise<AcceptanceRow> {
   let installMs: number | null = null;
   let versionMs: number | null = null;
   let session: Session | undefined;
+  const check = tls ? TLS_CHECKS[tool.tool] : undefined;
   try {
-    session = await api.createSession();
+    session = await api.createSession(
+      check && tls
+        ? {
+            entries: [
+              {
+                path: GUEST_CA_PATH,
+                type: 'file',
+                mode: 0o644,
+                inodeId: 'job-ca',
+                data: tls.caPem,
+              },
+            ],
+          }
+        : undefined,
+    );
     const shell = api.createCommandSession(session, { catalog });
     const started = clock();
     const installed = await shell.execute(`install ${tool.tool}`);
@@ -66,6 +117,20 @@ export async function acceptTool(
     const before = clock();
     const run = await shell.execute(`${tool.tool} --version`);
     versionMs = Math.round(clock() - before);
+    if (check && tls && run.exitCode === 0) {
+      const failure = await tlsFailure(api, shell, check, tls);
+      if (failure)
+        return judgeRow({
+          tool: tool.tool,
+          expectedVersion: tool.version,
+          environment,
+          exitCode: run.exitCode,
+          stdout: failure,
+          installMs,
+          versionMs,
+          error: 'tls-failed',
+        });
+    }
     return judgeRow({
       tool: tool.tool,
       expectedVersion: tool.version,
@@ -92,16 +157,43 @@ export async function acceptTool(
   }
 }
 
+/** The TLS check's output when it failed; null when it reached the server. */
+async function tlsFailure(
+  api: CommandApi,
+  shell: CommandSession,
+  check: TlsCheck,
+  tls: TlsTarget,
+): Promise<string | null> {
+  for (const companion of check.companions) {
+    const installed = await shell.execute(`install ${companion}`);
+    if (installed.exitCode !== 0)
+      return `install ${companion}: exit ${installed.exitCode}`;
+  }
+  const { port } = new URL(tls.origin);
+  const network: NetworkOptions = { allow: [`127.0.0.1:${port}`] };
+  const run = await shell.execute(
+    check.line(`${tls.origin}/missing.git`, GUEST_CA_PATH, port),
+    { network },
+  );
+  const stderr = api.decodeUtf8(run.stderr);
+  return run.exitCode === 128 && REPOSITORY_NOT_FOUND.test(stderr)
+    ? null
+    : `exit ${run.exitCode}: ${stderr}`;
+}
+
 export async function acceptAll(
   api: CommandApi,
   catalog: GuestCatalog,
   tools: readonly { tool: string; version: string }[],
   environment: EnvironmentId,
+  tls: TlsTarget | null = null,
 ): Promise<AcceptanceRow[]> {
   const rows: AcceptanceRow[] = [];
   // One tool at a time: no heavy work runs in parallel while timing.
   for (const tool of tools)
-    rows.push(await acceptTool(api, catalog, tool, environment));
+    rows.push(
+      await acceptTool(api, catalog, tool, environment, undefined, tls),
+    );
   return rows;
 }
 
@@ -124,15 +216,19 @@ async function child(layout: WorkLayout) {
   const api = await import('@aletheia-works/formicarium');
   const { createSession } = await import('@aletheia-works/formicarium/node');
   const site = await loadSite(layout);
+  const caPath = process.env.NODE_EXTRA_CA_CERTS;
+  if (!caPath)
+    fail('config-invalid', 'NODE_EXTRA_CA_CERTS must name the job CA');
   const rows = await acceptAll(
     {
-      createSession: () => createSession(),
+      createSession: (options) => createSession(options),
       createCommandSession: api.createCommandSession,
       decodeUtf8: api.decodeUtf8,
     },
     absoluteCatalog(site.catalog, `${origin}/`),
     site.tools,
     'node',
+    { origin, caPem: new Uint8Array(await readFile(caPath)) },
   );
   const part: AcceptancePart = {
     schemaVersion: 1,

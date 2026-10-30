@@ -55,6 +55,10 @@ fixture の共有は `scripts/boundary.ts` と Biome の `noRestrictedImports` �
 | 受入         | `scripts/accept-node.ts`、`tests/accept.spec.ts`、`tests/accept-safari.ts` | `install <tool>` と `<tool> --version`。6 ツール × Node・Chromium・Firefox・WebKit・実機 Safari の 30 行                                                     |
 | 候補         | `scripts/candidate.ts`                                                     | 30 行がすべて合格したときだけ manifest を作る。`verify` は常に `distributable: false`                                                                        |
 
+Node の受入では、git が job CA の HTTPS に `ls-remote` もする。`--version` は TLS と GMP の
+code を通らないので、emulator が実行できない命令を含む guest（runner の CPU 向けの GMP）を
+ここで捕まえる。
+
 toolchain は upstream の宣言（`rust-toolchain.toml`・`rust-toolchain`、UI の
 Node は `.node-version`・`mise.toml`・`.tool-versions` の正確な版）に従い、
 なければ最新の安定版（Rust は `stable`、Node は実行中の Node）を使う。

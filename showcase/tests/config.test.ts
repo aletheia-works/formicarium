@@ -125,6 +125,18 @@ test('the site writes the CA bundle where the config guards it and git and curl 
   assert.ok(curl.configure.includes(`--with-ca-bundle=${guestPath}`));
 });
 
+test('GMP is built for plain x86_64, not for the runner CPU', async () => {
+  // GMP's configure picks assembly and -march for the CPU it runs on; on a
+  // CI runner that is BMI2/ADX code (mulx, adcx, adox), which the emulator
+  // stops with SIGILL, so git-remote-https died before any TLS.
+  const git = (await current()).tools.find((item) => item.tool === 'git')!;
+  const gmp = (
+    git.acquire as { libraries: { package: string; configure: string[] }[] }
+  ).libraries.find((item) => item.package === 'gmp')!;
+  assert.ok(gmp.configure.includes('--build=x86_64-pc-linux-gnu'));
+  assert.ok(gmp.configure.includes('--host=x86_64-pc-linux-gnu'));
+});
+
 test('no home file may take the CA bundle path or a directory of it', async () => {
   for (const path of [
     CA_BUNDLE_HOME_PATH,

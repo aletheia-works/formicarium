@@ -3,6 +3,7 @@ import { access, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import test from 'node:test';
 import {
+  type CommandOptions,
   type CommandSession,
   createInstaller,
   type GuestCatalog,
@@ -13,6 +14,7 @@ import {
   acceptAll,
   acceptTool,
   type CommandApi,
+  GUEST_CA_PATH,
 } from '../scripts/accept-node.ts';
 import {
   contentType,
@@ -139,15 +141,25 @@ test('the catalog job places verified bytes and writes canonical catalog.json on
 });
 
 function fakeCommands(
-  outputs: Record<string, { exitCode: number; stdout: string } | Error>,
+  outputs: Record<
+    string,
+    { exitCode: number; stdout: string; stderr?: string } | Error
+  >,
+  seen: {
+    entries: unknown[];
+    runs: [string, CommandOptions | undefined][];
+  } = { entries: [], runs: [] },
 ): CommandApi {
   const encoder = new TextEncoder();
   return {
-    createSession: async () =>
-      ({ dispose: async () => undefined }) as unknown as Session,
+    createSession: async (options) => {
+      seen.entries.push(...(options?.entries ?? []));
+      return { dispose: async () => undefined } as unknown as Session;
+    },
     createCommandSession: () =>
       ({
-        async execute(line: string) {
+        async execute(line: string, options?: CommandOptions) {
+          seen.runs.push([line, options]);
           const output = outputs[line];
           if (output instanceof Error) throw output;
           if (!output)
@@ -156,7 +168,7 @@ function fakeCommands(
             kind: line.startsWith('install ') ? 'install' : 'guest',
             exitCode: output.exitCode,
             stdout: encoder.encode(output.stdout),
-            stderr: new Uint8Array(),
+            stderr: encoder.encode(output.stderr ?? ''),
           };
         },
       }) as CommandSession,
@@ -210,6 +222,118 @@ test('one acceptance row per tool records version match, failures and timings', 
     'node',
   );
   assert.equal(refused.cause, 'install-failed');
+});
+
+test('git passes only when its TLS run reaches the server with the job CA', async () => {
+  const catalog = buildCatalog([aube.record]);
+  const tls = {
+    origin: 'https://localhost:4443',
+    caPem: new TextEncoder().encode('ca'),
+  };
+  const line =
+    'git -c http.sslCAInfo=/root/job-ca.pem -c http.curloptResolve=localhost:4443:127.0.0.1 ls-remote https://localhost:4443/missing.git';
+  const outputs = (tlsRun: {
+    exitCode: number;
+    stdout: string;
+    stderr?: string;
+  }) => ({
+    'install git': { exitCode: 0, stdout: 'installed git@2.56.0\n' },
+    'git --version': { exitCode: 0, stdout: 'git version 2.56.0\n' },
+    'install git-remote-https': { exitCode: 0, stdout: 'installed\n' },
+    [line]: tlsRun,
+  });
+  const seen = {
+    entries: [] as unknown[],
+    runs: [] as [string, CommandOptions | undefined][],
+  };
+  const passed = await acceptTool(
+    fakeCommands(
+      outputs({
+        exitCode: 128,
+        stdout: '',
+        stderr:
+          "fatal: repository 'https://localhost:4443/missing.git/' not found\n",
+      }),
+      seen,
+    ),
+    catalog,
+    { tool: 'git', version: '2.56.0' },
+    'node',
+    undefined,
+    tls,
+  );
+  assert.equal(passed.status, 'passed');
+  assert.deepEqual(seen.entries, [
+    {
+      path: GUEST_CA_PATH,
+      type: 'file',
+      mode: 0o644,
+      inodeId: 'job-ca',
+      data: tls.caPem,
+    },
+  ]);
+  // Only the TLS run gets the network, and only the server's address.
+  assert.deepEqual(
+    seen.runs.map(([run, options]) => [run, options?.network ?? null]),
+    [
+      ['install git', null],
+      ['git --version', null],
+      ['install git-remote-https', null],
+      [line, { allow: ['127.0.0.1:4443'] }],
+    ],
+  );
+  // The helper dying of SIGILL, or a certificate failure, fails the row.
+  for (const stderr of [
+    'error: git-remote-https died of signal 4\n',
+    "fatal: unable to access 'https://localhost:4443/missing.git/': server certificate verification failed\n",
+  ]) {
+    const failed = await acceptTool(
+      fakeCommands(outputs({ exitCode: 128, stdout: '', stderr })),
+      catalog,
+      { tool: 'git', version: '2.56.0' },
+      'node',
+      undefined,
+      tls,
+    );
+    assert.equal(failed.status, 'failed');
+    assert.equal(failed.cause, 'tls-failed');
+    assert.equal(failed.stdout, `exit 128: ${stderr}`);
+  }
+  const noHelper = await acceptTool(
+    fakeCommands({
+      ...outputs({ exitCode: 0, stdout: '' }),
+      'install git-remote-https': { exitCode: 1, stdout: '' },
+    }),
+    catalog,
+    { tool: 'git', version: '2.56.0' },
+    'node',
+    undefined,
+    tls,
+  );
+  assert.equal(noHelper.cause, 'tls-failed');
+  assert.equal(noHelper.stdout, 'install git-remote-https: exit 1');
+  // A tool without a TLS check runs as before, with no CA and no network.
+  const other = {
+    entries: [] as unknown[],
+    runs: [] as [string, CommandOptions | undefined][],
+  };
+  const aubeRow = await acceptTool(
+    fakeCommands(
+      {
+        'install aube': { exitCode: 0, stdout: 'installed\n' },
+        'aube --version': { exitCode: 0, stdout: 'aube 2.7.0\n' },
+      },
+      other,
+    ),
+    catalog,
+    { tool: 'aube', version: '2.7.0' },
+    'node',
+    undefined,
+    tls,
+  );
+  assert.equal(aubeRow.status, 'passed');
+  assert.deepEqual(other.entries, []);
+  assert.equal(other.runs.length, 2);
 });
 
 test('job TLS material must come complete from CI or be created locally', async () => {

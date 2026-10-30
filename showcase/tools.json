@@ -187,6 +187,8 @@
             "configure": [
               "--disable-shared",
               "--enable-static",
+              "--build=x86_64-pc-linux-gnu",
+              "--host=x86_64-pc-linux-gnu",
               "CFLAGS=-O2 -std=gnu17"
             ]
           },
