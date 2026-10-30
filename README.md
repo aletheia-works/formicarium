@@ -90,7 +90,8 @@ has a complete example.
   with the exit code and the raw stdout/stderr bytes; `onOutput` streams them
   in order. Host, core, timeout (600000 ms by default, `timeoutMs` to change)
   and cancellation (`AbortSignal`) failures reject with an `ExecutionError`
-  carrying a stable `code` and the partial output. When the run failed inside
+  carrying a stable `code` (all codes are listed in `ERROR_CODES`) and the
+  partial output. When the run failed inside
   the Worker, its `cause` chain names the original errors; it keeps the
   messages that the JavaScript engine, WebAssembly or the core wrote, and only
   the names of other errors, so caller data such as env values stays out. A
@@ -116,10 +117,12 @@ has a complete example.
 - **Guests and catalogs.** `validateGuest` checks a guest's bytes and build
   information, `createInstaller` installs tools from a fixed catalog of
   checksummed ELF or tar.gz downloads, `registerValidatedGuest` registers a
-  checked guest you already hold, and `createCommandSession` runs one
-  command line (`ls`, `cat`, `cd`, `rm -rf`, `cp`, `mv`, `install <tool>`, or an installed
-  tool) without a shell. A registered tool runs by name in a command session,
-  and every guest run finds it as `/usr/bin/<tool>`. Installing with
+  checked guest you already hold (`runValidatedGuest` runs it once instead),
+  `fixtureToFsEntries` checks the files a session starts with, and
+  `createCommandSession` runs one command line (`ls`, `cat`, `cd`, `rm -rf`,
+  `cp`, `mv`, `install <tool>`, or an installed tool) without a shell. A
+  registered tool runs by name in a command session, and every guest run finds
+  it as `/usr/bin/<tool>`. Installing with
   `createInstaller` writes no output, so a page can have tools ready before the
   user types anything. See the
   [install API](https://aletheia-works.github.io/formicarium/guides/install-api/)

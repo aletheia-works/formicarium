@@ -112,6 +112,9 @@ Routing is by the exact `argv[0]`.
 | `install` | `install selection`           | One catalog install. URLs are not accepted (selection rules as in the install API)                     |
 | any other | `tool [args...]`              | Runs the registered tool; `NOT_FOUND` when it is not registered                                        |
 
+`ls` of a path that is not a directory, such as a file, prints nothing and
+exits with 0; `cd` to one fails with `NOT_FILE`.
+
 `ls`, `cat`, `rm`, `cd`, `cp`, `mv` and `install` are reserved. A guest can be registered
 under one of these names (for example `install ls@x` registers a tool `ls`), but
 a command cannot run it, and `ls` stays the builtin. `pwd` is not a builtin; it

@@ -21,8 +21,11 @@ can do the same.
 - **Same origin.** The Worker (`runtime/web/package-worker.bundle.js`) and the
   core under `assets/paludarium/` (the loader `index.mjs`, the modules next to
   it, `paludarium.wasm` and `build-info.json`) must be served from your page's
-  origin. Pass the absolute URLs of the Worker, loader, wasm and build
-  information as `assets`; the other modules are read next to the loader.
+  origin. Without `assets`, the browser entry finds them in the package's own
+  layout (the Worker next to it, the core in the package's
+  `assets/paludarium/`); to serve them elsewhere on your origin, pass the
+  absolute URLs of the Worker, loader, wasm and build information as `assets`.
+  The other modules are read next to the loader.
 - **Cross-origin isolation.** Serve COOP `same-origin` and COEP `require-corp`,
   or use a service worker such as coi-serviceworker on static hosting.
 - **CSP.** Allow same-origin scripts and Workers and WebAssembly compilation,

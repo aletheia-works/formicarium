@@ -20,8 +20,10 @@ showcase の端末は `@aletheia-works/formicarium` の公開 export だけを�
 - **同じ origin。** Worker（`runtime/web/package-worker.bundle.js`）と
   `assets/paludarium/` のコア（loader の `index.mjs`、その隣のモジュール、
   `paludarium.wasm`、`build-info.json`）を page と同じ origin から配ります。
-  Worker・loader・wasm・ビルド情報の絶対 URL を `assets` に渡し、ほかのモジュールは
-  loader の隣から読み込みます。
+  `assets` を渡さなければ、browser の entry は package の配置どおりに読み込みます
+  （Worker は自分の隣、コアは package の `assets/paludarium/`）。
+  origin の別の場所から配るときは、Worker・loader・wasm・ビルド情報の絶対 URL を
+  `assets` に渡します。ほかのモジュールは loader の隣から読み込みます。
 - **クロスオリジン分離。** COOP `same-origin` と COEP `require-corp` を送るか、
   静的な hosting では coi-serviceworker などの service worker を使います。
 - **CSP。** 同じ origin の script と Worker、WebAssembly の compile を許します。

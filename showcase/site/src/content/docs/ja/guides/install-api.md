@@ -69,6 +69,17 @@ install が成功すると、ゲストはツールの名前で Session に登録
 その結果を `registerValidatedGuest(session, tool, guest)` に渡します。登録の
 振る舞いは同じです。
 
+`validateGuest(bytes, { elfSha256, buildInfoSha256, identity })` は、static な
+x86-64 の ELF そのもの（128 MiB まで）と、それがどうあるべきかを受け取ります。
+`elfSha256` は bytes の SHA-256、`identity` はその `GuestBuildInfo`（その中の
+`elfSha256` も同じ値）、`buildInfoSha256` は `identity` の正規形（下記）の SHA-256 です。
+どれかが合わなければ `INVALID_INPUT` です。返す handle は凍結され、`digest` と
+`buildInfo` を見せます。後で受け付けるのは `validateGuest` が作った handle だけです。
+`runValidatedGuest(session, guest, options?)` は、その handle を登録せずに 1 回
+実行します。options は `guest` を除いた `session.run` のものです。
+`registerValidatedGuest` は `{ signal }` も受け取り、予約を取る前か後に signal が
+abort していれば `ABORTED` で、何も登録しません。
+
 ## カタログ
 
 公開している型は `GuestCatalog`、`CatalogEntry`、`GuestBuildInfo` です。

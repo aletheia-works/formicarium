@@ -89,6 +89,9 @@ WebSocket の relay を `relay` に渡す必要があり（[ADR 0015](/formicari
 | `install` | `install selection`           | カタログからの install を 1 回。URL は受け付けない（選び方は install API のとおり） |
 | それ以外  | `tool [args...]`              | 登録したツールを実行する。登録していなければ `NOT_FOUND`                            |
 
+ディレクトリでないパス（file など）の `ls` は何も出さずに 0 で終わり、`cd` は
+`NOT_FILE` で失敗します。
+
 `ls`・`cat`・`rm`・`cd`・`cp`・`mv`・`install` は予約名です。同じ名前のゲストを登録することはできますが（たとえば `install ls@x` は
 `ls` というツールを登録します）、command からは呼べず、`ls` は引き続き builtin として動きます。`pwd` は builtin ではなく、
 同じ名前のゲストを登録していなければ `NOT_FOUND` です。

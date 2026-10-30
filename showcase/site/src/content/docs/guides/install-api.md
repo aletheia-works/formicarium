@@ -77,6 +77,18 @@ To register guest bytes that do not come from a catalog, check them with
 `validateGuest` and pass the result to `registerValidatedGuest(session, tool,
 guest)`; the registration behaves the same.
 
+`validateGuest(bytes, { elfSha256, buildInfoSha256, identity })` takes the raw
+static x86-64 ELF (at most 128 MiB) and what it must be: `elfSha256` is the
+SHA-256 of the bytes, `identity` is its `GuestBuildInfo` (whose own `elfSha256`
+must be the same), and `buildInfoSha256` is the SHA-256 of `identity` in its
+canonical form (below). Any mismatch is `INVALID_INPUT`. The frozen handle it
+returns exposes `digest` and `buildInfo`, and only a handle made by
+`validateGuest` is accepted later. `runValidatedGuest(session, guest,
+options?)` runs such a handle once without registering it, with the options
+of `session.run` other than `guest`. `registerValidatedGuest` also takes
+`{ signal }`: an aborted signal before or after it gets the reservation is
+`ABORTED`, and nothing is registered.
+
 ## Catalog
 
 The published types are `GuestCatalog`, `CatalogEntry` and `GuestBuildInfo`.
