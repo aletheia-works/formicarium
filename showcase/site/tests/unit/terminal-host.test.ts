@@ -11,6 +11,7 @@ import type { LoadedFormicarium } from '../../src/terminal/formicarium-loader.ts
 import type { TerminalPageData } from '../../src/terminal/page-data.ts';
 import {
   attachPageEvents,
+  copyAction,
   type HostOptions,
   type KeyMods,
   keyPlatform,
@@ -723,6 +724,36 @@ test('pagehide disposes; pageshow from the back-forward cache reloads; Tab is pa
   assert.equal(reloads, 1);
   assert.equal(passKey({ key: 'Tab' }), false);
   assert.equal(passKey({ key: 'a' }), true);
+});
+
+test('Ctrl+C copies a selection off macOS; without one it still reaches the terminal', () => {
+  const key = (key: string, mods: Partial<KeyMods> = {}) => ({
+    key,
+    ctrlKey: false,
+    shiftKey: false,
+    altKey: false,
+    metaKey: false,
+    ...mods,
+  });
+  const ctrlC = key('c', { ctrlKey: true });
+  const ctrlShiftC = key('C', { ctrlKey: true, shiftKey: true });
+  // With a selection, Ctrl+C goes to the browser, whose copy event xterm
+  // fills; without one it is ^C (drop the line, interrupt the run).
+  assert.equal(copyAction(ctrlC, 'other', true), 'browser');
+  assert.equal(copyAction(ctrlC, 'other', false), null);
+  // Ctrl+Shift+C opens the element picker in Chrome and Edge, so the page
+  // starts the copy itself and keeps the key from the browser.
+  assert.equal(copyAction(ctrlShiftC, 'other', true), 'write');
+  assert.equal(copyAction(ctrlShiftC, 'other', false), 'swallow');
+  // macOS copies with Cmd+C itself; other keys are not copies.
+  assert.equal(copyAction(ctrlC, 'mac', true), null);
+  assert.equal(copyAction(ctrlShiftC, 'mac', true), null);
+  assert.equal(
+    copyAction(key('c', { ctrlKey: true, altKey: true }), 'other', true),
+    null,
+  );
+  assert.equal(copyAction(key('c'), 'other', true), null);
+  assert.equal(copyAction(key('x', { ctrlKey: true }), 'other', true), null);
 });
 
 test('Ctrl+V and Ctrl+Shift+V paste through the browser off macOS', () => {

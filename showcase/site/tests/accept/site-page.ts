@@ -20,6 +20,7 @@ export type Key =
   // The platform's copy and paste keys (paste.spec.ts).
   | 'Control+v'
   | 'Control+Shift+v'
+  | 'Control+Shift+c'
   | 'Meta+c'
   | 'Meta+v';
 
@@ -42,6 +43,11 @@ export interface SitePage {
   press(key: Key): Promise<void>;
   /** Puts text into the focused element at once. */
   insertText(text: string): Promise<void>;
+  /** A left-button drag between two viewport points (to select text). */
+  drag(
+    from: { x: number; y: number },
+    to: { x: number; y: number },
+  ): Promise<void>;
   setViewportSize(width: number, height: number): Promise<void>;
   title(): Promise<string>;
   /** Top-level windows or tabs open in this test (popups included). */
@@ -79,6 +85,12 @@ class PlaywrightPage implements SitePage {
   }
   insertText(text: string) {
     return this.page.keyboard.insertText(text);
+  }
+  async drag(from: { x: number; y: number }, to: { x: number; y: number }) {
+    await this.page.mouse.move(from.x, from.y);
+    await this.page.mouse.down();
+    await this.page.mouse.move(to.x, to.y, { steps: 8 });
+    await this.page.mouse.up();
   }
   setViewportSize(width: number, height: number) {
     return this.page.setViewportSize({ width, height });
@@ -134,6 +146,30 @@ Promise.resolve().then(() => (${fn.toString()})(arg)).then(
     if (!reply || 'error' in reply)
       throw Error(`evaluate in Safari: ${reply?.error ?? 'no result'}`);
     return reply.value as R;
+  }
+  async drag(from: { x: number; y: number }, to: { x: number; y: number }) {
+    const point = (at: { x: number; y: number }) => ({
+      type: 'pointerMove',
+      origin: 'viewport',
+      x: Math.round(at.x),
+      y: Math.round(at.y),
+    });
+    await this.call('POST', '/actions', {
+      actions: [
+        {
+          type: 'pointer',
+          id: 'mouse',
+          parameters: { pointerType: 'mouse' },
+          actions: [
+            point(from),
+            { type: 'pointerDown', button: 0 },
+            { ...point(to), duration: 200 },
+            { type: 'pointerUp', button: 0 },
+          ],
+        },
+      ],
+    });
+    await this.call('DELETE', '/actions');
   }
   private async keys(actions: { type: string; value: string }[]) {
     await this.call('POST', '/actions', {

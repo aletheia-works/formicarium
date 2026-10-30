@@ -677,7 +677,7 @@ export interface KeyMods {
   altKey: boolean;
   metaKey: boolean;
 }
-/** macOS pastes with Cmd+V itself; elsewhere Ctrl+V is the paste key. */
+/** macOS copies and pastes with Cmd+C and Cmd+V itself; elsewhere Ctrl. */
 export type KeyPlatform = 'mac' | 'other';
 export const keyPlatform = (platform: string): KeyPlatform =>
   /^(?:Mac|iPhone|iPad|iPod)/.test(platform) ? 'mac' : 'other';
@@ -700,6 +700,32 @@ export const passKey = (
     !event.metaKey &&
     event.key.toLowerCase() === 'v'
   );
+
+/**
+ * What a copy key does off macOS (which copies with Cmd+C itself), or null
+ * when the key is not a copy and goes on as before:
+ * - `browser`: Ctrl+C with a selection is left to the browser, whose copy
+ *   event xterm fills with the selection; without one it stays ^C.
+ * - `write`: Ctrl+Shift+C opens the element picker in Chrome and Edge, so
+ *   the page starts the copy itself.
+ * - `swallow`: Ctrl+Shift+C with nothing selected does nothing.
+ */
+export function copyAction(
+  event: { key: string } & Partial<KeyMods>,
+  platform: KeyPlatform,
+  selected: boolean,
+): 'browser' | 'write' | 'swallow' | null {
+  if (
+    platform !== 'other' ||
+    !event.ctrlKey ||
+    event.altKey ||
+    event.metaKey ||
+    event.key.toLowerCase() !== 'c'
+  )
+    return null;
+  if (event.shiftKey) return selected ? 'write' : 'swallow';
+  return selected ? 'browser' : null;
+}
 
 /**
  * pagehide disposes the terminal; a page restored from the back-forward cache
@@ -771,7 +797,25 @@ export async function startTerminalPage(
   terminal.loadAddon(fit);
   terminal.open(element);
   const platform = keyPlatform(navigator.platform);
-  terminal.attachCustomKeyEventHandler((event) => passKey(event, platform));
+  // Off macOS a copy ends the selection, as in Windows Terminal and VS Code,
+  // so that the next Ctrl+C is ^C again. It is cleared after xterm filled
+  // the copy event (its listeners run first, on the textarea and here).
+  if (platform === 'other')
+    element.addEventListener('copy', () =>
+      setTimeout(() => terminal.clearSelection()),
+    );
+  terminal.attachCustomKeyEventHandler((event) => {
+    const copy = copyAction(event, platform, terminal.hasSelection());
+    if (copy === 'write' || copy === 'swallow') {
+      event.preventDefault();
+      // The copy event, as Ctrl+C gets from the browser, which xterm fills
+      // with the selection; the Clipboard API needs a permission in some.
+      if (copy === 'write' && event.type === 'keydown')
+        document.execCommand('copy');
+      return false;
+    }
+    return copy === 'browser' ? false : passKey(event, platform);
+  });
   new ResizeObserver(() => {
     if (element.clientWidth && element.clientHeight) fit.fit();
   }).observe(element);
