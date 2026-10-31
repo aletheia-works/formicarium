@@ -14,10 +14,12 @@ import { elf, expectation } from './session-fixtures.js';
 
 function fixture() {
   let executed: Uint8Array | undefined;
+  let program: string | undefined;
   const state = new SessionState();
   const session = createLifecycle(state, {
     spawn(request, handlers) {
       executed = request.guest;
+      program = request.program;
       handlers.message({
         ...identity(request),
         type: 'done',
@@ -62,6 +64,7 @@ function fixture() {
     selection: info.tool,
     port: sessionPort(session),
     executed: () => executed,
+    program: () => program,
   };
 }
 test('installer uses public-shape result and commits owned bytes while preserving catalog snapshot', async (t) => {
@@ -92,6 +95,21 @@ test('installer uses public-shape result and commits owned bytes while preservin
   await value.port.runInstalled(r, name, [], {});
   await value.port.release(r);
   assert.equal(value.executed()![0], 127);
+});
+test('an installed guest runs from its /usr/bin path, as when another guest runs it', async (t) => {
+  const value = fixture();
+  t.after(() => value.session.dispose());
+  t.mock.method(globalThis, 'fetch', async () => new Response(value.bytes));
+  await createInstaller(value.session, value.catalog).install(value.selection);
+  const r = await value.port.acquire('run');
+  await value.port.runInstalled(r, value.selection, [], {});
+  await value.port.release(r);
+  assert.equal(value.program(), `/usr/bin/${value.selection}`);
+  await value.session.run({ guest: value.bytes });
+  assert.equal(value.program(), undefined);
+  const run = value.session.run as (...args: unknown[]) => Promise<unknown>;
+  await run({ guest: value.bytes }, undefined, '/usr/bin/other');
+  assert.equal(value.program(), undefined);
 });
 test('fake Session, unknown selection and preabort reject before network starts', async (t) => {
   const value = fixture();

@@ -102,6 +102,12 @@ export interface RunRequest extends Identity {
   type: 'run';
   assets: Assets;
   guest: Uint8Array;
+  /**
+   * Where an installed guest runs from (INSTALLED_GUEST_DIRECTORY/<tool>), so
+   * its argv[0] is that path, as when another guest runs it. Absent for a
+   * guest given to Session.run, which runs from /guest/program.
+   */
+  program?: string;
   /** The session's installed guests, placed at INSTALLED_GUEST_DIRECTORY/<tool>. */
   tools: { tool: string; bytes: Uint8Array }[];
   args: string[];

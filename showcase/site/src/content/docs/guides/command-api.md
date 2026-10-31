@@ -126,7 +126,9 @@ default `PATH`, so a guest can start another by name; for example, jj opens nano
 as its editor. These files are placed again for each run and are not the
 Session's files: `ls` and snapshots do not show them, and what a run writes
 there is dropped. So a `cwd` or `home` in `/usr/bin` or above it is
-`INVALID_INPUT`.
+`INVALID_INPUT`. A command that runs a registered guest starts it from
+`/usr/bin/<tool>`, so its `argv[0]` is that path, as when another guest runs
+it; a guest given to `Session.run` starts from `/guest/program`.
 
 Paths are guest paths; the Session normalizes and resolves them. The command
 API reads no host filesystem, URL or environment variable. A path that does not

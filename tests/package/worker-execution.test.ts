@@ -88,6 +88,31 @@ test('Worker execution places each installed guest in /usr/bin and never snapsho
     messages[0]!.snapshot.every(({ path }) => !path.startsWith('/usr')),
   );
 });
+test('Worker execution starts an installed guest from its /usr/bin path', async () => {
+  const runs: FakeRun[] = [];
+  const nano = elfHeader();
+  await executeWorkerRequest(
+    {
+      ...request(),
+      guest: nano,
+      program: '/usr/bin/nano',
+      args: ['-V'],
+      tools: [{ tool: 'nano', bytes: nano }],
+    },
+    {
+      post: () => {},
+      loadCore: adapter({
+        run(run) {
+          runs.push(run);
+          return {};
+        },
+      }),
+    },
+  );
+  assert.equal(runs[0]!.program, '/usr/bin/nano');
+  assert.deepEqual(runs[0]!.args, ['/usr/bin/nano', '-V']);
+  assert.equal(runs[0]!.files.has('/guest/program'), false);
+});
 test('Worker execution gives the core the allowed destinations, and none without them', async () => {
   const runs: FakeRun[] = [];
   const loadCore = adapter({

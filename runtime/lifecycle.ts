@@ -13,7 +13,11 @@ import type {
   Streams,
   WorkerHandle,
 } from './contracts.js';
-import { copyNetwork, errorCode } from './contracts.js';
+import {
+  copyNetwork,
+  errorCode,
+  INSTALLED_GUEST_DIRECTORY,
+} from './contracts.js';
 import { invalid } from './errors.js';
 import type { GuestHandle } from './guest-validation.js';
 import { bindSessionPort, type Reservation } from './session-port.js';
@@ -281,6 +285,7 @@ export function createLifecycle(
   function run(
     options: RunOptions,
     reserved?: Reservation,
+    program?: string,
   ): Promise<RunResult> {
     let input: ReturnType<typeof validateRun>;
     let entries: FsEntry[];
@@ -341,6 +346,7 @@ export function createLifecycle(
         type: 'run',
         assets: { ...assets },
         guest: input.guest,
+        ...(program ? { program } : {}),
         tools,
         args: input.args,
         env: input.env,
@@ -429,7 +435,8 @@ export function createLifecycle(
       }
     };
   const session = Object.freeze({
-    run,
+    // Only an installed guest's run chooses where the guest runs from.
+    run: (options: RunOptions) => run(options),
     dispose,
     readFile: fsOperation((r, path: string) => state.readFile(path, r)),
     remove: fsOperation((r, path: string) => state.remove(path, r)),
@@ -447,6 +454,7 @@ export function createLifecycle(
         return run(
           { ...options, guest: state.installedGuest(r, tool), args },
           r,
+          `${INSTALLED_GUEST_DIRECTORY}/${tool}`,
         );
       } catch (error) {
         return Promise.reject(error);

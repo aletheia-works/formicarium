@@ -97,15 +97,20 @@ export async function executeWorkerRequest(
     const started = clock();
     const result = await runGuest({
       launcher: adapter.launcher,
-      guestPath: '/guest/program',
+      // An installed guest is already placed in INSTALLED_GUEST_DIRECTORY.
+      guestPath: request.program ?? '/guest/program',
       entries: [
         ...request.entries,
-        {
-          path: '/guest/program',
-          type: 'file',
-          data: new Uint8Array(request.guest),
-          mode: 0o755,
-        },
+        ...(request.program
+          ? []
+          : [
+              {
+                path: '/guest/program',
+                type: 'file' as const,
+                data: new Uint8Array(request.guest),
+                mode: 0o755,
+              },
+            ]),
         ...request.tools.map(({ tool, bytes }) => ({
           path: `${INSTALLED_GUEST_DIRECTORY}/${tool}`,
           type: 'file' as const,

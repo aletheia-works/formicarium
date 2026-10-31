@@ -100,6 +100,8 @@ Session の実行は、command からでも `Session.run` からでも、登録�
 見つけます。`/usr/bin` はゲストの既定の `PATH` にあるので、ゲストは別のゲストを名前で起動できます（たとえば jj は nano を
 エディタとして開きます）。これらのファイルは実行のたびに置き直し、Session のファイルではありません。`ls` や snapshot には
 現れず、実行がそこに書いたものは捨てます。そのため、`/usr/bin` の中やその上の `cwd`・`home` は `INVALID_INPUT` です。
+command が登録したゲストを実行するときは `/usr/bin/<tool>` から起動するので、別のゲストから起動したときと同じく、
+`argv[0]` はその path です。`Session.run` に渡したゲストは `/guest/program` から起動します。
 
 パスはゲストのパスとして扱い、正規化と解決は Session が行います。command API はホストのファイルシステム・URL・
 環境変数を読みません。`/` で始まらないパスは、Session の今の作業ディレクトリを基準に解決します
