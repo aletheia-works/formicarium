@@ -40,6 +40,7 @@ test('every page exists in English and Japanese', async () => {
       'embedding',
       'install-api',
       'command-api',
+      'errors',
       'source-builds',
       'releases',
       'architecture',

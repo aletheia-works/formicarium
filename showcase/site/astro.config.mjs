@@ -129,6 +129,10 @@ export default defineConfig({
               link: '/guides/command-api/',
             },
             {
+              ...label('Error codes', 'エラーコード'),
+              link: '/guides/errors/',
+            },
+            {
               ...label('Source builds', 'source build'),
               link: '/guides/source-builds/',
             },

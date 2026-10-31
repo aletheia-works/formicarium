@@ -90,8 +90,9 @@ has a complete example.
   with the exit code and the raw stdout/stderr bytes; `onOutput` streams them
   in order. Host, core, timeout (600000 ms by default, `timeoutMs` to change)
   and cancellation (`AbortSignal`) failures reject with an `ExecutionError`
-  carrying a stable `code` (all codes are listed in `ERROR_CODES`) and the
-  partial output. When the run failed inside
+  carrying a stable `code` (all codes are listed in `ERROR_CODES` and on the
+  [error codes](https://aletheia-works.github.io/formicarium/guides/errors/)
+  page) and the partial output. When the run failed inside
   the Worker, its `cause` chain names the original errors; it keeps the
   messages that the JavaScript engine, WebAssembly or the core wrote, and only
   the names of other errors, so caller data such as env values stays out. A
