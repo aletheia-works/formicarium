@@ -42,7 +42,9 @@ mirrors.dotsrc.org, GnuTLS to two mirrors of gnupg.org), and the package's
 remaining files are fetched from the mirror that answered. The signature is
 checked against the same pinned keys wherever the tarball came from, and a
 wrong answer, size or signature never moves on to a mirror. A mirror whose
-listing lags gives its own newest signed version.
+listing lags gives its own newest signed version. Savannah's tag lookup
+likewise asks https.git.savannah.gnu.org, where git.savannah.gnu.org
+redirects, when the latter stays unreachable.
 
 Every source build (pitchfork, nano, and git with `git-remote-https`) is
 reused instead of compiled again when an earlier trusted main run built the

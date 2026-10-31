@@ -47,8 +47,11 @@ export interface GnuTransferOptions {
  * ftp.gnu.org, Savannah and the other release servers drop some connections
  * from CI runners, so a transport failure of a request to them is retried
  * twice (fetchGnu), and so is a release listing that names no signed tarball
- * (resolveGnuPackage), which zlib.net has given CI. The GitHub API stays
- * unretried, and any other bad answer (status, size, signature) never is.
+ * (resolveGnuPackage), which zlib.net has given CI. After the retries a
+ * transport failure moves on to the source's mirrors (fromMirrors) or, for
+ * Savannah's git host, to its frontend (lsRemoteCommit), with the same
+ * retries there. The GitHub API stays unretried, and any other bad answer
+ * (status, size, signature) never is.
  */
 export const GNU_RETRY_DELAYS_MS = Object.freeze([10_000, 30_000]);
 
@@ -316,8 +319,17 @@ function gitMessage(error: unknown): string {
 }
 
 /**
+ * Savannah's git host now redirects to its https.git frontend, which serves
+ * the same repositories; when the host itself stays unreachable after the
+ * retries, the frontend is asked directly.
+ */
+const SAVANNAH_GIT = 'https://git.savannah.gnu.org/';
+const SAVANNAH_FRONTEND = 'https://https.git.savannah.gnu.org/';
+
+/**
  * The tag's commit in a Savannah git repository, peeled like
- * resolveTagCommit. A failed git run is retried like a GNU transfer.
+ * resolveTagCommit. A failed git run is retried like a GNU transfer, then
+ * sent to Savannah's frontend; a missing tag is an answer and is not.
  */
 export async function lsRemoteCommit(
   repository: string,
@@ -325,28 +337,41 @@ export async function lsRemoteCommit(
   exec: Exec = defaultExec,
   retryDelaysMs?: readonly number[],
 ): Promise<string> {
-  const output = await retrying(
-    async () => {
-      try {
-        return exec('git', [
-          'ls-remote',
-          '--tags',
-          repository,
-          `refs/tags/${tag}`,
-          `refs/tags/${tag}^{}`,
-        ]);
-      } catch (error) {
-        if (error instanceof ShowcaseError) throw error;
-        return fail(
-          'offline',
-          `git ls-remote ${repository} failed${gitMessage(error)}`,
-          error,
-        );
-      }
-    },
-    transportError,
-    retryDelaysMs,
-  );
+  const listRefs = (url: string) =>
+    retrying(
+      async () => {
+        try {
+          return exec('git', [
+            'ls-remote',
+            '--tags',
+            url,
+            `refs/tags/${tag}`,
+            `refs/tags/${tag}^{}`,
+          ]);
+        } catch (error) {
+          if (error instanceof ShowcaseError) throw error;
+          return fail(
+            'offline',
+            `git ls-remote ${url} failed${gitMessage(error)}`,
+            error,
+          );
+        }
+      },
+      transportError,
+      retryDelaysMs,
+    );
+  let output: string;
+  try {
+    output = await listRefs(repository);
+  } catch (error) {
+    if (!transportError(error) || !repository.startsWith(SAVANNAH_GIT))
+      throw error;
+    const frontend = SAVANNAH_FRONTEND + repository.slice(SAVANNAH_GIT.length);
+    console.warn(
+      `${error instanceof Error ? error.message : 'failed'}; trying ${frontend}`,
+    );
+    output = await listRefs(frontend);
+  }
   const refs = new Map(
     output
       .split('\n')

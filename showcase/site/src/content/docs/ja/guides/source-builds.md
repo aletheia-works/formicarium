@@ -35,7 +35,8 @@ showcase のツールは
 mirrors.kernel.org と mirrors.dotsrc.org、GnuTLS は gnupg.org の 2 つの mirror）。その package の
 残りのファイルは、答えた mirror から取ります。tarball がどこから来ても、同じ固定した鍵で署名を
 確かめます。答え・大きさ・署名の誤りでは mirror に移りません。mirror の一覧が遅れていれば、
-その一覧の最も新しい署名付きの版を使います。
+その一覧の最も新しい署名付きの版を使います。Savannah の tag の問い合わせも、git.savannah.gnu.org に
+届かなければ、その転送先の https.git.savannah.gnu.org に直接問い合わせます。
 
 source の build（pitchfork、nano、`git-remote-https` を含む git）はどれも、以前の信頼できる
 main の run に同じ `buildKey` の build があれば、compile せずに再利用します。

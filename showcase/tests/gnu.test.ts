@@ -189,7 +189,8 @@ test('git ls-remote gives the peeled commit of a Savannah tag', async () => {
       lsRemoteCommit(repository, 'v9.3', exec),
       'commit-unreachable',
     );
-  // A failed git run is retried twice and reports git's own message.
+  // A failed git run is retried twice on each host and reports git's own
+  // message.
   let runs = 0;
   const offline = () => {
     runs++;
@@ -199,9 +200,9 @@ test('git ls-remote gives the peeled commit of a Savannah tag', async () => {
   };
   await assert.rejects(
     lsRemoteCommit(repository, 'v9.3', offline, [0, 0]),
-    /offline: git ls-remote .+ failed: fatal: unable to access the repository: Connection reset$/,
+    /offline: git ls-remote https:\/\/https\.git\.savannah\.gnu\.org\/git\/nano\.git failed: fatal: unable to access the repository: Connection reset$/,
   );
-  assert.equal(runs, 3);
+  assert.equal(runs, 6);
   let flaky = 0;
   assert.equal(
     await lsRemoteCommit(
@@ -215,6 +216,46 @@ test('git ls-remote gives the peeled commit of a Savannah tag', async () => {
     ),
     commit('nano'),
   );
+});
+
+test('an unreachable Savannah host falls back to its https.git frontend', async () => {
+  // git.savannah.gnu.org has failed CI's TLS handshakes for whole runs; it
+  // now redirects to https.git.savannah.gnu.org, which serves the same refs.
+  const repository = 'https://git.savannah.gnu.org/git/nano.git';
+  const asked: string[] = [];
+  const exec = (file: string, args: readonly string[]) => {
+    asked.push(args[2]!);
+    if (args[2] === repository)
+      throw Object.assign(new Error('git exited with 128'), {
+        stderr: "fatal: unable to access 'x': gnutls_handshake() failed\n",
+      });
+    return gnuExec()(file, args);
+  };
+  assert.equal(
+    await lsRemoteCommit(repository, 'v9.3', exec, [0, 0]),
+    commit('nano'),
+  );
+  assert.deepEqual(asked, [
+    repository,
+    repository,
+    repository,
+    'https://https.git.savannah.gnu.org/git/nano.git',
+  ]);
+  // A tag that is missing is an answer, not a transport failure.
+  const empty: string[] = [];
+  await rejects(
+    lsRemoteCommit(
+      repository,
+      'v9.3',
+      (_file, args) => {
+        empty.push(args[2]!);
+        return '';
+      },
+      [0, 0],
+    ),
+    'commit-unreachable',
+  );
+  assert.deepEqual(empty, [repository]);
 });
 
 test('a git ls-remote that stalls is stopped at its deadline and retried', async () => {
@@ -235,7 +276,7 @@ test('a git ls-remote that stalls is stopped at its deadline and retried', async
     ),
     /deadline: sh -c .+ did not finish within 300 ms$/,
   );
-  assert.equal(runs, 3);
+  assert.equal(runs, 6);
   assert.ok(Date.now() - started < 10_000);
 });
 
