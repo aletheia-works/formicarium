@@ -26,8 +26,8 @@ const port = Number(process.env.FORMICARIUM_PORT ?? 8787);
 const origin = `http://127.0.0.1:${port}`;
 /** The same per-run limit as the Playwright probe test. */
 const RUN_TIMEOUT_MS = 10 * 60 * 1000;
-/** How many times the iOS Simulator's Safari is asked for a session. */
-const IOS_SESSION_ATTEMPTS = 3;
+/** How many times Safari is asked for a session. */
+const SESSION_ATTEMPTS = 3;
 const CHECKS = [
   'tokio-timer',
   'unix-stream-pair',
@@ -148,10 +148,11 @@ async function serveGuests(files: Record<string, Uint8Array>) {
 }
 
 /**
- * Open the WebDriver session. In the iOS Simulator, safaridriver sometimes
- * times out waiting for Safari's RWIApplication ("session not created"); after
- * any failed attempt Safari is relaunched and the session is asked for again, a
- * set number of times. This retries only the connection to Safari, never a test.
+ * Open the WebDriver session. safaridriver sometimes times out waiting for
+ * Safari's RWIApplication ("session not created"), in the iOS Simulator and on
+ * macOS; after any failed attempt Safari is relaunched (on macOS, quit so that
+ * safaridriver starts it again) and the session is asked for again, a set number
+ * of times. This retries only the connection to Safari, never a test.
  */
 async function createSession() {
   const request = () =>
@@ -166,7 +167,6 @@ async function createSession() {
         },
       },
     }) as Promise<{ sessionId: string; capabilities: Record<string, unknown> }>;
-  if (!ios) return request();
   for (let attempt = 1; ; attempt++) {
     const started = Date.now();
     try {
@@ -174,9 +174,18 @@ async function createSession() {
     } catch (error) {
       // The time tells whether a later failure needs a longer wait after launch.
       console.log(
-        `iOS Safari session attempt ${attempt} failed after ${Date.now() - started} ms: ${error}`,
+        `${ios ? 'iOS ' : ''}Safari session attempt ${attempt} failed after ${Date.now() - started} ms: ${error}`,
       );
-      if (attempt >= IOS_SESSION_ATTEMPTS) throw error;
+      if (attempt >= SESSION_ATTEMPTS) throw error;
+      if (!ios) {
+        // pkill fails when Safari is not running. Run locally, it also quits
+        // a Safari window the developer has open.
+        try {
+          execFileSync('pkill', ['-x', 'Safari']);
+        } catch {}
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+        continue;
+      }
       // terminate fails when Safari is not running; launch then starts it anyway.
       try {
         execFileSync('xcrun', [

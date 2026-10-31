@@ -1,5 +1,6 @@
 // A minimal W3C WebDriver client for safaridriver, which drives the Safari
 // that ships with macOS (the showcase and site acceptance in real Safari).
+import { execFileSync } from 'node:child_process';
 import { request } from 'node:http';
 
 export const SAFARIDRIVER =
@@ -78,15 +79,54 @@ export interface SafariSession {
   platformName: string;
 }
 
-/** A new Safari session; Safari runs one session at a time. */
-export async function createSession(): Promise<SafariSession> {
+/** How many times createSession asks safaridriver for a session. */
+export const SESSION_ATTEMPTS = 3;
+
+/**
+ * Quit Safari so that safaridriver launches it again; it may not be running.
+ * Run locally, this also quits a Safari window the developer has open.
+ */
+function quitSafari(): void {
+  try {
+    execFileSync('pkill', ['-x', 'Safari']);
+  } catch {}
+}
+
+/**
+ * A new Safari session; Safari runs one session at a time. safaridriver
+ * sometimes times out waiting for Safari to start ("session not created");
+ * after a failed attempt Safari is quit and the session is asked for again, a
+ * set number of times. This retries only the connection to Safari, never a test.
+ */
+export async function createSession({
+  retryDelayMs = 5000,
+  relaunch = quitSafari,
+}: {
+  retryDelayMs?: number;
+  relaunch?: () => void;
+} = {}): Promise<SafariSession> {
   await waitForDriver();
-  const created = (await webdriver('POST', '/session', {
-    capabilities: { alwaysMatch: { browserName: 'safari' } },
-  })) as {
+  let created: {
     sessionId: string;
     capabilities: { browserVersion?: string; platformName?: string };
   };
+  for (let attempt = 1; ; attempt++) {
+    const started = Date.now();
+    try {
+      created = (await webdriver('POST', '/session', {
+        capabilities: { alwaysMatch: { browserName: 'safari' } },
+      })) as typeof created;
+      break;
+    } catch (error) {
+      // The time tells whether a later failure needs a longer wait.
+      console.log(
+        `Safari session attempt ${attempt} failed after ${Date.now() - started} ms: ${error}`,
+      );
+      if (attempt >= SESSION_ATTEMPTS) throw error;
+      relaunch();
+      await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+    }
+  }
   return {
     id: created.sessionId,
     browserVersion: created.capabilities.browserVersion ?? 'unknown',
