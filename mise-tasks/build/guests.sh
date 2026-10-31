@@ -4,7 +4,7 @@
 # usage: mise run build-guests [probe|aube|pitchfork|nano|git|jj|all]
 # static-musl x86-64 のゲストをコンテナ（rust:alpine）でビルドし、dist/guests/ に置く。
 #   probe     : guest/probe の probe・hello・exit3・ttyecho・spawn
-#   aube      : aubepkg/aube の AUBE_REF（既定 v2.6.1）
+#   aube      : aubepkg/aube の AUBE_REF（既定 v2.8.5）
 #   pitchfork : jdx/pitchfork（公式リポジトリ）の PITCHFORK_REF（既定 v2.30.1）。ソースは変えない
 #   nano      : GNU nano NANO_VERSION（既定 9.3）。ncurses NCURSES_VERSION（既定 6.6）に
 #               xterm-256color の端末定義を組み込み、terminfo のファイルなしで動くようにする。ソースは変えない
@@ -31,7 +31,7 @@ guests="probe hello exit3 ttyecho aube pitchfork nano git git-remote-https jj"
 
 image=${FORMICARIUM_RUST_IMAGE:-rust:alpine}
 aube_repo=${AUBE_REPO:-https://github.com/aubepkg/aube.git}
-aube_ref=${AUBE_REF:-v2.6.1}
+aube_ref=${AUBE_REF:-v2.8.5}
 if ! [[ $aube_ref =~ ^[A-Za-z0-9._/-]+$ ]]; then
   echo "error: AUBE_REF に使えない文字があります: $aube_ref" >&2
   exit 2

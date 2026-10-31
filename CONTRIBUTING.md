@@ -68,9 +68,8 @@ mise run native-baseline aube-1645 --check-reproducible
 mise run native-baseline pitchfork-basic --check-reproducible
 ```
 
-CI builds aube v2.7.0 and pitchfork v2.30.1 (`AUBE_REF`, `PITCHFORK_REF`;
-the script's own default is still aube v2.6.1, so pass `AUBE_REF=v2.7.0` to
-build what CI builds), and nano 9.3 with ncurses 6.6 (`NANO_VERSION`,
+CI builds aube v2.8.5 and pitchfork v2.30.1 (`AUBE_REF`, `PITCHFORK_REF`,
+the same as the script's defaults), and nano 9.3 with ncurses 6.6 (`NANO_VERSION`,
 `NCURSES_VERSION`). The nano and ncurses tarballs are checked against SHA-256
 digests in the build script, taken from tarballs whose signatures were checked
 with the GNU keyring; a different version needs its digest too

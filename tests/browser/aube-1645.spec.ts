@@ -38,7 +38,7 @@ test('aube #1645 の書き起こしが native と一致する', async ({ page })
   ]);
   expect(result.steps?.map((step) => step.exitCode)).toEqual([0, 0, 0, 0]);
   expect(normalizeTranscript(result.transcript!)).toBe(baseline);
-  // 修正済み v2.7.0 の native と同じ file:/link: 依存の版を検査する。
+  // 修正の入った版（v2.7.0 以降）の native と同じ file:/link: 依存の版を検査する。
   expect(result.transcript!).toContain('├── filedep 1.0.0\n└── linked 2.0.0\n');
 });
 
