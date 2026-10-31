@@ -4,8 +4,9 @@ title: Error codes
 description: The ExecutionError codes and when each one is raised.
 ---
 
-Every failure is an `ExecutionError`: invalid input throws one with
-`INVALID_INPUT`, and a host or core failure rejects with one. A guest that
+Every failure of a Session, an installer or a command session is an
+`ExecutionError`: invalid input throws one with `INVALID_INPUT`, and a host or
+core failure rejects with one. A guest that
 exits, even with a nonzero exit code, is not an error: its run resolves with
 the `exitCode`. Every code is in the exported `ERROR_CODES`, and `error.code`
 is always one of them.

@@ -6,8 +6,8 @@ description: showcase が guest を選び、取得し、build する方法。
 
 showcase のツールは
 [`showcase/tools.json`](https://github.com/aletheia-works/formicarium/blob/main/showcase/tools.json)
-で定義します。`showcase.yml` の run は、各ツールの repository の tag の形から最新の
-安定版を1回だけ解決し、その tag と完全な commit を run の最後まで使います。
+で定義します。`showcase.yml` の run は、各ツールの最新の安定版（GitHub の latest release で、tag が
+ツールの形に合うもの。source build では一覧の中で最も新しい署名付きの tarball）を1回だけ解決し、その tag と完全な commit を run の最後まで使います。
 - **release の資産。** aube・Biome・jj は static な x86-64 musl の binary を公開して
   います。showcase は release の資産を取得し、公開された SHA256 と大きさを確かめ、
   公開の `validateGuest` で ELF を検証します。

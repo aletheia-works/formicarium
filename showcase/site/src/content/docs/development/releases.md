@@ -37,7 +37,8 @@ exactly the repository `aletheia-works/formicarium`, the workflow
 ## Checks before publishing
 
 The release PR runs every CI group: lint, types and light tests, the native
-baselines and the Node.js, Chromium, Firefox and WebKit regressions, and the
+baselines, the Node.js, Chromium, Firefox and WebKit regressions, real Safari
+on macOS and in an iOS Simulator, and the
 release candidate, which packs the exact tarball and requires at least 80% line
 coverage of the 23 distributed JavaScript files. The candidate is packed once;
 Node.js and each browser then check those bytes in parallel jobs, each with one
@@ -79,8 +80,9 @@ users are pointed to the last good version.
 
 The workflow's shell steps are tested with fake GitHub and registry responses
 and fake writers: release, head and source identity, failed CI, version drift,
-modified tarballs, coverage refusal and recovery of the same version. CI on a
-pull request runs the real candidate preparation, regression and coverage; npm
+modified tarballs, coverage refusal and recovery of the same version. CI on the
+release PR, and on a PR that changes the candidate's own code, runs the real
+candidate preparation, regression and coverage; npm
 OIDC and tag authorization need a real release tag.
 
 `scripts/release/` also keeps tools that check the stored 0.1.0 evidence. They

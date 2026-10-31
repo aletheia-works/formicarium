@@ -37,9 +37,9 @@ session starts with). Your page can do the same.
   `wss:` URL in `connect-src`, and the URL it fetches relay tokens from, if
   any. The showcase terminals add exactly their token function's origin and
   `wss://*.lambda-microvm.ap-northeast-1.on.aws`.
-- **Guests.** Use a catalog (`GuestCatalog`) whose entries name same-origin
-  guest files with their SHA256 and `build-info.json`. `install <tool>` checks
-  every byte before it registers a guest.
+- **Guests.** Use a catalog (`GuestCatalog`) whose entries name each guest's
+  HTTPS URL, its SHA256 and its build info. A guest on another origin needs
+  CORS. `install <tool>` checks every byte before it registers a guest.
 - **Network.** In the browser a guest reaches TCP destinations only through a
   WebSocket relay you name in `network.relay`
   ([command API](/formicarium/guides/command-api/)). The showcase passes

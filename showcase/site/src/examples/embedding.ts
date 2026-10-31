@@ -19,10 +19,7 @@ export async function toolVersion(
 ): Promise<string> {
   const session = await createSession({
     cwd: '/work/app',
-    entries: [
-      { path: '/work', type: 'dir', mode: 0o755 },
-      { path: '/work/app', type: 'dir', mode: 0o755 },
-    ],
+    entries: [{ path: '/work/app', type: 'dir', mode: 0o755 }],
     assets: {
       loaderURL: new URL('assets/paludarium/index.mjs', packageBase),
       wasmURL: new URL('assets/paludarium/paludarium.wasm', packageBase),

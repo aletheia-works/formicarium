@@ -2,7 +2,7 @@
   "name": "@aletheia-works/formicarium-showcase",
   "version": "0.0.0",
   "private": true,
-  "description": "最新の安定版のaube・pitchfork・Biomeを公開APIだけで受入し、showcaseの候補を作る",
+  "description": "showcaseのツールの最新の安定版を公開APIだけで受入し、showcaseの候補を作る",
   "license": "Apache-2.0",
   "type": "module",
   "engines": {

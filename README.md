@@ -131,7 +131,8 @@ has a complete example.
 
 ## Limits
 
-- Guests must be static x86-64 Linux ELF executables of at most 128 MiB.
+- Guests must be static x86-64 Linux ELF executables. `validateGuest` and
+  installs also refuse a guest over 128 MiB.
 - Guests reach the network only as TCP clients of the allowed destinations,
   through a relay in the browser. A guest may also serve TCP and exchange UDP
   on its own loopback; other UDP reaches only name lookups.

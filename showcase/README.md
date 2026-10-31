@@ -107,7 +107,7 @@ Safari の job は macOS の System keychain に job CA を信頼させ、leaf �
    公開されるものは `gnu-source`（`builder: "autotools"`、`package`、`tag`、`signers`、
    `spdx`、`configure`、`binary`、`output`、`libraries`）。script に分岐は書かない。
    ftp.gnu.org 以外の server で署名付きの tarball を出す package（git・curl・GnuTLS・
-   zlib）や、license の file が `COPYING` でない package（nettle）は、ツールにも
+   zlib）や、license の file が `COPYING` でない package（GMP・nettle）は、ツールにも
    library にも `source` を書く：`listing`（tarball の file への link がある page。
    相対・絶対 path・絶対 URL のどれでもよく、署名は一覧に無くてよいが取得は必須）、
    `tarball`（`.../<package>-{version}.tar.gz` か `.tar.xz`。`.tar.xz` は system の
@@ -154,7 +154,7 @@ Safari の job は macOS の System keychain に job CA を信頼させ、leaf �
    サイトの最新のものから取った（どちらも 2029 年に期限が切れるので、その前に入れ替える）。
    ツール自身の SPDX が GPL・LGPL のとき、ゲストの横の `sources/<tool>/` に、ツールと
    すべての library の tarball と署名を置き、対応する source とする（nano は ncurses も、
-   git は curl・GnuTLS・nettle・zlib も置く）。
+   git は curl・GnuTLS・nettle・GMP・zlib も置く）。
    `source` を持つ package では一覧から最も新しい版を選び、その署名の file を取って
    同じように確かめる。署名に複数の署名が入っているとき（GnuTLS は 2 つの鍵で署名する）は、
    すべてが良い署名で、すべての主鍵が `signers` にあるときだけ受け入れる。
@@ -225,9 +225,9 @@ summary には「最後に配布可能な候補を作った run からの日数�
 ## 切り戻し（Rollback）
 
 - showcase の変更：PR を revert する。
-- 前の候補に戻す：候補は長期保存しないので、前の commit の showcase-site から
-  `mode: distribute` で呼び直す（`showcase.yml` を直接動かすと `verify` になり、
-  配布できる候補にならない）。
+- 前の候補に戻す：候補は長期保存せず、配布（`mode: distribute`）は main の head からしか
+  動かないので、戻したい変更を main で revert し、showcase-site を動かし直す
+  （`showcase.yml` を直接動かすと `verify` になり、配布できる候補にならない）。
 - formicarium の版：`formicarium-release.json` を前の版に戻す PR（`pin-release.ts` で作り直す）。
 - repository の設定：`infra/github/README.md` の手順。
 

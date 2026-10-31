@@ -4,7 +4,7 @@ title: エラーコード
 description: ExecutionError のコードと、それぞれが出る場面。
 ---
 
-失敗はすべて `ExecutionError` です。不正な入力では `INVALID_INPUT` の `ExecutionError` を投げ、
+Session・installer・command session の失敗はすべて `ExecutionError` です。不正な入力では `INVALID_INPUT` の `ExecutionError` を投げ、
 ホストやコアの失敗ではそれで reject します。ゲストが終了したときは、終了コードが 0 以外でもエラーではなく、
 実行は `exitCode` で resolve します。コードはすべて公開の `ERROR_CODES` にあり、`error.code` は必ずそのどれかです。
 

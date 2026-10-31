@@ -34,8 +34,8 @@ demo の file と home の設定を確かめます）。自分の page でも同
   relay を通してゲストに network を渡す page は、relay の `wss:` の URL と、relay の token を
   取りに行く URL があればそれも `connect-src` で許します。showcase の端末が足すのは、token 関数の
   origin と `wss://*.lambda-microvm.ap-northeast-1.on.aws` だけです。
-- **guest。** 同じ origin の guest の file と、その SHA256 と `build-info.json`
-  を書いた catalog（`GuestCatalog`）を使います。`install <tool>` はすべての bytes
+- **guest。** guest の HTTPS の URL と、その SHA256 と build info を書いた catalog
+  （`GuestCatalog`）を使います。別の origin の guest には CORS が要ります。`install <tool>` はすべての bytes
   を確かめてから guest を登録します。
 - **network。** ブラウザでは、ゲストは `network.relay` に渡した WebSocket の relay を通してだけ
   TCP の行き先につながります（[command API](/formicarium/ja/guides/command-api/)）。showcase は
