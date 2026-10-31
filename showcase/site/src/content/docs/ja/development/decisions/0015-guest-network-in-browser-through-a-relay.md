@@ -7,6 +7,7 @@ description: ブラウザでの実行では、呼び出し側が指定した Web
 - 状態：採用（2026-10-30）
 - 決めた人：メンテナー。`jj git clone` のようなゲストが、ブラウザでも取得できるようにするため
 - 一部を置き換えた決定：[0014](/formicarium/ja/development/decisions/0014-guest-tcp-clients-in-nodejs/)（ブラウザで `network` を断る部分）
+- ブラウザについて置き換えた決定：[0007](/formicarium/ja/development/decisions/0007-no-guest-network-in-browser/)
 
 ## 背景
 
@@ -26,7 +27,7 @@ relay は `@aletheia-works/paludarium-wasm/relay` です。relay は自分の許
 - Node.js は、コアと同じく、relay を渡されればそれを使い、なければ自分で接続します。
 - command API は、`relay` を `network` のほかの部分と一緒に、ゲストの実行にだけ渡します。
 - relay とそのホストは呼び出し側のものです。formicarium は relay を起動しません。AWS の module（`infra/aws`）が
-  Lambda MicroVMs で relay を動かす予定で、その認証は `protocols` に入れます。
+  Lambda MicroVMs で relay を動かしていて、その認証は `protocols` に入れます。
 - Node.js の回帰テストとブラウザのテストは、probe の `tcp-echo` を手元の relay を通して動かします。両方が許可した行き先と、
   実行は許可したが relay は許可しない行き先（`ENETUNREACH`）です。
 
@@ -46,7 +47,7 @@ relay は `@aletheia-works/paludarium-wasm/relay` です。relay は自分の許
   SHA-256 と照合して取得した、curl が取り出した Mozilla の CA の一覧（MPL-2.0）で証明書を確かめます。
   page は session を始めるときに、それを `/root/.config/ssl/cacert.pem` に置きます。
 
-## 採らなかった案
+## 退けた案
 
 - **Session や assets に relay の URL を持たせる**：Lambda MicroVM の token のように数分で切れるものがあるので、実行ごとに受け取ります。
 - **formicarium から relay を起動する**：relay にはページの外のホストが要り、許可一覧と上限はその持ち主が決めます。

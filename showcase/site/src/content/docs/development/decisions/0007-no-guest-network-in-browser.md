@@ -4,7 +4,7 @@ title: '0007. No guest network in the browser'
 description: Guests get no sockets; runs stay comparable with native baselines.
 ---
 
-- Status: superseded by [0014](/formicarium/development/decisions/0014-guest-tcp-clients-in-nodejs/) (2026-10-29)
+- Status: superseded by [0014](/formicarium/development/decisions/0014-guest-tcp-clients-in-nodejs/) in Node.js (2026-10-29) and by [0015](/formicarium/development/decisions/0015-guest-network-in-browser-through-a-relay/) in the browser (2026-10-30)
 - Decided by: during implementation
 
 ## Context
@@ -15,8 +15,8 @@ updates on `--version` and `install`. The CheerpX measurements were also taken
 without a network.
 
 This context describes the earlier blink core built with Emscripten. Since the
-switch to paludarium, the decision is kept: formicarium gives guests no
-network, and aube still runs with the same environment and native baseline. The
+switch to paludarium, the decision was kept until 0014: formicarium gave guests
+no network, and aube ran with the same environment and native baseline. The
 `EAFNOSUPPORT` result below was observed with blink.
 
 ## Decision

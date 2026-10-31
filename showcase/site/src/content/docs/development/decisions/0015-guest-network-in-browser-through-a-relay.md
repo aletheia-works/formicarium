@@ -9,6 +9,7 @@ description: A browser run can give its guest TCP connections through a WebSocke
   in the browser too
 - Replaces in part: [0014](/formicarium/development/decisions/0014-guest-tcp-clients-in-nodejs/)
   (its refusal of `network` in the browser)
+- Supersedes in the browser: [0007](/formicarium/development/decisions/0007-no-guest-network-in-browser/)
 
 ## Context
 
@@ -35,8 +36,8 @@ refuses `network` in a browser.
 - The command API passes `relay` with the rest of `network`, to guest runs
   only.
 - The relay and its host are the caller's. formicarium does not start one; its
-  AWS module (`infra/aws`) will host one on Lambda MicroVMs, whose
-  authentication goes in `protocols`.
+  AWS module (`infra/aws`) hosts one on Lambda MicroVMs, whose authentication
+  goes in `protocols`.
 - The Node.js regression and the browser suite run the probe's `tcp-echo`
   through a local relay: allowed by both, and allowed by the run but not by
   the relay (`ENETUNREACH`).

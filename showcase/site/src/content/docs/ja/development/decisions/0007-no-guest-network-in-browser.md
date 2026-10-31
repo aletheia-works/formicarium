@@ -4,7 +4,7 @@ title: '0007. ブラウザでは、ゲストのネットワークを使わない
 description: ゲストに socket を渡さず、native の基準値と比べられるようにする。
 ---
 
-- 状態：[0014](/formicarium/ja/development/decisions/0014-guest-tcp-clients-in-nodejs/) で置き換え（2026-10-29）
+- 状態：Node.js では [0014](/formicarium/ja/development/decisions/0014-guest-tcp-clients-in-nodejs/)（2026-10-29）、ブラウザでは [0015](/formicarium/ja/development/decisions/0015-guest-network-in-browser-through-a-relay/)（2026-10-30）で置き換え
 - 決めた人：実装中の判断
 
 ## 背景
@@ -13,8 +13,8 @@ Emscripten は、ゲストの TCP と UDP の socket を WebSocket で中継し�
 失敗しました。aube は `--version` や `install` のたびに、registry へ更新の確認をしに行きます。
 CheerpX の計測も、ネットワークなしで行われていました。
 
-この背景は、Emscripten でビルドした以前の blink のコアについてのものです。コアを paludarium に移してからも決定はそのままで、
-formicarium はゲストにネットワークを渡さず、aube も同じ環境変数と native の基準値で動かします。
+この背景は、Emscripten でビルドした以前の blink のコアについてのものです。コアを paludarium に移してからも、0014 までは決定をそのまま保ち、
+formicarium はゲストにネットワークを渡さず、aube も同じ環境変数と native の基準値で動かしていました。
 下の `EAFNOSUPPORT` は blink で確かめた結果です。
 
 ## 決定

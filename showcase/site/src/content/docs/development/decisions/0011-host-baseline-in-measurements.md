@@ -18,7 +18,8 @@ idle thread spinning and the wasm compiler tier were ruled out.
 
 `scripts/measure-aube.ts` measures a fixed single-thread host computation before
 and after each trial and records it as `hostBenchMs`; the results table shows it
-as the host baseline column. Ten trials is the standard.
+as the host baseline column. Ten trials (`--trials 10`) is the standard; the
+script's default is 3.
 
 ## Consequences
 
