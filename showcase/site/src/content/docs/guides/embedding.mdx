@@ -28,7 +28,10 @@ session starts with). Your page can do the same.
   absolute URLs of the Worker, loader, wasm and build information as `assets`.
   The other modules are read next to the loader.
 - **Cross-origin isolation.** Serve COOP `same-origin` and COEP `require-corp`,
-  or use a service worker such as coi-serviceworker on static hosting.
+  or use a service worker such as coi-serviceworker on static hosting. Several
+  Sessions on one page may run at the same time; their cores start one at a
+  time, which avoids a WebKit failure under service-worker isolation (see the
+  [architecture](/formicarium/development/architecture/)).
 - **CSP.** Allow same-origin scripts and Workers and WebAssembly compilation,
   for example `script-src 'self' 'wasm-unsafe-eval'; worker-src 'self';
   connect-src 'self'`. `blob:` is not needed. The core is loaded from the asset

@@ -321,3 +321,202 @@ test('CPU-bound browser Worker timeout releases BUSY reservation after terminati
       });
   }
 });
+
+test('runs of different sessions start their Workers one at a time until started or stopped', async ({
+  page,
+}) => {
+  const result = await page.evaluate(async (guest) => {
+    const { createSession } = await import('/runtime/web/api.js');
+    const assets = {
+      loaderURL: `${location.origin}/missing`,
+      wasmURL: `${location.origin}/missing`,
+      buildInfoURL: `${location.origin}/missing`,
+      workerURL: `${location.origin}/tests/package/fixtures/startup-worker.js`,
+    };
+    const channel = new BroadcastChannel('formicarium-startup');
+    const created: string[] = [];
+    channel.onmessage = ({ data }) => {
+      if (data?.created) created.push(data.created);
+    };
+    const settle = (ms: number) =>
+      new Promise((resolve) => setTimeout(resolve, ms));
+    const until = async (count: number) => {
+      for (
+        let waited = 0;
+        created.length < count && waited < 5000;
+        waited += 10
+      )
+        await settle(10);
+      // Time for a Worker that should still wait to be created anyway.
+      await settle(300);
+      return [...created];
+    };
+    const names = ['a', 'b', 'c'];
+    const sessions = await Promise.all(
+      names.map(() => createSession({ assets })),
+    );
+    const controllers = new Map(
+      names.map((name) => [name, new AbortController()]),
+    );
+    const runs = names.map((name, index) =>
+      sessions[index]!.run({
+        guest: Uint8Array.from(guest),
+        args: [name],
+        signal: controllers.get(name)!.signal,
+      }).then(
+        () => 'resolved',
+        (error: ExecutionError) => error.code,
+      ),
+    );
+    const first = await until(1);
+    // `started` lets the next run create its Worker.
+    channel.postMessage({ started: first[0] });
+    const second = await until(2);
+    // A stopped run lets the next one start as well.
+    controllers.get(second[1]!)!.abort();
+    const third = await until(3);
+    for (const controller of controllers.values()) controller.abort();
+    const codes = await Promise.all(runs);
+    await Promise.all(sessions.map((session) => session.dispose()));
+    channel.close();
+    return { first, second, third, codes };
+  }, guest);
+  expect(result.first).toHaveLength(1);
+  expect(result.second).toHaveLength(2);
+  expect(result.third).toHaveLength(3);
+  expect(new Set(result.third)).toEqual(new Set(['a', 'b', 'c']));
+  // `started` is not a run message: the started run ends by its abort.
+  expect(result.codes).toEqual(['ABORTED', 'ABORTED', 'ABORTED']);
+});
+
+test('a run that never reports started holds the next Worker for at most 10 seconds', async ({
+  page,
+}) => {
+  await page.clock.install();
+  await page.evaluate(async (guest) => {
+    const { createSession } = await import('/runtime/web/api.js');
+    const assets = {
+      loaderURL: `${location.origin}/missing`,
+      wasmURL: `${location.origin}/missing`,
+      buildInfoURL: `${location.origin}/missing`,
+      workerURL: `${location.origin}/tests/package/fixtures/startup-worker.js`,
+    };
+    const state = {
+      created: [] as string[],
+      controller: new AbortController(),
+      sessions: [] as Awaited<ReturnType<typeof createSession>>[],
+      runs: [] as Promise<string>[],
+    };
+    (globalThis as unknown as { startupHold: typeof state }).startupHold =
+      state;
+    const channel = new BroadcastChannel('formicarium-startup');
+    channel.onmessage = ({ data }) => {
+      if (data?.created) state.created.push(data.created);
+    };
+    state.sessions = await Promise.all(
+      ['a', 'b'].map(() => createSession({ assets })),
+    );
+    state.runs = ['a', 'b'].map((name, index) =>
+      state.sessions[index]!.run({
+        guest: Uint8Array.from(guest),
+        args: [name],
+        signal: state.controller.signal,
+      }).then(
+        () => 'resolved',
+        (error: ExecutionError) => error.code,
+      ),
+    );
+  }, guest);
+  type Hold = {
+    startupHold: {
+      created: string[];
+      controller: AbortController;
+      sessions: { dispose(): Promise<void> }[];
+      runs: Promise<string>[];
+    };
+  };
+  const created = () =>
+    page.evaluate(
+      () => (globalThis as unknown as Hold).startupHold.created.length,
+    );
+  await expect.poll(created, { timeout: 10_000 }).toBe(1);
+  await page.clock.runFor(9_000);
+  await page.waitForTimeout(300);
+  expect(await created()).toBe(1);
+  await page.clock.runFor(1_000);
+  await expect.poll(created, { timeout: 10_000 }).toBe(2);
+  const codes = await page.evaluate(async () => {
+    const state = (globalThis as unknown as Hold).startupHold;
+    state.controller.abort();
+    const codes = await Promise.all(state.runs);
+    await Promise.all(state.sessions.map((session) => session.dispose()));
+    return codes;
+  });
+  expect(codes).toEqual(['ABORTED', 'ABORTED']);
+});
+
+test('a run whose Worker script never arrives holds the next Worker for at most 10 seconds', async ({
+  page,
+}) => {
+  // The first run's Worker script never answers; the second one's does.
+  await page.route('**/startup-worker.js?stall', () => {});
+  await page.clock.install();
+  await page.evaluate(async (guest) => {
+    const { createSession } = await import('/runtime/web/api.js');
+    const assets = (worker: string) => ({
+      loaderURL: `${location.origin}/missing`,
+      wasmURL: `${location.origin}/missing`,
+      buildInfoURL: `${location.origin}/missing`,
+      workerURL: `${location.origin}/tests/package/fixtures/${worker}`,
+    });
+    const state = {
+      created: [] as string[],
+      controller: new AbortController(),
+      sessions: [
+        await createSession({ assets: assets('startup-worker.js?stall') }),
+        await createSession({ assets: assets('startup-worker.js') }),
+      ],
+      runs: [] as Promise<string>[],
+    };
+    (globalThis as unknown as { stalledFetch: typeof state }).stalledFetch =
+      state;
+    const channel = new BroadcastChannel('formicarium-startup');
+    channel.onmessage = ({ data }) => {
+      if (data?.created) state.created.push(data.created);
+    };
+    state.runs = ['a', 'b'].map((name, index) =>
+      state.sessions[index]!.run({
+        guest: Uint8Array.from(guest),
+        args: [name],
+        signal: state.controller.signal,
+      }).then(
+        () => 'resolved',
+        (error: ExecutionError) => error.code,
+      ),
+    );
+  }, guest);
+  type Stalled = {
+    stalledFetch: {
+      created: string[];
+      controller: AbortController;
+      sessions: { dispose(): Promise<void> }[];
+      runs: Promise<string>[];
+    };
+  };
+  const created = () =>
+    page.evaluate(() =>
+      (globalThis as unknown as Stalled).stalledFetch.created.join(','),
+    );
+  await page.waitForTimeout(500);
+  expect(await created()).toBe('');
+  await page.clock.runFor(10_000);
+  await expect.poll(created, { timeout: 10_000 }).toBe('b');
+  const codes = await page.evaluate(async () => {
+    const state = (globalThis as unknown as Stalled).stalledFetch;
+    state.controller.abort();
+    const codes = await Promise.all(state.runs);
+    await Promise.all(state.sessions.map((session) => session.dispose()));
+    return codes;
+  });
+  expect(codes).toEqual(['ABORTED', 'ABORTED']);
+});

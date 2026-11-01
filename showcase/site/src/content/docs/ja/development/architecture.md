@@ -34,6 +34,16 @@ Session がその写しを取り込むのは、実行が成功したときだけ
 （[ADR 0008](/formicarium/ja/development/decisions/0008-fresh-instance-per-step/)）。
 同じ `inodeId` を持つファイルは hard link のまま残り、symlink と mode も保たれます。
 
+ブラウザでは、1 つのページのすべての Session の実行が、コアを 1 つずつ起動します。実行の Worker を作るのは、
+その前の実行がゲストを開始したか、終わったか、止められた後か、その前の実行の順番が来てから 10 秒後です
+（Worker の script の取得を含め、起動が止まった実行がほかを待たせ続けないためです）。最初の出力か終了、またはコアの準備ができてから 1 秒で、
+開始したとみなします。ゲストの実行そのものは並んで動きます。順番を待つ時間も、その実行の `timeoutMs` に含まれます。
+
+理由は WebKit の不具合です。service worker（coi-serviceworker など）で
+cross-origin isolation にしたページでは、2 つの実行が同時にコアの Worker を起動すると、WebKit と Safari が Worker の
+script を service worker を通さずに読むことがあります。その script は COEP で拒否され、実行は `CORE_INIT` か
+`EXECUTION` で失敗します。
+
 Worker の中で実行が失敗すると、Worker はエラーコードと、元のエラーについて伝えてよいことを送ります。
 cause の連なりの先頭の 4 つ（そのエラーと、3 つまでの cause）について、それぞれの名前と、エンジンの `RangeError`（受け取った値を引用しうる Node の `ERR_` code 付きのものは除く）・WebAssembly のエラー・core の `PaludariumError`（`kind` も）に限ったメッセージ（300 文字まで）です。
 ほかのメッセージには path や環境変数の値のような呼び出し元のデータが入りうるので、Worker の外に出しません。

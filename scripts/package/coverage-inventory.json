@@ -58,7 +58,10 @@
     "browser runs settle after normal, abort, timeout and disposal": 5,
     "installed changed loader is refused before the core is imported": 1,
     "real browser thread guest exits normally before next fresh run": 2,
-    "verified browser core runs under a CSP without blob: permissions": 1
+    "verified browser core runs under a CSP without blob: permissions": 1,
+    "runs of different sessions start their Workers one at a time until started or stopped": 3,
+    "a run that never reports started holds the next Worker for at most 10 seconds": 2,
+    "a run whose Worker script never arrives holds the next Worker for at most 10 seconds": 1
   },
   "exclusions": {
     "generated paludarium core": "third-party core files from the pinned npm package, checked by SHA-256 against assets/paludarium/build-info.json and by real consumers",

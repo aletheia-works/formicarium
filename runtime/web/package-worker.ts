@@ -11,10 +11,26 @@ export async function readBrowserAsset(url: string | URL) {
 
 /** Time for terminated core Workers to stop; below the host's 500 ms grace. */
 const CORE_STOP_WAIT_MS = 50;
+/**
+ * How long after the core is ready a run reports `started` when the guest has
+ * neither written nor ended; by then the core has started the Worker that
+ * runs the guest. The host lets the next run start its core after `started`.
+ */
+const GUEST_START_MS = 1000;
 
 let request: RunRequest | undefined;
 let input: ReturnType<typeof inputChannel> | undefined;
 let core: { cleanup(): Promise<void> } | undefined;
+let startedTimer: ReturnType<typeof setTimeout> | undefined;
+let startedSent = false;
+
+/** Tells the host once that this run's core start-up is over. */
+function started() {
+  clearTimeout(startedTimer);
+  if (startedSent) return;
+  startedSent = true;
+  self.postMessage({ type: 'started' });
+}
 // The core's Workers, started from this Worker. A browser ends the Workers of
 // a terminated Worker only later, so the host asks for a stop first.
 const coreWorkers = new Set<Worker>();
@@ -70,10 +86,14 @@ if (typeof self !== 'undefined') {
     input = data.interactive ? inputChannel(data) : undefined;
     void executeWorkerRequest(data, {
       ...(input ? { stdin: input.stream } : {}),
-      post: (message) => self.postMessage(message),
+      post: (message) => {
+        started();
+        self.postMessage(message);
+      },
       readBytes: readBrowserAsset,
       loadCore: async (options) => {
         const loaded = await loadPackageCore(options);
+        startedTimer = setTimeout(started, GUEST_START_MS);
         // The run and a stop request share one cleanup.
         let cleaned: Promise<void> | undefined;
         core = {

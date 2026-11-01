@@ -12,6 +12,36 @@ import { validateAssets } from '../validation.js';
  */
 const STOP_GRACE_MS = 500;
 
+/**
+ * The start-up of every run's core in this page, one at a time. Under
+ * cross-origin isolation from a service worker, WebKit sometimes loads a
+ * Worker script past the service worker when two runs start core Workers at
+ * once, and COEP then refuses it (CORE_INIT or EXECUTION). A run's Worker is
+ * created after the run before it reported `started`, ended or was stopped,
+ * or STARTUP_HOLD_MS after its turn began, so a start-up that stalls
+ * does not hold the page's other runs; guests still run side by side.
+ */
+const STARTUP_HOLD_MS = 10_000;
+let startupTail: Promise<void> = Promise.resolve();
+function startupTurn() {
+  let resolve!: () => void;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const released = new Promise<void>((done) => {
+    resolve = done;
+  });
+  const turn = startupTail;
+  startupTail = startupTail.then(() => released);
+  const release = () => {
+    clearTimeout(timer);
+    resolve();
+  };
+  /** Starts the longest wait for this run's `started`, at its turn. */
+  const hold = () => {
+    timer = setTimeout(release, STARTUP_HOLD_MS);
+  };
+  return { turn, release, hold };
+}
+
 function spawnBrowserWorker(
   request: RunRequest,
   handlers: WorkerHandlers,
@@ -44,13 +74,20 @@ function spawnBrowserWorker(
     );
   let worker: Worker | undefined;
   const preflight = new AbortController();
+  const startup = startupTurn();
   let terminated = false;
   // Input sent before the Worker exists follows the run request in order.
   const queued: object[] = [];
   const callbacks = {
-    message: (event: MessageEvent) => handlers.message(event.data),
+    message: (event: MessageEvent) => {
+      const type = event.data?.type;
+      if (type === 'started' || type === 'done' || type === 'error')
+        startup.release();
+      if (type !== 'started') handlers.message(event.data);
+    },
     error: (event: ErrorEvent) => {
       event.preventDefault();
+      startup.release();
       handlers.error(event.error);
     },
     messageerror: () =>
@@ -59,6 +96,10 @@ function spawnBrowserWorker(
   // Return ownership immediately; deadline/abort can cancel before creation.
   void (async () => {
     try {
+      // The hold starts with the turn, so a stalled script fetch counts too.
+      await startup.turn;
+      if (terminated) return;
+      startup.hold();
       const response = await fetch(url, { signal: preflight.signal });
       if (terminated) {
         await response.body?.cancel();
@@ -78,6 +119,7 @@ function spawnBrowserWorker(
       worker?.postMessage(request);
       for (const message of queued.splice(0)) worker.postMessage(message);
     } catch {
+      startup.release();
       if (!terminated)
         handlers.error(
           failure(
@@ -101,6 +143,7 @@ function spawnBrowserWorker(
     async terminate() {
       terminated = true;
       preflight.abort();
+      startup.release();
       const owned = worker;
       if (!owned) return;
       // The core's Workers run inside this Worker, and a browser ends them only

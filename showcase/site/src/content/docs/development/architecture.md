@@ -41,6 +41,20 @@ abort or a failed snapshot terminates the Worker and keeps the previous state,
 so each step starts from a known filesystem ([ADR 0008](/formicarium/development/decisions/0008-fresh-instance-per-step/)).
 Files that share an `inodeId` stay hard links, and symlinks and modes are kept.
 
+In a browser, the runs of all Sessions in one page start their cores one at a
+time. A run's Worker is created only after the run before it has started its
+guest, ended or been stopped, or 10 seconds after that run's turn began, so a
+start-up that stalls (even while fetching the Worker script) does not hold the
+others. A run counts as
+started at its first output or exit, or 1 second after its core is ready. The
+guests themselves still run side by side. The time a run waits for its turn
+counts toward its `timeoutMs`.
+
+The reason is a WebKit failure. Under cross-origin isolation from a service
+worker (such as coi-serviceworker), WebKit and Safari sometimes load a Worker
+script past the service worker when two runs start core Workers at once. COEP
+then refuses the script, and the run fails with `CORE_INIT` or `EXECUTION`.
+
 When a run fails inside the Worker, the Worker sends the error code and what it
 may tell about the original errors, the first four of the cause chain (the
 error and up to three causes): the name of each, and the message only of an
