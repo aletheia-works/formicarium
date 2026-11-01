@@ -89,7 +89,6 @@ test('all logical task names have developer commands and unknown tasks fail', ()
     'build',
     'test-light',
     'test-consumer',
-    'verify-candidate',
   ]);
   assert.throws(
     () => executeTask('build; echo injected'),

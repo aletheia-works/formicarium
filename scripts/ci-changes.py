@@ -135,7 +135,6 @@ def self_test():
         ".github/workflows/showcase-site.yml": NONE,
         ".github/labeler.yml": NONE,
         ".github/workflows/publish.yml": {"quality"},
-        ".github/workflows/verify.yml": {"quality"},
         ".github/workflows/claude-review.yml": {"quality"},
         ".github/release-please-config.json": {"quality"},
         ".github/release-please-manifest.json": {"quality"},

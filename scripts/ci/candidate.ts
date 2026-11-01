@@ -1,6 +1,5 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { validatePayloadInventory } from './bundle.js';
 import {
   type InputManifest,
@@ -21,7 +20,6 @@ export async function candidateSourcePaths(root: string) {
     'biome.json',
     'playwright.config.ts',
     '.github/workflows/ci.yml',
-    '.github/workflows/candidate-verify.yml',
     '.github/workflows/release-candidate.yml',
   ];
   async function walk(directory: string) {
@@ -91,26 +89,4 @@ export async function validateCandidateInputs(options: {
   );
   await verifyPins(resolve(options.inputRoot, 'payload'), manifest.files);
   return manifest;
-}
-
-if (
-  process.argv[1] &&
-  import.meta.url === pathToFileURL(resolve(process.argv[1])).href
-) {
-  const root = process.cwd();
-  await validateCandidateInputs({
-    root,
-    inputRoot: resolve(root, '.ci-inputs'),
-    sourcePaths: await candidateSourcePaths(root),
-    context: {
-      repository: process.env.GITHUB_REPOSITORY ?? '',
-      commit: process.env.GITHUB_SHA ?? '',
-      event: process.env.GITHUB_EVENT_NAME ?? '',
-      ref: process.env.GITHUB_REF ?? '',
-    },
-  });
-  // Loading the regression/coverage runner is an execution boundary. Pure
-  // input validation must not require generated distribution collector data.
-  const { runVerification } = await import('./run.js');
-  await runVerification(validateCandidateManifest);
 }
