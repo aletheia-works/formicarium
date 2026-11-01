@@ -196,8 +196,7 @@ test('release candidate workflow builds the pinned core itself and exports no wr
   // The checking jobs take only this run's candidate and parts. They are
   // named per run, not per attempt, so a rerun of only the failed jobs finds
   // the inputs and parts of the attempts that made them; a later attempt that
-  // makes them again replaces them. Publication still requires every check of
-  // one attempt (publication-evidence.ts).
+  // makes them again replaces them.
   const PER_RUN = /-\$\{\{ inputs\.source-sha \}\}-\$\{\{ github\.run_id \}\}$/;
   for (const job of [check!, verify!])
     for (const step of job.steps.filter((s) =>

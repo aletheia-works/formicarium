@@ -1,25 +1,31 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { TestContext } from 'node:test';
 import test from 'node:test';
 import { parse } from 'yaml';
-import { preparePublicationArtifact } from '../../scripts/release/publication-cli.js';
-import { approval } from './fixtures.js';
-import { bundle, stableBundle } from './publication-alignment-fixture.js';
 
 const workflow = parse(await readFile('.github/workflows/publish.yml', 'utf8'));
-// Run the actual YAML shell steps. Only npm/GitHub network writes are replaced.
+const TAG = 'v0.2.0';
+const REPOSITORY = 'aletheia-works/formicarium';
+
+/**
+ * Run the actual YAML shell steps of a writer job on a downloaded tarball, as
+ * Actions would after ci.yml exported its digest. Only npm and GitHub writes
+ * are replaced, by fakes that log their arguments.
+ */
 async function fixtureActions(
   t: TestContext,
-  stable = true,
-  existingRelease = false,
+  { distTag = 'latest', existingRelease = false } = {},
 ) {
-  const f = stable ? await stableBundle(t) : await bundle(t);
-  const bin = join(f.root, 'bin');
+  const root = await mkdtemp(join(tmpdir(), 'formicarium-publish-yaml-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const bin = join(root, 'bin');
   await mkdir(bin);
-  const log = join(f.root, 'calls.jsonl');
+  const log = join(root, 'calls.jsonl');
   for (const name of ['bunx', 'gh']) {
     await writeFile(
       join(bin, name),
@@ -37,6 +43,7 @@ async function fixtureActions(
       '#!/bin/sh\nexec shasum -a 256 "$@"\n',
       { mode: 0o755 },
     );
+  const bytes = 'verified candidate bytes';
   const calls = async () =>
     (await readFile(log, 'utf8').catch(() => ''))
       .trim()
@@ -48,26 +55,21 @@ async function fixtureActions(
     changed = false,
     exit = 0,
   ) => {
-    const out = join(f.root, `out-${mode}`);
-    const outputs = await preparePublicationArtifact(f.root, out, f.boundary);
-    if (mode === 'release' && outputs['release-approved'] !== 'true')
-      return 'skipped';
-    const downloaded = join(f.root, `download-${mode}`);
+    const downloaded = join(root, `download-${mode}`);
     await mkdir(downloaded);
-    await copyFile(
-      join(out, 'candidate.tgz'),
+    await writeFile(
       join(downloaded, 'candidate.tgz'),
+      changed ? 'tampered' : bytes,
     );
-    if (changed) await writeFile(join(downloaded, 'candidate.tgz'), 'tampered');
     const env = {
       ...process.env,
       PATH: `${bin}:${process.env.PATH}`,
       CALL_LOG: log,
-      EXPECTED_SHA256: outputs.sha256,
-      DIST_TAG: outputs['dist-tag'],
-      VERSION: outputs.version,
-      RELEASE_TAG: outputs.tag,
-      GITHUB_REPOSITORY: f.request.identity.repository,
+      EXPECTED_SHA256: createHash('sha256').update(bytes).digest('hex'),
+      DIST_TAG: distTag,
+      VERSION: TAG.slice(1),
+      RELEASE_TAG: TAG,
+      GITHUB_REPOSITORY: REPOSITORY,
       WRITE_EXIT: String(exit),
       RELEASE_VIEW_EXIT: existingRelease ? '0' : '1',
     };
@@ -85,112 +87,71 @@ async function fixtureActions(
       if (result.error) throw result.error;
       assert.equal(result.status, 0, result.stderr + result.stdout);
     }
-    return 'completed';
   };
-  return { ...f, calls, run };
+  return { calls, run };
 }
 
-test('actual YAML publishes the stable tarball under latest and refuses an RC', async (t) => {
+test('actual YAML publishes the verified tarball under latest and refuses another dist-tag', async (t) => {
   const f = await fixtureActions(t);
   await f.run('publish');
-  const calls = await f.calls();
-  assert.equal(calls.length, 1);
-  assert.deepEqual(calls[0], {
-    name: 'bunx',
-    args: [
-      'npm@latest',
-      'publish',
-      './candidate.tgz',
-      '--provenance',
-      '--access',
-      'public',
-      '--registry',
-      'https://registry.npmjs.org/',
-      '--tag',
-      'latest',
-      '--ignore-scripts',
-    ],
-  });
-  // The stored 0.1.0 evidence still describes an RC on next; no release is.
-  const rc = await fixtureActions(t, false);
-  await assert.rejects(rc.run('publish'), /dist-tag must be latest, got next/);
-  assert.equal((await rc.calls()).length, 0);
+  assert.deepEqual(await f.calls(), [
+    {
+      name: 'bunx',
+      args: [
+        'npm@latest',
+        'publish',
+        './candidate.tgz',
+        '--provenance',
+        '--access',
+        'public',
+        '--registry',
+        'https://registry.npmjs.org/',
+        '--tag',
+        'latest',
+        '--ignore-scripts',
+      ],
+    },
+  ]);
+  const next = await fixtureActions(t, { distTag: 'next' });
+  await assert.rejects(
+    next.run('publish'),
+    /dist-tag must be latest, got next/,
+  );
+  assert.equal((await next.calls()).length, 0);
 });
+
 test('actual YAML rejects modified downloads before either external writer', async (t) => {
   for (const mode of ['publish', 'release'] as const) {
     const f = await fixtureActions(t);
-    f.request.approvals.push({
-      ...approval(f.c),
-      approvalId: 'release',
-      operation: 'create-github-release',
-      target: f.request.identity.repository,
-    });
-    await f.save();
     await assert.rejects(f.run(mode, true), /checksum|FAILED/);
     assert.equal((await f.calls()).length, 0);
   }
 });
-test('missing candidate approval and stable adoption emit no artifact and invoke no writer', async (t) => {
-  for (const stable of [false, true]) {
-    const f = await fixtureActions(t, stable);
-    if (stable) f.e.rcAdoption = undefined;
-    else f.request.approvals = [];
-    if (stable) {
-      const { saveEvidence } = await import(
-        '../../scripts/release/evidence.js'
-      );
-      f.e.evidenceId += '-without-adoption';
-      f.request.evidenceIds = [f.e.evidenceId];
-      f.request.index.entries[0] = await saveEvidence(f.root, f.e);
-    }
-    await f.save();
-    await assert.rejects(f.run('publish'), /blocked|adoption/);
-    assert.equal((await f.calls()).length, 0);
-    await assert.rejects(
-      readFile(join(f.root, 'out-publish/candidate.tgz')),
-      /ENOENT/,
-    );
-  }
+
+test('Release YAML creates a release on the verified tag, never a prerelease, and refuses another dist-tag', async (t) => {
+  const f = await fixtureActions(t);
+  await f.run('release');
+  const [view, call] = await f.calls();
+  assert.equal(view.args[1], 'view');
+  assert.equal(call.name, 'gh');
+  assert.deepEqual(call.args.slice(0, 6), [
+    'release',
+    'create',
+    TAG,
+    './candidate.tgz',
+    '--repo',
+    REPOSITORY,
+  ]);
+  assert.ok(call.args.includes('--verify-tag'));
+  assert.ok(!call.args.includes('--prerelease'));
+  const next = await fixtureActions(t, { distTag: 'next' });
+  await assert.rejects(
+    next.run('release'),
+    /dist-tag must be latest, got next/,
+  );
+  assert.equal((await next.calls()).length, 0);
 });
-test('Release YAML requires its approval, refuses an RC and never marks a prerelease', async (t) => {
-  for (const stable of [false, true]) {
-    const f = await fixtureActions(t, stable);
-    assert.equal(await f.run('release'), 'skipped');
-    assert.equal((await f.calls()).length, 0);
-    f.request.approvals.push({
-      ...approval(f.c),
-      approvalId: 'release',
-      operation: 'create-github-release',
-      target: f.request.identity.repository,
-    });
-    await f.save();
-    // A fresh simulated run has a fresh artifact directory, as in Actions.
-    const { rm } = await import('node:fs/promises');
-    await rm(join(f.root, 'out-release'), { recursive: true });
-    if (!stable) {
-      await assert.rejects(
-        f.run('release'),
-        /dist-tag must be latest, got next/,
-      );
-      assert.equal((await f.calls()).length, 0);
-      continue;
-    }
-    await f.run('release');
-    const [view, call] = await f.calls();
-    assert.equal(view.args[1], 'view');
-    assert.equal(call.name, 'gh');
-    assert.deepEqual(call.args.slice(0, 6), [
-      'release',
-      'create',
-      f.request.identity.tag,
-      './candidate.tgz',
-      '--repo',
-      f.request.identity.repository,
-    ]);
-    assert.ok(call.args.includes('--verify-tag'));
-    assert.ok(!call.args.includes('--prerelease'));
-  }
-});
+
 test('unknown npm result fails once and cannot automatically resend', async (t) => {
   const f = await fixtureActions(t);
   await assert.rejects(f.run('publish', false, 23));
@@ -198,20 +159,13 @@ test('unknown npm result fails once and cannot automatically resend', async (t) 
 });
 
 test('existing release-please release receives the verified asset without recreating notes', async (t) => {
-  const f = await fixtureActions(t, true, true);
-  f.request.approvals.push({
-    ...approval(f.c),
-    approvalId: 'release',
-    operation: 'create-github-release',
-    target: f.request.identity.repository,
-  });
-  await f.save();
+  const f = await fixtureActions(t, { existingRelease: true });
   await f.run('release');
   const calls = await f.calls();
   assert.deepEqual(
     calls.map((c) => c.args[1]),
     ['view', 'upload'],
   );
-  assert.equal(calls[1].args[2], f.request.identity.tag);
+  assert.equal(calls[1].args[2], TAG);
   assert.ok(!calls[1].args.includes('--clobber'));
 });

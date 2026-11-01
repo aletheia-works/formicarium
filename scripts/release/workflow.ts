@@ -1,45 +1,7 @@
 import { parse } from 'yaml';
 import { requireCondition } from './evidence.ts';
-import type { PublicationIdentity } from './publication.ts';
-import { validatePublicationIdentity } from './publication.ts';
 
-export interface PublicationContext {
-  event: string;
-  repository: string;
-  ref: string;
-  sha: string;
-}
-export function assertPublicationContext(
-  i: PublicationIdentity,
-  c: PublicationContext,
-) {
-  validatePublicationIdentity(i);
-  requireCondition(
-    c.event === 'push' &&
-      c.repository === i.repository &&
-      c.ref === `refs/tags/${i.tag}` &&
-      c.sha === i.sourceCommit,
-    `untrusted publication context: reviewed inputs require ${i.repository}@${i.sourceCommit} refs/tags/${i.tag}; observed ${c.repository}@${c.sha} ${c.ref} (${c.event}). Prepare matching RC/stable inputs and complete release preflight before publication; do not reuse another version's inputs.`,
-  );
-}
-/** Read-only readiness check; never accepts a PR/fork or a different candidate source. */
-export function assertReleasePreflightContext(
-  i: PublicationIdentity,
-  c: PublicationContext,
-  packageVersion: string,
-) {
-  validatePublicationIdentity(i);
-  requireCondition(
-    c.event === 'workflow_dispatch' &&
-      c.repository === 'aletheia-works/formicarium' &&
-      c.repository === i.repository &&
-      c.ref === 'refs/heads/main' &&
-      c.sha === i.sourceCommit &&
-      packageVersion === i.version,
-    'untrusted release preflight context',
-  );
-}
-/** Check the YAML-owned automatic publication boundary. Legacy evidence tools remain local. */
+/** Check the YAML-owned automatic publication boundary. */
 export function validatePublishWorkflow(text: string) {
   const w = parse(text);
   const same = (a: unknown, b: unknown) =>
