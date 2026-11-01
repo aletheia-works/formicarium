@@ -212,7 +212,9 @@ export interface TerminalSize {
  *
  * - `timeoutMs`: 600000 by default. With `stdin` there is no default limit,
  *   since an interactive guest waits for its user; pass `timeoutMs` or abort
- *   `signal` to stop it.
+ *   `signal` to stop it. In a browser, the runs of one page start their cores
+ *   one at a time, and the time a run waits for its turn counts toward this
+ *   limit.
  * - `stdin`: bytes for the guest's standard input, read while the guest runs.
  *   When the stream ends, or errors, the guest reads end of file. Without it
  *   the guest reads end of file at once. A chunk that is not a `Uint8Array`

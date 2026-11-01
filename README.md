@@ -99,7 +99,11 @@ has a complete example.
   failed or cancelled run
   leaves the filesystem as it was. For an interactive guest, `stdin` streams
   its standard input and `terminal: { columns, rows }` makes its standard
-  streams a terminal; a run with `stdin` has no default timeout.
+  streams a terminal; a run with `stdin` has no default timeout. In a
+  browser, the runs of all sessions on one page start their cores one at a
+  time (each waits until the run before it has started its guest, ended, or
+  held the start for 10 s), and the wait counts toward `timeoutMs`; the guests
+  still run side by side.
 - **Network.** A guest has no network unless a run passes
   `network: { allow: ['github.com:443'] }`. It can then open TCP connections
   to the listed destinations only, and resolve only the listed names; anything
