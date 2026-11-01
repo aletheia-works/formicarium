@@ -91,6 +91,13 @@ export const STRINGS = {
       noShell:
         'There is no shell: pipes, redirections, $ expansion and globs do not work. Run one command per line.',
       noShellStatus: 'No shell: one command per line.',
+      homeAssigned: (home: string) =>
+        `HOME cannot be set: it is the session's home directory, ${home}.`,
+      noCommand:
+        'NAME=value needs a command after it, as in NAME=value tool args. There is no shell to keep a variable.',
+      builtinAssigned: (name: string) =>
+        `${name}: NAME=value applies only to an installed tool's command, not to the builtins.`,
+      assignmentStatus: "NAME=value goes before an installed tool's command.",
       usage: (name: string, usage: string) => `${name}: usage: ${usage}`,
       usageStatus: (name: string) =>
         `${name}: wrong arguments. Type help for the builtins.`,
@@ -207,6 +214,14 @@ export const STRINGS = {
       noShell:
         'shell はありません。pipe・redirect・$ の展開・glob は使えません。1 行に 1 つの command を打ってください。',
       noShellStatus: 'shell はありません。1 行に 1 つの command です。',
+      homeAssigned: (home: string) =>
+        `HOME は変えられません。session の home directory の ${home} です。`,
+      noCommand:
+        'NAME=value の後ろには command が必要です（NAME=value ツール 引数）。変数を覚えておく shell はありません。',
+      builtinAssigned: (name: string) =>
+        `${name}：NAME=value は導入したツールの command にだけ付けられます。組込みの command には付けられません。`,
+      assignmentStatus:
+        'NAME=value は導入したツールの command の前に付けます。',
       usage: (name: string, usage: string) =>
         `${name}：使い方は ${usage} です。`,
       usageStatus: (name: string) =>

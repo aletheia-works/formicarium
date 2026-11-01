@@ -54,6 +54,7 @@ test('every state has an English and a Japanese sentence', () => {
     { kind: 'outside-roots', name: 'cd', work: '/work', home: '/root' },
     { kind: 'missing-entry', name: 'cat' },
     { kind: 'no-shell' },
+    { kind: 'assignment' },
     { kind: 'usage', name: 'cp' },
     {
       kind: 'failed',

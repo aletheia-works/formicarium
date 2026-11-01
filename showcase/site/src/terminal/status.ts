@@ -28,6 +28,7 @@ export type Status =
   | { kind: 'outside-roots'; name: string; work: string; home: string }
   | { kind: 'missing-entry'; name: string }
   | { kind: 'no-shell' }
+  | { kind: 'assignment' }
   | { kind: 'usage'; name: string }
   | { kind: 'failed'; code: string; message: string }
   | { kind: 'line-too-long' }
@@ -136,6 +137,8 @@ export function statusText(status: Status, locale: Locale): string {
       return stringsFor(locale).shell.missingStatus(status.name);
     case 'no-shell':
       return stringsFor(locale).shell.noShellStatus;
+    case 'assignment':
+      return stringsFor(locale).shell.assignmentStatus;
     case 'usage':
       return stringsFor(locale).shell.usageStatus(status.name);
     case 'failed':

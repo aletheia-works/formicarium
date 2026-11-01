@@ -803,6 +803,17 @@ test('the mistakes the API reports are explained in the locale; other failures k
     // another name must keep its code.
     if (line === 'gti x y')
       throw failure('INVALID_INPUT', 'install requires exactly one selection');
+    if (line === 'HOME=/tmp git log')
+      throw failure(
+        'INVALID_INPUT',
+        'HOME cannot be assigned; it is the session home',
+      );
+    if (line === 'A=1')
+      throw failure('INVALID_INPUT', 'an assignment needs a command');
+    if (line === 'A=1 ls')
+      throw failure('INVALID_INPUT', 'assignments apply only to guest runs');
+    if (line === 'A=1 python3')
+      throw failure('NOT_FOUND', 'Guest is not registered');
     if (line === 'cat "a') throw failure('INVALID_INPUT', 'unterminated quote');
     if (line === 'git log') throw failure('BUSY', 'Session is busy');
     return installs(line);
@@ -888,6 +899,27 @@ test('the mistakes the API reports are explained in the locale; other failures k
       'install: usage: install <tool>',
       'install: wrong arguments. Type help for the builtins.',
     ],
+    [
+      'HOME=/tmp git log',
+      "HOME cannot be set: it is the session's home directory, /root.",
+      "NAME=value goes before an installed tool's command.",
+    ],
+    [
+      'A=1',
+      'NAME=value needs a command after it, as in NAME=value tool args. There is no shell to keep a variable.',
+      "NAME=value goes before an installed tool's command.",
+    ],
+    [
+      'A=1 ls',
+      "ls: NAME=value applies only to an installed tool's command, not to the builtins.",
+      "NAME=value goes before an installed tool's command.",
+    ],
+    // The command, not the assignment, is the name that is not found.
+    [
+      'A=1 python3',
+      'python3: command not found. Installed: git. Add a tool with install <tool> (aube, git).',
+      'python3: command not found. Type help for the commands.',
+    ],
   ] as const) {
     type(h.host, line);
     await settle();
@@ -950,6 +982,21 @@ test('the mistakes the API reports are explained in the locale; other failures k
       'install',
       'install：使い方は install <ツール> です。',
       'install の引数が違います。help で組込みの command を表示します。',
+    ],
+    [
+      'HOME=/tmp git log',
+      'HOME は変えられません。session の home directory の /root です。',
+      'NAME=value は導入したツールの command の前に付けます。',
+    ],
+    [
+      'A=1',
+      'NAME=value の後ろには command が必要です（NAME=value ツール 引数）。変数を覚えておく shell はありません。',
+      'NAME=value は導入したツールの command の前に付けます。',
+    ],
+    [
+      'A=1 ls',
+      'ls：NAME=value は導入したツールの command にだけ付けられます。組込みの command には付けられません。',
+      'NAME=value は導入したツールの command の前に付けます。',
     ],
   ] as const) {
     type(ja.host, line);
@@ -1221,6 +1268,8 @@ test('only a network tool gets the network, through the relay, with the CA bundl
     'install git',
     'biome --version',
     'jj git clone https://github.com/octocat/Hello-World',
+    // A tool's run is chosen by its command, after its NAME=value words.
+    'GIT_TRACE=1 git fetch',
   ]) {
     type(h.host, line);
     await settle();
@@ -1249,13 +1298,14 @@ test('only a network tool gets the network, through the relay, with the CA bundl
       allow: ['github.com:443'],
       relay,
     },
+    'GIT_TRACE=1 git fetch': { allow: ['github.com:443'], relay },
   });
   // One GET without credentials or redirects served both network runs.
   assert.equal(h.tokenCalls.length, 1);
   assert.equal(h.tokenCalls[0]?.credentials, 'omit');
   assert.equal(h.tokenCalls[0]?.redirect, 'error');
   // An interactive network tool still gets its keys and terminal.
-  assert.ok(seen.at(-1)![1].stdin);
+  assert.ok(seen.at(-2)![1].stdin);
 });
 
 test('the token is reused until a minute before it expires, then fetched again', async () => {

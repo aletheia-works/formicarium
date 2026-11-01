@@ -96,13 +96,14 @@ const INPUT: readonly HostState[] = [
 
 /**
  * The public command API's failures that are a user's mistake, by code and
- * message (formicarium 0.9.0, runtime/state.js, install-catalog.js and
- * command-parse.js): an unregistered guest; an install selection whose tool
- * has no catalog default or whose name or version is malformed; a path
- * outside the persistence roots (/work and the home); a missing entry; and
- * shell syntax. A unit test finds each message in the package the site
- * ships, so a reworded core fails it rather than silently falling back to
- * the raw codes.
+ * message (formicarium 0.11.0, runtime/state.js, install-catalog.js,
+ * command-parse.js and command.js): an unregistered guest; an install
+ * selection whose tool has no catalog default or whose name or version is
+ * malformed; a path outside the persistence roots (/work and the home); a
+ * missing entry; shell syntax; and a NAME=value assignment of HOME, without a
+ * command, or before a builtin. A unit test finds each message in the package
+ * the site ships, so a reworded core fails it rather than silently falling
+ * back to the raw codes.
  */
 export const API_MISTAKES = Object.freeze({
   notRegistered: { code: 'NOT_FOUND', message: 'Guest is not registered' },
@@ -116,6 +117,18 @@ export const API_MISTAKES = Object.freeze({
   },
   missingEntry: { code: 'NOT_FOUND', message: 'Entry does not exist' },
   noShell: { code: 'INVALID_INPUT', message: 'shell syntax is unsupported' },
+  homeAssigned: {
+    code: 'INVALID_INPUT',
+    message: 'HOME cannot be assigned; it is the session home',
+  },
+  noCommand: {
+    code: 'INVALID_INPUT',
+    message: 'an assignment needs a command',
+  },
+  builtinAssigned: {
+    code: 'INVALID_INPUT',
+    message: 'assignments apply only to guest runs',
+  },
 });
 const {
   notRegistered: NOT_REGISTERED,
@@ -123,7 +136,17 @@ const {
   outsideRoots: OUTSIDE_ROOTS,
   missingEntry: MISSING_ENTRY,
   noShell: NO_SHELL,
+  homeAssigned: HOME_ASSIGNED,
+  noCommand: NO_COMMAND,
+  builtinAssigned: BUILTIN_ASSIGNED,
 } = API_MISTAKES;
+/** A leading NAME=value word, which the command API takes as an assignment. */
+const ASSIGNMENT = /^[A-Za-z_][A-Za-z0-9_]*=/;
+/** A typed line's words from its command on, after its leading assignments. */
+const commandWords = (words: string[]) => {
+  const start = words.findIndex((word) => !ASSIGNMENT.test(word));
+  return start < 0 ? [] : words.slice(start);
+};
 /**
  * The INVALID_INPUT messages of a builtin's wrong arguments, by builtin
  * (runtime/command.js; cat and cd share one written with the name).
@@ -274,11 +297,21 @@ export class TerminalHost {
    * locale with its status; null for any other failure, which keeps its code.
    */
   #mistake(
-    words: string[],
+    line: string[],
     failure: { code: string; message: string },
   ): { text: string; status: Status } | null {
     const shell = stringsFor(this.#options.data.locale).shell;
+    if (isFailure(failure, HOME_ASSIGNED))
+      return { text: shell.homeAssigned(HOME), status: { kind: 'assignment' } };
+    if (isFailure(failure, NO_COMMAND))
+      return { text: shell.noCommand, status: { kind: 'assignment' } };
+    const words = commandWords(line);
     const name = plainText(words[0] ?? '');
+    if (isFailure(failure, BUILTIN_ASSIGNED))
+      return {
+        text: shell.builtinAssigned(name),
+        status: { kind: 'assignment' },
+      };
     const argument = plainText(words[1] ?? '');
     const installed = [...this.#tools].sort();
     if (isFailure(failure, NOT_REGISTERED))
@@ -614,11 +647,12 @@ export class TerminalHost {
     // is named in the ready text after the page's installs.
     const ownTool = automatic && target === this.#options.data.tool;
     const shownVersion = ownTool ? (this.#options.data.version ?? '') : '';
+    // A tool's run is chosen by its command, after any NAME=value words.
+    const tool = commandWords(words)[0] ?? '';
     const interactive =
-      !installing && this.#options.data.interactive.includes(words[0] ?? '');
+      !installing && this.#options.data.interactive.includes(tool);
     // Only a network tool's run gets the network, through the site's relay.
-    const networked =
-      !installing && this.#options.data.network.includes(words[0] ?? '');
+    const networked = !installing && this.#options.data.network.includes(tool);
     const runningStatus: Status = interactive
       ? { kind: 'interactive' }
       : { kind: 'running' };
