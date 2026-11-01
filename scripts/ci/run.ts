@@ -247,9 +247,12 @@ async function nodeChecks() {
       '--test',
       '--test-reporter=tap',
       '--test-concurrency=1',
-      ...['evidence', 'decision'].map(
-        (name) => `tests/release/${name}.test.js`,
-      ),
+      ...[
+        'publication',
+        'workflow',
+        'publication-actions',
+        'automatic-publication',
+      ].map((name) => `tests/release/${name}.test.js`),
     ]),
   );
   results.push(
