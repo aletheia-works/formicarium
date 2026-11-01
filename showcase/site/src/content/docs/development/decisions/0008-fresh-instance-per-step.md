@@ -28,8 +28,10 @@ run.
 - Simple to implement, and the state of each step is cleanly separated.
 - Each command pays a fixed start-up cost (0.3 to 0.5 seconds with the blink
   core), which a JIT does not reduce.
-- WebKit reserves the wasm memory maximum for each instance and keeps it until
-  the page is done, which is why guest memory is capped at 1 GB.
+- With the blink core, WebKit reserved the wasm memory maximum for each
+  instance and kept it until the page was done, which is why guest memory is
+  capped at 1 GB. Safari 27.2 on macOS no longer does this
+  ([ADR 0010](/formicarium/development/decisions/0010-wasm-memory-1gb/)).
 
 ## Alternatives rejected
 
