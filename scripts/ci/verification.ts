@@ -37,6 +37,12 @@ export interface FilePin {
   sha256: string;
 }
 
+/** The aube and pitchfork releases the candidate runs; ci.yml builds the same refs. */
+export const GUEST_REFS = Object.freeze({
+  aube: 'v2.8.5',
+  pitchfork: 'v2.32.4',
+} as const);
+
 export interface InputManifest {
   schemaVersion: 1;
   repository: string;
@@ -90,7 +96,10 @@ export function validateManifestContents(
     !/^[a-f0-9]{40}$/.test(input.sourceCommit)
   )
     throw Error('candidate source commit differs');
-  if (input.guests.aube !== 'v2.8.5' || input.guests.pitchfork !== 'v2.32.4')
+  if (
+    input.guests.aube !== GUEST_REFS.aube ||
+    input.guests.pitchfork !== GUEST_REFS.pitchfork
+  )
     throw Error('guest version differs');
   for (const key of ['tarball', 'packageManifest', 'packageRoot'] as const)
     safePath(input[key]);

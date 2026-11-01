@@ -47,13 +47,13 @@ jobs:
       - run: bun scripts/ci/tasks.ts install-frozen --cacheless
       - run: bun add --dev --no-save --ignore-scripts @playwright/test@latest @biomejs/biome@latest typescript@latest
       - run: bun scripts/ci/tasks.ts build
-      - name: Download reviewed external guest and consumer fixtures
-        env:
-          FORMICARIUM_MODERNIZATION_INPUT_URL: https://raw.githubusercontent.com/aletheia-works/formicarium/3a59dd6acd68eb5e0ecf04a91591f3167f7fb405/verification-inputs/candidate-aube-2.8.5-pitchfork-2.32.4.tar.gz
-          FORMICARIUM_MODERNIZATION_INPUT_SHA256: e291ada681c36a9c4e6af32b8982272b1911e7cb248435746f2720c1d26a3f38
-        run: |
-          python3 scripts/ci/install-modernization-inputs.py
-          mv .ci-inputs .ci-fixtures
+      # The caller's product build compiled these guests from this source.
+      - name: Download the guests this run built
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          pattern: product-build-*-${{ inputs.source-sha }}-${{ github.run_id }}
+          path: .ci-products
+          merge-multiple: true
       - name: Stage the current package version and build
         run: bun scripts/package/stage-package.js --out .artifacts/release-candidate/private
       - name: Pack and verify the staged private inventory

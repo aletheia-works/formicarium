@@ -45,6 +45,12 @@ Node.js and each browser then check those bytes in parallel jobs, each with one
 worker and no retries, and a last job merges their checks and coverage. It
 counts a part only if it measured the same inputs and instrumentation.
 
+The candidate runs the guests that the same run's product build compiled from
+this source: aube, pitchfork, probe, hello, exit3 and the package tests'
+fixture guest (`tests/package/fixtures/guest.rs`). Its fixtures and native
+baselines come from the same source. Nothing is downloaded from outside the
+run, so updating aube or pitchfork needs no separate input to be prepared.
+
 `publish.yml` reads the GitHub API itself. It requires exactly one merged
 release-please PR from `aletheia-works-bot` in the same repository, its exact
 merge commit on `main`, and successful CI for its head. Manual tags, forks,

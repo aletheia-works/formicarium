@@ -152,7 +152,7 @@ jobs:
         uses: 'actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9' # v6.1.0
         with:
           path: '${{ matrix.output }}'
-          key: "product-${{ matrix.component }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.build-image.outputs.digest }}-${{ hashFiles(matrix.source, matrix.lock, matrix.script, 'scripts/lib/container.sh', 'scripts/lib/node.sh') }}"
+          key: "product-${{ matrix.component }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.build-image.outputs.digest }}-${{ hashFiles(matrix.source, matrix.lock, matrix.script, 'tests/package/fixtures/guest.rs', 'scripts/lib/container.sh', 'scripts/lib/node.sh') }}"
       - name: 'Build static Linux probe guests'
         if: "matrix.component == 'probe' && steps.product-cache.outputs.cache-hit != 'true'"
         run: 'bash mise-tasks/build/guests.sh probe'
@@ -520,7 +520,8 @@ jobs:
           retention-days: 7
           if-no-files-found: 'error'
   release-candidate:
-    needs: [changes]
+    # The candidate runs the guests this run built.
+    needs: [changes, product-build]
     if: needs.changes.outputs.candidate == 'true'
     uses: ./.github/workflows/release-candidate.yml
     with:

@@ -166,11 +166,25 @@ test('release candidate workflow builds the pinned core itself and exports no wr
     string,
     { needs?: unknown; steps: Step[]; strategy?: any }
   >;
-  // The core comes from the pinned npm package through this run's own build.
-  assert.ok(
-    prepare!.steps.every(
-      (s) => !s.uses?.startsWith('actions/download-artifact@'),
-    ),
+  // The core comes from the pinned npm package through this run's own build,
+  // and the guests from this run's product build; nothing else is downloaded.
+  const downloads = prepare!.steps.filter((s) =>
+    s.uses?.startsWith('actions/download-artifact@'),
+  );
+  assert.deepEqual(
+    downloads.map((s) => s.with),
+    [
+      {
+        pattern:
+          'product-build-*-${{ inputs.source-sha }}-${{ github.run_id }}',
+        path: '.ci-products',
+        'merge-multiple': true,
+      },
+    ],
+  );
+  assert.doesNotMatch(
+    JSON.stringify(workflow),
+    /raw\.githubusercontent\.com|install-modernization-inputs/,
   );
   for (const job of [prepare!, check!, verify!])
     assert.ok(job.steps.some((s) => s.run === 'bun scripts/ci/tasks.ts build'));
@@ -320,6 +334,17 @@ test('dispatch, tags and the release PR select candidate verification and forwar
   assert.deepEqual(Object.keys(ci.jobs['release-candidate'].with), [
     'source-sha',
   ]);
+  // The candidate waits for the guests it runs, built from the same refs.
+  assert.deepEqual(ci.jobs['release-candidate'].needs, [
+    'changes',
+    'product-build',
+  ]);
+  const { GUEST_REFS } = await import('../../scripts/ci/verification.js');
+  assert.equal(ci.jobs['product-build'].env.AUBE_REF, GUEST_REFS.aube);
+  assert.equal(
+    ci.jobs['product-build'].env.PITCHFORK_REF,
+    GUEST_REFS.pitchfork,
+  );
   const reusable = parse(
     await readFile('.github/workflows/release-candidate.yml', 'utf8'),
   );
