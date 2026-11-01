@@ -13,38 +13,28 @@ import { dirname, join } from 'node:path';
 import type { TestContext } from 'node:test';
 import test from 'node:test';
 import { PACKAGE_FILES, sha256 } from '../../scripts/package/stage-package.js';
+import type { PublicationIdentity } from '../../scripts/release/publication.js';
 import {
-  RC_CHECKS,
-  REGRESSION_CHECKS,
-} from '../../scripts/release/decision.js';
-import { saveEvidence } from '../../scripts/release/evidence.js';
-import type {
-  PublicationIdentity,
-  PublicationRequest,
-} from '../../scripts/release/publication.js';
-import {
-  planPublication,
   preparePublication,
   validatePublication,
   validatePublicationIdentity,
 } from '../../scripts/release/publication.js';
-import { approval, coverageFixture, fixture } from './fixtures.js';
 
 const identity: PublicationIdentity = {
   repository: 'aletheia-works/formicarium',
   workflow: 'publish.yml',
   environment: 'release',
   sourceCommit: 'b'.repeat(40),
-  version: '0.1.0-rc.1',
-  tag: 'v0.1.0-rc.1',
-  distTag: 'next',
+  version: '0.1.0',
+  tag: 'v0.1.0',
+  distTag: 'latest',
 };
 async function archiveFixture(t: TestContext) {
   const root = await mkdtemp(join(tmpdir(), 'publication-fixture-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const manifest = {
     name: '@aletheia-works/formicarium',
-    version: '0.1.0-rc.1',
+    version: '0.1.0',
     private: true,
     type: 'module',
     exports: Object.fromEntries(
@@ -159,12 +149,13 @@ test('reject private or wrong repository publication manifests', async (t) => {
     );
   }
 });
-test('reject missing repository and wrong version tag or dist-tag', () => {
+test('reject missing repository, wrong version or tag, a release candidate and another dist-tag', () => {
   for (const change of [
     { repository: '' },
     { version: '1.0.0' },
-    { tag: 'v0.1.0' },
-    { distTag: 'latest' },
+    { tag: 'v0.1.1' },
+    { version: '0.1.0-rc.1', tag: 'v0.1.0-rc.1' },
+    { distTag: 'next' },
   ])
     assert.throws(() =>
       validatePublicationIdentity({
@@ -227,162 +218,4 @@ test('reject registry/access drift and refuse existing output including symlink'
     preparePublication({ ...f.args, out: join(f.root, 'link') }),
     /EEXIST/,
   );
-});
-async function requestFixture(t: TestContext, version = '0.1.0-rc.1') {
-  const f = await fixture(t, [...RC_CHECKS, ...REGRESSION_CHECKS], version);
-  f.c.sourceCommit = identity.sourceCommit;
-  const coverage = coverageFixture(f.c);
-  await writeFile(
-    join(f.root, 'inventory.json'),
-    JSON.stringify(coverage.inventory),
-  );
-  await writeFile(join(f.root, 'report.json'), JSON.stringify(coverage.report));
-  f.e.coverage = coverage.coverage;
-  const first = f.e.checks[0]!;
-  first.artifactDigests = {
-    ...first.artifactDigests,
-    'inventory.json': sha256(JSON.stringify(coverage.inventory)),
-    'report.json': sha256(JSON.stringify(coverage.report)),
-  };
-  const entry = await saveEvidence(f.root, f.e),
-    i: PublicationIdentity = {
-      ...identity,
-      version: version as PublicationIdentity['version'],
-      tag: `v${version}`,
-      distTag: version === '0.1.0' ? 'latest' : 'next',
-    };
-  const observation = {
-    kind: 'npm-settings-observation',
-    package: '@aletheia-works/formicarium',
-    repository: i.repository,
-    workflow: i.workflow,
-    environment: i.environment,
-    allowedAction: 'publish',
-    observedAt: '2026-10-10T00:00:00Z',
-    simulated: false,
-  };
-  const bytes = JSON.stringify(observation);
-  await writeFile(join(f.root, 'publisher.json'), bytes);
-  const a = {
-    ...approval(f.c),
-    target: 'https://registry.npmjs.org/@aletheia-works/formicarium',
-  };
-  const request: PublicationRequest = {
-    identity: i,
-    candidate: f.c,
-    index: { version: 1, entries: [entry] },
-    evidenceIds: [f.e.evidenceId],
-    approvals: [a],
-    publisher: {
-      ...observation,
-      authentication: 'oidc',
-      allowedAction: 'publish',
-      status: 'observed',
-      observationArtifact: 'publisher.json',
-      observationSha256: sha256(bytes),
-    },
-  };
-  return { ...f, request, observation };
-}
-test('RC plan requires observed tuple but not previously published RC adoption', async (t) => {
-  const f = await requestFixture(t);
-  assert.equal((await planPublication(f.root, f.request)).allowed, true);
-  assert.equal(f.e.rcAdoption, undefined);
-  for (const change of [
-    { status: 'unverified' },
-    { repository: 'other/fork' },
-    { observationSha256: 'f'.repeat(64) },
-  ])
-    await assert.rejects(
-      planPublication(f.root, {
-        ...f.request,
-        publisher: { ...f.request.publisher, ...change },
-      } as PublicationRequest),
-      /publisher/,
-    );
-  const bytes = JSON.stringify({ ...f.observation, simulated: true });
-  await writeFile(join(f.root, 'publisher.json'), bytes);
-  await assert.rejects(
-    planPublication(f.root, {
-      ...f.request,
-      publisher: { ...f.request.publisher, observationSha256: sha256(bytes) },
-    }),
-    /content/,
-  );
-});
-test('stable without RC adoption and RC without exact operation approval stay blocked', async (t) => {
-  const stable = await requestFixture(t, '0.1.0');
-  assert.equal(
-    (await planPublication(stable.root, stable.request)).allowed,
-    false,
-  );
-  const rc = await requestFixture(t);
-  assert.equal(
-    (
-      await planPublication(rc.root, {
-        ...rc.request,
-        approvals: [
-          { ...rc.request.approvals[0], sourceCommit: 'd'.repeat(40) },
-        ],
-      })
-    ).allowed,
-    false,
-  );
-});
-test('RC actual publication blocks missing failed or timed-out required regression', async (t) => {
-  for (const mode of ['missing', 'failed', 'timeout'] as const) {
-    const f = await requestFixture(t),
-      e = structuredClone(f.e);
-    e.evidenceId += `-${mode}`;
-    const id = REGRESSION_CHECKS[0]!;
-    if (mode === 'missing') e.checks = e.checks.filter((c) => c.checkId !== id);
-    else {
-      const row = e.checks.find((c) => c.checkId === id)!;
-      row.status = 'failed';
-      row.exitCode = mode === 'failed' ? 1 : null;
-      row.termination = mode === 'failed' ? 'exit' : 'timeout';
-    }
-    const entry = await saveEvidence(f.root, e);
-    const decision = await planPublication(f.root, {
-      ...f.request,
-      index: { version: 1, entries: [entry] },
-      evidenceIds: [e.evidenceId],
-    });
-    assert.equal(decision.allowed, false);
-    assert.ok(decision.missing.includes(`publication-check:${id}`));
-  }
-});
-test('RC actual publication blocks absent or below-80-percent coverage', async (t) => {
-  for (const mode of ['absent', 'low'] as const) {
-    const f = await requestFixture(t),
-      e = structuredClone(f.e);
-    e.evidenceId += `-${mode}`;
-    if (mode === 'absent') e.coverage = null;
-    else {
-      const report = JSON.parse(
-        await readFile(join(f.root, 'report.json'), 'utf8'),
-      );
-      for (const row of e.coverage!.files) {
-        row.totalLines = 10;
-        row.coveredLines = 7;
-      }
-      for (const row of report.files) row.lines = { total: 10, covered: 7 };
-      const bytes = JSON.stringify(report);
-      await writeFile(join(f.root, 'report.json'), bytes);
-      e.checks[0].artifactDigests = {
-        ...e.checks[0].artifactDigests,
-        'report.json': sha256(bytes),
-      };
-    }
-    const entry = await saveEvidence(f.root, e);
-    const decision = await planPublication(f.root, {
-      ...f.request,
-      index: { version: 1, entries: [entry] },
-      evidenceIds: [e.evidenceId],
-    });
-    assert.equal(decision.allowed, false);
-    assert.ok(
-      decision.missing.includes('publication-coverage:fixed-80%-realms'),
-    );
-  }
 });

@@ -90,7 +90,3 @@ modified tarballs, coverage refusal and recovery of the same version. CI on the
 release PR, and on a PR that changes the candidate's own code, runs the real
 candidate preparation, regression and coverage; npm
 OIDC and tag authorization need a real release tag.
-
-`scripts/release/` also keeps tools that check the stored 0.1.0 evidence. They
-cannot publish (`writerEnabled` is `false`) and play no part in the release
-above.

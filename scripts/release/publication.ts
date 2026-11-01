@@ -1,21 +1,10 @@
 import { execFileSync } from 'node:child_process';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
-import { decideRelease, REGRESSION_CHECKS } from './decision.ts';
-import type { EvidenceIndex } from './evidence.ts';
-import {
-  artifactBytes,
-  hex,
-  requireCondition,
-  resolveEvidence,
-  unique,
-} from './evidence.ts';
+import { hex, requireCondition, unique } from './evidence.ts';
 import { PACKAGE_FILES, sha256 } from './inventory.ts';
 import { ASSET_LIMITS, readBoundedFile } from './publication-assets.ts';
-import type { CandidateIdentity, ReleaseApproval } from './types.ts';
-import { publicationChannel } from './version.ts';
-
-export { publicationChannel } from './version.ts';
+import { requireStableVersion } from './version.ts';
 
 export interface PublicationIdentity {
   repository: string;
@@ -24,7 +13,7 @@ export interface PublicationIdentity {
   sourceCommit: string;
   version: string;
   tag: string;
-  distTag: 'next' | 'latest';
+  distTag: 'latest';
 }
 export interface PublicationCandidate {
   schemaVersion: 1;
@@ -33,25 +22,6 @@ export interface PublicationCandidate {
   files: { path: string; sha256: string }[];
   originalTarballSha256: string;
   tarball: { path: string; sha256: string } | null;
-}
-export interface PublicationRequest {
-  candidateRun?: { runId: number; runAttempt: number; artifactId: number };
-  identity: PublicationIdentity;
-  candidate: CandidateIdentity;
-  index: EvidenceIndex;
-  evidenceIds: string[];
-  approvals: ReleaseApproval[];
-  publisher: {
-    repository: string;
-    workflow: string;
-    environment: string;
-    observedAt: string;
-    observationArtifact: string;
-    observationSha256: string;
-    authentication: 'oidc';
-    allowedAction: 'publish';
-    status: 'observed' | 'unverified';
-  };
 }
 export function validatePublicationIdentity(i: PublicationIdentity) {
   requireCondition(
@@ -71,9 +41,7 @@ export function validatePublicationIdentity(i: PublicationIdentity) {
     'publication source commit invalid',
   );
   requireCondition(
-    i.tag === `v${i.version}` &&
-      i.distTag ===
-        (publicationChannel(i.version) === 'stable' ? 'latest' : 'next'),
+    i.tag === `v${requireStableVersion(i.version)}` && i.distTag === 'latest',
     'publication version/tag/dist-tag differs',
   );
   return i;
@@ -193,7 +161,7 @@ export async function preparePublication({
       !old.devDependencies,
     'original manifest not reviewed private candidate',
   );
-  publicationChannel(old.version);
+  requireStableVersion(old.version);
   const manifest = {
     ...old,
     version: identity.version,
@@ -279,116 +247,5 @@ export async function validatePublication(
   return {
     ...candidate,
     tarball: { path: resolve(tarballPath), sha256: digest },
-  };
-}
-/** Immutable reads and a plan only; there is no publication side effect here. */
-export async function planPublication(
-  root: string,
-  request: PublicationRequest,
-) {
-  const i = validatePublicationIdentity(request.identity),
-    p = request.publisher;
-  requireCondition(
-    request.candidate.sourceCommit === i.sourceCommit &&
-      request.candidate.version === i.version,
-    'publication evidence candidate differs',
-  );
-  requireCondition(
-    p?.status === 'observed' &&
-      p.authentication === 'oidc' &&
-      p.allowedAction === 'publish' &&
-      p.repository === i.repository &&
-      p.workflow === i.workflow &&
-      p.environment === i.environment &&
-      Number.isFinite(Date.parse(p.observedAt)) &&
-      hex(p.observationSha256),
-    'publisher not observed or differs',
-  );
-  requireCondition(
-    sha256(
-      await artifactBytes(
-        root,
-        p.observationArtifact,
-        ASSET_LIMITS.metadataBytes,
-      ),
-    ) === p.observationSha256,
-    'publisher observation digest differs',
-  );
-  const observation = JSON.parse(
-    (
-      await artifactBytes(
-        root,
-        p.observationArtifact,
-        ASSET_LIMITS.metadataBytes,
-      )
-    ).toString(),
-  );
-  requireCondition(
-    observation.kind === 'npm-settings-observation' &&
-      observation.package === '@aletheia-works/formicarium' &&
-      observation.repository === i.repository &&
-      observation.workflow === i.workflow &&
-      observation.environment === i.environment &&
-      observation.allowedAction === 'publish' &&
-      observation.observedAt === p.observedAt &&
-      observation.simulated === false,
-    'publisher observation content differs',
-  );
-  const decision = await decideRelease({
-    root,
-    index: request.index,
-    candidate: request.candidate,
-    evidenceIds: request.evidenceIds,
-    approvals: request.approvals,
-    target: `https://registry.npmjs.org/@aletheia-works/formicarium`,
-    channel: publicationChannel(i.version),
-  });
-  if (!decision.allowed) return decision;
-  // Actual publication also requires the unchanged global quality contract.
-  const envelopes = await Promise.all(
-    request.evidenceIds.map((id) => resolveEvidence(root, request.index, id)),
-  );
-  const missing = [...decision.missing];
-  for (const id of REGRESSION_CHECKS) {
-    const rows = envelopes.flatMap((e) =>
-      e.checks.filter((c) => c.checkId === id),
-    );
-    if (
-      !rows.length ||
-      rows.some(
-        (c) =>
-          c.status !== 'passed' ||
-          c.exitCode !== 0 ||
-          c.termination !== 'exit' ||
-          c.unverified.length,
-      )
-    )
-      missing.push(`publication-check:${id}`);
-  }
-  if (
-    !envelopes.some((e) => {
-      if (
-        !e.coverage ||
-        e.coverage.files.some(
-          (f) =>
-            f.collection === 'missing' ||
-            (f.collection === 'measured' && !f.realms.length),
-        )
-      )
-        return false;
-      const total = e.coverage.files.reduce((sum, f) => sum + f.totalLines, 0);
-      return (
-        total > 0 &&
-        e.coverage.files.reduce((sum, f) => sum + f.coveredLines, 0) / total >=
-          0.8
-      );
-    })
-  )
-    missing.push('publication-coverage:fixed-80%-realms');
-  return {
-    ...decision,
-    missing,
-    allowed: missing.length === 0,
-    outcome: missing.length ? ('blocked' as const) : ('not-run' as const),
   };
 }

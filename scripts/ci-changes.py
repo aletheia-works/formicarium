@@ -156,7 +156,7 @@ def self_test():
         "fixtures/baseline/aube-1645.native.txt": {"product"},
         "mise-tasks/build/guests.sh": {"quality", "product"},
         "scripts/release/publication.ts": {"quality"},
-        "tests/release/evidence.test.ts": {"quality"},
+        "tests/release/publication.test.ts": {"quality"},
         "biome.json": {"quality"},
         "unknown-top-level-file": ALL,
     }
