@@ -76,7 +76,6 @@
     "install:frozen": "bun scripts/ci/tasks.ts install-frozen",
     "test:light": "bun run test:unit && bun run test:tooling-bun && bun run test:node-unit && node --test --test-concurrency=1 tests/release/*.test.js tests/ci/verification.test.js .build/tests/tooling/publication-*.test.js",
     "test:consumer": "bun run test:integration",
-    "verify:candidate": "node scripts/ci/candidate.js",
     "test:e2e": "bun run build && bun node_modules/@playwright/test/cli.js test",
     "pretest": "bun run build",
     "test": "bun run test:unit",

@@ -10,7 +10,6 @@ export const TASKS = Object.freeze({
   build: ['run', '--bun', 'build'],
   'test-light': ['run', 'test:light'],
   'test-consumer': ['run', 'test:consumer'],
-  'verify-candidate': ['run', 'verify:candidate'],
 } as const);
 export type Task = keyof typeof TASKS;
 export interface ExecutionResult {
