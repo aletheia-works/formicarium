@@ -121,7 +121,8 @@ has a complete example.
   checked guest you already hold (`runValidatedGuest` runs it once instead),
   `fixtureToFsEntries` checks the files a session starts with, and
   `createCommandSession` runs one command line (`ls`, `cat`, `cd`, `rm -rf`,
-  `cp`, `mv`, `install <tool>`, or an installed tool) without a shell. A
+  `cp`, `mv`, `install <tool>`, or an installed tool, optionally after
+  `NAME=value` environment assignments) without a shell. A
   registered tool runs by name in a command session, and every guest run finds
   it as `/usr/bin/<tool>`. Installing with
   `createInstaller` writes no output, so a page can have tools ready before the

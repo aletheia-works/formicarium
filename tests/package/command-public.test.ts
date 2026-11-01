@@ -29,6 +29,7 @@ test('root export adds createCommandSession and keeps the internal port and modu
     'sessionPort',
     'bindSessionPort',
     'tokenizeCommand',
+    'parseCommand',
     'guardCommandInput',
     'formatListing',
     'RESERVED_COMMANDS',

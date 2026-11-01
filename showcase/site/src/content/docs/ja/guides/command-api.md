@@ -46,7 +46,7 @@ cross-origin isolation・Worker・資産・CSP の要件を満たしてくださ
 `stdin`（`ReadableStream<Uint8Array>`）と `terminal`（`{ columns, rows }`、1〜65535）は、Session の `run` と同じく
 ゲストの実行にだけ渡します（[ADR 0013](/formicarium/ja/development/decisions/0013-interactive-guest-runs/)）。
 ゲストは stream を stdin として読み、その大きさの端末を見ます。端末を付けた実行には `TERM=xterm-256color` も渡します。
-表示する端末は xterm 互換で、`TERM` がないと curses のゲストは知らない端末だとみなすことがあるからです。builtin と `install` は読みません。ロックされていない
+表示する端末は xterm 互換で、`TERM` がないと curses のゲストは知らない端末だとみなすことがあるからです。command に `TERM=` の代入があれば、そちらを使います。builtin と `install` は読みません。ロックされていない
 `ReadableStream` でない `stdin` や、形の違う `terminal` は、予約の前に `INVALID_INPUT` です。
 
 `network`（`{ allow, relay? }`）も、Session の `run` と同じくゲストの実行にだけ渡します（[ADR 0014](/formicarium/ja/development/decisions/0014-guest-tcp-clients-in-nodejs/)）。
@@ -65,7 +65,7 @@ WebSocket の relay を `relay` に渡す必要があり（[ADR 0015](/formicari
 - 引数の区切りは ASCII の space と tab だけです。続いた区切りは 1 つとして扱い、先頭と末尾は無視します。
   NBSP や全角の空白などの ASCII 以外の文字は、正規化せずに引数の一部として残します。
 - 引用の外の `|` `&` `;` `<` `>` `$` backtick `*` `?` `(` `)` `{` `}` は、「shell syntax is unsupported」で拒否します。
-  `[` `]` `~` `#` `!` `=` などは文字のまま扱います。
+  `[` `]` `~` `#` `!` `=` などは、下の代入を除き、文字のまま扱います。
 - 単引用の中は、閉じる単引用まですべて文字どおりです。
 - 二重引用の中では `\"` と `\\` だけを escape として解決し、ほかの `\x` は 2 文字のまま残します。`$` や backtick も
   展開しません。
@@ -73,6 +73,20 @@ WebSocket の relay を `relay` に渡す必要があり（[ADR 0015](/formicari
 - `''` や `""` は空の引数です。隣り合う引用の部分と引用でない部分は、1 つの引数につながります。
 - 閉じていない引用（「unterminated quote」）と、引用の外の末尾の backslash（「trailing backslash」）は拒否します。
 - space と tab だけの入力（空の文字列を含む）は、`kind: 'empty'`・終了コード 0・空のバイトで resolve し、予約を取りません。
+
+## 環境変数の代入
+
+POSIX の shell と同じく、command の前の `NAME=value` は、その 1 回のゲストの実行の環境変数になります。
+たとえば `JJ_TIMESTAMP=2001-02-03T04:05:06+07:00 jj describe -m NEW` です。
+
+- 名前（`[A-Za-z_][A-Za-z0-9_]*`）と `=` で始まり、そのどちらも引用や escape をしていない引数が代入です。
+  値は引用してもよく（`A="x y"`）、空でもよく（`A=`）、展開はしません。同じ名前なら後の代入を使います。
+- 代入でない最初の引数が `argv[0]` で、その後の `NAME=value` はただの引数です（`jj config set k=v`）。
+  `"A=1"`・`A"=1"`・`A\=1` は代入ではありません。
+- 代入はこの command のゲストの実行にだけ使い、次の command には残りません。ゲストの既定の環境変数（`HOME` と `PATH`）に足し、
+  `PATH` と端末の `TERM` は置き換えられます。
+- 次は予約の前に `INVALID_INPUT` です。`ls`・`cat`・`cd`・`rm`・`cp`・`mv`・`install` の前の代入、command のない代入、
+  そして `HOME=`（`HOME` は Session の home だからです）。
 
 ## 振り分けと予約名
 
@@ -134,7 +148,7 @@ install が成功したときの stdout は `installed <tool>@<versionOrName> (s
 
 ## 判定の順序
 
-1. `INVALID_INPUT`：options の形、入力の型・長さ・文字、tokenizer、builtin と `install` の形、パスの構文
+1. `INVALID_INPUT`：options の形、入力の型・長さ・文字、tokenizer、代入、builtin と `install` の形、パスの構文
    （空・NUL・`..`）、カタログからの選択。すべて予約の前に判定します。
 2. `ABORTED`：予約の前に `signal` が abort 済み。
 3. `DISPOSED`・`BUSY`：予約を取るときの状態（`dispose` の後、または別の操作が予約中）。

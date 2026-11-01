@@ -139,6 +139,21 @@ test('a guest run places the guest, passes argv0 and env, and streams output', a
   assert.equal(launcher.state.disposedFilesystems, 1);
 });
 
+test('a caller PATH replaces the default PATH instead of extending it', async () => {
+  const launcher = fakeLauncher(() => ({
+    stdout: [],
+    stderr: [],
+    exit: { kind: 'exited', code: 0 },
+  }));
+  await runGuest({
+    launcher,
+    guestPath: '/guest/program',
+    entries: [fileEntry('/guest/program', Uint8Array.of(0x7f), 0o755)],
+    env: { HOME: '/root', PATH: '/opt/bin' },
+  });
+  assert.deepEqual(launcher.runs[0]?.env, { HOME: '/root', PATH: '/opt/bin' });
+});
+
 test('a signalled guest exits with 128 plus the signal and a core failure throws', async () => {
   const signalled = await runGuest({
     launcher: fakeLauncher(() => ({ exit: { kind: 'signaled', signal: 9 } })),
