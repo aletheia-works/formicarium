@@ -64,6 +64,6 @@ test-results/
 playwright-report/
 .artifacts/
 
-# Immutable external fixtures materialized by release candidate CI
-.ci-fixtures/
+# The guests release candidate CI downloads from its own run
+.ci-products/
 /.ci-inputs/

@@ -31,6 +31,11 @@ Firefox・WebKit の回帰テスト、macOS と iOS Simulator の実際の Safar
 並行するジョブでその同じバイト列を検証します（どのジョブも 1 ワーカー・再試行なし）。最後のジョブが結果とカバレッジを
 まとめ、同じ入力と同じ計測用コードで測ったものだけを数えます。
 
+候補の検証で動かすゲストは、同じ実行のプロダクトのビルドがこのソースからビルドしたものです。aube・pitchfork・probe・
+hello・exit3 と、パッケージのテストが使う fixture のゲスト（`tests/package/fixtures/guest.rs`）です。fixture と
+native の基準値も同じソースのものを使います。実行の外からは何もダウンロードしないので、aube や pitchfork を更新する
+ときに、別に入力を用意する必要はありません。
+
 `publish.yml` は GitHub API を自分で読みます。同じリポジトリの `aletheia-works-bot` によるリリース PR がちょうど 1 つ
 マージされていること、`main` の上のそのマージ commit、その head の CI の成功を求めます。手動のタグ、fork、
 失敗した CI や古い CI、`v0.2.0-rc.1` のようなプレリリースのタグは拒否します。

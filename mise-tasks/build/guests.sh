@@ -3,7 +3,8 @@
 #MISE description="build guests"
 # usage: mise run build-guests [probe|aube|pitchfork|nano|git|jj|all]
 # static-musl x86-64 のゲストをコンテナ（rust:alpine）でビルドし、dist/guests/ に置く。
-#   probe     : guest/probe の probe・hello・exit3・ttyecho・spawn
+#   probe     : guest/probe の probe・hello・exit3・ttyecho・spawn と、パッケージのテストが使う
+#               tests/package/fixtures/guest.rs の fixture
 #   aube      : aubepkg/aube の AUBE_REF（既定 v2.8.5）
 #   pitchfork : jdx/pitchfork（公式リポジトリ）の PITCHFORK_REF（既定 v2.32.4）。ソースは変えない
 #   nano      : GNU nano NANO_VERSION（既定 9.3）。ncurses NCURSES_VERSION（既定 6.6）に
@@ -27,7 +28,7 @@ what=${1:-all}
 case $what in probe|aube|pitchfork|nano|git|jj|all) ;; *) echo "usage: $0 [probe|aube|pitchfork|nano|git|jj|all]" >&2; exit 2;; esac
 
 # ビルドで作られるゲストの一覧（生成物の確認に使う）
-guests="probe hello exit3 ttyecho aube pitchfork nano git git-remote-https jj"
+guests="probe hello exit3 ttyecho fixture aube pitchfork nano git git-remote-https jj"
 
 image=${FORMICARIUM_RUST_IMAGE:-rust:alpine}
 aube_repo=${AUBE_REPO:-https://github.com/aubepkg/aube.git}
@@ -80,7 +81,7 @@ target=x86_64-unknown-linux-musl
 mkdir -p "$root/dist/guests"
 
 build_probe() {
-  echo "== probe・hello・exit3・ttyecho・spawn をビルド（${image}）"
+  echo "== probe・hello・exit3・ttyecho・spawn・fixture をビルド（${image}）"
   container_run "$image" dist/guests "
     apk add --no-cache musl-dev >/dev/null
     cargo build --release --locked --target $target \
@@ -88,7 +89,9 @@ build_probe() {
     for bin in probe hello exit3 ttyecho spawn; do
       cp /cache/guests/$target/release/\$bin /out/\$bin
     done
-  " guest/probe/Cargo.toml guest/probe/Cargo.lock guest/probe/src
+    rustc --edition 2021 -C opt-level=2 -C strip=symbols --target $target \
+      -o /out/fixture tests/package/fixtures/guest.rs
+  " guest/probe/Cargo.toml guest/probe/Cargo.lock guest/probe/src tests/package/fixtures/guest.rs
 }
 
 build_aube() {

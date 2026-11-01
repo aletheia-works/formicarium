@@ -1,13 +1,13 @@
-import { readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
   preparePublication,
   validatePublication,
 } from '../release/publication.ts';
-import { createBundle, validatePayloadInventory } from './bundle.js';
+import { createBundle } from './bundle.js';
 import { candidateSourcePaths, validateCandidateInputs } from './candidate.js';
-import { type InputManifest, verifyPins } from './verification.js';
+import { GUEST_REFS, hash, type InputManifest } from './verification.js';
 
 export function releaseCandidateContext(event: {
   number?: number;
@@ -155,27 +155,44 @@ async function preparePublic(root: string) {
   await writeFile(`${out}/identity.json`, JSON.stringify(identity, null, 2));
 }
 
+/** The product-build guests the candidate runs, by their name in dist/guests. */
+const CANDIDATE_GUESTS = Object.freeze([
+  'probe',
+  'hello',
+  'exit3',
+  'aube',
+  'aube.commit',
+  'pitchfork',
+  'pitchfork.build-info',
+  'pitchfork.commit',
+]);
+/** Where the package tests read the guest built from tests/package/fixtures/guest.rs. */
+const FIXTURE_GUEST = '.artifacts/u1-fixture/guest';
+
+/** Every file under a source directory, as paths relative to the root. */
+async function sourceFiles(root: string, directory: string): Promise<string[]> {
+  const paths: string[] = [];
+  for (const row of await readdir(resolve(root, directory), {
+    withFileTypes: true,
+  })) {
+    const path = `${directory}/${row.name}`;
+    if (row.isDirectory()) paths.push(...(await sourceFiles(root, path)));
+    else if (row.isFile()) paths.push(path);
+    else throw Error(`nonregular fixture: ${path}`);
+  }
+  return paths.sort();
+}
+
+/**
+ * Bind the fresh candidate, the guests this run's product build compiled
+ * (downloaded to .ci-products) and this source's fixtures into .ci-inputs.
+ */
 export async function prepareInputs(
   root: string,
   expected: ReturnType<typeof releaseCandidateContext>,
 ) {
   const out = resolve(root, '.artifacts/release-candidate');
-  const seed = resolve(root, '.ci-fixtures');
-  // The fixture still carries the retired terrarium owner copy, its site and
-  // the guest-distribution resolver; the fresh inputs leave them out.
-  const old = JSON.parse(
-    await readFile(`${seed}/manifest.json`, 'utf8'),
-  ) as InputManifest & {
-    site: string;
-    terrarium: string;
-    owner: unknown;
-    coreCommit: string;
-  };
-  await validatePayloadInventory(
-    `${seed}/payload`,
-    old.files.map((row) => row.path),
-  );
-  await verifyPins(`${seed}/payload`, old.files);
+  const products = resolve(root, '.ci-products/guests');
   const identity = JSON.parse(await readFile(`${out}/identity.json`, 'utf8'));
   const version = await selectedVersion(root);
   if (identity.sourceCommit !== expected.commit || identity.version !== version)
@@ -188,28 +205,16 @@ export async function prepareInputs(
   const original = JSON.parse(
     await readFile(`${out}/private.manifest.json`, 'utf8'),
   );
-  const {
-    files,
-    sourceFiles,
-    site,
-    terrarium,
-    owner,
-    coreCommit,
-    ...manifest
-  } = old;
-  void sourceFiles;
-  void owner;
-  void coreCommit;
-  // The core now ships inside the package, so the blink build inputs retire.
-  const retired = [
-    `${site}/`,
-    `${terrarium}/`,
-    '.artifacts/ci-candidate/inputs/resolver/',
-    '.artifacts/ci-candidate/core-source.bundle',
-    'assets/',
-    'dist/blink/',
-  ];
-  manifest.sourceCommit = expected.commit;
+  const candidateRoot = '.artifacts/ci-candidate';
+  const manifest = {
+    schemaVersion: 1 as const,
+    repository: expected.repository,
+    sourceCommit: expected.commit,
+    tarball: `${candidateRoot}/package.tgz`,
+    packageManifest: `${candidateRoot}/package-manifest.json`,
+    packageRoot: `${candidateRoot}/consumer/node_modules/@aletheia-works/formicarium`,
+    guests: { ...GUEST_REFS },
+  };
   const candidate = {
     ...original,
     version,
@@ -225,28 +230,52 @@ export async function prepareInputs(
     `${out}/candidate.json`,
     JSON.stringify(publication, null, 2),
   );
-  // The installed package is this run's candidate, whose files differ from
-  // the fixture's older package, so its rows come from the public directory.
-  const packageRows = publication.files.map(({ path }) => ({
-    path: `${manifest.packageRoot}/${path}`,
-    source: resolve(out, 'public', path),
-  }));
-  const fixtureRows = files
-    .filter(
-      (row) =>
-        !retired.some((prefix) => row.path.startsWith(prefix)) &&
-        !row.path.startsWith(`${manifest.packageRoot}/`),
-    )
-    .map((row) => {
-      let source = resolve(seed, 'payload', row.path);
-      if (row.path === manifest.tarball) source = `${out}/candidate.tgz`;
-      if (row.path === manifest.packageManifest)
-        source = `${out}/package-manifest.json`;
-      return { path: row.path, source };
-    });
+  // Each record names the run that built the guest and its bytes, which the
+  // runner checks against the guest it materializes.
+  const run = `${process.env.GITHUB_SERVER_URL ?? 'https://github.com'}/${expected.repository}/actions/runs/${process.env.GITHUB_RUN_ID ?? ''}`;
+  const provenance = resolve(out, 'provenance');
+  await mkdir(provenance, { recursive: true });
+  for (const tool of ['aube', 'pitchfork'] as const)
+    await writeFile(
+      resolve(provenance, `${tool}.json`),
+      JSON.stringify(
+        {
+          schemaVersion: 1,
+          tool,
+          ref: GUEST_REFS[tool],
+          commit: (
+            await readFile(resolve(products, `${tool}.commit`), 'utf8')
+          ).trim(),
+          evidence: {
+            runURL: run,
+            sourceCommit: expected.commit,
+            guestSha256: hash(await readFile(resolve(products, tool))),
+          },
+        },
+        null,
+        2,
+      ),
+    );
+  const inputs = [
+    ...CANDIDATE_GUESTS.map((name) => ({
+      path: `dist/guests/${name}`,
+      source: resolve(products, name),
+    })),
+    { path: FIXTURE_GUEST, source: resolve(products, 'fixture') },
+    ...(await sourceFiles(root, 'fixtures')).map((path) => ({
+      path,
+      source: resolve(root, path),
+    })),
+    ...(['aube', 'pitchfork'] as const).map((tool) => ({
+      path: `${candidateRoot}/provenance/${tool}.json`,
+      source: resolve(provenance, `${tool}.json`),
+    })),
+    { path: manifest.tarball, source: `${out}/candidate.tgz` },
+    { path: manifest.packageManifest, source: `${out}/package-manifest.json` },
+  ];
   const sourcePaths = await candidateSourcePaths(root);
   await createBundle(
-    { manifest, sourcePaths, inputs: [...fixtureRows, ...packageRows] },
+    { manifest, sourcePaths, inputs },
     resolve(root, '.ci-inputs'),
     root,
   );
@@ -267,9 +296,9 @@ export async function prepareInputs(
         sourceCommit: expected.commit,
         version,
         tarballSha256: publication.tarball!.sha256,
-        fixtureSourceCommit: old.sourceCommit,
+        guestRun: run,
         limits:
-          'Fresh candidate and measurement; frozen external guest/consumer fixtures, no formal consumer acceptance or publication approval.',
+          'Fresh candidate, guests built by this run, and measurement; no formal consumer acceptance or publication approval.',
       },
       null,
       2,
