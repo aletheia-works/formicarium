@@ -54,7 +54,7 @@ runs one command. `stdin` (a `ReadableStream<Uint8Array>`) and `terminal`
 the guest reads the stream as its stdin and sees a terminal of that size. A
 run with a terminal also gets `TERM=xterm-256color`, since the terminal that
 shows it is xterm-compatible; without `TERM`, a curses guest may assume a
-terminal it does not know. Builtins and `install` never read them. A stream
+terminal it does not know. A `TERM=` assignment in the command replaces it. Builtins and `install` never read them. A stream
 that is not an unlocked `ReadableStream`, or a malformed `terminal`, is
 `INVALID_INPUT` before the reservation.
 
@@ -84,7 +84,7 @@ the host and does not use it.
   other non-ASCII characters stay part of the argument, unnormalized.
 - Outside quotes, `|` `&` `;` `<` `>` `$` backtick `*` `?` `(` `)` `{` `}` are
   refused as "shell syntax is unsupported". `[` `]` `~` `#` `!` `=` and similar
-  stay literal.
+  stay literal, except in the assignments below.
 - Inside single quotes everything is literal up to the closing quote.
 - Inside double quotes only `\"` and `\\` are escapes; any other `\x` stays two
   characters. `$` and backtick are not expanded.
@@ -96,6 +96,26 @@ the host and does not use it.
   quotes ("trailing backslash") are refused.
 - Input of only spaces and tabs (or empty) resolves as `kind: 'empty'` with exit
   code 0 and empty bytes, and takes no reservation.
+
+## Environment assignments
+
+As in a POSIX shell, `NAME=value` arguments before the command set
+environment variables for that one guest run, for example
+`JJ_TIMESTAMP=2001-02-03T04:05:06+07:00 jj describe -m NEW`.
+
+- An argument is an assignment when it starts with a name
+  (`[A-Za-z_][A-Za-z0-9_]*`) and `=`, neither of them quoted or escaped. The
+  value may be quoted (`A="x y"`) or empty (`A=`), and is never expanded. For
+  the same name, the later assignment wins.
+- The first other argument is `argv[0]`; later `NAME=value` arguments are
+  plain arguments (`jj config set k=v`). `"A=1"`, `A"=1"` and `A\=1` are
+  not assignments.
+- Assignments apply only to the guest run of this command; the next command
+  does not see them. They are added to the guest's default environment
+  (`HOME` and `PATH`) and can replace `PATH` and the terminal's `TERM`.
+- These are `INVALID_INPUT` before the reservation: assignments before `ls`,
+  `cat`, `cd`, `rm`, `cp`, `mv` or `install`; assignments without a command;
+  and `HOME=`, since `HOME` is the Session's home.
 
 ## Routing and reserved names
 
@@ -175,7 +195,7 @@ API.
 ## Order of checks
 
 1. `INVALID_INPUT`: the shape of the options, the input's type, length and
-   characters, the tokenizer, the forms of builtins and `install`, path syntax
+   characters, the tokenizer, the assignments, the forms of builtins and `install`, path syntax
    (empty, NUL, `..`) and the catalog selection, all before the reservation.
 2. `ABORTED`: `signal` was already aborted before the reservation.
 3. `DISPOSED` and `BUSY`: the state when taking the reservation (after

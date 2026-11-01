@@ -720,6 +720,57 @@ test('a guest run with a terminal gets TERM=xterm-256color; one without gets no 
   await shell.execute('fixture');
   assert.equal(value.requests.at(-1)?.env?.TERM, undefined);
 });
+test('assignments reach the guest run as env and may replace the terminal TERM', async (t) => {
+  const value = harness();
+  t.after(() => value.session.dispose());
+  await value.register();
+  const shell = command(value);
+  await shell.execute('JJ_TIMESTAMP=2001 A="x y" fixture k=v');
+  assert.equal(value.requests.at(-1)?.env?.JJ_TIMESTAMP, '2001');
+  assert.equal(value.requests.at(-1)?.env?.A, 'x y');
+  assert.deepEqual(value.requests.at(-1)?.args, ['k=v']);
+  await shell.execute('TERM=dumb fixture', {
+    terminal: { columns: 80, rows: 24 },
+  });
+  assert.equal(value.requests.at(-1)?.env?.TERM, 'dumb');
+  await shell.execute('A=1 fixture', { terminal: { columns: 80, rows: 24 } });
+  assert.equal(value.requests.at(-1)?.env?.TERM, 'xterm-256color');
+  assert.equal(value.requests.at(-1)?.env?.A, '1');
+  // PATH is passed as given; the guest's default PATH is not kept.
+  await shell.execute('PATH=/opt/bin fixture');
+  assert.equal(value.requests.at(-1)?.env?.PATH, '/opt/bin');
+  // The next run gets none of them.
+  await shell.execute('fixture');
+  assert.equal(value.requests.at(-1)?.env?.A, undefined);
+});
+test('assignments before a builtin, install, only assignments and HOME are INVALID_INPUT before the reservation', async (t) => {
+  const value = harness();
+  t.after(() => value.session.dispose());
+  await value.register();
+  const shell = command(value);
+  value.plans.push({ pending: true });
+  const running = shell.execute('fixture');
+  await value.started();
+  for (const input of [
+    'A=1 ls',
+    'A=1 cat a',
+    'A=1 cd /work',
+    'A=1 rm -rf a',
+    'A=1 cp a b',
+    'A=1 mv a b',
+    'A=1 install fixture',
+    'A=1',
+    'HOME=/root fixture',
+  ])
+    await assert.rejects(
+      shell.execute(input),
+      { code: 'INVALID_INPUT' },
+      input,
+    );
+  await value.finishPending();
+  await running;
+  assert.equal(value.requests.length, 1);
+});
 test('a malformed stdin, terminal or network is INVALID_INPUT before the reservation', async (t) => {
   const value = harness();
   t.after(() => value.session.dispose());

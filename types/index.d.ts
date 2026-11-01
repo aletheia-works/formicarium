@@ -132,7 +132,10 @@ export interface CommandResult {
  * quotes, a trailing backslash, LF/CR/NUL, lone surrogates and inputs over
  * 65536 UTF-8 bytes reject with `INVALID_INPUT` before any reservation.
  * Nothing is expanded. An input of only spaces/tabs (or empty) resolves as
- * `kind: 'empty'` with exit code 0 and takes no reservation.
+ * `kind: 'empty'` with exit code 0 and takes no reservation. Leading unquoted
+ * `NAME=value` words set environment variables for that guest run only, as in
+ * a POSIX shell; before a builtin or `install`, without a command, or for
+ * `HOME` they are `INVALID_INPUT`.
  *
  * Routing is by exact `argv[0]`: `ls [path]`, `cat path`, `cd path`,
  * `rm -rf path`, `cp [-r] src dst` and `mv src dst` are builtins, `install <selection>` installs through the

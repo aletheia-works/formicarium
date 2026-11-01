@@ -43,16 +43,29 @@ export function guardCommandInput(input: unknown): string {
 
 type TokenizerState = 'none' | 'single' | 'double' | 'escape' | 'dq-escape';
 
+/** One token and how many of its leading characters were unquoted. */
+interface Word {
+  value: string;
+  literal: number;
+}
+
 /**
  * Tokenizer (W2): a POSIX quoting subset that never expands anything.
  * Only ASCII space and tab separate tokens; NBSP and full-width spaces stay
  * inside the token unchanged.
  */
 export function tokenizeCommand(input: string): string[] {
-  const argv: string[] = [];
+  return tokenizeWords(input).map((word) => word.value);
+}
+
+function tokenizeWords(input: string): Word[] {
+  const words: Word[] = [];
   let state: TokenizerState = 'none';
   let current = '';
   let started = false;
+  // The unquoted prefix ends at the first quote or backslash of the token.
+  let literal = 0;
+  let quoted = false;
   // for..of reads code points, so a surrogate pair is one character.
   for (const char of input) {
     invalid(
@@ -73,24 +86,55 @@ export function tokenizeCommand(input: string): string[] {
       current += char;
       state = 'none';
     } else if (char === ' ' || char === '\t') {
-      if (started) argv.push(current);
+      if (started) words.push({ value: current, literal });
       current = '';
       started = false;
+      literal = 0;
+      quoted = false;
     } else if (char === "'" || char === '"' || char === '\\') {
       // An opened quote creates the token even when it stays empty.
       state = char === "'" ? 'single' : char === '"' ? 'double' : 'escape';
       started = true;
+      quoted = true;
     } else if (SHELL_SYNTAX.has(char)) {
       throw failure('INVALID_INPUT', 'shell syntax is unsupported');
     } else {
       current += char;
       started = true;
+      if (!quoted) literal = current.length;
     }
   }
   if (state === 'escape') throw failure('INVALID_INPUT', 'trailing backslash');
   if (state !== 'none') throw failure('INVALID_INPUT', 'unterminated quote');
-  if (started) argv.push(current);
-  return argv;
+  if (started) words.push({ value: current, literal });
+  return words;
+}
+
+const ASSIGNMENT = /^([A-Za-z_][A-Za-z0-9_]*)=/;
+
+/**
+ * Splits leading `NAME=value` words off as the guest's environment, as a
+ * POSIX shell does: the name and `=` must be unquoted, the value may be
+ * quoted, and a later assignment to the same name wins. The first other word
+ * starts argv, so `jj k=v` keeps `k=v` as an argument. HOME follows the
+ * Session's home and cannot be assigned.
+ */
+export function parseCommand(input: string): {
+  env: Record<string, string>;
+  argv: string[];
+} {
+  const words = tokenizeWords(input);
+  const env: Record<string, string> = Object.create(null);
+  let index = 0;
+  for (; index < words.length; index++) {
+    const { value, literal } = words[index]!;
+    const name = ASSIGNMENT.exec(value)?.[1];
+    if (name === undefined || literal <= name.length) break;
+    invalid(name !== 'HOME', 'HOME cannot be assigned; it is the session home');
+    env[name] = value.slice(name.length + 1);
+  }
+  invalid(index === 0 || index < words.length, 'an assignment needs a command');
+  return { env, argv: words.slice(index).map((word) => word.value) };
 }
 
 /**

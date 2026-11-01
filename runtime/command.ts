@@ -12,7 +12,7 @@ import type {
 import {
   formatListing,
   guardCommandInput,
-  tokenizeCommand,
+  parseCommand,
 } from './command-parse.js';
 import type { NetworkRequest } from './contracts.js';
 import { failure, invalid } from './errors.js';
@@ -58,7 +58,12 @@ type Route =
       paths: readonly string[];
     }
   | { kind: 'install'; selection: string }
-  | { kind: 'guest'; tool: string; args: readonly string[] };
+  | {
+      kind: 'guest';
+      tool: string;
+      args: readonly string[];
+      env: Readonly<Record<string, string>>;
+    };
 
 /** Each property is read once, so a getter cannot change it after checking. */
 function checkOptions(value: unknown): CheckedOptions {
@@ -96,8 +101,16 @@ function checkOptions(value: unknown): CheckedOptions {
 }
 
 /** CommandDispatcher (BR4.8, BR4.9, BR4.12): shape checks precede reservation. */
-function route(argv: readonly string[]): Route {
+function route(
+  argv: readonly string[],
+  env: Readonly<Record<string, string>>,
+): Route {
   const [name, ...rest] = argv as [string, ...string[]];
+  if (Object.keys(env).length)
+    invalid(
+      !(RESERVED_COMMANDS as readonly string[]).includes(name),
+      'assignments apply only to guest runs',
+    );
   if (name === 'ls') {
     invalid(rest.length <= 1, 'ls accepts at most one path');
     invalid(!rest[0]?.startsWith('-'), 'ls flags are unsupported');
@@ -130,7 +143,7 @@ function route(argv: readonly string[]): Route {
     invalid(rest.length === 1, 'install requires exactly one selection');
     return { kind: 'install', selection: rest[0]! };
   }
-  return { kind: 'guest', tool: name, args: rest };
+  return { kind: 'guest', tool: name, args: rest, env };
 }
 
 /** ResultBuilder (BR4.17): every call returns new bytes owned by the caller. */
@@ -207,8 +220,8 @@ async function runInstall(
 
 /**
  * GuestRunAdapter: one run reservation; Session.run's default timeout applies.
- * Only guest runs receive stdin, terminal and network, and a terminal run gets
- * TERM=xterm-256color.
+ * Only guest runs receive stdin, terminal, network and assignments, and a
+ * terminal run gets TERM=xterm-256color unless the command assigns TERM.
  */
 async function runGuest(
   port: SessionPort,
@@ -218,13 +231,13 @@ async function runGuest(
   preabort(options);
   const reservation = await port.acquire('run');
   try {
+    const env = { ...(options.terminal ? TERMINAL_ENV : {}), ...target.env };
     const runOptions: Omit<RunOptions, 'guest' | 'args'> = {
       ...(options.signal ? { signal: options.signal } : {}),
       ...(options.onOutput ? { onOutput: options.onOutput } : {}),
       ...(options.stdin ? { stdin: options.stdin } : {}),
-      ...(options.terminal
-        ? { terminal: options.terminal, env: TERMINAL_ENV }
-        : {}),
+      ...(options.terminal ? { terminal: options.terminal } : {}),
+      ...(Object.keys(env).length ? { env } : {}),
       ...(options.network ? { network: options.network } : {}),
     };
     const run = await port.runInstalled(
@@ -263,9 +276,9 @@ export function createCommandSession(
       // Order: INVALID_INPUT (options, input, tokens, shape) -> ABORTED ->
       // DISPOSED/BUSY from the reservation itself.
       const checked = checkOptions(raw);
-      const argv = tokenizeCommand(guardCommandInput(input));
+      const { env, argv } = parseCommand(guardCommandInput(input));
       if (argv.length === 0) return result('empty', 0);
-      const target = route(argv);
+      const target = route(argv, env);
       if (target.kind === 'install')
         return runInstall(installer, target.selection, checked);
       if (target.kind === 'guest') return runGuest(port, target, checked);

@@ -4,6 +4,7 @@ import {
   formatListing,
   guardCommandInput,
   MAX_COMMAND_BYTES,
+  parseCommand,
   tokenizeCommand,
 } from '../../runtime/command-parse.js';
 import type { FsEntry } from '../../types/index.js';
@@ -55,6 +56,48 @@ test('InputGuard refuses LF, CR and NUL anywhere, even inside quotes', () => {
     rejects(() => guardCommandInput(value), /line break or NUL/);
   for (const value of ['ls\n', 'cat "a\rb"', "cat 'a\0b'"])
     rejects(() => tokenizeCommand(value), /line break or NUL/);
+});
+
+// Assignments before the command
+const assign = (input: string) => {
+  const { env, argv } = parseCommand(guardCommandInput(input));
+  return { env: { ...env }, argv };
+};
+test('Leading unquoted NAME=value words become the environment, and the first other word starts argv', () => {
+  assert.deepEqual(
+    assign('JJ_TIMESTAMP=2001-02-03T04:05:06+07:00 _A1=x jj describe k=v'),
+    {
+      env: { JJ_TIMESTAMP: '2001-02-03T04:05:06+07:00', _A1: 'x' },
+      argv: ['jj', 'describe', 'k=v'],
+    },
+  );
+  assert.deepEqual(assign('jj k=v'), { env: {}, argv: ['jj', 'k=v'] });
+  assert.deepEqual(assign(''), { env: {}, argv: [] });
+});
+test('An assignment value may be quoted or empty, and a later assignment wins', () => {
+  assert.deepEqual(assign(`A="x y" B='$z' C= D=a=b A=last jj`), {
+    env: { A: 'last', B: '$z', C: '', D: 'a=b' },
+    argv: ['jj'],
+  });
+});
+test('A quoted or escaped name or = is an argument, not an assignment', () => {
+  for (const input of [
+    '"A=1" jj',
+    "'A'=1 jj",
+    'A"=1" jj',
+    'A\\=1 jj',
+    '\\A=1 jj',
+  ])
+    assert.deepEqual(assign(input).env, {}, input);
+  assert.deepEqual(assign('A"=1" jj').argv, ['A=1', 'jj']);
+  // Not a name: the word is argv[0].
+  for (const input of ['1A=x jj', '=x jj', 'A-B=x jj', 'É=x jj'])
+    assert.equal(assign(input).argv.length, 2, input);
+});
+test('Assignments without a command and assignments to HOME are INVALID_INPUT', () => {
+  for (const input of ['A=1', 'A=1 B=2', ' A=1\t'])
+    rejects(() => parseCommand(input), /assignment needs a command/);
+  rejects(() => parseCommand('HOME=/x jj'), /HOME cannot be assigned/);
 });
 
 // Tokenizer: the functional design W2 example table (nine rows).
