@@ -24,8 +24,9 @@ blink では `snapshotFs` と `populateFs`）。手順を進めるのは
 
 - 実装が単純で、手順ごとの状態がきれいに分かれます。
 - command ごとに起動の固定費（blink のコアでは 0.3〜0.5 秒）がかかり、JIT では縮みません。
-- WebKit はインスタンスごとに wasm メモリの上限まで確保し、ページの処理が終わるまで手放しません。
-  ゲストのメモリの上限を 1 GB にしているのはこのためです。
+- blink のコアでは、WebKit はインスタンスごとに wasm メモリの上限まで確保し、ページの処理が終わるまで手放しません
+  でした。ゲストのメモリの上限を 1 GB にしているのはこのためです。macOS の Safari 27.2 は、もうそうしません
+  （[ADR 0010](/formicarium/ja/development/decisions/0010-wasm-memory-1gb/)）。
 
 ## 退けた案
 
