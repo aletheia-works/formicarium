@@ -26,7 +26,10 @@ demo の file と home の設定を確かめます）。自分の page でも同
   origin の別の場所から配るときは、Worker・loader・wasm・ビルド情報の絶対 URL を
   `assets` に渡します。ほかのモジュールは loader の隣から読み込みます。
 - **クロスオリジン分離。** COOP `same-origin` と COEP `require-corp` を送るか、
-  静的な hosting では coi-serviceworker などの service worker を使います。1 つのページの複数の Session を同時に実行できます。
+  静的な hosting では coi-serviceworker などの service worker を使います。
+  service worker の scope（それを配るフォルダー）は、Worker とコアの資産も含めます。
+  scope の外から読み込む Worker には COEP が付かず、ブラウザが拒否します。
+  1 つのページの複数の Session を同時に実行できます。
   コアは 1 つずつ起動するので、service worker による isolation での WebKit の失敗を避けます
   （[アーキテクチャ](/formicarium/ja/development/architecture/)）。
 - **CSP。** 同じ origin の script と Worker、WebAssembly の compile を許します。

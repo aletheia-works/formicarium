@@ -38,44 +38,30 @@ function setStatus(text: string, className?: string) {
   $('status').className = className ?? '';
 }
 
+/** これを過ぎても読み込み直されなければ（worker を登録できないなど）、失敗を報告する。 */
+const ISOLATION_WAIT_MS = 15 * 1000;
+
 /**
- * crossOriginIsolated でなければ、COOP/COEP を付ける service worker を登録して 1 回だけ
- * 読み込み直す（GitHub Pages のようにヘッダーを設定できない配信先向け）。
- * @returns {Promise<boolean>} 読み込み直すなら true
+ * crossOriginIsolated でなく、service worker がまだページを制御していなければ、
+ * index.html が読むルートの coi-serviceworker.js（GitHub Pages のようにヘッダーを設定
+ * できない配信先向け）が worker を登録し、active になってから 1 回だけ読み込み直す。
+ * 制御されても isolated でなければ、読み込み直さずに実行へ進み、失敗を報告する。
+ * @returns 読み込み直しを待つなら true
  */
-async function ensureIsolation() {
-  if (globalThis.crossOriginIsolated) return false;
-  if (!('serviceWorker' in navigator)) return false;
-  let reloaded = false;
-  try {
-    reloaded = sessionStorage.getItem('formicarium-coi-reload') === '1';
-  } catch {
-    // sessionStorage が使えない環境では、無限に読み込み直さないよう諦める
-    return false;
-  }
-  if (reloaded) return false;
-  try {
-    await navigator.serviceWorker.register(
-      new URL('./coi-sw.js', import.meta.url),
-      { scope: './' },
-    );
-    await navigator.serviceWorker.ready;
-    sessionStorage.setItem('formicarium-coi-reload', '1');
-    location.reload();
-    return true;
-  } catch (error) {
-    console.warn(`service worker registration failed: ${errorText(error)}`);
-    return false;
-  }
+function awaitingIsolation(): boolean {
+  return (
+    !globalThis.crossOriginIsolated &&
+    globalThis.isSecureContext &&
+    'serviceWorker' in navigator &&
+    !navigator.serviceWorker.controller
+  );
 }
 
 async function main() {
   window.formicariumDiagnostics = { stdout: '', stderr: '' };
-  if (await ensureIsolation()) return;
-  try {
-    sessionStorage.removeItem('formicarium-coi-reload');
-  } catch {
-    // 使えなくても実行には影響しない
+  if (awaitingIsolation()) {
+    setStatus('waiting for the isolation service worker to reload the page');
+    await new Promise((resolve) => setTimeout(resolve, ISOLATION_WAIT_MS));
   }
   const isolated = Boolean(globalThis.crossOriginIsolated);
   $('isolated').textContent = String(isolated);

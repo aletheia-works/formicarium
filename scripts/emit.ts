@@ -18,13 +18,15 @@ for (const directory of ['runtime', 'web', 'scripts', 'tests']) {
 }
 // Playwright loads the checked-in TypeScript configurations directly.
 
-// This worker is registered as a classic script; do not add the ESM marker.
-await writeFile(
-  resolve('web/coi-sw.js'),
-  (await readFile(resolve('.build/web/coi-sw.js'), 'utf8')).replace(
-    /^export \{\};\r?\n?/m,
-    '',
+// web/index.html loads the isolation worker of @aletheia-works/coi-serviceworker
+// as a classic script. It registers itself with the scope of its own folder,
+// so it sits at the root: the scope must also cover the Worker (runtime/web/)
+// and the core (dist/paludarium/), or they are loaded without COEP and refused.
+await copyFile(
+  resolve(
+    'node_modules/@aletheia-works/coi-serviceworker/coi-serviceworker.js',
   ),
+  resolve('coi-serviceworker.js'),
 );
 
 // Browsers start the import-free Worker; build it from the copied modules.

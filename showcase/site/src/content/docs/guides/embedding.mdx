@@ -28,7 +28,10 @@ session starts with). Your page can do the same.
   absolute URLs of the Worker, loader, wasm and build information as `assets`.
   The other modules are read next to the loader.
 - **Cross-origin isolation.** Serve COOP `same-origin` and COEP `require-corp`,
-  or use a service worker such as coi-serviceworker on static hosting. Several
+  or use a service worker such as coi-serviceworker on static hosting. The
+  service worker's scope (the folder it is served from) must also cover the
+  Worker and the core assets: a Worker loaded from outside it gets no COEP, and
+  the browser refuses it. Several
   Sessions on one page may run at the same time; their cores start one at a
   time, which avoids a WebKit failure under service-worker isolation (see the
   [architecture](/formicarium/development/architecture/)).

@@ -42,10 +42,10 @@ test('package coverage selects instrumented JavaScript with valid TypeScript con
 test('coverage refuses a missing test selector', () => {
   assert.throws(() => compiledTestConfig('export default {};'), /testMatch/);
 });
-test('emitted isolation worker remains a classic script and installs all handlers', async () => {
+test('the copied isolation worker runs as a classic script and installs all handlers', async () => {
   const handlers: string[] = [];
   const source = await readFile(
-    new URL('../../web/coi-sw.js', import.meta.url),
+    new URL('../../coi-serviceworker.js', import.meta.url),
     'utf8',
   );
   const script = new Script(source);

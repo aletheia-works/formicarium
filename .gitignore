@@ -6,6 +6,7 @@
 /.artifacts/
 /runtime/**/*.js
 /web/**/*.js
+/coi-serviceworker.js
 /scripts/**/*.js
 /tests/**/*.js
 **/*.js.map

@@ -35,6 +35,33 @@ test('ページが crossOriginIsolated になる', async ({ page }) => {
   expect(await page.evaluate(() => crossOriginIsolated)).toBe(true);
 });
 
+test('isolation の service worker を登録できなければ、待ち続けずに isolated でないと報告する', async ({
+  page,
+}) => {
+  // 応答ヘッダーを設定できない配信先で、coi-serviceworker.js が読めない場合を作る
+  await page.route('**/*', async (route) => {
+    if (route.request().url().endsWith('/coi-serviceworker.js'))
+      return route.fulfill({ status: 404 });
+    const response = await route.fetch();
+    const headers = Object.fromEntries(
+      Object.entries(response.headers()).filter(
+        ([name]) => !name.startsWith('cross-origin-'),
+      ),
+    );
+    return route.fulfill({ response, headers });
+  });
+  await page.goto('/web/index.html?guest=hello');
+  await page.waitForFunction(
+    () => window.formicariumResult !== undefined,
+    null,
+    { timeout: 60 * 1000 },
+  );
+  expect(await page.evaluate(() => window.formicariumResult)).toEqual({
+    error: 'not crossOriginIsolated',
+    isolated: false,
+  });
+});
+
 test('hello ゲストが起動して終了コード 0 を返す', async ({ page }) => {
   await page.goto('/web/index.html?guest=hello&arg=from-browser');
   const result = await waitForResult(page);
