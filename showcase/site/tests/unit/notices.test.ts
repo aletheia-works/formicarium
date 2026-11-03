@@ -119,13 +119,15 @@ test('THIRD_PARTY_NOTICES holds formicarium, the guests and every site package',
   const root = await inputs();
   const { text, packages } = await buildNotices({
     modules: [join(root, 'node_modules/@xterm/xterm/lib/xterm.mjs')],
-    copiedPackages: [join(SITE_ROOT, 'node_modules', 'coi-serviceworker')],
+    copiedPackages: [
+      join(SITE_ROOT, 'node_modules', '@aletheia-works', 'coi-serviceworker'),
+    ],
     formicariumDir: join(root, 'formicarium'),
     candidateSiteDir: join(root, 'candidate', 'site'),
   });
   assert.deepEqual(
     packages.map((item) => `${item.name}@${item.version}`),
-    ['@xterm/xterm@6.0.0', 'coi-serviceworker@0.1.7'],
+    ['@aletheia-works/coi-serviceworker@0.1.0', '@xterm/xterm@6.0.0'],
   );
   for (const expected of [
     'Apache License 2.0',
@@ -133,7 +135,7 @@ test('THIRD_PARTY_NOTICES holds formicarium, the guests and every site package',
     '# Showcase guest notices',
     'MIT aube',
     'MIT xterm',
-    '### coi-serviceworker 0.1.7 (MIT)',
+    '### @aletheia-works/coi-serviceworker 0.1.0 (Apache-2.0)',
   ])
     assert.ok(text.includes(expected), expected);
   assert.ok(text.endsWith('\n'));

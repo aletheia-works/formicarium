@@ -65,12 +65,15 @@ export async function buildTestSite(
     'site-data.json': JSON.stringify(data),
     'public/catalog.json': '{}',
   });
-  for (const name of ['coi-config.js', 'favicon.svg'])
-    await copyFile(join(SITE_ROOT, 'public', name), join(publicDir, name));
+  await copyFile(
+    join(SITE_ROOT, 'public', 'favicon.svg'),
+    join(publicDir, 'favicon.svg'),
+  );
   await copyFile(
     join(
       SITE_ROOT,
       'node_modules',
+      '@aletheia-works',
       'coi-serviceworker',
       'coi-serviceworker.js',
     ),

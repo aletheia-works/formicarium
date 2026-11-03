@@ -297,7 +297,7 @@ export async function copiedPackages(dist: string): Promise<string[]> {
     ? await readdir(join(dist, '_astro'))
     : [];
   return [
-    'coi-serviceworker',
+    '@aletheia-works/coi-serviceworker',
     ...(top.includes('pagefind') ? ['pagefind'] : []),
     ...(astro.some((name) => name.startsWith('ec.'))
       ? EXPRESSIVE_CODE_PACKAGES
@@ -333,6 +333,7 @@ export async function assemble(
     join(
       SITE_ROOT,
       'node_modules',
+      '@aletheia-works',
       'coi-serviceworker',
       'coi-serviceworker.js',
     ),

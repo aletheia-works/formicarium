@@ -22,7 +22,7 @@ const doc = (body = '') =>
   `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="/formicarium/_astro/site.css"><link rel="canonical" href="https://aletheia-works.github.io/formicarium/"><script type="module" src="/formicarium/_astro/doc.js"></script></head><body><a href="https://github.com/aletheia-works/formicarium">GitHub</a>${body}</body></html>`;
 const terminal = () =>
   injectCsp(
-    `<!doctype html><html><head><meta charset="utf-8"><script src="/formicarium/coi-config.js"></script><script src="/formicarium/coi-serviceworker.js"></script><script>document.documentElement.dataset.theme='dark'</script><script type="module" src="/formicarium/_astro/term.js"></script></head><body><div data-terminal-host="{}"></div></body></html>`,
+    `<!doctype html><html><head><meta charset="utf-8"><script src="/formicarium/coi-serviceworker.js"></script><script>document.documentElement.dataset.theme='dark'</script><script type="module" src="/formicarium/_astro/term.js"></script></head><body><div data-terminal-host="{}"></div></body></html>`,
   ).html;
 const TERMINAL_PAGES = ['terminal/index.html', 'ja/terminal/index.html'];
 
@@ -41,7 +41,6 @@ async function site() {
     '_astro/term.js':
       'import"./shared.js";document.querySelector("[data-terminal-host]");',
     '_astro/site.css': 'body{background:url(/formicarium/bg.png)}',
-    'coi-config.js': 'window.coi={}',
     'THIRD_PARTY_NOTICES.md': '# notices',
     'site-identity.json': '{}',
     'guests/aube/2.7.2/aube': 'ELF',
@@ -50,6 +49,7 @@ async function site() {
     join(
       SITE_ROOT,
       'node_modules',
+      '@aletheia-works',
       'coi-serviceworker',
       'coi-serviceworker.js',
     ),
@@ -63,7 +63,7 @@ const check = (siteDir: string, workflow = WORKFLOW) =>
 test('a complete site passes and reports its size and guests', async () => {
   const result = await check(await site());
   assert.deepEqual(result.problems, []);
-  assert.equal(result.files, 16);
+  assert.equal(result.files, 15);
   assert.equal(result.largest?.path, 'coi-serviceworker.js');
   assert.ok(result.largest!.bytes > 0);
   assert.deepEqual(result.guests, [
@@ -185,7 +185,7 @@ test('upload settings, coi-serviceworker bytes, source maps and required files a
   ).problems;
   assert.deepEqual(problems, [
     'upload-pages-artifact leaves dotfiles out (include-hidden-files: true missing)',
-    'coi-serviceworker.js SHA256 differs from 0.1.7',
+    'coi-serviceworker.js SHA256 differs from 0.1.0',
     'source map left in the site: _astro/doc.js.map',
     'THIRD_PARTY_NOTICES.md missing',
   ]);

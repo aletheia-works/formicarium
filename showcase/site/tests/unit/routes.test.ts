@@ -255,7 +255,7 @@ test('documentation pages and /tools/ load no terminal module and no service wor
     for (const { url } of htmlSubresources(text))
       assert.doesNotMatch(
         url,
-        /coi-serviceworker|coi-config|_formicarium|TerminalPage/,
+        /coi-serviceworker|_formicarium|TerminalPage/,
         page,
       );
   }
@@ -280,14 +280,11 @@ test('the built site passes check-site once the build adds CSP, notices and iden
   assert.deepEqual(result.problems, []);
 });
 
-test('the terminal pages keep the hints, status line and isolation scripts in order', async () => {
+test('the terminal pages keep the hints, status line and isolation script', async () => {
   const page = await read('tools/pitchfork/index.html');
   assert.match(page, /<code[^>]*>pitchfork --version<\/code>/);
   assert.match(page, /role="status"[^>]*>\s*Preparing cross-origin isolation…/);
-  assert.ok(
-    page.indexOf('/formicarium/coi-config.js') <
-      page.indexOf('/formicarium/coi-serviceworker.js'),
-  );
+  assert.ok(page.includes('/formicarium/coi-serviceworker.js'));
   const empty = await read('ja/terminal/index.html');
   for (const tool of TEST_TOOLS)
     assert.match(

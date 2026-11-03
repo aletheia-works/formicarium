@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { copyFile, cp, readFile, stat, writeFile } from 'node:fs/promises';
+import { cp, readFile, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import test from 'node:test';
 import {
@@ -26,10 +26,6 @@ async function setup(options: { tamper?: boolean } = {}) {
     await writeFile(join(layout.candidate, 'site', 'extra.js'), 'x');
   await writePack(join(layout.work, 'inputs', 'resolve'));
   await writeFiles(layout.public, { 'favicon.svg': '<svg/>' });
-  await copyFile(
-    join(SITE_ROOT, 'public', 'coi-config.js'),
-    join(layout.public, 'coi-config.js'),
-  );
   const context: BuildContext = {
     layout,
     mode: 'verify',
@@ -49,7 +45,7 @@ function fakeBuild(extra: Record<string, string> = {}) {
     const { layout } = context;
     await cp(layout.public, layout.dist, { recursive: true });
     const terminal =
-      '<!doctype html><html><head><meta charset="utf-8"><script src="/formicarium/coi-config.js"></script><script src="/formicarium/coi-serviceworker.js"></script><script>theme()</script><script type="module" src="/formicarium/_astro/term.js"></script></head><body><div data-terminal-host="{}"></div></body></html>';
+      '<!doctype html><html><head><meta charset="utf-8"><script src="/formicarium/coi-serviceworker.js"></script><script>theme()</script><script type="module" src="/formicarium/_astro/term.js"></script></head><body><div data-terminal-host="{}"></div></body></html>';
     const doc =
       '<!doctype html><html><head><script type="module" src="/formicarium/_astro/doc.js"></script></head><body><h1>x</h1></body></html>';
     const files: Record<string, string> = {
@@ -110,7 +106,6 @@ test('the steps run in the build order and the site gets every placed file', asy
     'guests/aube/2.7.2/aube',
     'licenses/aube-LICENSE',
     'coi-serviceworker.js',
-    'coi-config.js',
     'demo-fixtures/aube-local-deps.json',
     'THIRD_PARTY_NOTICES.md',
     'site-identity.json',
@@ -206,11 +201,13 @@ test('code copied outside Vite is named for the notices', async () => {
     '_astro/ec.abc.js': '',
   });
   assert.deepEqual((await copiedPackages(dist)).slice(0, 3), [
-    'coi-serviceworker',
+    '@aletheia-works/coi-serviceworker',
     'pagefind',
     'astro-expressive-code',
   ]);
   const bare = await tempDir('dist');
   await writeFiles(bare, { 'index.html': '' });
-  assert.deepEqual(await copiedPackages(bare), ['coi-serviceworker']);
+  assert.deepEqual(await copiedPackages(bare), [
+    '@aletheia-works/coi-serviceworker',
+  ]);
 });

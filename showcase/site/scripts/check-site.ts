@@ -16,11 +16,10 @@ import { NOTICES_FILE } from './notices.ts';
 
 /** GitHub Pages site limit: the site must stay below 1 GB. */
 export const MAX_SITE_BYTES = 1073741824;
-/** coi-serviceworker 0.1.7 (npm, MIT): the only copy at the site root. */
+/** @aletheia-works/coi-serviceworker 0.1.0 (npm, Apache-2.0): the only copy at the site root. */
 export const COI_FILE = 'coi-serviceworker.js';
 export const COI_SHA256 =
-  'd12bd536e27e39a773d7dc7adb1a1167d24002293e97ac81c995fb00cf8d4d5a';
-export const COI_CONFIG_FILE = 'coi-config.js';
+  '1e5517410e951da2ae491902a07e59df81bb3bfd7aad03867255c580f3d9c1e0';
 export const LOCALES = ['ja'] as const;
 
 const SUBRESOURCE_RELS = new Set([
@@ -173,7 +172,7 @@ async function documentProblems(
   const problems: string[] = [];
   for (const { url } of htmlSubresources(html)) {
     if (
-      /coi-serviceworker|coi-config|_formicarium\/|demo-fixtures\/|catalog\.json|guests\//.test(
+      /coi-serviceworker|_formicarium\/|demo-fixtures\/|catalog\.json|guests\//.test(
         url,
       )
     )
@@ -220,8 +219,8 @@ function terminalProblems(page: string, html: string): string[] {
     problems.push(`${page} CSP differs from the inline script hashes`);
   if (externalSources(policy))
     problems.push(`${page} CSP names an external origin`);
-  if (!html.includes(`/${COI_FILE}`) || !html.includes(`/${COI_CONFIG_FILE}`))
-    problems.push(`${page} does not load the isolation scripts`);
+  if (!html.includes(`/${COI_FILE}`))
+    problems.push(`${page} does not load the isolation script`);
   return problems;
 }
 
@@ -286,9 +285,7 @@ export async function checkSite(
   if (coi.length !== 1 || coi[0]!.path !== COI_FILE)
     problems.push(`exactly one ${COI_FILE} at the site root is required`);
   else if (sha256(await readFile(join(input.siteDir, COI_FILE))) !== COI_SHA256)
-    problems.push(`${COI_FILE} SHA256 differs from 0.1.7`);
-  if (!files.some((file) => file.path === COI_CONFIG_FILE))
-    problems.push(`${COI_CONFIG_FILE} missing`);
+    problems.push(`${COI_FILE} SHA256 differs from 0.1.0`);
   for (const file of files)
     if (file.path.endsWith('.map'))
       problems.push(`source map left in the site: ${file.path}`);

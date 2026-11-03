@@ -96,10 +96,6 @@
       "reason": "guide に載せる例。実行しない（pack の型で型検査だけ行う）"
     },
     {
-      "path": "public/coi-config.js",
-      "reason": "第三者の coi-serviceworker が読む設定の値だけ"
-    },
-    {
       "path": "tests/**",
       "reason": "試験の file と試験の道具（tests/coverage/merge-coverage.ts、tests/accept/harness を含む）"
     },
