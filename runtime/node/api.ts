@@ -14,8 +14,8 @@ function spawnNodeWorker(
   request: RunRequest,
   handlers: WorkerHandlers,
 ): WorkerHandle {
-  if (Number(process.versions.node.split('.')[0]) < 24)
-    throw failure('UNSUPPORTED_ENV', 'Node >=24 is required');
+  if (Number(process.versions.node.split('.')[0]) < 26)
+    throw failure('UNSUPPORTED_ENV', 'Node >=26 is required');
   const url = new URL(request.assets.workerURL);
   if (url.protocol !== 'file:' || !existsSync(url))
     throw failure('ASSET_LOAD', 'Package Worker file is unavailable');

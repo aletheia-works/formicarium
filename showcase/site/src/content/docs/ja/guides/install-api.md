@@ -117,7 +117,7 @@ JSON がオブジェクトになった時点で失われた重複キーは、API
 
 ## 通信と上限
 
-Node.js は 24 以降で、絶対の HTTPS の URL を渡します。ブラウザでは、相対 URL を document の origin に対して解決し、
+Node.js は 26 以降で、絶対の HTTPS の URL を渡します。ブラウザでは、相対 URL を document の origin に対して解決し、
 その結果にも HTTPS を求めます。Node.js には暗黙の origin はありません。CORS と CSP の `connect-src` は、
 ゲストの配信元に合わせてください。
 

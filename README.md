@@ -42,7 +42,7 @@ safaridriver cannot drive); a real iPhone is not tested.
 npm install @aletheia-works/formicarium
 ```
 
-Node.js 24 or later is required.
+Node.js 26 or later is required.
 
 ## Quick start (Node.js)
 

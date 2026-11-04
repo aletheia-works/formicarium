@@ -15,7 +15,7 @@ development rules.
 | Tool                  | Used for                                                  | How to get it                                                                                      |
 | --------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | Bun (latest)          | Installing the locked dependencies, builds and most tasks | `mise install` (`mise.toml`)                                                                       |
-| Node.js (latest)      | Node tests, the Node runner and measurements              | `mise install`. The published package supports Node.js 24 or later                                 |
+| Node.js (latest)      | Node tests, the Node runner and measurements              | `mise install`. The published package supports Node.js 26 or later                                 |
 | Docker (or wslc)      | Building the Linux guests and the native baselines        | Docker Desktop. On Windows wslc is tried first; set `FORMICARIUM_CONTAINER=docker` to force Docker |
 | Playwright's browsers | Browser tests                                             | `bun node_modules/@playwright/test/cli.js install chromium firefox webkit`                         |
 

@@ -4,8 +4,8 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { elfHeader, isolatedDirectory } from './fixtures.js';
 
-test('package runner supports ESM, assertions and isolated cleanup on Node >=24', async (t) => {
-  assert.ok(Number(process.versions.node.split('.')[0]) >= 24);
+test('package runner supports ESM, assertions and isolated cleanup on Node >=26', async (t) => {
+  assert.ok(Number(process.versions.node.split('.')[0]) >= 26);
   const directory = await isolatedDirectory(t);
   assert.ok(directory.includes('formicarium-package-'));
   assert.deepEqual([...elfHeader().slice(0, 4)], [127, 69, 76, 70]);

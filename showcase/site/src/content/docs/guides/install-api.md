@@ -130,7 +130,7 @@ non-integer numbers are refused as canonical input.
 
 ## Network and limits
 
-Node.js needs version 24 or later and absolute HTTPS URLs. In a browser, a
+Node.js needs version 26 or later and absolute HTTPS URLs. In a browser, a
 relative URL resolves against the document origin and must still be HTTPS;
 Node.js has no implicit origin. Match CORS and the CSP `connect-src` to where
 the guests are served.

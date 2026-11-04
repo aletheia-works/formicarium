@@ -14,7 +14,7 @@ formicarium は、改変していない static な x86-64 Linux のバイナリ�
 | import                                | 提供するもの                                                                                                                            |
 | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | `@aletheia-works/formicarium`         | ゲストの検証と登録、[インストーラ](/formicarium/ja/guides/install-api/)、[command session](/formicarium/ja/guides/command-api/)、エラー |
-| `@aletheia-works/formicarium/node`    | Node.js 24 以降向けの `createSession`                                                                                                   |
+| `@aletheia-works/formicarium/node`    | Node.js 26 以降向けの `createSession`                                                                                                   |
 | `@aletheia-works/formicarium/browser` | ブラウザ向けの `createSession`。ページは cross-origin isolated（COOP/COEP）である必要があります                                         |
 
 ## 1 回の実行の流れ

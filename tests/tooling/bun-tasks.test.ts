@@ -38,10 +38,10 @@ test('developer entry rejects unsupported Node and invalid Bun versions before e
     () =>
       runTask({
         task: 'build',
-        nodeVersion: '23.0.0',
+        nodeVersion: '25.0.0',
         execute: () => ({ status: 0 }),
       }),
-    /Node 24 or newer/,
+    /Node 26 or newer/,
   );
   assert.throws(
     () =>
@@ -79,7 +79,7 @@ test('Node consumer and worker execution remain explicit Node scripts', async ()
     /node --test --test-concurrency=1/,
   );
   assert.match(manifest.scripts.build, /bun \.build\/scripts\/emit\.js$/);
-  assert.equal(manifest.engines.node, '>=24');
+  assert.equal(manifest.engines.node, '>=26');
 });
 test('all logical task names have developer commands and unknown tasks fail', () => {
   assert.deepEqual(Object.keys(TASKS), [

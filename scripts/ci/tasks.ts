@@ -44,9 +44,9 @@ export function runTask(options: {
   const args = taskArguments(options.task, options.cacheless);
   if (
     !/^\d+\.\d+\.\d+$/.test(options.nodeVersion) ||
-    Number(options.nodeVersion.split('.')[0]) < 24
+    Number(options.nodeVersion.split('.')[0]) < 26
   )
-    throw Error(`Node 24 or newer required for developer tasks`);
+    throw Error(`Node 26 or newer required for developer tasks`);
   const version = options.execute('bun', ['--version']);
   if (
     version.status !== 0 ||

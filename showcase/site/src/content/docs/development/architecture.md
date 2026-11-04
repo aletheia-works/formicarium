@@ -14,7 +14,7 @@ kernel. This page describes the package (`@aletheia-works/formicarium`); the
 | Import                                | Provides                                                                                                                                              |
 | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `@aletheia-works/formicarium`         | Guest validation and registration, the [installer](/formicarium/guides/install-api/), the [command session](/formicarium/guides/command-api/), errors |
-| `@aletheia-works/formicarium/node`    | `createSession` for Node.js 24 or later                                                                                                               |
+| `@aletheia-works/formicarium/node`    | `createSession` for Node.js 26 or later                                                                                                               |
 | `@aletheia-works/formicarium/browser` | `createSession` for browsers; the page must be cross-origin isolated (COOP/COEP)                                                                      |
 
 ## How a run works
