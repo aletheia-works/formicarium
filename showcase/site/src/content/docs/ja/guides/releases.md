@@ -19,8 +19,10 @@ check の後に merge する（手で、または有効にしたときは毎週�
 `showcase/scripts/**`・Safari の WebDriver の client の `showcase/tests/webdriver.ts`・
 この workflow）か、固定した版（`showcase/formicarium-release.json`）を
 変えたときに動き、`main` から手動でも
-起動できます。日次の run は無いので、ゲストの新しい候補は手動の実行で配布します。
-配布するのはこの2つの run だけです。
+起動できます。サイト自体に日次の run は無く、代わりに `showcase-watch.yml` が
+公開中のサイトに無い版がツールに出ていないかを毎日確かめ、出ていれば `main` で
+`showcase-site.yml` を手動の実行と同じ形で起動します。
+配布するのはこの2種類の run だけです。
 
 1. `showcase.yml` が `distribute` の mode で、`showcase/formicarium-release.json` に
    固定した formicarium の版を npm から取得し、固定した integrity とタグのコミットに

@@ -1,0 +1,70 @@
+name: Showcase watch
+
+# Checks every day whether the tools have versions the deployed site lacks, and
+# starts showcase-site.yml on main when they do. That run accepts and deploys them
+# as a manual run does; distribution itself still refuses a schedule.
+on:
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: showcase-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    name: Start the site run for new tool versions
+    if: github.repository == 'aletheia-works/formicarium'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      actions: write
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '*'
+          check-latest: true
+          package-manager-cache: false
+      - name: Read the main definition of the allow list
+        run: git fetch --no-tags --depth=1 origin +refs/heads/main:refs/remotes/origin/main
+      - name: Resolve the latest stable releases, as a site run would
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node showcase/scripts/resolve.ts
+      - name: Compare them with the deployed site
+        id: watch
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node showcase/scripts/watch.ts
+      - name: Start the site run
+        if: steps.watch.outputs.action == 'dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run showcase-site.yml --repo "$GITHUB_REPOSITORY" --ref main
+      - name: Report the failed run
+        if: steps.watch.outputs.action == 'report'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: ${{ steps.watch.outputs.issue }}
+          ISSUE_TITLE: 'Showcase: new guest versions did not deploy'
+        run: |
+          if [ -n "$ISSUE" ]; then
+            gh issue edit "$ISSUE" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/watch-issue.md"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$ISSUE_TITLE" --body-file "$RUNNER_TEMP/watch-issue.md"
+          fi
+      - name: Close the report now that the site has the versions
+        if: steps.watch.outputs.action == 'close'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: ${{ steps.watch.outputs.issue }}
+        run: gh issue close "$ISSUE" --repo "$GITHUB_REPOSITORY" --comment 'The site now has the latest versions.'

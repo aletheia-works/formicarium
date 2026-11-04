@@ -20,8 +20,10 @@ checks in detail.
 (`showcase/site/**`, `showcase/scripts/**`, the Safari WebDriver client
 `showcase/tests/webdriver.ts`, the workflow itself or the pinned release
 `showcase/formicarium-release.json`) and can be started by hand on
-`main`. There is no daily run, so a new guest candidate is
-deployed by a manual run. Only these two runs distribute:
+`main`. The site itself has no daily run. Instead `showcase-watch.yml` checks
+every day whether a tool has a version the deployed site lacks, and when one
+does it starts `showcase-site.yml` on `main`, as a manual run. Only these two
+kinds of run distribute:
 
 1. `showcase.yml` builds and accepts a candidate in `distribute` mode, with the
    formicarium release pinned in `showcase/formicarium-release.json`, downloaded

@@ -7,10 +7,18 @@ description: Builds, monitoring, rollback and dependency checks of the showcase 
 ## Builds and monitoring
 
 The site deploys when a push to `main` changes it, and when `showcase-site.yml`
-is run by hand on `main`; there is no daily run. Each run writes a job summary
-with the days since the last deployment and the jobs that failed. An old
-deployment is not a failure. To deploy a new guest candidate of
-**Showcase guests**, run `showcase-site.yml` by hand on `main`.
+is run by hand on `main`; the site has no daily run. Each run writes a job
+summary with the days since the last deployment and the jobs that failed. An old
+deployment is not a failure.
+
+`showcase-watch.yml` compares the latest tool versions with the deployed site
+every day. When they differ it starts `showcase-site.yml` on `main`, so a new
+tool version deploys without a manual run. A run stopped only because no runner
+picked up a job is started again the next day. When a job of the run fails, the
+check opens the issue **Showcase: new guest versions did not deploy** and starts
+no run for those versions while it is open. It starts one again when a newer
+version appears, and closes the issue once the site has the versions. After
+fixing the cause, run `showcase-site.yml` by hand on `main`.
 
 ## When the candidate is missing
 

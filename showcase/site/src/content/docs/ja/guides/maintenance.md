@@ -7,10 +7,16 @@ description: showcase のサイトの build・監視・切戻し・依存の確�
 ## build と監視
 
 サイトは、`main` への push がサイトを変えたときと、`main` から
-`showcase-site.yml` を手動で実行したときに deploy します。日次の run はありません。
+`showcase-site.yml` を手動で実行したときに deploy します。サイト自体に日次の run はありません。
 各 run は、最後の deploy からの日数と失敗した job を job summary に書きます。
-deploy が古いことは失敗になりません。**Showcase guests** の新しい候補を配布する
-ときは、`main` から `showcase-site.yml` を手動で実行します。
+deploy が古いことは失敗になりません。
+
+`showcase-watch.yml` は、ツールの最新の版と公開中のサイトを毎日比べます。違っていれば
+`main` で `showcase-site.yml` を起動するので、ツールの新しい版は手動の実行なしで配布されます。
+ランナーが job を受け取れずに止まっただけの run は、翌日にもう一度起動します。run の job が
+失敗すると、issue **Showcase: new guest versions did not deploy** を作り、その issue が開いて
+いる間はその版の組み合わせで起動しません。もっと新しい版が出れば再び起動し、サイトが
+その版になれば issue を閉じます。原因を直したら、`main` から `showcase-site.yml` を手動で実行します。
 
 ## 候補が無いとき
 

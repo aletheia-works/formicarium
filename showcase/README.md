@@ -218,8 +218,11 @@ tag `v<version>` のコミットが `sourceCommit` に一致したときだけ�
 
 showcase site は日次の実行をやめ、main への push が `showcase/site/`・`showcase/scripts/`・
 `showcase/tests/webdriver.ts`・`showcase/formicarium-release.json`・`showcase-site.yml` を
-変えたときと、main からの手動の実行で配布する。ゲストの新しい候補（新しい release の取込み）は自動では配布されないので、
-人間が main から showcase-site の workflow を手動で実行する。各 run の `candidate` job の
+変えたときと、main からの手動の実行で配布する。ゲストの新しい候補（新しい release の取込み）は、
+`showcase-watch.yml`（`scripts/watch.ts`）が毎日 `scripts/resolve.ts` の結果と公開中の `catalog.json` を比べ、
+違っていれば main で showcase-site の workflow を `workflow_dispatch` で起動して配布する。
+run の job が失敗すると issue で報告し、同じ版の組み合わせでは起動しない。
+ランナーが受け取れずに cancelled になっただけの job は失敗に数えず、翌日に起動し直す。各 run の `candidate` job の
 summary には「最後に配布可能な候補を作った run からの日数」が出る。`showcase-site.yml` の
 `summary` job は、最後に deploy した run からの日数と、失敗した job を書く。
 
