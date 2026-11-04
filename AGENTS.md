@@ -11,6 +11,7 @@
 ## Team practices
 
 These were affirmed by the user; the background of each piece of work is in its PR and commit history.
+
 - **Branches**: `main` is the integration branch. Work on short-lived bookmarks and merge them after review, keeping one change per piece of work so its history and reasoning stay together.
 - **Tests**: write tests after implementing each testable layer. For a bug fix, first watch a reproduction test fail, then fix it and see the same test pass. Keep line coverage at 80% or more on the first-party distributed JS and run CI before merging; count files that were never executed in the denominator, list every exclusion with its reason, and never move an exclusion to reach the threshold.
 - **Guests**: do not rebuild aube when its source has not changed; reuse `dist/guests` (an aube build takes over an hour). Rebuild the probe whenever it changes.

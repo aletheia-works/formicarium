@@ -59,6 +59,7 @@ cross-origin isolation・Worker・資産・CSP の要件を満たしてくださ
 install が成功すると、ゲストはツールの名前で Session に登録され、`reset()` か
 `dispose()` まで残ります。[command session](/formicarium/ja/guides/command-api/)
 の `install <tool>` は、この install そのものです。登録の後は次のようになります。
+
 - command session で、ツールを名前で実行できます。
 - どのゲストの実行からも `/usr/bin/<tool>`（既定の PATH の上）として見えるので、
   ツールから別のツールを起動できます。

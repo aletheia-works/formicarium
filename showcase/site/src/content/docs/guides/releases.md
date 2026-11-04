@@ -22,6 +22,7 @@ checks in detail.
 `showcase/formicarium-release.json`) and can be started by hand on
 `main`. There is no daily run, so a new guest candidate is
 deployed by a manual run. Only these two runs distribute:
+
 1. `showcase.yml` builds and accepts a candidate in `distribute` mode, with the
    formicarium release pinned in `showcase/formicarium-release.json`, downloaded
    from npm and checked against the pinned integrity and the commit of its tag.

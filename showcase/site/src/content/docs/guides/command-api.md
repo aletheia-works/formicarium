@@ -163,6 +163,7 @@ persisted roots, or removing a root itself, is the Session's `INVALID_INPUT` as
 before.
 
 `cp` and `mv` follow POSIX where they can:
+
 - When `dst` is an existing directory, the entry goes inside it under its own
   name; otherwise it goes to `dst`, whose parent must already be a directory
   (`NOT_FOUND` when it does not exist). Symlinks are not followed: a symlink
@@ -231,6 +232,7 @@ with internal buffers or the Session's files. The command API does not truncate
 the result, decode it, or evaluate it as HTML or code.
 
 These belong to the embedding UI, not to the command API, and are tested there:
+
 - telling loading, empty and error states apart
 - keyboard operation
 - telling an unknown progress total (`totalBytes: null`) from zero

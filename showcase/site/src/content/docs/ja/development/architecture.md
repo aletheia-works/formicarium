@@ -23,6 +23,7 @@ formicarium は、改変していない static な x86-64 Linux のバイナリ�
 登録したゲストを持ちます。操作は一度に 1 つだけで、同時に来た実行・install・ファイル操作は `BUSY` で拒否します。
 
 実行のたびに、**新しい Worker** を立てます（Node.js では `worker_threads`、ブラウザでは module Worker）。
+
 1. Worker はコアの資産を読み込み、評価する前に SHA-256 をビルド情報と照合します。
 2. Session のファイルとゲストのバイナリを新しいメモリ上のファイルシステムに置き、引数と環境変数を渡してゲストを実行し、
    stdout と stderr を流します。対話的な実行では、Session が stdin も Worker に送り、ゲストからは端末に見えます

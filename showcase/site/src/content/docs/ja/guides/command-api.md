@@ -126,6 +126,7 @@ command が登録したゲストを実行するときは `/usr/bin/<tool>` か�
 引き継ぐ場所の外のパスや、その場所自体の削除は、これまでどおり Session の `INVALID_INPUT` です。
 
 `cp` と `mv` は、できるところは POSIX に合わせています。
+
 - `dst` が既にあるディレクトリなら、その中へ元の名前で置きます。そうでなければ `dst` に置き、その親は既にある
   ディレクトリでなければなりません（ない場合は `NOT_FOUND`）。symlink はたどりません。ディレクトリを指す symlink を
   `dst` にすると既にある symlink として扱い、`mv` は置き換え、`cp` は拒否します。
@@ -173,6 +174,7 @@ install が成功したときの stdout は `installed <tool>@<versionOrName> (s
 command API は結果を切り詰めず、文字列に変換せず、HTML やコードとして評価しません。
 
 次のことは command API ではなく、埋め込む UI の責任で、UI の側のテストで確かめます。
+
 - 読み込み中・空・エラーの表示の区別
 - キーボードでの操作
 - 進捗の「不明」（`totalBytes: null`）と「0」の区別

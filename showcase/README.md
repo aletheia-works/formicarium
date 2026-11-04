@@ -206,6 +206,7 @@ workflow の名前で concurrency の group を分けるので、互いを取り
 `integrity` と npm の `dist.integrity` に一致し、tarball が `registry.npmjs.org` にあり、
 tag `v<version>` のコミットが `sourceCommit` に一致したときだけ使う。版が `null` のときは、
 `distribute` は `release-unavailable` で失敗する。
+
 1. 安定版の publish（`publish.yml`）が成功すると、`showcase-release-pin.yml` が
    `scripts/pin-release.ts` でその版を確かめ（`distribute` と同じ取得と照合）、
    `formicarium-release.json` を書き換える PR を bot で作る。版は安定版だけである（RC は出さない）。

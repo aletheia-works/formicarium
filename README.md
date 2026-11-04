@@ -8,6 +8,7 @@ Linux emulator compiled to WebAssembly (a Rust counterpart of
 API: give it a static Linux executable and some files, run it, and get back the
 exit code, the output and the files it wrote. The goal is to let a CLI bug
 reproduction run as-is in a web page.
+
 - **Try it:** the [showcase site](https://aletheia-works.github.io/formicarium/)
   has terminals that install and run aube, pitchfork, Biome, nano, jj and git in your
   browser.
@@ -21,6 +22,7 @@ reproduction run as-is in a web page.
 
 formicarium is young (0.x) and its API may still change. What is checked on
 every change:
+
 - A Rust probe (threads, timers, `UnixStream::pair`, rayon, Mutex/Condvar,
   hard links, symlinks, `flock`) passes on Node.js, Chromium, Firefox and WebKit.
 - Multi-step sessions of aube and pitchfork produce the same output as on native
@@ -65,6 +67,7 @@ them from a catalog with the install API (below).
 
 Import `createSession` from `@aletheia-works/formicarium/browser`. The page must
 be able to use `SharedArrayBuffer`:
+
 - Serve the page with `Cross-Origin-Opener-Policy: same-origin` and
   `Cross-Origin-Embedder-Policy: require-corp` (or use a service worker such as
   coi-serviceworker on static hosting).

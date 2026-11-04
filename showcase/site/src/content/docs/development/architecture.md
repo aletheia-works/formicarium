@@ -26,6 +26,7 @@ with `BUSY`.
 
 Each run starts a **fresh Worker** (`worker_threads` in Node.js, a module Worker
 in browsers):
+
 1. The Worker loads the core assets and checks their SHA-256 digests against
    the build information before evaluating them.
 2. It places the Session's files and the guest binary in a new in-memory

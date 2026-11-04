@@ -21,6 +21,7 @@ check の後に merge する（手で、または有効にしたときは毎週�
 変えたときに動き、`main` から手動でも
 起動できます。日次の run は無いので、ゲストの新しい候補は手動の実行で配布します。
 配布するのはこの2つの run だけです。
+
 1. `showcase.yml` が `distribute` の mode で、`showcase/formicarium-release.json` に
    固定した formicarium の版を npm から取得し、固定した integrity とタグのコミットに
    照らしてから、候補を作って受け入れます。版を固定していない間は配布が失敗し、

@@ -66,6 +66,7 @@ A successful install registers the guest in the Session under its tool name,
 until `reset()` or `dispose()`. `install <tool>` in a
 [command session](/formicarium/guides/command-api/) is this same install.
 After it:
+
 - the command session runs the tool by name;
 - every guest run finds it as `/usr/bin/<tool>` (on the default PATH), so one
   tool can start another;

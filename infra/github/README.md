@@ -44,6 +44,7 @@ run in which a guest job failed or was skipped.
 
 `TF_TOKEN_GITHUB` は既に登録されています（値は参照していません）。そのtokenの
 権限が以下を満たせば再作成は不要です。不足している場合は本人の操作で更新します。
+
 1. `aletheia-works` を管理できるアカウントで
    [Fine-grained token作成](https://github.com/settings/personal-access-tokens/new)
    を開きます。Token nameは `formicarium-opentofu`、Descriptionは
