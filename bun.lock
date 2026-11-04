@@ -5,7 +5,7 @@
     "": {
       "name": "@aletheia-works/formicarium",
       "devDependencies": {
-        "@aletheia-works/coi-serviceworker": "0.1.0",
+        "@aletheia-works/coi-serviceworker": "0.2.0",
         "@aletheia-works/paludarium-wasm": "0.11.0",
         "@biomejs/biome": "^2.6.5",
         "@playwright/test": "1.64.1",
@@ -21,7 +21,7 @@
   },
   "trustedDependencies": [],
   "packages": {
-    "@aletheia-works/coi-serviceworker": ["@aletheia-works/coi-serviceworker@0.1.0", "", {}, "sha512-BItjPmnOnFMH++hr+kromYrSJLP0wfwDSJ7ZTZmNpr6haHLnTKmwn1SKrMmuQT+ZcdS5Dr52HpcMzwZQf98pTg=="],
+    "@aletheia-works/coi-serviceworker": ["@aletheia-works/coi-serviceworker@0.2.0", "", {}, "sha512-KtEQ9FfwWGY81EqIXd45GRLeumqOcRuhau5+eWBTVNZAmslvOx6pDLq9L4/MCGcu3PiNqV+QFWOKEzBulwuAGw=="],
 
     "@aletheia-works/paludarium-wasm": ["@aletheia-works/paludarium-wasm@0.11.0", "", {}, "sha512-subdFCdfCCKnCPK71cc0VoInLw/EOqWDLpPb0aH2qo0qqW1bOYhcwUmJ76lA1fuGuyO4nTz5tCV8NVHFksvXAQ=="],
 

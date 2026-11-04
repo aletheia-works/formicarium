@@ -16,10 +16,10 @@ import { NOTICES_FILE } from './notices.ts';
 
 /** GitHub Pages site limit: the site must stay below 1 GB. */
 export const MAX_SITE_BYTES = 1073741824;
-/** @aletheia-works/coi-serviceworker 0.1.0 (npm, Apache-2.0): the only copy at the site root. */
+/** @aletheia-works/coi-serviceworker 0.2.0 (npm, Apache-2.0): the only copy at the site root. */
 export const COI_FILE = 'coi-serviceworker.js';
 export const COI_SHA256 =
-  '1e5517410e951da2ae491902a07e59df81bb3bfd7aad03867255c580f3d9c1e0';
+  'f7bc9acec6e49d3575d64e419758a2c0647f4408d486994c1abe9a703a48fed0';
 export const LOCALES = ['ja'] as const;
 
 const SUBRESOURCE_RELS = new Set([
@@ -285,7 +285,7 @@ export async function checkSite(
   if (coi.length !== 1 || coi[0]!.path !== COI_FILE)
     problems.push(`exactly one ${COI_FILE} at the site root is required`);
   else if (sha256(await readFile(join(input.siteDir, COI_FILE))) !== COI_SHA256)
-    problems.push(`${COI_FILE} SHA256 differs from 0.1.0`);
+    problems.push(`${COI_FILE} SHA256 differs from 0.2.0`);
   for (const file of files)
     if (file.path.endsWith('.map'))
       problems.push(`source map left in the site: ${file.path}`);

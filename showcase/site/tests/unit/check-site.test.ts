@@ -185,7 +185,7 @@ test('upload settings, coi-serviceworker bytes, source maps and required files a
   ).problems;
   assert.deepEqual(problems, [
     'upload-pages-artifact leaves dotfiles out (include-hidden-files: true missing)',
-    'coi-serviceworker.js SHA256 differs from 0.1.0',
+    'coi-serviceworker.js SHA256 differs from 0.2.0',
     'source map left in the site: _astro/doc.js.map',
     'THIRD_PARTY_NOTICES.md missing',
   ]);

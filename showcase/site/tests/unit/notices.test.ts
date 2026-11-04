@@ -127,7 +127,7 @@ test('THIRD_PARTY_NOTICES holds formicarium, the guests and every site package',
   });
   assert.deepEqual(
     packages.map((item) => `${item.name}@${item.version}`),
-    ['@aletheia-works/coi-serviceworker@0.1.0', '@xterm/xterm@6.0.0'],
+    ['@aletheia-works/coi-serviceworker@0.2.0', '@xterm/xterm@6.0.0'],
   );
   for (const expected of [
     'Apache License 2.0',
@@ -135,7 +135,7 @@ test('THIRD_PARTY_NOTICES holds formicarium, the guests and every site package',
     '# Showcase guest notices',
     'MIT aube',
     'MIT xterm',
-    '### @aletheia-works/coi-serviceworker 0.1.0 (Apache-2.0)',
+    '### @aletheia-works/coi-serviceworker 0.2.0 (Apache-2.0)',
   ])
     assert.ok(text.includes(expected), expected);
   assert.ok(text.endsWith('\n'));

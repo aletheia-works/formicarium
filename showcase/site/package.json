@@ -9,7 +9,7 @@
     "node": ">=26.12.0"
   },
   "dependencies": {
-    "@aletheia-works/coi-serviceworker": "0.1.0",
+    "@aletheia-works/coi-serviceworker": "0.2.0",
     "@astrojs/markdown-satteri": "0.4.6",
     "@astrojs/starlight": "0.42.8",
     "@xterm/addon-fit": "0.11.0",

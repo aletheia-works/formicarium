@@ -51,10 +51,12 @@ test('the copied isolation worker runs as a classic script and installs all hand
   const script = new Script(source);
   script.runInNewContext({
     self: {
+      location: { href: 'https://example.test/coi-serviceworker.js' },
       addEventListener(name: string) {
         handlers.push(name);
       },
     },
+    URL,
     Headers,
     Response,
     fetch,

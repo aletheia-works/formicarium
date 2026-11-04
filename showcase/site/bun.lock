@@ -5,7 +5,7 @@
     "": {
       "name": "@aletheia-works/formicarium-showcase-site",
       "dependencies": {
-        "@aletheia-works/coi-serviceworker": "0.1.0",
+        "@aletheia-works/coi-serviceworker": "0.2.0",
         "@astrojs/markdown-satteri": "0.4.6",
         "@astrojs/starlight": "0.42.8",
         "@xterm/addon-fit": "0.11.0",
@@ -20,7 +20,7 @@
     },
   },
   "packages": {
-    "@aletheia-works/coi-serviceworker": ["@aletheia-works/coi-serviceworker@0.1.0", "", {}, "sha512-BItjPmnOnFMH++hr+kromYrSJLP0wfwDSJ7ZTZmNpr6haHLnTKmwn1SKrMmuQT+ZcdS5Dr52HpcMzwZQf98pTg=="],
+    "@aletheia-works/coi-serviceworker": ["@aletheia-works/coi-serviceworker@0.2.0", "", {}, "sha512-KtEQ9FfwWGY81EqIXd45GRLeumqOcRuhau5+eWBTVNZAmslvOx6pDLq9L4/MCGcu3PiNqV+QFWOKEzBulwuAGw=="],
 
     "@astrojs/compiler-binding": ["@astrojs/compiler-binding@0.5.2", "", { "optionalDependencies": { "@astrojs/compiler-binding-android-arm64": "0.5.2", "@astrojs/compiler-binding-darwin-arm64": "0.5.2", "@astrojs/compiler-binding-darwin-x64": "0.5.2", "@astrojs/compiler-binding-linux-arm64-gnu": "0.5.2", "@astrojs/compiler-binding-linux-arm64-musl": "0.5.2", "@astrojs/compiler-binding-linux-x64-gnu": "0.5.2", "@astrojs/compiler-binding-linux-x64-musl": "0.5.2", "@astrojs/compiler-binding-wasm32-wasi": "0.5.2", "@astrojs/compiler-binding-win32-arm64-msvc": "0.5.2", "@astrojs/compiler-binding-win32-x64-msvc": "0.5.2" } }, "sha512-lEn76+0JcMQ5RDXU0wSMWJg2ZppiZvSULpghC29cfv4o9bhvWFDbQjsCtvjjXN9iVLFQ7fL3wTR2L2UU13mP8g=="],
 
