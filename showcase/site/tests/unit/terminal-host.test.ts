@@ -586,9 +586,10 @@ test('Ctrl-C cancels a quiet every-page install', async () => {
     { data: data('empty', { everyPage: ['nano'] }) },
   );
   const started = h.host.start();
-  // Loading takes several turns of the event loop (more on a slow runner).
-  for (let turn = 0; turn < 100 && h.host.state !== 'installing'; turn++)
-    await settle();
+  // Loading reads files and digests them, so how many turns of the event loop
+  // it takes depends on the runtime and the machine: wait by time.
+  const deadline = Date.now() + 30_000;
+  while (h.host.state !== 'installing' && Date.now() < deadline) await settle();
   assert.equal(h.host.state, 'installing');
   assert.match(h.status.textContent ?? '', /^Installing nano: /);
   h.host.onData('\x03');

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import test from 'node:test';
+import { MIN_LINE_PERCENT } from '../scripts/coverage-lines.ts';
 import { REPOSITORY_ROOT, SHOWCASE_ROOT } from '../scripts/paths.ts';
 
 const { scripts } = JSON.parse(
@@ -12,16 +13,15 @@ const task = (name: string) =>
   scripts[name.replace(/^showcase-/, 'showcase:')] ?? '';
 const { engines } = JSON.parse(
   await readFile(join(SHOWCASE_ROOT, 'package.json'), 'utf8'),
-) as { engines: { node: string } };
+) as { engines: { bun: string } };
 const version = (text: string) => text.split('.').map(Number);
 
-test('runs on the Node version showcase/package.json requires, as ESM with type stripping', () => {
-  const required = version(/^>=(\d+\.\d+\.\d+)$/.exec(engines.node)![1]!);
-  const actual = version(process.versions.node);
+test('runs on the Bun version showcase/package.json requires, as TypeScript', () => {
+  const required = version(/^>=(\d+\.\d+\.\d+)$/.exec(engines.bun)![1]!);
+  const actual = version(process.versions.bun!);
   const order = actual.findIndex((part, index) => part !== required[index]);
   assert.ok(order === -1 || actual[order]! > required[order]!);
-  // `require` is undefined in an ES module; a typed binding proves stripping.
-  assert.equal(typeof require, 'undefined');
+  // A typed binding proves that the TypeScript runs without a compile step.
   const typed: number = 1;
   assert.equal(typed, 1);
   assert.match(import.meta.url, /\/showcase\/tests\/runner-ready\.test\.ts$/);
@@ -42,10 +42,13 @@ test('showcase-unit lists every showcase test file exactly once', async () => {
 
 test('showcase-unit measures line coverage of showcase/scripts at 80%', () => {
   const command = task('showcase-unit');
-  assert.match(command, /--test-concurrency=1/);
-  assert.match(command, /--experimental-test-coverage/);
-  assert.match(command, /--test-coverage-include='showcase\/scripts\/\*\*'/);
-  assert.match(command, /--test-coverage-lines=80(?:\s|$)/);
+  assert.match(command, /^bun test --coverage /);
+  assert.match(command, /--coverage-reporter=lcov /);
+  assert.match(
+    command,
+    / && bun showcase\/scripts\/coverage-lines\.ts showcase\/\.work\/coverage\/lcov\.info$/,
+  );
+  assert.equal(MIN_LINE_PERCENT, 80);
 });
 
 test('browser acceptance keeps one worker, no retry and the 840 s timeout', async () => {

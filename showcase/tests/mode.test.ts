@@ -114,7 +114,9 @@ test('CLI steps record success or the cause code in the job summary only', async
       ),
       false,
     );
-    process.exitCode = before;
+    // Assigning undefined does not clear it in Bun, where every test file
+    // shares one process.
+    process.exitCode = before ?? 0;
     assert.equal(
       await readFile(summary, 'utf8'),
       '- ok step: success\n- bad step: failed (`rate-limit`)\n',

@@ -227,9 +227,9 @@ jobs:
       - name: Unit tests (lcov for the coverage job)
         run: |
           mkdir -p showcase/site/.work/coverage
-          node --test --test-concurrency=1 --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=showcase/site/.work/coverage/lcov.info showcase/site/tests/unit/*.test.ts
+          bun test --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-dir=showcase/site/.work/coverage --timeout=300000 ./showcase/site/tests/unit/
       - name: Workflow definition test (previous-site-preserved)
-        run: node --test --test-reporter=tap --test-reporter-destination=showcase/site/.work/logs/workflow-test.tap showcase/site/tests/unit/workflow.test.ts
+        run: bun test --reporter=junit --reporter-outfile=showcase/site/.work/logs/workflow-test.xml showcase/site/tests/unit/workflow.test.ts
       - name: Assemble, check and inventory the site
         env:
           SHOWCASE_SOURCE_COMMIT: ${{ github.sha }}

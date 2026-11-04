@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #MISE alias="showcase-site-unit"
-#MISE description="showcase site unit tests (node:test, lcov for the coverage merge)"
+#MISE description="showcase site unit tests (bun test, lcov for the coverage merge)"
 set -euo pipefail
 mkdir -p showcase/site/.work/coverage
 exec bun run showcase-site:unit "$@"

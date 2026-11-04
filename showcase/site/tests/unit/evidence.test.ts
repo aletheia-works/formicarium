@@ -73,7 +73,8 @@ async function work(changes: Record<string, string | null> = {}) {
         (name) => ({ source: `showcase/fixtures/${name}` }),
       ),
     }),
-    [LOGS.workflowTest]: 'TAP version 13\n# tests 12\n# pass 12\n# fail 0\n',
+    [LOGS.workflowTest]:
+      '<testsuites name="bun test" tests="12" assertions="12" failures="0" skipped="0" time="0.1"></testsuites>\n',
     [LOGS.inventoryBuild]: JSON.stringify({ actual: inventory.sha256 }),
     [LOGS.inventoryDeploy]: JSON.stringify({ actual: inventory.sha256 }),
     [LOGS.deployGuard]: JSON.stringify({
@@ -233,6 +234,25 @@ test('a different inventory in an acceptance log, low coverage or a refused guar
       { [LOGS.deployGuard]: JSON.stringify({ allowed: false }) },
       /failed previous-site-preserved\/host/,
       'deployed',
+    ],
+    [
+      {
+        [LOGS.workflowTest]:
+          '<testsuites name="bun test" tests="12" failures="1" skipped="0"></testsuites>\n',
+      },
+      /failed previous-site-preserved\/host/,
+      'pre',
+    ],
+    // A log without its counts fails instead of passing or recording NaN.
+    [
+      { [LOGS.workflowTest]: '<testsuites name="bun test"></testsuites>\n' },
+      /failed previous-site-preserved\/host/,
+      'pre',
+    ],
+    [
+      { [LOGS.workflowTest]: 'not a report\n' },
+      /failed previous-site-preserved\/host/,
+      'pre',
     ],
   ];
   for (const [changes, pattern, stage] of cases) {

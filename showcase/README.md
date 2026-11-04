@@ -29,7 +29,7 @@ showcase/
 ├── builders/autotools.sh     # GNU の tarball を musl-gcc で configure・make する builder
 ├── keys/                     # GNU の tarball の署名を確かめる、作者の公開鍵（package ごと）
 ├── scripts/                  # 解決・取得・build・再利用・catalog・pack・候補・受入・境界
-└── tests/                    # node:test の単体試験、Playwright の受入、違反 fixture
+└── tests/                    # bun test で動かす単体試験、Playwright の受入、違反 fixture
 ```
 
 script は TypeScript のまま Node の型の除去で動く（emit しない）。import は

@@ -58,7 +58,7 @@ export const LOGS = Object.freeze({
   verifyCandidate: 'logs/verify-candidate.json',
   boundary: 'logs/boundary.txt',
   fixtures: 'logs/build-fixture-index.json',
-  workflowTest: 'logs/workflow-test.tap',
+  workflowTest: 'logs/workflow-test.xml',
   inventoryBuild: 'logs/inventory-build.json',
   inventoryAccept: (browser: string) => `logs/inventory-accept-${browser}.json`,
   inventoryDeploy: 'logs/inventory-deploy.json',
@@ -330,9 +330,15 @@ export async function draftChecks(
       stage === 'deployed'
         ? [LOGS.workflowTest, LOGS.deployGuard]
         : [LOGS.workflowTest],
-      ([tap, guard]) => {
-        const pass = Number(/^# pass (\d+)$/m.exec(tap!.text)?.[1] ?? 0);
-        const failed = Number(/^# fail (\d+)$/m.exec(tap!.text)?.[1] ?? 1);
+      ([junit, guard]) => {
+        const summary = /<testsuites\b[^>]*>/.exec(junit!.text)?.[0] ?? '';
+        const count = (name: string, absent: number) =>
+          Number(
+            new RegExp(`\\b${name}="(\\d+)"`).exec(summary)?.[1] ?? absent,
+          );
+        // A log without these counts fails, as a missing one would.
+        const failed = count('failures', 1);
+        const pass = count('tests', 0) - failed - count('skipped', 0);
         const allowed = guard
           ? (json(guard) as { allowed?: unknown } | null)?.allowed === true
           : true;

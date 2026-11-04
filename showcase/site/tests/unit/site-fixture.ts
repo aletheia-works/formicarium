@@ -87,6 +87,8 @@ export async function buildTestSite(
       stdio: ['ignore', 'ignore', 'pipe'],
       env: {
         ...process.env,
+        // `bun test` sets NODE_ENV=test, which makes Astro build in dev mode.
+        NODE_ENV: 'production',
         ASTRO_TELEMETRY_DISABLED: '1',
         SHOWCASE_SITE_DATA: join(root, 'site-data.json'),
         SHOWCASE_SITE_MODULES: join(root, 'bundle-modules.json'),
