@@ -1,3 +1,4 @@
+/// <reference types="@aletheia-works/coi-serviceworker/globals" />
 export interface BrowserOutcome {
   isolated?: boolean;
   error?: string;

@@ -1,3 +1,4 @@
+/// <reference types="@aletheia-works/coi-serviceworker/globals" />
 import type {
   CommandSession,
   Installer,
@@ -45,8 +46,6 @@ export type HostState =
   | 'running'
   | 'failed'
   | 'disposed';
-/** Without control by the service worker after this long, isolation failed. */
-export const ISOLATION_WAIT_MS = 15000;
 
 /** The part of xterm.js the host uses (a fake in unit tests). */
 export interface TerminalLike {
@@ -61,10 +60,6 @@ export interface TerminalLike {
 export interface TextElement {
   textContent: string | null;
 }
-export interface Isolation {
-  isolated: boolean;
-  serviceWorker: 'unsupported' | 'controlled' | 'pending';
-}
 export interface HostOptions {
   data: TerminalPageData;
   terminal: TerminalLike;
@@ -75,7 +70,8 @@ export interface HostOptions {
   /** The Stop button: shown only while an interactive run takes the keys. */
   stop?: { hidden: HTMLElement['hidden'] };
   pageUrl: string;
-  isolation: () => Isolation;
+  /** Whether the page is isolated; never settles on a page about to reload. */
+  isolation: () => Promise<boolean>;
   load?: (
     manifest: FormicariumManifest,
     siteRoot: URL,
@@ -198,7 +194,6 @@ export class TerminalHost {
   #session: Session | null = null;
   #commands: CommandSession | null = null;
   #installer: Installer | null = null;
-  #isolationTimer: unknown = null;
   /** The stdin of the running interactive tool; null when none runs. */
   #input: ReadableStreamDefaultController<Uint8Array> | null = null;
   readonly #encoder = new TextEncoder();
@@ -361,27 +356,14 @@ export class TerminalHost {
   async start(): Promise<void> {
     this.#setState('isolating');
     this.#status({ kind: 'isolating' });
-    const isolation = this.#options.isolation();
-    if (!isolation.isolated) {
-      // coi-serviceworker reloads the page once it controls it.
-      if (isolation.serviceWorker === 'pending') {
-        const timers = this.#options.timers ?? globalThis;
-        this.#isolationTimer = timers.setTimeout(
-          () => this.#isolationFailed(),
-          ISOLATION_WAIT_MS,
-        );
-        return;
-      }
-      this.#isolationFailed();
+    const isolated = await this.#options.isolation();
+    if (this.state !== 'isolating') return;
+    if (!isolated) {
+      this.#setState('failed');
+      this.#status({ kind: 'isolation-failed' });
       return;
     }
     await this.#load();
-  }
-
-  #isolationFailed(): void {
-    if (this.state !== 'isolating') return;
-    this.#setState('failed');
-    this.#status({ kind: 'isolation-failed' });
   }
 
   async #load(): Promise<void> {
@@ -846,10 +828,6 @@ export class TerminalHost {
   async dispose(): Promise<void> {
     if (this.state === 'disposed') return;
     this.#setState('disposed');
-    if (this.#isolationTimer !== null)
-      (this.#options.timers ?? globalThis).clearTimeout(
-        this.#isolationTimer as never,
-      );
     this.#output?.cancel();
     this.#run?.abort();
     this.#endInput();
@@ -1018,14 +996,12 @@ export async function startTerminalPage(
     root: element,
     ...(stop ? { stop } : {}),
     pageUrl: document.location.href,
-    isolation: () => ({
-      isolated: globalThis.crossOriginIsolated === true,
-      serviceWorker: !('serviceWorker' in navigator)
-        ? 'unsupported'
-        : navigator.serviceWorker.controller
-          ? 'controlled'
-          : 'pending',
-    }),
+    // coi-serviceworker settles once it knows, and not on a page it reloads.
+    // Without the script, for example when it failed to load, nothing waits.
+    isolation: async () => {
+      await window.coiServiceWorker?.settled;
+      return globalThis.crossOriginIsolated === true;
+    },
   });
   terminal.onData((input) => host.onData(input));
   stop?.addEventListener('click', () => host.abort());

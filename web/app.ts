@@ -38,31 +38,14 @@ function setStatus(text: string, className?: string) {
   $('status').className = className ?? '';
 }
 
-/** これを過ぎても読み込み直されなければ（worker を登録できないなど）、失敗を報告する。 */
-const ISOLATION_WAIT_MS = 15 * 1000;
-
-/**
- * crossOriginIsolated でなく、service worker がまだページを制御していなければ、
- * index.html が読むルートの coi-serviceworker.js（GitHub Pages のようにヘッダーを設定
- * できない配信先向け）が worker を登録し、active になってから 1 回だけ読み込み直す。
- * 制御されても isolated でなければ、読み込み直さずに実行へ進み、失敗を報告する。
- * @returns 読み込み直しを待つなら true
- */
-function awaitingIsolation(): boolean {
-  return (
-    !globalThis.crossOriginIsolated &&
-    globalThis.isSecureContext &&
-    'serviceWorker' in navigator &&
-    !navigator.serviceWorker.controller
-  );
-}
-
 async function main() {
   window.formicariumDiagnostics = { stdout: '', stderr: '' };
-  if (awaitingIsolation()) {
-    setStatus('waiting for the isolation service worker to reload the page');
-    await new Promise((resolve) => setTimeout(resolve, ISOLATION_WAIT_MS));
-  }
+  // index.html が読むルートの coi-serviceworker.js（GitHub Pages のようにヘッダーを設定
+  // できない配信先向け）は、必要なら worker を登録してページを 1 回だけ読み込み直す。
+  // 読み込み直すページでは settled が解決しないので、ここから先へ進まない。
+  // スクリプトを読めなければ coiServiceWorker はなく、すぐに失敗を報告する。
+  setStatus('waiting for the isolation service worker');
+  await window.coiServiceWorker?.settled;
   const isolated = Boolean(globalThis.crossOriginIsolated);
   $('isolated').textContent = String(isolated);
   $('isolated').className = isolated ? 'ok' : 'ng';

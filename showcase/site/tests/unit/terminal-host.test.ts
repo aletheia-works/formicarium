@@ -23,7 +23,7 @@ import {
   passKey,
   TerminalHost,
 } from '../../src/terminal/terminal-host.ts';
-import { chunked, fakeTimers } from './helpers.ts';
+import { chunked } from './helpers.ts';
 
 const sha = (text: string) => createHash('sha256').update(text).digest('hex');
 const encode = (text: string) => new TextEncoder().encode(text);
@@ -176,7 +176,7 @@ function harness(
     omitted,
     root,
     pageUrl: 'https://localhost:8443/formicarium/tools/aube/',
-    isolation: () => ({ isolated: true, serviceWorker: 'controlled' }),
+    isolation: async () => true,
     load: async () => loaded,
     fetchImpl,
     ...extra,
@@ -1019,25 +1019,46 @@ test("the page's own install keeps the code of an invalid identifier for its ret
   assert.match(h.status.textContent ?? '', /INVALID_INPUT/);
 });
 
-test('isolation that never comes fails the page after the wait; no input is taken', async () => {
-  const clock = fakeTimers();
+test('the host waits for isolation, and a page that is not isolated fails; no input is taken', async () => {
+  let settle: (isolated: boolean) => void = () => {};
   const h = harness('empty', async () => result('builtin'), {
-    isolation: () => ({ isolated: false, serviceWorker: 'pending' }),
-    timers: clock.timers,
+    isolation: () =>
+      new Promise<boolean>((resolve) => {
+        settle = resolve;
+      }),
   });
-  await h.host.start();
+  const started = h.host.start();
   assert.equal(h.host.state, 'isolating');
   assert.equal(h.status.textContent, 'Preparing cross-origin isolation…');
-  clock.fire();
+  settle(false);
+  await started;
   assert.equal(h.host.state, 'failed');
   assert.match(h.status.textContent!, /Allow service workers/);
   h.host.onData('ls\r');
   assert.deepEqual(h.lines, []);
-  const blocked = harness('empty', async () => result('builtin'), {
-    isolation: () => ({ isolated: false, serviceWorker: 'unsupported' }),
-  });
-  await blocked.host.start();
-  assert.equal(blocked.host.state, 'failed');
+});
+
+test('a host disposed while it waits for isolation neither loads nor fails', async () => {
+  for (const isolated of [true, false]) {
+    let settle: (value: boolean) => void = () => {};
+    let loads = 0;
+    const h = harness('empty', async () => result('builtin'), {
+      isolation: () =>
+        new Promise<boolean>((resolve) => {
+          settle = resolve;
+        }),
+      load: async () => {
+        loads += 1;
+        throw new Error('must not load');
+      },
+    });
+    const started = h.host.start();
+    await h.host.dispose();
+    settle(isolated);
+    await started;
+    assert.equal(h.host.state, 'disposed');
+    assert.equal(loads, 0);
+  }
 });
 
 test('a catalog that does not match the page fails loading with its cause', async () => {

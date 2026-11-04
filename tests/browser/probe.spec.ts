@@ -62,6 +62,81 @@ test('isolation の service worker を登録できなければ、待ち続けず
   });
 });
 
+test('coi-serviceworker が失敗を報告したら、タイムアウトを待たずに isolated でないと報告する', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    ServiceWorkerContainer.prototype.register = () =>
+      Promise.reject(new Error('blocked by the test'));
+  });
+  await page.route('**/*', async (route) => {
+    const response = await route.fetch();
+    const headers = Object.fromEntries(
+      Object.entries(response.headers()).filter(
+        ([name]) => !name.startsWith('cross-origin-'),
+      ),
+    );
+    return route.fulfill({ response, headers });
+  });
+  await page.goto('/web/index.html?guest=hello');
+  await page.waitForFunction(
+    () => window.formicariumResult !== undefined,
+    null,
+    { timeout: 5 * 1000 },
+  );
+  expect(await page.evaluate(() => window.formicariumResult)).toEqual({
+    error: 'not crossOriginIsolated',
+    isolated: false,
+  });
+  expect(
+    await page.evaluate(() => ({
+      status: window.coiServiceWorker.status,
+      reason:
+        window.coiServiceWorker.status === 'failed'
+          ? window.coiServiceWorker.reason
+          : undefined,
+    })),
+  ).toEqual({ status: 'failed', reason: 'registration-failed' });
+});
+
+test('service worker のない環境では、待ち続けずに isolated でないと報告する', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(Navigator.prototype, 'serviceWorker', {
+      get: () => undefined,
+    });
+  });
+  await page.route('**/*', async (route) => {
+    const response = await route.fetch();
+    const headers = Object.fromEntries(
+      Object.entries(response.headers()).filter(
+        ([name]) => !name.startsWith('cross-origin-'),
+      ),
+    );
+    return route.fulfill({ response, headers });
+  });
+  await page.goto('/web/index.html?guest=hello');
+  await page.waitForFunction(
+    () => window.formicariumResult !== undefined,
+    null,
+    { timeout: 5 * 1000 },
+  );
+  expect(await page.evaluate(() => window.formicariumResult)).toEqual({
+    error: 'not crossOriginIsolated',
+    isolated: false,
+  });
+  expect(
+    await page.evaluate(() => ({
+      status: window.coiServiceWorker.status,
+      reason:
+        window.coiServiceWorker.status === 'failed'
+          ? window.coiServiceWorker.reason
+          : undefined,
+    })),
+  ).toEqual({ status: 'failed', reason: 'no-service-worker' });
+});
+
 test('hello ゲストが起動して終了コード 0 を返す', async ({ page }) => {
   await page.goto('/web/index.html?guest=hello&arg=from-browser');
   const result = await waitForResult(page);
