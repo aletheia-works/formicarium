@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { writeFileSync } from 'node:fs';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import test from 'node:test';
 import { validateFormicariumRelease } from '../scripts/config.ts';
@@ -8,13 +8,16 @@ import { causeOf } from '../scripts/errors.ts';
 import {
   installPack,
   type PackRecord,
+  packCommand,
   packDistribute,
   packVerify,
   REGISTRY,
+  remoteTagCommit,
+  runFile,
   sha512Integrity,
   tagCommitFromListing,
 } from '../scripts/pack.ts';
-import { pinRelease } from '../scripts/pin-release.ts';
+import { pinRelease, writePin } from '../scripts/pin-release.ts';
 import { bytes, commit, fakeFetch, sha } from './fixtures/github.ts';
 import { tgz } from './fixtures/tar.ts';
 import { withLayout } from './fixtures/work.ts';
@@ -295,4 +298,96 @@ test('a published stable release is pinned only after it passes the distribute c
     }),
     'pack-mismatch',
   );
+});
+
+test('a checked release is written as the pin, and a refused one writes nothing', async () => {
+  await withLayout(async (layout) => {
+    await mkdir(layout.root, { recursive: true });
+    const path = join(layout.root, 'formicarium-release.json');
+    await writePin('0.4.0', {
+      tagCommit: tagAt(),
+      fetchImpl: registryWith(tarball),
+      path,
+    });
+    assert.deepEqual(JSON.parse(await readFile(path, 'utf8')), {
+      schemaVersion: 1,
+      ...release,
+    });
+    const refused = join(layout.root, 'refused.json');
+    await rejects(
+      writePin('0.4.0', {
+        tagCommit: tagAt(null),
+        fetchImpl: registryWith(tarball),
+        path: refused,
+      }),
+      'release-unavailable',
+    );
+    await assert.rejects(readFile(refused));
+  });
+});
+
+test('the tag commit comes from the listing, and a failed listing is classified', () => {
+  const peeled = commit('peeled');
+  assert.equal(
+    remoteTagCommit(
+      'v1',
+      () => `${commit('tag')}\trefs/tags/v1\n${peeled}\trefs/tags/v1^{}\n`,
+    ),
+    peeled,
+  );
+  assert.equal(
+    remoteTagCommit('v1', () => ''),
+    null,
+  );
+  assert.throws(
+    () =>
+      remoteTagCommit('v1', () => {
+        throw Error('no network');
+      }),
+    (error) => causeOf(error) === 'release-unavailable',
+  );
+});
+
+test('a command runs in its directory and returns its output', () => {
+  assert.match(runFile('git', ['--version'], '.'), /^git version /);
+});
+
+test('the pack command takes the three verbs and refuses anything else', async () => {
+  await withLayout(async (layout) => {
+    const destination = join(layout.root, 'installed');
+    await rejects(packCommand('other', { layout }), 'config-invalid');
+    await rejects(packCommand(undefined, { layout }), 'config-invalid');
+    // verify refuses before it builds, whichever variable names the commit.
+    await rejects(
+      packCommand('verify', { layout, env: { GITHUB_SHA: 'nope' } }),
+      'config-invalid',
+    );
+    await rejects(packCommand('verify', { layout, env: {} }), 'config-invalid');
+    await rejects(
+      packCommand('distribute', {
+        layout,
+        readMain: () => {
+          throw Error('no main');
+        },
+      }),
+      'release-unavailable',
+    );
+    await packCommand('distribute', {
+      layout,
+      readMain: () => JSON.stringify({ schemaVersion: 1, ...release }),
+      tagCommit: tagAt(),
+      fetchImpl: registryWith(tarball),
+      destination,
+    });
+    assert.match(
+      await readFile(join(destination, 'package.json'), 'utf8'),
+      /formicarium/,
+    );
+    await rm(destination, { recursive: true });
+    await packCommand('install', { layout, destination });
+    assert.match(
+      await readFile(join(destination, 'package.json'), 'utf8'),
+      /formicarium/,
+    );
+  });
 });

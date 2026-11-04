@@ -241,9 +241,9 @@ summary には「最後に配布可能な候補を作った run からの日数�
 - `accept-safari` job が keychain に job CA を信頼させる手順は、GitHub の macOS runner でだけ
   動かす。手元の Mac の信頼設定は変えないので、ローカルで Safari の受入を動かすには、
   その Mac で job CA を信頼させる必要がある。
-- 単体試験は showcase の script 全体の行 coverage 80% 以上を満たすが、`accept-node.ts`
-  （子 process での受入）と `tls.ts`（job 専用の CA）の多くの経路は単体試験では通らず、
-  CI の受入 job でだけ守られる。受入が壊れたときは、ここが局所的な回帰の検出の弱い所である。
+- 単体試験は `showcase/bunfig.toml` のとおり、`showcase/scripts` の各 file が Bun の数え方で
+  行と関数の coverage 80% 以上を満たす。`accept-node.ts` の子 process での実際の受入は
+  単体試験では通らず（単体試験は差し替えた API で確かめる）、CI の受入 job でだけ守られる。
 
 確かめたこと：2026-10-20 の main `c9b37c4a` の候補 artifact（run 39412286499）で、
 `manifest.json` の 13 個の資産の SHA256 と大きさ、受入 log と catalog の SHA256、

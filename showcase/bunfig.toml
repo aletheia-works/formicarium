@@ -1,0 +1,7 @@
+# Every file of showcase/scripts keeps 80% of its lines and functions, by Bun's
+# count. The ignored paths are not showcase/scripts: the tests themselves, and
+# the site (showcase/site) and package (runtime) code they import. Bun reports only files that were loaded;
+# boundary.test.ts loads every script, so a script without tests still counts.
+[test]
+coverageThreshold = 0.8
+coveragePathIgnorePatterns = ["showcase/tests/**", "showcase/site/**", "runtime/**"]

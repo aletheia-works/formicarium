@@ -52,13 +52,25 @@ export function modeFromEnvironment(env: NodeJS.ProcessEnv): ModeContext {
   };
 }
 
-if (import.meta.main)
-  await runCli('mode', async () => {
-    const mode = acceptMode(
-      modeFromEnvironment(process.env),
-      validateTrustedCallers(await readConfigFile('trusted-callers.json')),
-    );
-    if (process.env.GITHUB_OUTPUT)
-      await appendFile(process.env.GITHUB_OUTPUT, `mode=${mode}\n`);
-    console.log(`mode=${mode}`);
-  });
+/** The workflow step: accepts the mode and hands it to the later steps. */
+export async function runModeStep(env: NodeJS.ProcessEnv): Promise<Mode> {
+  const mode = acceptMode(
+    modeFromEnvironment(env),
+    validateTrustedCallers(await readConfigFile('trusted-callers.json')),
+  );
+  if (env.GITHUB_OUTPUT) await appendFile(env.GITHUB_OUTPUT, `mode=${mode}\n`);
+  console.log(`mode=${mode}`);
+  return mode;
+}
+
+/** The command line: the step, with its failure reported and classified. */
+export const modeCommand = (env: NodeJS.ProcessEnv = process.env) =>
+  runCli(
+    'mode',
+    async () => {
+      await runModeStep(env);
+    },
+    env,
+  );
+
+if (import.meta.main) await modeCommand();

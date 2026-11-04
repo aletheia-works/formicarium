@@ -208,23 +208,33 @@ export async function loadSite(layout: WorkLayout) {
   };
 }
 
-/** Child process: trusts only the job CA through NODE_EXTRA_CA_CERTS. */
-async function child(layout: WorkLayout) {
-  const origin = process.env.SHOWCASE_ACCEPT_ORIGIN;
-  if (!origin?.startsWith('https://localhost:'))
-    fail('config-invalid', 'SHOWCASE_ACCEPT_ORIGIN must be https://localhost');
+/** The public package API the acceptance checks, as a Node.js consumer loads it. */
+async function packageApi(): Promise<CommandApi> {
   const api = await import('@aletheia-works/formicarium');
   const { createSession } = await import('@aletheia-works/formicarium/node');
+  return {
+    createSession: (options) => createSession(options),
+    createCommandSession: api.createCommandSession,
+    decodeUtf8: api.decodeUtf8,
+  };
+}
+
+/** Child process: trusts only the job CA through NODE_EXTRA_CA_CERTS. */
+export async function acceptChild(
+  layout: WorkLayout,
+  env: NodeJS.ProcessEnv = process.env,
+  loadApi: () => Promise<CommandApi> = packageApi,
+): Promise<void> {
+  const origin = env.SHOWCASE_ACCEPT_ORIGIN;
+  if (!origin?.startsWith('https://localhost:'))
+    fail('config-invalid', 'SHOWCASE_ACCEPT_ORIGIN must be https://localhost');
+  const api = await loadApi();
   const site = await loadSite(layout);
-  const caPath = process.env.NODE_EXTRA_CA_CERTS;
+  const caPath = env.NODE_EXTRA_CA_CERTS;
   if (!caPath)
     fail('config-invalid', 'NODE_EXTRA_CA_CERTS must name the job CA');
   const rows = await acceptAll(
-    {
-      createSession: (options) => createSession(options),
-      createCommandSession: api.createCommandSession,
-      decodeUtf8: api.decodeUtf8,
-    },
+    api,
     absoluteCatalog(site.catalog, `${origin}/`),
     site.tools,
     'node',
@@ -249,38 +259,47 @@ async function child(layout: WorkLayout) {
     );
 }
 
-async function parent(layout: WorkLayout) {
-  const provided = await tlsFromEnvironment(process.env);
+/** Runs this script as the child on the same work directory; its exit code. */
+const spawnChild = (env: NodeJS.ProcessEnv, workRoot: string) =>
+  new Promise<number | null>((done) => {
+    const process_ = spawn(
+      process.execPath,
+      [fileURLToPath(import.meta.url), '--child', workRoot],
+      { stdio: 'inherit', env },
+    );
+    process_.once('exit', done);
+    process_.once('error', () => done(null));
+  });
+
+export async function acceptParent(
+  layout: WorkLayout,
+  options: {
+    env?: NodeJS.ProcessEnv;
+    packageRoot?: string;
+    runChild?: (env: NodeJS.ProcessEnv) => Promise<number | null>;
+  } = {},
+): Promise<void> {
+  const env = options.env ?? process.env;
+  const provided = await tlsFromEnvironment(env);
   const tls = provided ?? (await createJobTls(layout.tls));
   try {
     const server = await startAcceptServer({
       siteRoot: layout.site,
-      packageRoot: join(
-        SHOWCASE_ROOT,
-        'node_modules',
-        '@aletheia-works',
-        'formicarium',
-      ),
+      packageRoot:
+        options.packageRoot ??
+        join(SHOWCASE_ROOT, 'node_modules', '@aletheia-works', 'formicarium'),
       cert: tls.cert,
       key: tls.key,
     });
     try {
-      const code = await new Promise<number | null>((done) => {
-        const process_ = spawn(
-          process.execPath,
-          [fileURLToPath(import.meta.url), '--child'],
-          {
-            stdio: 'inherit',
-            env: {
-              ...process.env,
-              NODE_EXTRA_CA_CERTS: tls.caCert,
-              SHOWCASE_ACCEPT_ORIGIN: server.origin,
-            },
-          },
-        );
-        process_.once('exit', done);
-        process_.once('error', () => done(null));
-      });
+      const childEnv = {
+        ...env,
+        NODE_EXTRA_CA_CERTS: tls.caCert,
+        SHOWCASE_ACCEPT_ORIGIN: server.origin,
+      };
+      const code = options.runChild
+        ? await options.runChild(childEnv)
+        : await spawnChild(childEnv, layout.root);
       if (code !== 0)
         fail('acceptance-row-missing', 'Node acceptance process failed');
     } finally {
@@ -291,9 +310,13 @@ async function parent(layout: WorkLayout) {
   }
 }
 
-if (import.meta.main) {
-  const layout = workLayout();
-  if (process.argv[2] === '--child')
-    await runCli('node acceptance', () => child(layout), {});
-  else await runCli('node acceptance', () => parent(layout));
-}
+/** The command line: this script re-runs itself as `--child <work directory>`. */
+export const acceptCommand = (
+  argument = process.argv[2],
+  layout: WorkLayout = workLayout(process.argv[3]),
+) =>
+  argument === '--child'
+    ? runCli('node acceptance', () => acceptChild(layout), {})
+    : runCli('node acceptance', () => acceptParent(layout));
+
+if (import.meta.main) await acceptCommand();

@@ -75,13 +75,24 @@ export async function pinRelease(
   return release;
 }
 
-if (import.meta.main)
-  await runCli('pin-release', async () => {
-    const version = process.argv[2] ?? '';
-    const release = await pinRelease(version, { tagCommit: remoteTagCommit });
-    await writeJson(join(SHOWCASE_ROOT, 'formicarium-release.json'), {
-      schemaVersion: 1,
-      ...release,
-    });
-    console.log(`pinned ${PACKAGE_NAME}@${release.version}`);
+/** Checks a published version and writes it as the pinned release. */
+export async function writePin(
+  version: string,
+  options: { tagCommit: TagCommit; fetchImpl?: FetchLike; path?: string },
+): Promise<FormicariumRelease> {
+  const release = await pinRelease(version, options);
+  await writeJson(
+    options.path ?? join(SHOWCASE_ROOT, 'formicarium-release.json'),
+    { schemaVersion: 1, ...release },
+  );
+  console.log(`pinned ${PACKAGE_NAME}@${release.version}`);
+  return release;
+}
+
+/** The command line: the version comes from the workflow's argument. */
+export const pinCommand = (version = process.argv[2] ?? '') =>
+  runCli('pin-release', async () => {
+    await writePin(version, { tagCommit: remoteTagCommit });
   });
+
+if (import.meta.main) await pinCommand();

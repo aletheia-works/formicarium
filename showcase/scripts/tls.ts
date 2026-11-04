@@ -168,18 +168,19 @@ export async function removeJobTls(material: TlsMaterial): Promise<void> {
     await rm(material.directory, { recursive: true, force: true });
 }
 
+/** The lines for GITHUB_ENV: paths and a public fingerprint, no key data. */
+export function tlsEnvironmentLines(material: TlsMaterial): string {
+  return [
+    `SHOWCASE_TLS_CA=${material.caCert}`,
+    `SHOWCASE_TLS_CERT=${material.cert}`,
+    `SHOWCASE_TLS_KEY=${material.key}`,
+    `SHOWCASE_TLS_SHA256=${material.fingerprint}`,
+  ].join('\n');
+}
+
 if (import.meta.main)
   await runCli('job TLS', async () => {
     if (process.argv[2] !== 'create')
       fail('config-invalid', 'usage: tls.ts create');
-    const material = await createJobTls(workLayout().tls);
-    // Printed for GITHUB_ENV; paths and a public fingerprint only, no key data.
-    console.log(
-      [
-        `SHOWCASE_TLS_CA=${material.caCert}`,
-        `SHOWCASE_TLS_CERT=${material.cert}`,
-        `SHOWCASE_TLS_KEY=${material.key}`,
-        `SHOWCASE_TLS_SHA256=${material.fingerprint}`,
-      ].join('\n'),
-    );
+    console.log(tlsEnvironmentLines(await createJobTls(workLayout().tls)));
   });

@@ -227,7 +227,7 @@ jobs:
       - name: Unit tests (lcov for the coverage job)
         run: |
           mkdir -p showcase/site/.work/coverage
-          bun test --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-dir=showcase/site/.work/coverage --timeout=300000 ./showcase/site/tests/unit/
+          bun run showcase-site:unit
       - name: Workflow definition test (previous-site-preserved)
         run: bun test --reporter=junit --reporter-outfile=showcase/site/.work/logs/workflow-test.xml showcase/site/tests/unit/workflow.test.ts
       - name: Assemble, check and inventory the site

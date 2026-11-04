@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import test from 'node:test';
 import { validateGuest } from '@aletheia-works/formicarium';
 import {
@@ -9,7 +11,8 @@ import {
 import { canonicalJson } from '../scripts/build-key.ts';
 import { readConfigFile, validateTrustedCallers } from '../scripts/config.ts';
 import { createGitHubApi } from '../scripts/github.ts';
-import { eligibleRuns, findReusable } from '../scripts/reuse.ts';
+import { loadVerifiedTools } from '../scripts/resolve.ts';
+import { eligibleRuns, findReusable, runReuseJob } from '../scripts/reuse.ts';
 import { staticElf } from './fixtures/elf.ts';
 import {
   bytes,
@@ -21,6 +24,7 @@ import {
   sha,
 } from './fixtures/github.ts';
 import { zip } from './fixtures/tar.ts';
+import { readMain, withLayout } from './fixtures/work.ts';
 
 const trusted = validateTrustedCallers(
   await readConfigFile('trusted-callers.json'),
@@ -250,4 +254,37 @@ test('a build with a companion is reused only with every one of its guests', asy
   );
   const { [`${companionPrefix}pitchfork-extra`]: _gone, ...missing } = files;
   assert.equal(await reuse(routes([run({})], missing), gnu), null);
+});
+
+test('the reuse job stores what it finds and leaves the rest to be built', async () => {
+  await withLayout(async (layout) => {
+    await mkdir(layout.plans, { recursive: true });
+    const { tools } = await loadVerifiedTools(readMain);
+    const built = tools.filter((tool) => tool.acquire.kind !== 'release-asset');
+    for (const { tool } of built)
+      await writeFile(
+        join(layout.plans, `${tool}.json`),
+        JSON.stringify(tool === plan.tool ? plan : { ...plan, tool }),
+      );
+    const job = (table: Record<string, Route>) => {
+      const fetchImpl = fakeFetch(table);
+      return runReuseJob({
+        api: createGitHubApi({ fetchImpl }),
+        repository: 'owner/repo',
+        validate: validateGuest,
+        fetchImpl,
+        layout,
+        readMain,
+      });
+    };
+    assert.deepEqual(await job(routes([], goodFiles())), []);
+    const table = routes([run({})], goodFiles());
+    assert.deepEqual(await job(table), [plan.tool]);
+    assert.match(
+      await readFile(join(layout.acquired, plan.tool, 'acquired.json'), 'utf8'),
+      /reusedFromRun/,
+    );
+    // A guest already acquired is not looked up again.
+    assert.deepEqual(await job(routes([run({})], goodFiles())), []);
+  });
 });

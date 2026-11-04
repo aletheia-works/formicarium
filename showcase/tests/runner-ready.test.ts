@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import test from 'node:test';
-import { MIN_LINE_PERCENT } from '../scripts/coverage-lines.ts';
 import { REPOSITORY_ROOT, SHOWCASE_ROOT } from '../scripts/paths.ts';
 
 const { scripts } = JSON.parse(
@@ -40,15 +39,33 @@ test('showcase-unit lists every showcase test file exactly once', async () => {
   assert.equal(new Set(listed).size, listed.length);
 });
 
-test('showcase-unit measures line coverage of showcase/scripts at 80%', () => {
-  const command = task('showcase-unit');
-  assert.match(command, /^bun test --coverage /);
-  assert.match(command, /--coverage-reporter=lcov /);
+test('showcase-unit holds each file of showcase/scripts to 80% in Bun', async () => {
   assert.match(
-    command,
-    / && bun showcase\/scripts\/coverage-lines\.ts showcase\/\.work\/coverage\/lcov\.info$/,
+    task('showcase-unit'),
+    /^bun test --config=showcase\/bunfig\.toml --coverage /,
   );
-  assert.equal(MIN_LINE_PERCENT, 80);
+  const config = await readFile(join(SHOWCASE_ROOT, 'bunfig.toml'), 'utf8');
+  assert.match(config, /^coverageThreshold = 0\.8$/m);
+  // Nothing under showcase/scripts is left out of the threshold.
+  const ignored = /^coveragePathIgnorePatterns = (.*)$/m.exec(config)?.[1];
+  assert.ok(ignored);
+  assert.doesNotMatch(ignored, /showcase\/scripts/);
+  // Bun reports only loaded files, so a script no test imports would escape
+  // the threshold if boundary.test.ts stopped loading all of them.
+  assert.match(
+    await readFile(join(SHOWCASE_ROOT, 'tests', 'boundary.test.ts'), 'utf8'),
+    /readdir\(join\(SHOWCASE_ROOT, 'scripts'\)\)/,
+  );
+});
+
+test('CI runs the same unit test commands as a local run, so the lists cannot drift', async () => {
+  const workflow = (name: string) =>
+    readFile(join(REPOSITORY_ROOT, '.github', 'workflows', name), 'utf8');
+  const showcase = await workflow('showcase.yml');
+  assert.match(showcase, /run: bun run showcase:unit$/m);
+  assert.doesNotMatch(showcase, /\bbun test\b/);
+  const site = await workflow('showcase-site.yml');
+  assert.match(site, /^ +bun run showcase-site:unit$/m);
 });
 
 test('browser acceptance keeps one worker, no retry and the 840 s timeout', async () => {

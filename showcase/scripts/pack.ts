@@ -39,7 +39,7 @@ export type RunFile = (
   args: readonly string[],
   cwd: string,
 ) => string;
-const runFile: RunFile = (file, args, cwd) =>
+export const runFile: RunFile = (file, args, cwd) =>
   execFileSync(file, args, {
     cwd,
     encoding: 'utf8',
@@ -213,21 +213,24 @@ export function tagCommitFromListing(listing: string, tag: string) {
   );
 }
 
+const listRemoteTag = (tag: string) =>
+  execFileSync(
+    'git',
+    ['ls-remote', 'origin', `refs/tags/${tag}`, `refs/tags/${tag}^{}`],
+    {
+      cwd: REPOSITORY_ROOT,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    },
+  );
+
 /** The peeled commit of a tag on origin, read without fetching the tag. */
-export const remoteTagCommit: TagCommit = (tag) => {
+export const remoteTagCommit = (
+  tag: string,
+  list: (tag: string) => string = listRemoteTag,
+): string | null => {
   try {
-    return tagCommitFromListing(
-      execFileSync(
-        'git',
-        ['ls-remote', 'origin', `refs/tags/${tag}`, `refs/tags/${tag}^{}`],
-        {
-          cwd: REPOSITORY_ROOT,
-          encoding: 'utf8',
-          stdio: ['ignore', 'pipe', 'pipe'],
-        },
-      ),
-      tag,
-    );
+    return tagCommitFromListing(list(tag), tag);
   } catch (error) {
     return fail('release-unavailable', `cannot list tag ${tag}`, error);
   }
@@ -262,20 +265,35 @@ export async function installPack(
   return destination;
 }
 
-async function main(verb: string | undefined) {
-  const layout = workLayout();
+/** The command: prepares the pack the verb names and installs it. */
+export async function packCommand(
+  verb: string | undefined,
+  options: {
+    layout?: WorkLayout;
+    env?: NodeJS.ProcessEnv;
+    readMain?: (path: string) => string;
+    tagCommit?: TagCommit;
+    fetchImpl?: FetchLike;
+    destination?: string;
+  } = {},
+): Promise<void> {
+  const layout = options.layout ?? workLayout();
+  const env = options.env ?? process.env;
   let record: PackRecord;
   if (verb === 'verify') {
     record = await packVerify({
-      sourceCommit:
-        process.env.SHOWCASE_SOURCE_COMMIT ?? process.env.GITHUB_SHA ?? '',
+      sourceCommit: env.SHOWCASE_SOURCE_COMMIT ?? env.GITHUB_SHA ?? '',
       layout,
     });
   } else if (verb === 'distribute') {
     let release: FormicariumRelease | null;
     try {
       release = validateFormicariumRelease(
-        parseUniqueJson(readFromMain('showcase/formicarium-release.json')),
+        parseUniqueJson(
+          (options.readMain ?? readFromMain)(
+            'showcase/formicarium-release.json',
+          ),
+        ),
       );
     } catch (error) {
       return fail(
@@ -286,19 +304,20 @@ async function main(verb: string | undefined) {
     }
     record = await packDistribute({
       release,
-      tagCommit: remoteTagCommit,
+      tagCommit: options.tagCommit ?? remoteTagCommit,
       layout,
+      fetchImpl: options.fetchImpl,
     });
   } else if (verb === 'install') {
     record = (await readJson(join(layout.pack, 'pack.json'))) as PackRecord;
   } else
     return fail('config-invalid', 'usage: pack.ts verify|distribute|install');
   console.log(
-    `${record.mode} ${record.packSha256} -> ${await installPack(record, { layout })}`,
+    `${record.mode} ${record.packSha256} -> ${await installPack(record, { layout, destination: options.destination })}`,
   );
 }
 
 if (import.meta.main)
   await runCli(`pack ${process.argv[2] ?? ''}`.trim(), () =>
-    main(process.argv[2]),
+    packCommand(process.argv[2]),
   );

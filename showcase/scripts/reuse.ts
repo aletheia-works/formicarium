@@ -247,11 +247,17 @@ export async function runReuseJob(options: {
   return reused;
 }
 
+/** The repository the job looks in, from the workflow's environment. */
+export function reuseRepository(env: NodeJS.ProcessEnv): string {
+  const repository = env.GITHUB_REPOSITORY;
+  if (!repository || !/^[\w.-]+\/[\w.-]+$/.test(repository))
+    fail('config-invalid', 'GITHUB_REPOSITORY owner/repo required');
+  return repository;
+}
+
 if (import.meta.main)
   await runCli('reuse lookup', async () => {
-    const repository = process.env.GITHUB_REPOSITORY;
-    if (!repository || !/^[\w.-]+\/[\w.-]+$/.test(repository))
-      fail('config-invalid', 'GITHUB_REPOSITORY owner/repo required');
+    const repository = reuseRepository(process.env);
     const { validateGuest } = await import('@aletheia-works/formicarium');
     const reused = await runReuseJob({
       api: createGitHubApi({ token: process.env.GITHUB_TOKEN }),
