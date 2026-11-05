@@ -348,9 +348,7 @@ async function browserChecks(project: string, bun: string) {
     await command(
       `package-coverage-browser-${project}`,
       [
-        // Playwright cannot load these compiled coverage specs under Bun 1.4.3.
-        // Node is required here; ordinary browser suites continue to use Bun.
-        node,
+        bun,
         playwright,
         'test',
         '--config',
