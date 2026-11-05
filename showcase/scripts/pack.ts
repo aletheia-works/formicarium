@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readFile, rm } from 'node:fs/promises';
-import { dirname, join, relative, resolve } from 'node:path';
+import { basename, join, relative } from 'node:path';
 import { fetchBounded } from './acquire.ts';
 import { gunzipBounded, readTar, singleRoot, writeTree } from './archive.ts';
 import { COMMIT_PATTERN, parseUniqueJson, sha256 } from './build-key.ts';
@@ -46,8 +46,8 @@ export const runFile: RunFile = (file, args, cwd) =>
     maxBuffer: TRANSFER_POLICY.maxMetadataBytes,
     stdio: ['ignore', 'pipe', 'inherit'],
   });
-export const npmCli = () =>
-  resolve(dirname(process.execPath), '../lib/node_modules/npm/bin/npm-cli.js');
+/** Bun itself when this script runs on it, else the one on PATH. */
+export const bunExecutable = process.versions.bun ? process.execPath : 'bun';
 
 /** verify: the package of this same commit, staged by the body's own stager. */
 export async function packVerify(options: {
@@ -75,26 +75,23 @@ export async function packVerify(options: {
     REPOSITORY_ROOT,
   );
   await mkdir(layout.pack, { recursive: true });
-  const listed = parseUniqueJson(
+  // --quiet prints only the path of the tarball.
+  const filename = basename(
     run(
-      process.execPath,
+      bunExecutable,
       [
-        npmCli(),
+        'pm',
         'pack',
         '--ignore-scripts',
-        '--json',
-        '--pack-destination',
+        '--quiet',
+        '--destination',
         layout.pack,
       ],
       stage,
-    ),
+    ).trim(),
   );
-  const filename =
-    Array.isArray(listed) && listed.length === 1
-      ? (listed[0] as { filename?: unknown }).filename
-      : undefined;
-  if (typeof filename !== 'string' || !/^[\w.-]+\.tgz$/.test(filename))
-    fail('bad-body', 'npm pack did not report one tarball');
+  if (!/^[\w.-]+\.tgz$/.test(filename))
+    fail('bad-body', 'bun pm pack did not report one tarball');
   const record: PackRecord = {
     schemaVersion: 1,
     mode: 'verify',
@@ -254,7 +251,7 @@ export async function installPack(
   const tar = await gunzipBounded(bytes, ASSET_ARCHIVE_LIMITS.maxExpandedBytes);
   const { entries } = readTar(tar, ASSET_ARCHIVE_LIMITS);
   if (singleRoot(entries) !== 'package')
-    fail('archive-invalid', 'npm pack root must be package/');
+    fail('archive-invalid', 'pack root must be package/');
   await rm(destination, { recursive: true, force: true });
   await writeTree(entries, destination, 'package');
   const manifest = (await readJson(join(destination, 'package.json'))) as {

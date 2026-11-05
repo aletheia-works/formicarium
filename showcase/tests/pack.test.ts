@@ -68,9 +68,9 @@ test('verify packs the same commit with the body stager and records its SHA256',
     const runner = (file: string, args: readonly string[]) => {
       calls.push([file, ...args]);
       if (!args.includes('pack')) return '';
-      const destination = args[args.indexOf('--pack-destination') + 1]!;
+      const destination = args[args.indexOf('--destination') + 1]!;
       writeFileSync(join(destination, name), tarball);
-      return JSON.stringify([{ filename: name }]);
+      return `${join(destination, name)}\n`;
     };
     const record = await packVerify({
       sourceCommit: commit('head'),

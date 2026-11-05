@@ -208,11 +208,29 @@ test('PR runs cancel older revisions only; the candidate is uploaded once at the
     );
 });
 
+test('the jobs that check Node itself, or give an upstream build a Node, keep a real Node', () => {
+  const table = jobs();
+  const setupNode = /uses: actions\/setup-node@/;
+  // Real guests run through the public /node export, so these check Node.
+  const catalog = table.get('catalog')!;
+  assert.match(catalog, setupNode);
+  assert.match(catalog, /run: node showcase\/scripts\/catalog\.ts$/m);
+  const accept = table.get('accept')!;
+  assert.match(accept, setupNode);
+  assert.match(accept, /run: node showcase\/scripts\/accept-node\.ts$/m);
+  // selectNode reads the node on PATH for an upstream web UI build.
+  assert.match(table.get('acquire')!, setupNode);
+  assert.match(
+    table.get('acquire')!,
+    /run: bun showcase\/scripts\/build\.ts compile$/m,
+  );
+});
+
 test('real Safari accepts on macOS, trusts only the job CA and gates the candidate', () => {
   const table = jobs();
   const safari = table.get('accept-safari')!;
   assert.match(safari, /^ {4}runs-on: macos-latest$/m);
-  assert.match(safari, /node showcase\/tests\/accept-safari\.ts/);
+  assert.match(safari, /bun showcase\/tests\/accept-safari\.ts/);
   // Safari verifies TLS: the job CA is trusted, never acceptInsecureCerts.
   assert.match(safari, /add-trusted-cert -d -r trustRoot/);
   assert.match(

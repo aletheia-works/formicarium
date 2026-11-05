@@ -285,17 +285,28 @@ export function installRust(
   }
 }
 
-/** Exact upstream Node through mise install/where (absolute), else this Node. */
+/**
+ * The real Node on PATH, read from Node itself: under Bun, this process only
+ * reports a compatibility version and its own executable.
+ */
+function nodeOnPath(exec: Exec): { nodeBin: string; nodeVersion: string } {
+  const [executable, nodeVersion, bunVersion] = exec('node', [
+    '-p',
+    '[process.execPath, process.versions.node, process.versions.bun ?? ""].join("\\n")',
+  ]).split('\n');
+  if (bunVersion || !executable || !nodeVersion || !isAbsolute(executable))
+    fail('toolchain-unavailable', 'node on PATH is not a real Node');
+  return { nodeBin: dirname(executable), nodeVersion };
+}
+
+/** Exact upstream Node through mise install/where (absolute), else PATH's Node. */
 export function selectNode(
   version: string | null,
   exec: Exec = defaultExec,
 ): { nodeBin: string; nodeVersion: string } {
-  if (version === null || version === process.versions.node)
-    return {
-      nodeBin: dirname(process.execPath),
-      nodeVersion: process.versions.node,
-    };
   try {
+    const current = nodeOnPath(exec);
+    if (version === null || version === current.nodeVersion) return current;
     exec('mise', ['install', `node@${version}`]);
     const home = exec('mise', ['where', `node@${version}`]);
     if (!isAbsolute(home))
@@ -303,7 +314,11 @@ export function selectNode(
     return { nodeBin: join(home, 'bin'), nodeVersion: version };
   } catch (error) {
     if (error instanceof ShowcaseError) throw error;
-    return fail('toolchain-unavailable', `Node ${version} unavailable`, error);
+    return fail(
+      'toolchain-unavailable',
+      `Node ${version ?? 'on PATH'} unavailable`,
+      error,
+    );
   }
 }
 

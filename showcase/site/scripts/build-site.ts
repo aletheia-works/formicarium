@@ -10,7 +10,7 @@ import {
   validateAllowedSources,
   validateToolsConfig,
 } from '../../scripts/config.ts';
-import { npmCli, type PackRecord } from '../../scripts/pack.ts';
+import { bunExecutable, type PackRecord } from '../../scripts/pack.ts';
 import { requireStrings } from '../src/i18n/strings.ts';
 import type { SiteData } from '../src/site-data.ts';
 import { writeFixtureIndexes } from './build-fixture-index.ts';
@@ -97,8 +97,8 @@ export type NpmLookup = (version: string) => string | null;
 export const npmIntegrity: NpmLookup = (version) => {
   try {
     const out = execFileSync(
-      process.execPath,
-      [npmCli(), 'view', `${PACKAGE}@${version}`, 'dist.integrity'],
+      bunExecutable,
+      ['pm', 'view', `${PACKAGE}@${version}`, 'dist.integrity'],
       {
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'ignore'],

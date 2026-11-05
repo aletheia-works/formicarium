@@ -32,7 +32,7 @@ showcase/
 └── tests/                    # bun test で動かす単体試験、Playwright の受入、違反 fixture
 ```
 
-script は TypeScript のまま Node の型の除去で動く（emit しない）。import は
+script は TypeScript のまま Bun で動く（`catalog.ts` と `accept-node.ts` は Node の型の除去で動かす。emit しない）。import は
 `@aletheia-works/formicarium`・`/node`・`/browser` と Node の組込み（試験では
 `@playwright/test` も）だけで、本体の内部・本体から showcase への依存・回帰用
 fixture の共有は `scripts/boundary.ts` と Biome の `noRestrictedImports` で拒否する。
@@ -47,7 +47,7 @@ fixture の共有は `scripts/boundary.ts` と Biome の `noRestrictedImports` �
 | ------------ | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | mode         | `scripts/mode.ts`                                                          | `verify`（既定）か `distribute`。`distribute` は main の showcase-site workflow（main への `push`・`workflow_dispatch`）からの呼出しだけ                                                                                                                       |
 | 解決         | `scripts/resolve.ts`                                                       | `releases/latest`（draft・prerelease を除く）、annotated tag を辿った 40 桁の commit、資産の digest・size・URL、license。公開から 20 分以内で資産がまだ無ければ 30 秒ごとに読み直す（待つのは 1 回の実行で合計 20 分まで）。`resolutions.json` に 1 回だけ書く |
-| pack         | `scripts/pack.ts`                                                          | `verify`：同じ commit を本体の stager と `npm pack` で包む。`distribute`：`formicarium-release.json` の版を npm から取得し、integrity とタグのコミットを照合                                                                                                   |
+| pack         | `scripts/pack.ts`                                                          | `verify`：同じ commit を本体の stager と `bun pm pack` で包む。`distribute`：`formicarium-release.json` の版を npm から取得し、integrity とタグのコミットを照合                                                                                                |
 | 取得         | `scripts/acquire.ts`                                                       | TransferPolicy の規則（HTTPS、credential なし、redirect 5 hop、120 s、128 MiB）で取得し、SHA256・size を照合、tar.gz を検査、公開 `validateGuest` で検証                                                                                                       |
 | source build | `scripts/build.ts`、`builders/cargo.sh`、`builders/autotools.sh`           | `prepare`：tag と commit の一致、codeload の source、toolchain の選択、buildKey。`compile`：token なしの独立した process group で build                                                                                                                        |
 | 再利用       | `scripts/reuse.ts`                                                         | main の信頼した workflow の成功 run の `showcase-candidate` から、buildKey・ELF・build-info を照合して再利用                                                                                                                                                   |
@@ -79,8 +79,8 @@ mise run showcase-boundary
 を読むので、その file が main に入るまでは解決できない。
 
 ```bash
-GITHUB_TOKEN=<読取りの token> node showcase/scripts/resolve.ts
-node showcase/scripts/acquire.ts
+GITHUB_TOKEN=<読取りの token> bun showcase/scripts/resolve.ts
+bun showcase/scripts/acquire.ts
 node showcase/scripts/catalog.ts
 mise run showcase-accept-node
 mise run showcase-accept-browser   # SHOWCASE_TLS_* と、job CA を信頼した browser が要る
@@ -211,7 +211,7 @@ tag `v<version>` のコミットが `sourceCommit` に一致したときだけ�
    `scripts/pin-release.ts` でその版を確かめ（`distribute` と同じ取得と照合）、
    `formicarium-release.json` を書き換える PR を bot で作る。版は安定版だけである（RC は出さない）。
 2. その PR を main に入れると、`showcase-site.yml` がその版で受け入れてから配布する。
-3. 手で固定するときは `node showcase/scripts/pin-release.ts <version>` か、版を指定した
+3. 手で固定するときは `bun showcase/scripts/pin-release.ts <version>` か、版を指定した
    `showcase-release-pin.yml` の手動の実行。
 
 ## 配布の契機

@@ -118,10 +118,13 @@ test('toolchains follow upstream declarations, else the latest stable', async ()
       nodeVersion: null,
       nodeDeclaredBy: null,
     });
-    assert.deepEqual(selectNode(null), {
-      nodeBin: join(process.execPath, '..'),
-      nodeVersion: process.versions.node,
-    });
+    assert.deepEqual(
+      selectNode(null, () => '/opt/node/bin/node\n26.13.0\n'),
+      {
+        nodeBin: '/opt/node/bin',
+        nodeVersion: '26.13.0',
+      },
+    );
   });
 });
 
@@ -182,6 +185,22 @@ test('Rust is installed through rustup by absolute path; failures are classified
   );
   throwsCause(
     () => selectNode('1.2.3', () => 'relative'),
+    'toolchain-unavailable',
+  );
+  // Bun's stand-in for node reports a compatibility version, not a real Node.
+  throwsCause(
+    () => selectNode(null, () => '/opt/bun/bin/node\n26.3.0\n1.4.4'),
+    'toolchain-unavailable',
+  );
+  throwsCause(
+    () => selectNode(null, () => 'node\n26.13.0\n'),
+    'toolchain-unavailable',
+  );
+  throwsCause(
+    () =>
+      selectNode(null, () => {
+        throw Error('no node');
+      }),
     'toolchain-unavailable',
   );
 });
@@ -287,8 +306,12 @@ test('prepare fixes source, toolchain, dependencies and buildKey before any comp
         }),
       }),
     });
-    const exec = (_file: string, args: readonly string[]) =>
-      args[0] === 'which' ? `/opt/rust/${args[3]}` : 'rustc 1.99.0 (fake)';
+    const exec = (file: string, args: readonly string[]) => {
+      if (file === 'node') return '/opt/node/bin/node\n26.13.0\n';
+      return args[0] === 'which'
+        ? `/opt/rust/${args[3]}`
+        : 'rustc 1.99.0 (fake)';
+    };
     const plan = await prepareBuild({
       config: pitchfork,
       resolution,
