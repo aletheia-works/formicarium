@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   columns,
+  complete,
+  completionTarget,
   LineEditor,
   MAX_LINE_BYTES,
 } from '../../src/terminal/keys.ts';
@@ -128,6 +130,81 @@ test('a multi-line paste enters only its first line and never executes', () => {
   );
   assert.equal(editor.line, 'echo 1');
   assert.ok(!actions.some((action) => action.kind === 'submit'));
-  // Tab and other control characters are ignored.
+  // A tab inside pasted text and other control characters are ignored.
   assert.deepEqual(new LineEditor().handle('\t\x01', false), []);
+});
+
+test('the Tab key asks to complete; while busy it does nothing', () => {
+  const editor = new LineEditor();
+  editor.handle('ls', false);
+  assert.deepEqual(editor.handle('\t', false), [{ kind: 'complete' }]);
+  assert.equal(editor.line, 'ls');
+  assert.deepEqual(editor.handle('\t', true), []);
+});
+
+test('the word to complete is the last one, with .. and escapes resolved', () => {
+  const cwd = '/work/app';
+  for (const [line, directory, prefix] of [
+    ['cat sr', '/work/app', 'sr'],
+    ['cat ', '/work/app', ''],
+    ['cat src/ma', '/work/app/src', 'ma'],
+    ['cat src/', '/work/app/src', ''],
+    ['cd ../', '/work', ''],
+    ['cd ../ot', '/work', 'ot'],
+    ['cd ./a/../b/c', '/work/app/b', 'c'],
+    ['cat /root/x', '/root', 'x'],
+    ['cat /../x', '/', 'x'],
+    ['cat my\\ fi', '/work/app', 'my fi'],
+    ['cat a\\ b/c', '/work/app/a b', 'c'],
+    ['sr', '/work/app', 'sr'],
+    // Only a space or a tab ends a word, as in the command tokenizer.
+    ['cd my\u00a0dir/su', '/work/app/my\u00a0dir', 'su'],
+    ['cd 全角\u3000名/su', '/work/app/全角\u3000名', 'su'],
+    ['cat\tsr', '/work/app', 'sr'],
+    // The same results as the package's collapsePath for these segments.
+    ['cat ./../x', '/work', 'x'],
+    ['cat a//../x', '/work/app', 'x'],
+    ['cat ../../../x', '/', 'x'],
+  ] as const)
+    assert.deepEqual(completionTarget(line, cwd), { directory, prefix }, line);
+  for (const line of ['cat "a', "cat 'a b"])
+    assert.equal(completionTarget(line, cwd), null, line);
+});
+
+const entry = (name: string, type = 'file') => ({
+  path: `/work/${name}`,
+  type,
+});
+
+test('one match ends the word: a directory with a slash, a file with a space', () => {
+  assert.deepEqual(complete([entry('src', 'dir')], 'sr'), {
+    append: 'c/',
+    names: ['src/'],
+  });
+  assert.equal(complete([entry('main.ts'), entry('x')], 'ma').append, 'in.ts ');
+  // A symlink may not be a directory, so it ends as a file does.
+  assert.equal(complete([entry('link', 'symlink')], 'li').append, 'nk ');
+  // The whole name typed still ends the word.
+  assert.equal(complete([entry('src', 'dir')], 'src').append, '/');
+});
+
+test('several matches add what they share and name every choice', () => {
+  const entries = [entry('main.ts'), entry('main.js'), entry('mod', 'dir')];
+  assert.deepEqual(complete(entries.slice(0, 2), 'm'), {
+    append: 'ain.',
+    names: ['main.js', 'main.ts'],
+  });
+  assert.deepEqual(complete(entries, 'm'), {
+    append: '',
+    names: ['main.js', 'main.ts', 'mod/'],
+  });
+  assert.deepEqual(complete(entries, 'x'), { append: '', names: [] });
+});
+
+test('dot files need a dot, and special characters in a name are escaped', () => {
+  const dots = [entry('.git', 'dir'), entry('a')];
+  assert.equal(complete(dots, '').append, 'a ');
+  assert.equal(complete(dots, '.').append, 'git/');
+  assert.equal(complete([entry('my file.txt')], 'my').append, '\\ file.txt ');
+  assert.equal(complete([entry('a$b(1)')], 'a').append, '\\$b\\(1\\) ');
 });

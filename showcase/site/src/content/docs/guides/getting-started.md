@@ -38,8 +38,9 @@ There is no shell: pipes, redirections, `$` expansion and globbing are refused,
 and the terminal says so. One line is limited to 65536 bytes. Use ↑ and ↓ for the
 history of this page, Ctrl-L to clear the screen while keeping the typed line,
 and Ctrl-C to cancel a running command or install (except an interactive
-tool, below). Tab and
-Shift+Tab move the focus out of the terminal.
+tool, below). Tab completes a file or folder name, and pressed twice lists the
+choices. On an empty line Tab, and anywhere Shift+Tab, moves the focus out of
+the terminal.
 
 A tool marked interactive in the catalog takes the keyboard while it runs:
 every key, Enter and Ctrl-C included, goes to the tool, which sees a terminal

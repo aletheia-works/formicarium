@@ -50,7 +50,7 @@ export const STRINGS = {
       'Builtins: ls, cat, cd, rm -rf, cp, mv, install <tool>, clear and help.',
       'Ctrl-C cancels a running command or drops the typed line.',
       'With text selected, Ctrl-C copies it (Cmd-C on macOS); Ctrl-V (Cmd-V) pastes.',
-      'Ctrl-L clears the screen; Tab moves the focus out of the terminal.',
+      'Ctrl-L clears the screen. Tab completes a file name, and twice lists the choices; on an empty line, and with Shift+Tab, it moves the focus out of the terminal.',
       'An interactive tool such as nano gets Ctrl-C itself; the Stop button ends it.',
     ],
     everyPageHelp: (tools: readonly string[]) =>
@@ -66,7 +66,7 @@ export const STRINGS = {
           `Installed: ${listEn(installed)}`,
           `install <tool> adds: ${listEn(tools)}`,
           'Keys: Ctrl-C cancels a run or drops the line; with text selected it copies, off macOS.',
-          '      Ctrl-V / Cmd-V pastes; Ctrl-L clears the screen.',
+          '      Ctrl-V / Cmd-V pastes; Ctrl-L clears the screen; Tab completes a file name.',
         ].join('\n'),
       notFound: (
         name: string,
@@ -174,7 +174,7 @@ export const STRINGS = {
       '組込みの command：ls、cat、cd、rm -rf、cp、mv、install <ツール>、clear、help。',
       'Ctrl-C で実行中の command を取り消すか、入力中の行を捨てます。',
       '文字を選択しているときは Ctrl-C で copy し（macOS では Cmd-C）、Ctrl-V（Cmd-V）で貼り付けます。',
-      'Ctrl-L で画面を消し、Tab で端末の外へ focus を移します。',
+      'Ctrl-L で画面を消します。Tab でファイル名を補完し、2 回押すと候補を一覧します。空の行で Tab を押すか、Shift+Tab を押すと、端末の外へ focus を移します。',
       'nano のような対話的なツールには Ctrl-C が渡るので、「停止」で終わらせます。',
     ],
     everyPageHelp: (tools: readonly string[]) =>
@@ -189,7 +189,7 @@ export const STRINGS = {
           `導入済み：${listJa(installed)}`,
           `install <ツール> で導入できるもの：${listJa(tools)}`,
           'キー：Ctrl-C で実行を取り消すか、入力中の行を捨てます。macOS 以外では、文字を選択していると copy します。',
-          '　　　Ctrl-V / Cmd-V で貼り付け、Ctrl-L で画面を消します。',
+          '　　　Ctrl-V / Cmd-V で貼り付け、Ctrl-L で画面を消し、Tab でファイル名を補完します。',
         ].join('\n'),
       notFound: (
         name: string,

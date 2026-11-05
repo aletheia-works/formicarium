@@ -230,7 +230,17 @@ for (const [locale, prefix] of LOCALES)
     for (const step of layout.steps) expect(step).toBeCloseTo(layout.height, 0);
     expect(layout.offset).not.toBeNull();
     expect(layout.offset!).toBeLessThan(2);
-    // Tab leaves the terminal instead of being typed into it. Safari's Tab
+    // Tab completes a name from the real file system. An absolute `cd`, since
+    // a distribution accepts the pinned release, which may not take `..` yet.
+    await run(site, 'cd /work');
+    await focusTerminal(site);
+    await site.type('cd a');
+    await site.press('Tab');
+    await poll(() => terminalText(site)).toContain('cd app/');
+    await site.press('Enter');
+    await waitState(site, ['ready']);
+    await poll(() => terminalText(site)).toContain('/work/app$');
+    // On an empty line Tab leaves the terminal instead. Safari's Tab
     // moves only between form fields by default, and the terminal is the
     // only one; Option-Tab is Safari's key for every item.
     await site.press(site.project === 'safari' ? 'Alt+Tab' : 'Tab');

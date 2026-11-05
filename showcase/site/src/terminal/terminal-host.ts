@@ -25,7 +25,12 @@ import {
   type LoadedFormicarium,
   loadFormicarium,
 } from './formicarium-loader.ts';
-import { type EditorAction, LineEditor } from './keys.ts';
+import {
+  complete,
+  completionTarget,
+  type EditorAction,
+  LineEditor,
+} from './keys.ts';
 import { renderOmitted } from './omitted-notice.ts';
 import { CommandOutput, failureOf, plainText } from './output.ts';
 import {
@@ -196,6 +201,8 @@ export class TerminalHost {
   #installer: Installer | null = null;
   /** The stdin of the running interactive tool; null when none runs. */
   #input: ReadableStreamDefaultController<Uint8Array> | null = null;
+  /** The line a Tab could not extend: a second Tab on it lists the names. */
+  #listOnTab: string | null = null;
   readonly #encoder = new TextEncoder();
   /** The last tool an install command registered (shown in the ready text). */
   #installed: { tool: string; version: string } | null = null;
@@ -565,8 +572,46 @@ export class TerminalHost {
       this.#apply(action);
   }
 
+  /**
+   * Whether Tab completes instead of moving the focus. An empty line leaves
+   * Tab to the browser, so a keyboard user can always leave the terminal.
+   */
+  completesOnTab(): boolean {
+    return (
+      INPUT.includes(this.state) &&
+      !BUSY.includes(this.state) &&
+      !this.#input &&
+      this.editor.line !== ''
+    );
+  }
+
+  /** Tab: adds what the file system allows, or lists the names on a second Tab. */
+  async #complete(): Promise<void> {
+    const session = this.#session;
+    const line = this.editor.line;
+    const target = completionTarget(line, this.cwd);
+    if (!session || !target) return;
+    // A directory that is missing or refused has nothing to offer.
+    const entries = await session
+      .listEntries(target.directory)
+      .catch(() => [] as const);
+    // Typing, Enter or dispose during the await: this answer is for an old line.
+    if (this.editor.line !== line || !this.completesOnTab()) return;
+    const { append, names } = complete(entries, target.prefix);
+    if (append) {
+      this.#listOnTab = null;
+      for (const action of this.editor.handle(append, false))
+        this.#apply(action);
+    } else if (this.#listOnTab === line && names.length > 1) {
+      this.#print(`\n${names.join('  ')}\n${this.cwd}$ ${line}`);
+    } else this.#listOnTab = line;
+  }
+
   #apply(action: EditorAction): void {
     switch (action.kind) {
+      case 'complete':
+        void this.#complete();
+        return;
       case 'write':
         this.#print(action.text);
         return;
@@ -983,6 +1028,17 @@ export async function startTerminalPage(
         document.execCommand('copy');
       return false;
     }
+    // Tab completes while a line is being typed; it stays with xterm then,
+    // which sends it to onData. Shift+Tab and an empty line leave the terminal.
+    if (
+      event.key === 'Tab' &&
+      !event.shiftKey &&
+      !event.altKey &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      host.completesOnTab()
+    )
+      return true;
     return copy === 'browser' ? false : passKey(event, platform);
   });
   new ResizeObserver(() => {

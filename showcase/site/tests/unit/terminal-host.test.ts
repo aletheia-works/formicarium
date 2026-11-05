@@ -129,6 +129,8 @@ function harness(
   const lines: string[] = [];
   const sessions: SessionOptions[] = [];
   const cwds: string[] = [];
+  const listed: string[] = [];
+  const listing: Record<string, { path: string; type: string }[]> = {};
   let disposed = 0;
   const terminal = {
     cols: 80,
@@ -161,6 +163,12 @@ function harness(
         return {
           dispose: async () => void disposed++,
           setCwd: async (path: string) => void cwds.push(path),
+          listEntries: async (path: string) => {
+            listed.push(path);
+            const found = listing[path];
+            if (!found) throw new Error(`no directory ${path}`);
+            return found;
+          },
         };
       },
     },
@@ -187,6 +195,8 @@ function harness(
     lines,
     sessions,
     cwds,
+    listed,
+    listing,
     status,
     omitted,
     root,
@@ -598,6 +608,63 @@ test('Ctrl-C cancels a quiet every-page install', async () => {
   assert.match(h.writes.join(''), /ABORTED: the command was cancelled\n/);
 });
 
+test('Tab completes from the listing of the directory the word is in', async () => {
+  const h = harness('empty', async () => result('builtin'));
+  await h.host.start();
+  assert.equal(h.host.state, 'ready');
+  const cwd = h.host.cwd;
+  const parent = cwd.slice(0, cwd.lastIndexOf('/')) || '/';
+  h.listing[parent] = [
+    { path: `${parent}/app`, type: 'dir' },
+    { path: `${parent}/notes.txt`, type: 'file' },
+  ];
+  h.host.onData('cd ../a');
+  assert.equal(h.host.completesOnTab(), true);
+  h.host.onData('\t');
+  await settle();
+  assert.deepEqual(h.listed, [parent]);
+  assert.equal(h.host.editor.line, 'cd ../app/');
+  assert.ok(h.writes.join('').endsWith('p/'));
+});
+
+test('a second Tab lists the choices and keeps the line; a missing folder offers none', async () => {
+  const h = harness('empty', async () => result('builtin'));
+  await h.host.start();
+  const { cwd } = h.host;
+  h.listing[cwd] = [
+    { path: `${cwd}/one`, type: 'file' },
+    { path: `${cwd}/other`, type: 'dir' },
+  ];
+  h.host.onData('cat o');
+  h.host.onData('\t');
+  await settle();
+  assert.equal(h.host.editor.line, 'cat o');
+  assert.doesNotMatch(h.writes.join(''), /other/);
+  h.host.onData('\t');
+  await settle();
+  assert.match(h.writes.join(''), /one {2}other\//);
+  assert.ok(h.writes.join('').endsWith(`${cwd}$ cat o`));
+  h.host.onData('x/');
+  h.host.onData('\t');
+  await settle();
+  assert.equal(h.host.editor.line, 'cat ox/');
+});
+
+test('Tab leaves the terminal on an empty line, and an answer for an old line is dropped', async () => {
+  const h = harness('empty', async () => result('builtin'));
+  await h.host.start();
+  assert.equal(h.host.completesOnTab(), false);
+  const { cwd } = h.host;
+  h.listing[cwd] = [{ path: `${cwd}/one`, type: 'file' }];
+  h.host.onData('cat o');
+  assert.equal(h.host.completesOnTab(), true);
+  h.host.onData('\t');
+  // Typed before the listing answered: the completion is for the old line.
+  h.host.onData('n');
+  await settle();
+  assert.equal(h.host.editor.line, 'cat on');
+});
+
 test('the empty terminal runs builtins once, follows cd and reports empty output', async () => {
   const h = harness('empty', async (line, options) => {
     if (line === 'ls') return result('builtin', 'package.json\n');
@@ -721,7 +788,7 @@ test('help prints the builtins, the installed and installable tools and the keys
       'Installed: git',
       'install <tool> adds: aube, git',
       'Keys: Ctrl-C cancels a run or drops the line; with text selected it copies, off macOS.',
-      '      Ctrl-V / Cmd-V pastes; Ctrl-L clears the screen.',
+      '      Ctrl-V / Cmd-V pastes; Ctrl-L clears the screen; Tab completes a file name.',
       '/work/app$ ',
     ].join('\n'),
   );

@@ -16,6 +16,8 @@ export type EditorAction =
   | { kind: 'replace'; line: string }
   /** Ctrl-L: clear the screen and scrollback; the typed line stays. */
   | { kind: 'clear' }
+  /** Tab: complete the last word of the line from the file system. */
+  | { kind: 'complete' }
   /** Input was refused; the status line tells why. */
   | { kind: 'notice'; code: 'line-too-long' | 'paste-truncated' };
 
@@ -36,6 +38,94 @@ export function columns(character: string): number {
     (code >= 0x20000 && code <= 0x3fffd)
     ? 2
     : 1;
+}
+
+/** The word Tab completes, and where its candidates are. */
+export interface CompletionTarget {
+  /** The absolute directory to list. */
+  directory: string;
+  /** The start of a name in that directory. */
+  prefix: string;
+}
+
+/** Characters the command tokenizer takes literally only after a backslash. */
+const ESCAPED = /[\s\\'"`$&|;<>()*?[\]{}#~!=]/g;
+
+/**
+ * What to complete at the end of a line, or null for a word in quotes, which
+ * would need its own parsing. `..` resolves by name, as the commands do.
+ */
+export function completionTarget(
+  line: string,
+  cwd: string,
+): CompletionTarget | null {
+  let start = 0;
+  for (let index = 0; index < line.length; index++) {
+    const character = line[index]!;
+    if (character === '\\') index++;
+    else if (character === "'" || character === '"') return null;
+    // As the command tokenizer: NBSP and a full-width space stay in the word.
+    else if (character === ' ' || character === '\t') start = index + 1;
+  }
+  const word = line.slice(start).replace(/\\(.)/gu, '$1');
+  const slash = word.lastIndexOf('/');
+  const named = word.slice(0, slash + 1);
+  const parts: string[] = [];
+  for (const part of (named.startsWith('/') ? named : `${cwd}/${named}`).split(
+    '/',
+  ))
+    if (part === '..') parts.pop();
+    else if (part !== '' && part !== '.') parts.push(part);
+  return { directory: `/${parts.join('/')}`, prefix: word.slice(slash + 1) };
+}
+
+/** A listed entry, as far as completing its name needs. */
+export interface CompletionEntry {
+  path: string;
+  type: string;
+}
+
+export interface Completion {
+  /** Text to add to the line: the rest of the name, escaped. */
+  append: string;
+  /** Every candidate, shown on a second Tab when none can be added. */
+  names: string[];
+}
+
+/**
+ * The shared start of the names that match. One match ends the word: a
+ * directory with `/` and anything else with a space. Dot files are offered
+ * only for a prefix that starts with a dot, as in a shell.
+ */
+export function complete(
+  entries: readonly CompletionEntry[],
+  prefix: string,
+): Completion {
+  const matches = entries
+    .map((entry) => ({
+      name: entry.path.slice(entry.path.lastIndexOf('/') + 1),
+      directory: entry.type === 'dir',
+    }))
+    .filter(
+      ({ name }) =>
+        name.startsWith(prefix) && (prefix.startsWith('.') || name[0] !== '.'),
+    )
+    .sort((a, b) => (a.name < b.name ? -1 : 1));
+  const names = matches.map(({ name, directory }) =>
+    directory ? `${name}/` : name,
+  );
+  const escaped = (text: string) => text.replace(ESCAPED, '\\$&');
+  const [first] = matches;
+  if (!first) return { append: '', names };
+  if (matches.length === 1)
+    return {
+      append: `${escaped(first.name.slice(prefix.length))}${first.directory ? '/' : ' '}`,
+      names,
+    };
+  let shared = first.name;
+  for (const { name } of matches)
+    while (!name.startsWith(shared)) shared = shared.slice(0, -1);
+  return { append: escaped(shared.slice(prefix.length)), names };
 }
 
 /**
@@ -83,6 +173,11 @@ export class LineEditor {
       }
       if (character === '\x7f' || character === '\b') {
         actions.push(...this.#erase());
+        continue;
+      }
+      // Only the key itself completes; a tab inside pasted text is dropped.
+      if (character === '\t' && data === '\t') {
+        actions.push({ kind: 'complete' });
         continue;
       }
       if (character.charCodeAt(0) < 0x20) continue;
