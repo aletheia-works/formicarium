@@ -104,6 +104,23 @@ export const CA_BUNDLE_SPDX = 'MPL-2.0';
 const CA_BUNDLE_DIGEST = /^([a-f0-9]{64}) [ *]cacert\.pem\n?$/;
 const PEM_CERTIFICATE = '-----BEGIN CERTIFICATE-----';
 
+/**
+ * A project can publish a release before its own CI has uploaded the assets:
+ * jj v0.47.1 lacked its Linux asset for six and a half minutes. For this long
+ * after publication a missing asset is read again; after it, or for a release
+ * that names no publication time, the asset is taken to be really missing.
+ * One run waits for at most this long in all (AssetWait.deadline), which the
+ * resolve jobs' timeouts leave room for.
+ */
+export const ASSET_UPLOAD_WINDOW_MS = 20 * 60_000;
+const ASSET_POLL_MS = 30_000;
+/** Tests pass their own clock so that nothing really waits. */
+export interface AssetWait {
+  now?: () => number;
+  sleep?: (ms: number) => Promise<void>;
+  deadline?: number;
+}
+
 type Json = Record<string, unknown>;
 const object = (value: unknown, what: string): Json => {
   if (!value || typeof value !== 'object' || Array.isArray(value))
@@ -365,16 +382,58 @@ export async function resolveGnuTool(
   };
 }
 
+/** The latest release, read again while the asset of its tag is still uploading. */
+async function latestRelease(
+  api: GitHubApi,
+  slug: string,
+  config: ToolConfig,
+  wait: AssetWait,
+): Promise<Json> {
+  const now = wait.now ?? Date.now;
+  const sleep =
+    wait.sleep ??
+    ((ms: number) => new Promise<void>((done) => setTimeout(done, ms)));
+  for (;;) {
+    const release = object(
+      await api.get(`repos/${slug}/releases/latest`),
+      'release',
+    );
+    if (config.acquire.kind !== 'release-asset') return release;
+    const tag = release.tag_name;
+    const version =
+      typeof tag === 'string'
+        ? new RegExp(config.tagPattern).exec(tag)?.[1]
+        : '';
+    if (typeof tag !== 'string' || !version) return release;
+    const name = assetName(config.acquire.asset, tag, version);
+    const assets = Array.isArray(release.assets) ? release.assets : [];
+    const uploaded = assets.some(
+      (asset) =>
+        object(asset, 'release asset').name === name &&
+        typeof (asset as Json).digest === 'string',
+    );
+    const published =
+      typeof release.published_at === 'string'
+        ? Date.parse(release.published_at)
+        : Number.NaN;
+    const until = Math.min(
+      published + ASSET_UPLOAD_WINDOW_MS,
+      wait.deadline ?? Number.POSITIVE_INFINITY,
+    );
+    if (uploaded || !(now() < until)) return release;
+    console.warn(`${name} is not uploaded yet; reading ${tag} again`);
+    await sleep(ASSET_POLL_MS);
+  }
+}
+
 /** One latest-stable resolution per tool; the result is fixed for the run. */
 export async function resolveTool(
   api: GitHubApi,
   config: ToolConfig,
+  assetWait: AssetWait = {},
 ): Promise<{ resolution: ToolResolution; licenseBytes: Uint8Array }> {
   const slug = repositorySlug(config.repository);
-  const release = object(
-    await api.get(`repos/${slug}/releases/latest`),
-    'release',
-  );
+  const release = await latestRelease(api, slug, config, assetWait);
   if (release.draft !== false || release.prerelease !== false)
     fail('release-invalid', `${config.tool} latest release is not stable`);
   const tag = release.tag_name;
@@ -479,9 +538,14 @@ export async function runResolveJob(options: {
   layout?: WorkLayout;
   now?: () => Date;
   gnu?: GnuResolveOptions;
+  assetWait?: AssetWait;
 }): Promise<Resolutions> {
   const layout = options.layout ?? workLayout();
   const tools = await loadVerifiedTools(options.readMain);
+  const assetWait: AssetWait = {
+    ...options.assetWait,
+    deadline: (options.assetWait?.now ?? Date.now)() + ASSET_UPLOAD_WINDOW_MS,
+  };
   const resolved: ToolResolution[] = [];
   const licenses: [string, Uint8Array][] = [];
   const tarballs: [string, Uint8Array][] = [];
@@ -493,7 +557,11 @@ export async function runResolveJob(options: {
       tarballs.push(...found.tarballs);
       continue;
     }
-    const { resolution, licenseBytes } = await resolveTool(options.api, config);
+    const { resolution, licenseBytes } = await resolveTool(
+      options.api,
+      config,
+      assetWait,
+    );
     resolved.push(resolution);
     licenses.push([resolution.license.file, licenseBytes]);
   }

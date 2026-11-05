@@ -10,6 +10,7 @@ import {
 import { causeOf } from '../scripts/errors.ts';
 import { createGitHubApi } from '../scripts/github.ts';
 import {
+  ASSET_UPLOAD_WINDOW_MS,
   datedTag,
   loadResolutions,
   loadVerifiedTools,
@@ -167,6 +168,147 @@ test('zero, two or digest-less matching assets are refused', async () => {
       ],
     });
   await rejects(resolveTool(api(routes), tool('aube')), 'release-invalid');
+});
+
+/** A clock that only sleeping moves, from one minute after publication. */
+function uploadClock() {
+  const published = Date.parse('2026-11-05T00:34:13Z');
+  const clock = {
+    published: new Date(published).toISOString(),
+    time: published + 60_000,
+    sleeps: 0,
+    assetWait: {
+      now: () => clock.time,
+      sleep: async (ms: number) => {
+        clock.sleeps++;
+        clock.time += ms;
+      },
+    },
+  };
+  return clock;
+}
+/** Answers the release without its asset the first `missing` times. */
+function uploadingRoutes(published: string, missing: number) {
+  const routes = releaseRoutes({
+    slug: 'aubepkg/aube',
+    tag: 'v2.7.0',
+    commit: commit('a'),
+    assets: [aubeAsset],
+  });
+  const whole = routes[latest] as () => Response;
+  let reads = 0;
+  routes[latest] = async () => {
+    const body = (await whole().json()) as Record<string, unknown>;
+    return json({
+      ...body,
+      published_at: published,
+      ...(reads++ < missing ? { assets: [] } : {}),
+    });
+  };
+  return routes;
+}
+
+test('a release just published is read again until its asset has arrived', async () => {
+  const clock = uploadClock();
+  const { resolution } = await resolveTool(
+    api(uploadingRoutes(clock.published, 2)),
+    tool('aube'),
+    clock.assetWait,
+  );
+  assert.equal(resolution.asset?.name, aubeAsset.name);
+  assert.equal(clock.sleeps, 2);
+});
+
+test('an asset still uploading, without its digest, is waited for as well', async () => {
+  const clock = uploadClock();
+  const routes = uploadingRoutes(clock.published, 0);
+  const whole = routes[latest] as () => Promise<Response>;
+  let reads = 0;
+  routes[latest] = async () => {
+    const body = (await (await whole()).json()) as {
+      assets: Record<string, unknown>[];
+    };
+    return json(
+      reads++ === 0
+        ? {
+            ...body,
+            assets: body.assets.map((asset) => ({ ...asset, digest: null })),
+          }
+        : body,
+    );
+  };
+  const { resolution } = await resolveTool(
+    api(routes),
+    tool('aube'),
+    clock.assetWait,
+  );
+  assert.equal(resolution.asset?.name, aubeAsset.name);
+  assert.equal(clock.sleeps, 1);
+});
+
+test('the wait for an asset ends with the upload window', async () => {
+  const clock = uploadClock();
+  await rejects(
+    resolveTool(
+      api(uploadingRoutes(clock.published, Number.POSITIVE_INFINITY)),
+      tool('aube'),
+      clock.assetWait,
+    ),
+    'release-invalid',
+  );
+  assert.ok(clock.sleeps > 0);
+  assert.ok(clock.time >= Date.parse(clock.published) + ASSET_UPLOAD_WINDOW_MS);
+});
+
+test('a release published long ago that lacks its asset fails at once', async () => {
+  const clock = uploadClock();
+  clock.time += ASSET_UPLOAD_WINDOW_MS;
+  await rejects(
+    resolveTool(
+      api(uploadingRoutes(clock.published, 1)),
+      tool('aube'),
+      clock.assetWait,
+    ),
+    'release-invalid',
+  );
+  assert.equal(clock.sleeps, 0);
+});
+
+test('the waits for assets of one run share a single upload window', async () => {
+  const clock = uploadClock();
+  const start = clock.time;
+  const routes = all();
+  // aube arrives 19 minutes in; jj, published just before that, never does.
+  const aube = routes[latest] as () => Response;
+  routes[latest] = async () => {
+    const body = (await aube().json()) as Record<string, unknown>;
+    return json({
+      ...body,
+      published_at: clock.published,
+      ...(clock.time < start + 19 * 60_000 ? { assets: [] } : {}),
+    });
+  };
+  routes['https://api.github.com/repos/jj-vcs/jj/releases/latest'] = () =>
+    json({
+      tag_name: 'v0.46.0',
+      draft: false,
+      prerelease: false,
+      assets: [],
+      published_at: new Date(start + 19 * 60_000 - 1).toISOString(),
+    });
+  await withLayout(async (layout) => {
+    await rejects(
+      runResolveJob({
+        api: api(routes),
+        readMain,
+        layout,
+        gnu: gnuOptions(),
+        assetWait: clock.assetWait,
+      }),
+      'release-invalid',
+    );
+  });
+  assert.ok(clock.time <= start + ASSET_UPLOAD_WINDOW_MS + 30_000);
 });
 
 test('rate limits, offline and invalid bodies keep their cause and are not retried', async () => {

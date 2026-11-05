@@ -20,7 +20,7 @@ jobs:
     name: Start the site run for new tool versions
     if: github.repository == 'aletheia-works/formicarium'
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 30
     permissions:
       actions: write
       contents: read

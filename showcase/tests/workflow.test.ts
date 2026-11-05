@@ -109,7 +109,7 @@ test('job timeouts follow the infrastructure design', () => {
   );
   assert.deepEqual(timeouts, {
     changes: 5,
-    resolve: 10,
+    resolve: 30,
     acquire: 180,
     catalog: 15,
     accept: 60,
