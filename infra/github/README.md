@@ -79,9 +79,8 @@ Administrationは `github-pages` environment（保護された branch だけ）�
    だけで、branch の保護・label・変数に変更が無いことを確かめます。
 3. その後に showcase の site と workflow の PR を merge します（先に入れると
    配布の run が Pages の無い状態で失敗します）。
-4. 最初の deploy（run 39422079965）は承認者（JamBalaya56562、user ID 88115388）が
-   承認しました。site を確かめた後に承認者を外したので、以降の deploy は承認なしで、
-   main からだけ動きます。
+4. 最初の deploy（run 39422079965）は承認者が承認しました。site を確かめた後に
+   承認者を外したので、以降の deploy は承認なしで、main からだけ動きます。
 5. Pages を無効にする変更は site を消すので、内容を示して承認を受けてから行います。
 
 ## Workflows and rollout

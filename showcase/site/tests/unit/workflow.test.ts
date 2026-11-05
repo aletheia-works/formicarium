@@ -261,7 +261,7 @@ test('each event runs its jobs, and nothing after build is skipped by mistake', 
 });
 
 test('a fork runs no job: its main has no release tags or Pages to deploy', () => {
-  const fork = 'Marukome0743/formicarium';
+  const fork = 'example-fork/formicarium';
   assert.deepEqual(runs('push', 'refs/heads/main', 'true', fork), []);
   assert.deepEqual(
     runs('workflow_dispatch', 'refs/heads/main', 'true', fork),

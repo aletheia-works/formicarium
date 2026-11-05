@@ -46,7 +46,7 @@ test('fresh results creation supports a clean checkout and refuses reuse', async
 });
 
 const context = {
-  repository: 'Marukome0743/formicarium',
+  repository: 'example-fork/formicarium',
   commit: 'a'.repeat(40),
   event: 'push',
   ref: 'refs/heads/codex/verify/u4',

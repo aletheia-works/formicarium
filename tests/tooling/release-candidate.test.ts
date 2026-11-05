@@ -259,7 +259,7 @@ test('main dispatch binds the actual source and rejects forks, tags and push eve
   };
   assert.deepEqual(dispatchedCandidateContext(context), context);
   for (const mutation of [
-    { repository: 'Marukome0743/formicarium' },
+    { repository: 'example-fork/formicarium' },
     { ref: 'refs/tags/v0.2.0' },
     { event: 'push' },
     { commit: '' },
@@ -361,7 +361,7 @@ test('tag measurement rejects a prerelease, mismatched version, forks and unboun
   };
   assert.deepEqual(taggedCandidateContext(context, '0.2.1'), context);
   for (const mutation of [
-    { repository: 'Marukome0743/formicarium' },
+    { repository: 'example-fork/formicarium' },
     { event: 'workflow_dispatch' },
     { ref: 'refs/heads/main' },
     { commit: '' },
