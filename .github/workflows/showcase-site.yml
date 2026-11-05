@@ -108,16 +108,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          node-version: '*'
-          check-latest: true
-          package-manager-cache: false
+          bun-version: 'latest'
       - name: Take the newest verify candidate of main's showcase.yml
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-        run: node showcase/site/scripts/fetch-verify-candidate.ts
+        run: bun showcase/site/scripts/fetch-verify-candidate.ts
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: showcase-site-verify-candidate
@@ -134,23 +132,18 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: '*'
-          check-latest: true
-          package-manager-cache: false
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 'latest'
       # The same order as the verify pack of showcase.yml's resolve job.
       - name: Build this commit's package inputs
         run: |
-          node scripts/ci/tasks.ts install-frozen
-          node scripts/ci/tasks.ts build
+          bun scripts/ci/tasks.ts install-frozen
+          bun scripts/ci/tasks.ts build
       - name: Pack this commit
         env:
           SHOWCASE_SOURCE_COMMIT: ${{ github.sha }}
-        run: node showcase/scripts/pack.ts verify
+        run: bun showcase/scripts/pack.ts verify
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: showcase-site-verify-pack
@@ -169,11 +162,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: '*'
-          check-latest: true
-          package-manager-cache: false
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 'latest'
@@ -204,26 +192,26 @@ jobs:
           name: showcase-site-verify-pack
           path: showcase/site/.work/inputs/resolve/pack
       - name: Install the repository tools (Biome, TypeScript)
-        run: node scripts/ci/tasks.ts install-frozen
+        run: bun scripts/ci/tasks.ts install-frozen
       - name: Check the candidate and stage the pack
         env:
           SHOWCASE_CANDIDATE_ID: ${{ needs.candidate.outputs.candidate-id }}
           SHOWCASE_DISTRIBUTABLE: ${{ needs.candidate.outputs.distributable }}
-        run: node showcase/site/scripts/build-site.ts prepare --mode "$SHOWCASE_MODE"
+        run: bun showcase/site/scripts/build-site.ts prepare --mode "$SHOWCASE_MODE"
       - name: Install the site dependencies (no install scripts)
         working-directory: showcase/site
         run: bun install --frozen-lockfile --ignore-scripts
       - name: Lint
-        run: node node_modules/@biomejs/biome/bin/biome check showcase/site biome.json
+        run: bun node_modules/@biomejs/biome/bin/biome check showcase/site biome.json
       - name: Public import boundary (showcase rules with the site rules)
-        run: node showcase/scripts/boundary.ts | tee showcase/site/.work/logs/boundary.txt
+        run: bun showcase/scripts/boundary.ts | tee showcase/site/.work/logs/boundary.txt
       - name: Type check (tsc and astro check)
         working-directory: showcase/site
         run: |
-          node node_modules/astro/bin/astro.mjs sync
-          node node_modules/typescript/bin/tsc -p tsconfig.json
+          bun node_modules/astro/bin/astro.mjs sync
+          bun node_modules/typescript/bin/tsc -p tsconfig.json
           (cd tooling/astro-check && bun install --frozen-lockfile --ignore-scripts)
-          node tooling/astro-check/node_modules/@astrojs/check/bin/astro-check.js --root .
+          bun tooling/astro-check/node_modules/@astrojs/check/bin/astro-check.js --root .
       - name: Unit tests (lcov for the coverage job)
         run: |
           mkdir -p showcase/site/.work/coverage
@@ -233,7 +221,7 @@ jobs:
       - name: Assemble, check and inventory the site
         env:
           SHOWCASE_SOURCE_COMMIT: ${{ github.sha }}
-        run: node showcase/site/scripts/build-site.ts assemble --mode "$SHOWCASE_MODE"
+        run: bun showcase/site/scripts/build-site.ts assemble --mode "$SHOWCASE_MODE"
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: showcase/site/dist
@@ -270,15 +258,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: '*'
-          check-latest: true
-          package-manager-cache: false
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 'latest'
-      - run: node scripts/ci/tasks.ts install-frozen
+      - run: bun scripts/ci/tasks.ts install-frozen
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: github-pages
@@ -291,9 +274,9 @@ jobs:
         run: |
           mkdir -p showcase/site/dist
           tar -xf showcase/site/.work/pages/artifact.tar -C showcase/site/dist
-          node showcase/site/scripts/inventory.ts --site showcase/site/dist --expect showcase/site/.work/build/site-inventory.json --log "showcase/site/.work/logs/inventory-accept-$BROWSER.json"
+          bun showcase/site/scripts/inventory.ts --site showcase/site/dist --expect showcase/site/.work/build/site-inventory.json --log "showcase/site/.work/logs/inventory-accept-$BROWSER.json"
       - name: Create a job-only localhost CA and leaf (CA key deleted at once)
-        run: node showcase/scripts/tls.ts create >> "$GITHUB_ENV"
+        run: bun showcase/scripts/tls.ts create >> "$GITHUB_ENV"
       - name: Trust only this job CA (system store, NSS and a dedicated Firefox profile)
         shell: bash
         run: |
@@ -314,11 +297,11 @@ jobs:
         uses: aletheia-works/.github/actions/install-playwright@0ab4b956b12760b3926ac8f768e04432404a5182 # v1.3.4
         with:
           browsers: ${{ env.BROWSER }}
-          command: node node_modules/@playwright/test/cli.js
+          command: bun node_modules/@playwright/test/cli.js
       - name: Site acceptance (28 tests, 1 worker, no retry, 180 s each)
         env:
           SHOWCASE_ACCEPT_RESULTS: ${{ github.workspace }}/showcase/site/.work/accept/chromium/results.json
-        run: node node_modules/@playwright/test/cli.js test --config showcase/site/tests/playwright.config.ts --project="$BROWSER" --workers=1 --retries=0
+        run: bun node_modules/@playwright/test/cli.js test --config showcase/site/tests/playwright.config.ts --project="$BROWSER" --workers=1 --retries=0
       - name: Remove only this job CA trust, Firefox profile and private keys
         if: always()
         shell: bash
@@ -354,15 +337,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: '*'
-          check-latest: true
-          package-manager-cache: false
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 'latest'
-      - run: node scripts/ci/tasks.ts install-frozen
+      - run: bun scripts/ci/tasks.ts install-frozen
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: github-pages
@@ -375,9 +353,9 @@ jobs:
         run: |
           mkdir -p showcase/site/dist
           tar -xf showcase/site/.work/pages/artifact.tar -C showcase/site/dist
-          node showcase/site/scripts/inventory.ts --site showcase/site/dist --expect showcase/site/.work/build/site-inventory.json --log "showcase/site/.work/logs/inventory-accept-$BROWSER.json"
+          bun showcase/site/scripts/inventory.ts --site showcase/site/dist --expect showcase/site/.work/build/site-inventory.json --log "showcase/site/.work/logs/inventory-accept-$BROWSER.json"
       - name: Create a job-only localhost CA and leaf (CA key deleted at once)
-        run: node showcase/scripts/tls.ts create >> "$GITHUB_ENV"
+        run: bun showcase/scripts/tls.ts create >> "$GITHUB_ENV"
       - name: Trust only this job CA (system store, NSS and a dedicated Firefox profile)
         shell: bash
         run: |
@@ -398,11 +376,11 @@ jobs:
         uses: aletheia-works/.github/actions/install-playwright@0ab4b956b12760b3926ac8f768e04432404a5182 # v1.3.4
         with:
           browsers: ${{ env.BROWSER }}
-          command: node node_modules/@playwright/test/cli.js
+          command: bun node_modules/@playwright/test/cli.js
       - name: Site acceptance (28 tests, 1 worker, no retry, 180 s each)
         env:
           SHOWCASE_ACCEPT_RESULTS: ${{ github.workspace }}/showcase/site/.work/accept/firefox/results.json
-        run: node node_modules/@playwright/test/cli.js test --config showcase/site/tests/playwright.config.ts --project="$BROWSER" --workers=1 --retries=0
+        run: bun node_modules/@playwright/test/cli.js test --config showcase/site/tests/playwright.config.ts --project="$BROWSER" --workers=1 --retries=0
       - name: Remove only this job CA trust, Firefox profile and private keys
         if: always()
         shell: bash
@@ -437,15 +415,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: '*'
-          check-latest: true
-          package-manager-cache: false
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 'latest'
-      - run: node scripts/ci/tasks.ts install-frozen
+      - run: bun scripts/ci/tasks.ts install-frozen
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: github-pages
@@ -458,9 +431,9 @@ jobs:
         run: |
           mkdir -p showcase/site/dist
           tar -xf showcase/site/.work/pages/artifact.tar -C showcase/site/dist
-          node showcase/site/scripts/inventory.ts --site showcase/site/dist --expect showcase/site/.work/build/site-inventory.json --log "showcase/site/.work/logs/inventory-accept-$BROWSER.json"
+          bun showcase/site/scripts/inventory.ts --site showcase/site/dist --expect showcase/site/.work/build/site-inventory.json --log "showcase/site/.work/logs/inventory-accept-$BROWSER.json"
       - name: Create a job-only localhost CA and leaf (CA key deleted at once)
-        run: node showcase/scripts/tls.ts create >> "$GITHUB_ENV"
+        run: bun showcase/scripts/tls.ts create >> "$GITHUB_ENV"
       - name: Trust only this job CA (system store, NSS and a dedicated Firefox profile)
         shell: bash
         run: |
@@ -481,11 +454,11 @@ jobs:
         uses: aletheia-works/.github/actions/install-playwright@0ab4b956b12760b3926ac8f768e04432404a5182 # v1.3.4
         with:
           browsers: ${{ env.BROWSER }}
-          command: node node_modules/@playwright/test/cli.js
+          command: bun node_modules/@playwright/test/cli.js
       - name: Site acceptance (28 tests, 1 worker, no retry, 180 s each)
         env:
           SHOWCASE_ACCEPT_RESULTS: ${{ github.workspace }}/showcase/site/.work/accept/webkit/results.json
-        run: node node_modules/@playwright/test/cli.js test --config showcase/site/tests/playwright.config.ts --project="$BROWSER" --workers=1 --retries=0
+        run: bun node_modules/@playwright/test/cli.js test --config showcase/site/tests/playwright.config.ts --project="$BROWSER" --workers=1 --retries=0
       - name: Remove only this job CA trust, Firefox profile and private keys
         if: always()
         shell: bash
@@ -520,15 +493,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: '*'
-          check-latest: true
-          package-manager-cache: false
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 'latest'
-      - run: node scripts/ci/tasks.ts install-frozen
+      - run: bun scripts/ci/tasks.ts install-frozen
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: github-pages
@@ -541,13 +509,13 @@ jobs:
         run: |
           mkdir -p showcase/site/dist
           tar -xf showcase/site/.work/pages/artifact.tar -C showcase/site/dist
-          node showcase/site/scripts/inventory.ts --site showcase/site/dist --expect showcase/site/.work/build/site-inventory.json --log "showcase/site/.work/logs/inventory-accept-$BROWSER.json"
+          bun showcase/site/scripts/inventory.ts --site showcase/site/dist --expect showcase/site/.work/build/site-inventory.json --log "showcase/site/.work/logs/inventory-accept-$BROWSER.json"
       - name: Record the macOS and Safari versions
         run: |
           sw_vers
           defaults read /Applications/Safari.app/Contents/Info CFBundleShortVersionString
       - name: Create a job-only localhost CA and leaf (CA key deleted at once)
-        run: node showcase/scripts/tls.ts create >> "$GITHUB_ENV"
+        run: bun showcase/scripts/tls.ts create >> "$GITHUB_ENV"
       - name: Trust only this job CA (System keychain)
         shell: bash
         run: |
@@ -563,7 +531,7 @@ jobs:
           safaridriver --port 4444 &
           driver=$!
           trap 'kill "$driver"' EXIT
-          node node_modules/@playwright/test/cli.js test --config showcase/site/tests/playwright.config.ts --project="$BROWSER" --workers=1 --retries=0
+          bun node_modules/@playwright/test/cli.js test --config showcase/site/tests/playwright.config.ts --project="$BROWSER" --workers=1 --retries=0
       # As in showcase.yml: the job CA is deleted from the keychain by its SHA-1;
       # remove-trusted-cert waits for an admin prompt that a runner never answers.
       - name: Remove only this job CA trust and private keys
@@ -606,11 +574,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: '*'
-          check-latest: true
-          package-manager-cache: false
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 'latest'
@@ -630,7 +593,7 @@ jobs:
           name: showcase-site-sourcemaps
           path: showcase/site/.work/sourcemaps
       - name: Merge node and Chromium coverage over the fixed denominator (80% lines)
-        run: node showcase/site/tests/coverage/merge-coverage.ts --lcov showcase/site/.work/coverage/lcov.info --v8 showcase/site/.work/coverage/v8 --sourcemaps showcase/site/.work/sourcemaps --denominator showcase/site/coverage-denominator.json --out showcase/site/.work/coverage/report
+        run: bun showcase/site/tests/coverage/merge-coverage.ts --lcov showcase/site/.work/coverage/lcov.info --v8 showcase/site/.work/coverage/v8 --sourcemaps showcase/site/.work/sourcemaps --denominator showcase/site/coverage-denominator.json --out showcase/site/.work/coverage/report
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
@@ -655,11 +618,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          node-version: '*'
-          check-latest: true
-          package-manager-cache: false
+          bun-version: 'latest'
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: showcase-site-{build,accept-*}
@@ -672,7 +633,7 @@ jobs:
       - name: Assemble the site evidence (no deployedIdentity)
         env:
           SHOWCASE_SOURCE_COMMIT: ${{ github.sha }}
-        run: node showcase/site/scripts/evidence.ts --stage pre
+        run: bun showcase/site/scripts/evidence.ts --stage pre
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: showcase-site-evidence-${{ github.run_id }}
@@ -711,11 +672,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          node-version: '*'
-          check-latest: true
-          package-manager-cache: false
+          bun-version: 'latest'
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: showcase-site-{build,accept-*}
@@ -729,7 +688,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-        run: node showcase/site/scripts/deploy-guard.ts
+        run: bun showcase/site/scripts/deploy-guard.ts
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: github-pages
@@ -738,7 +697,7 @@ jobs:
         run: |
           mkdir -p showcase/site/dist
           tar -xf showcase/site/.work/pages/artifact.tar -C showcase/site/dist
-          node showcase/site/scripts/inventory.ts --site showcase/site/dist --expect showcase/site/.work/build/site-inventory.json --log showcase/site/.work/logs/inventory-deploy.json
+          bun showcase/site/scripts/inventory.ts --site showcase/site/dist --expect showcase/site/.work/build/site-inventory.json --log showcase/site/.work/logs/inventory-deploy.json
       - name: Record when the deploy starts
         run: echo "DEPLOY_STARTED_MS=$(date +%s%3N)" >> "$GITHUB_ENV"
       - id: deployment
@@ -748,7 +707,7 @@ jobs:
       - name: Evidence of the deployed site (deployedIdentity)
         env:
           SHOWCASE_SOURCE_COMMIT: ${{ github.sha }}
-        run: node showcase/site/scripts/evidence.ts --stage deployed
+        run: bun showcase/site/scripts/evidence.ts --stage deployed
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: showcase-site-evidence-${{ github.run_id }}-deployed
@@ -764,11 +723,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          node-version: '*'
-          check-latest: true
-          package-manager-cache: false
+          bun-version: 'latest'
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: showcase-site-build
@@ -776,7 +733,7 @@ jobs:
       - name: The deployed site-identity.json names this run (30 s, at most 10 min)
         env:
           SHOWCASE_PAGE_URL: ${{ needs.deploy.outputs.page_url }}
-        run: node showcase/site/scripts/post-deploy-check.ts
+        run: bun showcase/site/scripts/post-deploy-check.ts
   summary:
     needs:
       [
@@ -805,18 +762,16 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          node-version: '*'
-          check-latest: true
-          package-manager-cache: false
+          bun-version: 'latest'
       - name: Days since the last deployment and the failed jobs
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           SHOWCASE_DIST: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' }}
           SHOWCASE_NEEDS: ${{ toJSON(needs) }}
-        run: node showcase/site/scripts/summary.ts
+        run: bun showcase/site/scripts/summary.ts
   required:
     name: showcase-site-required
     needs:
@@ -843,15 +798,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          node-version: '*'
-          check-latest: true
-          package-manager-cache: false
+          bun-version: 'latest'
       - name: Every job this run needs succeeded (a PR without site changes passes)
         env:
           SHOWCASE_DIST: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' }}
           SHOWCASE_SITE: ${{ needs.changes.outputs.site }}
           SHOWCASE_GUESTS: ${{ needs.changes.outputs.guests }}
           SHOWCASE_NEEDS: ${{ toJSON(needs) }}
-        run: node showcase/site/scripts/summary.ts --required
+        run: bun showcase/site/scripts/summary.ts --required

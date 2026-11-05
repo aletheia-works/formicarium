@@ -316,7 +316,7 @@ test('showcase-site-required needs every job but the summary and always reports'
     /SHOWCASE_GUESTS: \$\{\{ needs\.changes\.outputs\.guests \}\}/,
   );
   assert.match(body, /SHOWCASE_NEEDS: \$\{\{ toJSON\(needs\) \}\}/);
-  assert.match(body, /node showcase\/site\/scripts\/summary\.ts --required/);
+  assert.match(body, /bun showcase\/site\/scripts\/summary\.ts --required/);
 });
 
 test('deploy needs every earlier gate and runs only when distributing and all succeeded', () => {

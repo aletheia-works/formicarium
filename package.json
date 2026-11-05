@@ -90,12 +90,12 @@
     "showcase:accept-node": "node showcase/scripts/accept-node.ts",
     "showcase:accept-browser": "bun node_modules/@playwright/test/cli.js test --config showcase/tests/playwright.config.ts --workers=1 --retries=0",
     "showcase:accept-safari": "bun showcase/tests/accept-safari.ts",
-    "showcase-site:prepare": "node showcase/site/scripts/build-site.ts prepare",
-    "showcase-site:assemble": "node showcase/site/scripts/build-site.ts assemble",
-    "showcase-site:typecheck": "node showcase/site/node_modules/typescript/bin/tsc -p showcase/site/tsconfig.json",
+    "showcase-site:prepare": "bun showcase/site/scripts/build-site.ts prepare",
+    "showcase-site:assemble": "bun showcase/site/scripts/build-site.ts assemble",
+    "showcase-site:typecheck": "bun showcase/site/node_modules/typescript/bin/tsc -p showcase/site/tsconfig.json",
     "showcase-site:unit": "bun test --coverage --coverage-reporter=text --coverage-reporter=lcov --coverage-dir=showcase/site/.work/coverage --timeout=300000 ./showcase/site/tests/unit/",
-    "showcase-site:accept": "node node_modules/@playwright/test/cli.js test --config showcase/site/tests/playwright.config.ts --workers=1 --retries=0",
-    "showcase-site:coverage": "node showcase/site/tests/coverage/merge-coverage.ts"
+    "showcase-site:accept": "bun node_modules/@playwright/test/cli.js test --config showcase/site/tests/playwright.config.ts --workers=1 --retries=0",
+    "showcase-site:coverage": "bun showcase/site/tests/coverage/merge-coverage.ts"
   },
   "devDependencies": {
     "@aletheia-works/coi-serviceworker": "0.2.0",
