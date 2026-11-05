@@ -154,7 +154,7 @@ export interface NoticesInput {
   modules: readonly string[];
   /** Packages copied into the site outside Vite (coi-serviceworker, pagefind). */
   copiedPackages: readonly string[];
-  /** Extracted formicarium pack (LICENSE, THIRD_PARTY_NOTICES.md). */
+  /** Extracted formicarium pack (LICENSE, assets/paludarium/LICENSE). */
   formicariumDir: string;
   /** The candidate's site/ (NOTICES.md and licenses/). */
   candidateSiteDir: string;
@@ -184,9 +184,11 @@ export async function buildNotices(
       'formicarium LICENSE',
     ),
     '',
+    '## paludarium',
+    '',
     await textFile(
-      join(input.formicariumDir, 'THIRD_PARTY_NOTICES.md'),
-      'formicarium THIRD_PARTY_NOTICES.md',
+      join(input.formicariumDir, 'assets', 'paludarium', 'LICENSE'),
+      'paludarium LICENSE',
     ),
     '',
     '## Guests',

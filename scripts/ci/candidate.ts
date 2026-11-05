@@ -14,7 +14,6 @@ export async function candidateSourcePaths(root: string) {
     'mise.toml',
     'README.md',
     'LICENSE',
-    'THIRD_PARTY_NOTICES.md',
     'tsconfig.json',
     'tsconfig.tests.json',
     'biome.json',

@@ -172,7 +172,8 @@ export function noticesText(resolutions: Resolutions): string {
     `- CA certificates: ${CA_BUNDLE_SITE_PATH} (sha256 ${ca.sha256}, from ${ca.url}): ` +
       `${ca.spdx} — Mozilla's CA certificate store as extracted by curl; ` +
       'the file carries its own MPL-2.0 notice',
-    '- formicarium: licenses/formicarium-LICENSE, licenses/formicarium-THIRD_PARTY_NOTICES.md',
+    '- formicarium: licenses/formicarium-LICENSE',
+    '- paludarium (the core inside formicarium): licenses/paludarium-LICENSE',
     '',
   );
   return lines.join('\n');
@@ -264,8 +265,8 @@ export async function assembleCandidate(
     join(site, 'licenses', 'formicarium-LICENSE'),
   );
   await copyFile(
-    join(packageRoot, 'THIRD_PARTY_NOTICES.md'),
-    join(site, 'licenses', 'formicarium-THIRD_PARTY_NOTICES.md'),
+    join(packageRoot, 'assets', 'paludarium', 'LICENSE'),
+    join(site, 'licenses', 'paludarium-LICENSE'),
   );
   await writeOnce(join(site, 'NOTICES.md'), noticesText(resolutions));
   const logBytes = `${JSON.stringify(options.log, null, 2)}\n`;

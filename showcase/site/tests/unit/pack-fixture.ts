@@ -42,7 +42,6 @@ export const PACKAGE_FILES: Record<string, string> = {
   'assets/paludarium/LICENSE': 'Apache-2.0\n',
   'types/index.d.ts': 'export {};\n',
   LICENSE: 'Apache-2.0\n',
-  'THIRD_PARTY_NOTICES.md': '# notices\n',
 };
 
 const sha = (bytes: Uint8Array) =>

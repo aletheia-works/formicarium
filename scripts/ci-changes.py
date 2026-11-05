@@ -79,7 +79,6 @@ RULES = (
         (
             "README.md",
             "LICENSE",
-            "THIRD_PARTY_NOTICES.md",
             "biome.json",
             ".gitignore",
             "scripts/",
@@ -129,7 +128,7 @@ def self_test():
         "AGENTS.md": NONE,
         "CONTRIBUTING.md": NONE,
         "README.md": {"quality"},
-        "THIRD_PARTY_NOTICES.md": {"quality"},
+        "LICENSE": {"quality"},
         "infra/github/main.tf": NONE,
         ".github/workflows/showcase.yml": NONE,
         ".github/workflows/showcase-site.yml": NONE,

@@ -105,7 +105,7 @@ async function inputs() {
   const root = await tempDir('notices');
   await writeFiles(root, {
     'formicarium/LICENSE': 'Apache License 2.0\n',
-    'formicarium/THIRD_PARTY_NOTICES.md': '# paludarium Apache-2.0\n',
+    'formicarium/assets/paludarium/LICENSE': 'paludarium Apache-2.0\n',
     'candidate/site/NOTICES.md': '# Showcase guest notices\n',
     'candidate/site/licenses/aube-LICENSE': 'MIT aube\n',
     'node_modules/@xterm/xterm/package.json':
@@ -131,7 +131,7 @@ test('THIRD_PARTY_NOTICES holds formicarium, the guests and every site package',
   );
   for (const expected of [
     'Apache License 2.0',
-    '# paludarium Apache-2.0',
+    '## paludarium\n\npaludarium Apache-2.0',
     '# Showcase guest notices',
     'MIT aube',
     'MIT xterm',
@@ -151,6 +151,16 @@ test('missing formicarium or guest notices fail the build', async () => {
       candidateSiteDir: join(root, 'candidate', 'site'),
     }),
     /formicarium LICENSE missing/,
+  );
+  await writeFiles(root, { 'no-core/LICENSE': 'Apache License 2.0\n' });
+  await assert.rejects(
+    buildNotices({
+      modules: [],
+      copiedPackages: [],
+      formicariumDir: join(root, 'no-core'),
+      candidateSiteDir: join(root, 'candidate', 'site'),
+    }),
+    /paludarium LICENSE missing/,
   );
   await assert.rejects(
     buildNotices({

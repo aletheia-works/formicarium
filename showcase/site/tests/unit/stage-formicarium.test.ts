@@ -83,7 +83,6 @@ test('the checked pack is copied byte for byte below _formicarium/<version>/', a
     manifest.files.map((file) => file.path),
     [
       'LICENSE',
-      'THIRD_PARTY_NOTICES.md',
       'assets/paludarium/LICENSE',
       'assets/paludarium/build-info.json',
       'assets/paludarium/coordinator.mjs',

@@ -169,7 +169,7 @@ Link the relevant issue, explain the change, and highlight review risks.
 Do not rewrite shared history. Sign off commits created through GitHub's web UI.
 Do not apply workflow labels by judgment; organization labels are mechanical.
 
-Contributions use [Apache-2.0](LICENSE). Third-party notices are maintained in
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [the core license](https://aletheia-works.github.io/formicarium/development/licenses/).
+Contributions use [Apache-2.0](LICENSE). What ships with the bundled core is
+recorded in [the core license](https://aletheia-works.github.io/formicarium/development/licenses/).
 Follow the [Code of Conduct](CODE_OF_CONDUCT.md) and use the private channel in
 [SECURITY.md](SECURITY.md) for vulnerabilities.

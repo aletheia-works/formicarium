@@ -24,8 +24,7 @@ description: paludarium のコアのライセンスと、パッケージに一�
 ## 配布に含めるもの
 
 npm のパッケージは、コアのファイルを `@aletheia-works/paludarium-wasm` から変更せずに `assets/paludarium/` に写し、
-その `LICENSE` も含めます。`THIRD_PARTY_NOTICES.md` も入れており、第三者のものとして載るのは paludarium だけです。
-`build-info.json` には、固定した版とコアの全ファイルの SHA-256 を記録します。ゲストの ELF、vendor のソース、
+その `LICENSE` も含めます。`build-info.json` には、固定した版とコアの全ファイルの SHA-256 を記録します。ゲストの ELF、vendor のソース、
 開発用の依存は含みません。
 
 以前のコア（Emscripten でビルドした blink の fork）では、blink の ISC License、zlib、Emscripten のライセンス、

@@ -81,10 +81,9 @@ test('assets identify the pinned core version and the exact bytes of every core 
     );
   assert.ok(read('assets/paludarium/LICENSE').length > 100);
 });
-test('license/notices/types/readme are nonempty and guests stay external', () => {
+test('license/types/readme are nonempty and guests stay external', () => {
   for (const path of [
     'LICENSE',
-    'THIRD_PARTY_NOTICES.md',
     'README.md',
     'types/index.d.ts',
     'types/node.d.ts',

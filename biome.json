@@ -27,7 +27,6 @@
       "!**/*.js",
       "!**/*.js.map",
       "!package-lock.json",
-      "!THIRD_PARTY_NOTICES.md",
       "!showcase/fixtures",
       "!showcase/tests/boundary-fixtures",
       "!showcase/.work",

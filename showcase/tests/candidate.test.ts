@@ -196,9 +196,12 @@ async function seed(layout: WorkLayout) {
     canonicalJson(buildCatalog(fixtures.map(({ record }) => record))),
   );
   const packageRoot = join(layout.root, 'package');
-  await mkdir(packageRoot, { recursive: true });
+  await mkdir(join(packageRoot, 'assets', 'paludarium'), { recursive: true });
   await writeFile(join(packageRoot, 'LICENSE'), 'Apache-2.0\n');
-  await writeFile(join(packageRoot, 'THIRD_PARTY_NOTICES.md'), '# notices\n');
+  await writeFile(
+    join(packageRoot, 'assets', 'paludarium', 'LICENSE'),
+    'paludarium Apache-2.0\n',
+  );
   const pack: PackRecord = {
     schemaVersion: 1,
     mode: 'verify',
@@ -252,6 +255,17 @@ test('verify assembles a non-distributable candidate whose id matches its manife
       written.assets.some(
         (asset) => asset.path === 'site/licenses/formicarium-LICENSE',
       ),
+    );
+    assert.equal(
+      await readFile(
+        join(layout.candidate, 'site', 'licenses', 'paludarium-LICENSE'),
+        'utf8',
+      ),
+      'paludarium Apache-2.0\n',
+    );
+    assert.match(
+      await readFile(join(layout.candidate, 'site', 'NOTICES.md'), 'utf8'),
+      /paludarium \(the core inside formicarium\): licenses\/paludarium-LICENSE/,
     );
     assert.deepEqual(
       written.records.map((item) => item.path),

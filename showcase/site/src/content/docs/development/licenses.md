@@ -27,10 +27,9 @@ page records why its license fits formicarium and what has to ship with it.
 
 The npm package copies the core's files unchanged from
 `@aletheia-works/paludarium-wasm` into `assets/paludarium/`, including its
-`LICENSE`, and includes `THIRD_PARTY_NOTICES.md`, which names paludarium as its
-only third-party component. `build-info.json` records the pinned version and
-the SHA-256 digest of every core file. No guest ELF, vendor source or
-development dependency is included.
+`LICENSE`. `build-info.json` records the pinned version and the SHA-256 digest
+of every core file. No guest ELF, vendor source or development dependency is
+included.
 
 The previous core, a fork of blink built with Emscripten, needed the blink ISC
 License, zlib, the Emscripten licenses and musl's license; none of them ship

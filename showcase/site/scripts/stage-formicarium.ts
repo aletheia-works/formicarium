@@ -10,7 +10,6 @@ import { fail, SITE_ROOT, writeText } from './common.ts';
 export const FORMICARIUM_DIR = '_formicarium';
 /** The single-file browser Worker of the package (PR #38). */
 export const WORKER_FILE = 'runtime/web/package-worker.bundle.js';
-const LICENSE_FILES = ['LICENSE', 'THIRD_PARTY_NOTICES.md'];
 
 export interface StagedFile {
   path: string;
@@ -157,7 +156,7 @@ export async function formicariumFiles(packageRoot: string): Promise<{
       assets.worker,
       assets.buildInfo,
       posix.join(coreDir, 'LICENSE'),
-      ...LICENSE_FILES,
+      'LICENSE',
     ]),
   ].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
   return {

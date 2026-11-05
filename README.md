@@ -168,5 +168,5 @@ Report vulnerabilities privately as described in the
 ## License
 
 Apache License 2.0. The bundled paludarium core is also Apache-2.0; see
-`THIRD_PARTY_NOTICES.md` and the
+`assets/paludarium/LICENSE` in the package and the
 [core license](https://aletheia-works.github.io/formicarium/development/licenses/).
