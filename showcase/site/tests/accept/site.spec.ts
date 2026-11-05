@@ -3,12 +3,14 @@ import { join } from 'node:path';
 import { expect } from '@playwright/test';
 import { siteLayout } from '../../scripts/common.ts';
 import type { PagesServer } from '../../scripts/serve-pages-like.ts';
+import { RELAY_TOKEN_URL } from '../../src/terminal/relay.ts';
 import { test } from './site-page.ts';
 import {
   cspViolations,
   focusTerminal,
   ISOLATION_OVERLAY,
   isolationOf,
+  NO_TOKEN_PATH,
   occurrences,
   poll,
   READY_MS,
@@ -156,6 +158,14 @@ for (const [tool, version] of TOOLS)
         await run(site, 'git commit -m "Committed in the page"');
         const log = await run(site, 'git log -1 --format=%an:%s');
         expect(occurrences(log, 'Showcase:Committed in the page'), log).toBe(1);
+      }
+      // A network tool's run asked this server for its token, not the real
+      // function (startServer moves the token URL in every page).
+      if (tool === 'git' || tool === 'jj') {
+        expect(server.requests).toContain(NO_TOKEN_PATH);
+        expect(
+          await site.evaluate(() => document.documentElement.outerHTML),
+        ).not.toContain(RELAY_TOKEN_URL);
       }
       // aube's link target lies beside app/, named as the page's hint names it.
       if (tool === 'aube')

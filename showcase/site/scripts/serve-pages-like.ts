@@ -50,6 +50,13 @@ export interface PagesServerOptions {
    * whose WebDriver has no init script, gets the CSP listener this way).
    */
   headScript?: string;
+  /**
+   * Test-only: each page names this server's `path` instead of the absolute
+   * `url`, so the page asks this server and never that URL. At the server,
+   * not in the browser, because the Safari of the site acceptance runs through
+   * safaridriver, which cannot intercept requests.
+   */
+  moveUrl?: { url: string; path: string };
 }
 export interface PagesServer {
   origin: string;
@@ -97,10 +104,21 @@ async function handle(
   const path = url.pathname;
   const overlay = options.overlay?.get(path);
   const send = (status: number, file: string, bytes: Buffer) => {
-    const body =
-      options.headScript && extname(file) === '.html'
-        ? withHeadScript(bytes, options.headScript)
-        : bytes;
+    let body = bytes;
+    if (extname(file) === '.html') {
+      if (options.moveUrl) {
+        const origin = `${options.tls ? 'https' : 'http'}://${request.headers.host}`;
+        body = Buffer.from(
+          body
+            .toString('utf8')
+            .replaceAll(
+              options.moveUrl.url,
+              `${origin}${options.moveUrl.path}`,
+            ),
+        );
+      }
+      if (options.headScript) body = withHeadScript(body, options.headScript);
+    }
     response.statusCode = status;
     response.setHeader('Content-Type', typeOf(file));
     response.setHeader('Content-Length', body.length);
@@ -173,6 +191,7 @@ export async function serverFromEnvironment(
   env: NodeJS.ProcessEnv,
   overlay?: ReadonlyMap<string, string>,
   headScript?: string,
+  moveUrl?: PagesServerOptions['moveUrl'],
 ): Promise<PagesServer> {
   const tls = await tlsFromEnvironment(env);
   return startPagesServer({
@@ -181,6 +200,7 @@ export async function serverFromEnvironment(
     http: !tls && env.SHOWCASE_SITE_LOCAL_HTTP === '1',
     overlay,
     headScript,
+    moveUrl,
   });
 }
 

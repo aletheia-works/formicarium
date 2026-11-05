@@ -117,6 +117,34 @@ test('the Safari head script goes first in <head> of each page, and only there',
   );
 });
 
+test('moveUrl makes each page name this server instead of the URL, and leaves other files', async () => {
+  const REAL = 'https://real.test/token/';
+  const moved = await startPagesServer({
+    siteDir: site,
+    http: true,
+    moveUrl: { url: REAL, path: '/formicarium/__none' },
+  });
+  try {
+    await writeFiles(site, {
+      'moved/index.html': `<html><head></head><a href="${REAL}"></a><a href="${REAL}"></a></html>`,
+      'moved/data.txt': REAL,
+    });
+    const page = await fetch(`${moved.origin}/formicarium/moved/`);
+    const expected = `<html><head></head><a href="${moved.origin}/formicarium/__none"></a><a href="${moved.origin}/formicarium/__none"></a></html>`;
+    assert.equal(await page.text(), expected);
+    assert.equal(Number(page.headers.get('content-length')), expected.length);
+    const text = await fetch(`${moved.origin}/formicarium/moved/data.txt`);
+    assert.equal(await text.text(), REAL);
+    // The moved URL is a miss, which is how a page gets no token.
+    assert.equal(
+      (await fetch(`${moved.origin}/formicarium/__none`)).status,
+      404,
+    );
+  } finally {
+    await moved.close();
+  }
+});
+
 test('HTTPS material or the explicit local HTTP mode is required', async () => {
   await assert.rejects(startPagesServer({ siteDir: site }), /config-invalid/);
   await assert.rejects(

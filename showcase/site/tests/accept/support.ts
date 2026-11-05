@@ -5,6 +5,7 @@ import {
   type PagesServer,
   serverFromEnvironment,
 } from '../../scripts/serve-pages-like.ts';
+import { RELAY_TOKEN_URL } from '../../src/terminal/relay.ts';
 import { CSP_LISTENER, type SitePage } from './site-page.ts';
 
 /** goto -> ready within 120 s (the test itself has 180 s). */
@@ -14,19 +15,34 @@ export const READY_MS = 120000;
 const CSP_PATH = '/formicarium/__acceptance/csp.js';
 
 /**
+ * Where the served pages ask for a relay token. Nothing is served there, so a
+ * network tool runs without the network, and the real token function is never
+ * called.
+ */
+export const NO_TOKEN_PATH = '/formicarium/__acceptance/no-relay-token';
+const MOVE_TOKEN_URL = { url: RELAY_TOKEN_URL, path: NO_TOKEN_PATH };
+
+/**
  * The Pages-like server of a spec. Safari has no init script, so its pages
- * load the CSP listener first in <head>; the other browsers get the site's
- * bytes unchanged.
+ * load the CSP listener first in <head>; apart from that and the token URL,
+ * every browser gets the site's bytes unchanged.
  */
 export function startServer(
   project: string,
   overlay: ReadonlyMap<string, string> = new Map(),
 ): Promise<PagesServer> {
-  if (project !== 'safari') return serverFromEnvironment(process.env, overlay);
+  if (project !== 'safari')
+    return serverFromEnvironment(
+      process.env,
+      overlay,
+      undefined,
+      MOVE_TOKEN_URL,
+    );
   return serverFromEnvironment(
     process.env,
     new Map([...overlay, [CSP_PATH, CSP_LISTENER]]),
     CSP_PATH,
+    MOVE_TOKEN_URL,
   );
 }
 
