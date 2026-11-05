@@ -157,7 +157,7 @@ for (const [tool, version] of TOOLS)
         const log = await run(site, 'git log -1 --format=%an:%s');
         expect(occurrences(log, 'Showcase:Committed in the page'), log).toBe(1);
       }
-      // aube's link target lies beside app/ (paths with `..` are refused by the builtins).
+      // aube's link target lies beside app/, named as the page's hint names it.
       if (tool === 'aube')
         expect(
           await run(site, 'cat /work/outside/linked/package.json'),

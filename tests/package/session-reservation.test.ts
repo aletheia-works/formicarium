@@ -239,10 +239,24 @@ test('resolvePath resolves relative, "." and absolute paths against the current 
   await session.reset();
   assert.equal(port.resolvePath('x'), '/work/x');
 });
-test('resolvePath rejects empty, "..", NUL and non-string paths and leaves state unchanged', async () => {
+test('resolvePath removes the segment before a ".." by name, and stops at the root', async () => {
+  const { port, session } = fixture();
+  await session.setCwd('/work/sub');
+  assert.equal(port.resolvePath('..'), '/work');
+  assert.equal(port.resolvePath('../'), '/work');
+  assert.equal(port.resolvePath('../seed'), '/work/seed');
+  assert.equal(port.resolvePath('a/../b'), '/work/sub/b');
+  // `.` and empty segments are not what a `..` removes.
+  assert.equal(port.resolvePath('./..'), '/work');
+  assert.equal(port.resolvePath('a//..'), '/work/sub');
+  assert.equal(port.resolvePath('/work/..'), '/');
+  assert.equal(port.resolvePath('/../..'), '/');
+  assert.equal(port.resolvePath('..a'), '/work/sub/..a');
+});
+test('resolvePath rejects empty, NUL and non-string paths and leaves state unchanged', async () => {
   const { port, session, state } = fixture();
   await session.setCwd('/work/sub');
-  for (const path of ['', '..', '../seed', 'a/../b', '/work/..', 'a\0b', 7])
+  for (const path of ['', 'a\0b', 7])
     assert.throws(() => port.resolvePath(path as string), {
       code: 'INVALID_INPUT',
     });

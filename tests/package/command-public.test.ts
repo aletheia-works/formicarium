@@ -222,8 +222,66 @@ test('relative cd -> ls -> cat -> rm -> ls follows the Session cwd, and reset re
   await shell.execute('cd sub');
   await value.session.reset();
   assert.equal(text((await shell.execute('cat sub/b.txt')).stdout), 'beta');
-  await assert.rejects(shell.execute('cd ../work'), code('INVALID_INPUT'));
   assert.equal(value.state.cwd, '/work');
+});
+test('a .. segment in a builtin path resolves against the cwd, as in a shell', async (t) => {
+  const value = harness();
+  t.after(() => value.session.dispose());
+  const shell = api.createCommandSession(value.session, {
+    catalog: catalogFor(value.bytes),
+  });
+  const run = async (input: string) =>
+    text((await shell.execute(input)).stdout);
+  await run('cd sub');
+  assert.equal(await run('cat ../a.txt'), 'alpha');
+  assert.match(await run('ls ..'), /a\.txt/);
+  await run('cp ../a.txt copied.txt');
+  assert.equal(await run('cat copied.txt'), 'alpha');
+  await run('mv copied.txt ../moved.txt');
+  assert.equal(await run('cat ../moved.txt'), 'alpha');
+  await run('rm -rf ../moved.txt');
+  await assert.rejects(shell.execute('cat ../moved.txt'), code('NOT_FOUND'));
+  for (const up of [
+    'cd ..',
+    'cd ../',
+    'cd ./..',
+    'cd /work/sub/..',
+    'cd ../sub/..',
+  ]) {
+    await value.session.setCwd('/work/sub');
+    await run(up);
+    assert.equal(value.state.cwd, '/work', up);
+  }
+  await run('cd sub/../sub');
+  assert.equal(value.state.cwd, '/work/sub');
+  // `..` is not a prefix: this is a name, so it stays in the directory.
+  await assert.rejects(shell.execute('cat ..a'), code('NOT_FOUND'));
+});
+test('.. stops at the persisted roots and only commands resolve it', async (t) => {
+  const value = harness();
+  t.after(() => value.session.dispose());
+  const shell = api.createCommandSession(value.session, {
+    catalog: catalogFor(value.bytes),
+  });
+  // Above /work is outside the persisted roots, which the Session refuses.
+  for (const input of ['cd ..', 'cd ../..', 'cat ../../etc/passwd'])
+    await assert.rejects(shell.execute(input), code('INVALID_INPUT'));
+  assert.equal(value.state.cwd, '/work');
+  // The direct Session API stays strict about its paths.
+  await assert.rejects(
+    value.session.setCwd('/work/sub/..'),
+    code('INVALID_INPUT'),
+  );
+  await assert.rejects(
+    value.session.readFile('/work/sub/../a.txt'),
+    code('INVALID_INPUT'),
+  );
+  await assert.rejects(
+    value.session.listEntries('/work/sub/..'),
+    code('INVALID_INPUT'),
+  );
+  // An empty path and NUL are still refused before any reservation.
+  await assert.rejects(shell.execute('cat ""'), code('INVALID_INPUT'));
 });
 test('install through the command keeps the old guest after a failed reinstall', async (t) => {
   const value = harness();

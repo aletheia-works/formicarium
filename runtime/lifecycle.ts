@@ -73,7 +73,7 @@ import {
   inspectMessage,
   joinBytes,
 } from './protocol.js';
-import { normalizePath, validateRun } from './validation.js';
+import { collapsePath, normalizePath, validateRun } from './validation.js';
 
 /** Largest stdin chunk sent to the Worker in one message. */
 export const MAX_INPUT_CHUNK = 65536;
@@ -504,9 +504,7 @@ export function createLifecycle(
         typeof path === 'string' && path !== '',
         'path must be non-empty',
       );
-      return normalizePath(
-        path.startsWith('/') ? path : `${state.cwd}/${path}`,
-      );
+      return collapsePath(path.startsWith('/') ? path : `${state.cwd}/${path}`);
     },
   });
   return session;

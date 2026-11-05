@@ -12,6 +12,18 @@ export function normalizePath(value: unknown): string {
   return `/${parts.filter((part) => part && part !== '.').join('/')}`;
 }
 
+/**
+ * A command's path with its `..` segments resolved by name, as a shell's `cd`
+ * does. The Session's own API keeps refusing them through normalizePath.
+ */
+export function collapsePath(value: string): string {
+  const parts: string[] = [];
+  for (const part of value.split('/'))
+    if (part === '..') parts.pop();
+    else if (part !== '' && part !== '.') parts.push(part);
+  return normalizePath(`/${parts.join('/')}`);
+}
+
 export const inRoots = (path: string, roots: readonly string[]) =>
   roots.some((root) => path === root || path.startsWith(`${root}/`));
 export const parentPath = (path: string) =>

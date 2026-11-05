@@ -296,7 +296,7 @@ test('relative paths resolve against the current cwd for cat, ls, cd and rm', as
   );
   assert.equal(text(await value.session.readFile('/work/a.txt')), 'alpha');
 });
-test('"..", empty and root-removing relative paths are INVALID_INPUT and keep state', async (t) => {
+test('empty and root-removing relative paths are INVALID_INPUT and keep state', async (t) => {
   const value = harness();
   t.after(() => value.session.dispose());
   await value.register();
@@ -307,18 +307,15 @@ test('"..", empty and root-removing relative paths are INVALID_INPUT and keep st
   const running = shell.execute('fixture');
   await value.started();
   // BUSY or ABORTED would prove the path was checked after the reservation.
-  for (const input of [
-    'cat ..',
-    'cat ../a.txt',
-    'cd ..',
-    'ls ..',
-    'ls ./../sub',
-    "cat ''",
-    'rm -rf ../sub',
-  ])
+  await assert.rejects(
+    shell.execute("cat ''", { signal: aborted() }),
+    code('INVALID_INPUT'),
+  );
+  // A `..` is a valid path now, so these reach the abort check instead.
+  for (const input of ['cat ../a.txt', 'cd ..', 'ls ./../sub', 'rm -rf ../sub'])
     await assert.rejects(
       shell.execute(input, { signal: aborted() }),
-      code('INVALID_INPUT'),
+      code('ABORTED'),
       input,
     );
   await value.finishPending();
@@ -326,6 +323,8 @@ test('"..", empty and root-removing relative paths are INVALID_INPUT and keep st
   await shell.execute('cd /work');
   await assert.rejects(shell.execute('rm -rf .'), code('INVALID_INPUT'));
   await shell.execute('cd sub');
+  // `..` reaches the root here, which is refused like `rm -rf .` at the root.
+  await assert.rejects(shell.execute('rm -rf ..'), code('INVALID_INPUT'));
   assert.equal(await observe(value), before);
 });
 test('unsupported builtin shapes are refused and leave cwd and filesystem unchanged', async (t) => {

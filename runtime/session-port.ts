@@ -32,9 +32,9 @@ export interface SessionPort {
   ): Promise<BuiltinResult>;
   release(reservation: Reservation): Promise<void>;
   /**
-   * Synchronously resolves a guest path against the current cwd with the
-   * normalizePath rules (absolute stays absolute; empty, NUL and `..` are
-   * INVALID_INPUT). It reads the cwd only and never changes session state.
+   * Synchronously resolves a guest path against the current cwd (absolute
+   * stays absolute; a `..` removes the segment before it by name; empty and
+   * NUL are INVALID_INPUT). It reads the cwd only and never changes session state.
    * The result is a snapshot of the cwd at call time. Unlike the other
    * methods it takes no reservation, does not check dispose, reset or abort,
    * and throws INVALID_INPUT synchronously instead of rejecting. Callers use

@@ -156,8 +156,10 @@ start with `/` resolves against the Session's current working directory (with
 `/work` as the working directory, `cat a.txt` is `/work/a.txt` and `ls .` is
 `/work`). `cat`, `cd`, `rm`, `cp` and `mv` resolve after taking the filesystem reservation,
 and `ls` calls `listEntries` in the same tick as it resolves, so the directory
-used to resolve is the one the operation sees. An empty path, a path containing
-NUL and a path with a `..` segment (relative or absolute; `a..b` is a name) are refused with
+used to resolve is the one the operation sees. A `..` segment removes the
+segment before it by name, as a shell's `cd` does, so `cd ../x` works and
+`ls link/..` is the directory holding `link`, not the parent of its target
+(`a..b` is a name). An empty path and a path containing NUL are refused with
 `INVALID_INPUT` before the reservation and change nothing. A path outside the
 persisted roots, or removing a root itself, is the Session's `INVALID_INPUT` as
 before.
@@ -197,7 +199,7 @@ API.
 
 1. `INVALID_INPUT`: the shape of the options, the input's type, length and
    characters, the tokenizer, the assignments, the forms of builtins and `install`, path syntax
-   (empty, NUL, `..`) and the catalog selection, all before the reservation.
+   (empty, NUL) and the catalog selection, all before the reservation.
 2. `ABORTED`: `signal` was already aborted before the reservation.
 3. `DISPOSED` and `BUSY`: the state when taking the reservation (after
    `dispose`, or while another operation holds it).

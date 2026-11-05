@@ -54,7 +54,8 @@ test('hints are commands of the tool and the builtins, not translated', () => {
       tool,
     );
   }
-  // The builtins refuse `..`: the link target is named by its absolute path.
+  // Hints name the link target by its absolute path: a page may run a pinned
+  // release from before the builtins took `..`.
   assert.ok(HINTS.aube!.includes('cat /work/outside/linked/package.json'));
   for (const hints of Object.values(HINTS))
     for (const hint of hints) assert.doesNotMatch(hint, /\.\./);

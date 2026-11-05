@@ -173,8 +173,8 @@ async function runBuiltin(
   target: Extract<Route, { kind: 'ls' | 'fs' }>,
   options: CheckedOptions,
 ): Promise<CommandResult> {
-  // Path syntax (empty, NUL, `..`) does not depend on the cwd, so it is
-  // rejected as INVALID_INPUT before the abort check and the reservation.
+  // Path syntax (empty, NUL) does not depend on the cwd, so it is rejected as
+  // INVALID_INPUT before the abort check and the reservation.
   const paths = target.kind === 'ls' ? [target.path] : target.paths;
   for (const path of paths) if (path !== undefined) port.resolvePath(path);
   // The Session completes builtins synchronously; a signal raised after this check
