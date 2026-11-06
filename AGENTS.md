@@ -34,7 +34,7 @@ These were affirmed by the user; the background of each piece of work is in its 
 - In Git Bash, `/work`-style guest paths given to `runtime/node/run.js --copy-in` are rewritten to Windows paths; prefix the command with `MSYS_NO_PATHCONV=1`.
 - PowerShell refuses `-File` scripts under this machine's execution policy. Pass the script with `-Command` instead; never change the policy.
 - wslc fails on this machine (ERROR_SHARING_VIOLATION); `scripts/lib/container.sh` falls back to Docker on its own.
-- HTTPS credentials and SSH keys are not available to non-interactive shells on the Windows machine; to push, pass gh as a one-off credential helper through `GIT_CONFIG_COUNT`/`GIT_CONFIG_KEY_n`/`GIT_CONFIG_VALUE_n` (`credential.helper` set to `!'<gh.exe>' auth git-credential`) without editing any config file. Pushing is outward-facing: get the user's approval first.
+- Non-interactive shells on the Windows machine can push without extra settings: `origin` and `upstream` use SSH, and HTTPS goes through the gh helper in `~/.gitconfig`. If git reports a missing `gh.exe`, that helper's path is stale; run `auth setup-git --hostname github.com` with the `gh.exe` under mise's `github-cli/latest/bin/`. Pushing is outward-facing: get the user's approval first.
 - formicarium is developed from forks: `origin` is the developer's own fork and `upstream` is `aletheia-works/formicarium`. Push one short-lived bookmark per change to `origin` and open the PR against `upstream` `main`. `main` takes signed commits, the required checks and squash merges only, and commitlint checks the squash title `<PR title> (#N)` at 100 characters.
 
 ## Tests and measurements
