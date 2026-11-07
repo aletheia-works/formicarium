@@ -38,10 +38,13 @@ const coreSource = resolve('node_modules', CORE_PACKAGE);
 const coreTarget = resolve('dist/paludarium');
 await rm(coreTarget, { recursive: true, force: true });
 await mkdir(coreTarget, { recursive: true });
+// The core's license and the notices of the crates in paludarium.wasm ship
+// with it, but the runtime never loads them, so they carry no digest.
+const CORE_NOTICES = ['LICENSE', 'THIRD-PARTY-NOTICES.txt'];
 const files: Record<string, string> = {};
-for (const name of [...CORE_FILES, 'LICENSE']) {
+for (const name of [...CORE_FILES, ...CORE_NOTICES]) {
   await copyFile(resolve(coreSource, name), resolve(coreTarget, name));
-  if (name !== 'LICENSE')
+  if (!CORE_NOTICES.includes(name))
     files[name] = await sha256Hex(await readFile(resolve(coreTarget, name)));
 }
 const info: CoreBuildInfo = {

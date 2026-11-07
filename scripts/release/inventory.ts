@@ -43,6 +43,7 @@ export const PACKAGE_FILES = Object.freeze([
   'assets/paludarium/paludarium.wasm',
   'assets/paludarium/build-info.json',
   'assets/paludarium/LICENSE',
+  'assets/paludarium/THIRD-PARTY-NOTICES.txt',
   'LICENSE',
   'README.md',
   'package.json',

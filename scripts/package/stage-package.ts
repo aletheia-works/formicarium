@@ -52,6 +52,7 @@ export const PACKAGE_FILES = Object.freeze([
   ...CORE_FILES.map((name) => `assets/paludarium/${name}`),
   'assets/paludarium/build-info.json',
   'assets/paludarium/LICENSE',
+  'assets/paludarium/THIRD-PARTY-NOTICES.txt',
   'LICENSE',
   'README.md',
   'package.json',

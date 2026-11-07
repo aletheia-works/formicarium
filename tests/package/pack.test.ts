@@ -37,7 +37,7 @@ test('real tarball inventory is exactly the fixed public files', () => {
     .map((path) => path.slice(8));
   assert.deepEqual(paths.sort(), [...PACKAGE_FILES].sort());
   assert.equal(FIRST_PARTY_JS.length, 23);
-  assert.equal(PACKAGE_FILES.length, 40);
+  assert.equal(PACKAGE_FILES.length, 41);
 });
 test('real tarball every file matches staged manifest digest', () => {
   assert.deepEqual(
@@ -80,6 +80,10 @@ test('assets identify the pinned core version and the exact bytes of every core 
       name,
     );
   assert.ok(read('assets/paludarium/LICENSE').length > 100);
+  assert.match(
+    read('assets/paludarium/THIRD-PARTY-NOTICES.txt').toString(),
+    /^Third-party notices for paludarium\.wasm/,
+  );
 });
 test('license/types/readme are nonempty and guests stay external', () => {
   for (const path of [
