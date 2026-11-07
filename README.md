@@ -76,7 +76,8 @@ be able to use `SharedArrayBuffer`:
 - Allow same-origin scripts and Workers and WebAssembly compilation in the
   Content Security Policy, for example
   `script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self'`.
-  `blob:` is not needed.
+  `blob:` is not needed to run; a page isolated by a service worker that also
+  sends this CSP with the Worker script should add it (see the embedding guide).
 
 The [embedding guide](https://aletheia-works.github.io/formicarium/guides/embedding/)
 has a complete example.

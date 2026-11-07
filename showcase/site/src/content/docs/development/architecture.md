@@ -52,9 +52,17 @@ guests themselves still run side by side. The time a run waits for its turn
 counts toward its `timeoutMs`.
 
 The reason is a WebKit failure. Under cross-origin isolation from a service
-worker (such as coi-serviceworker), WebKit and Safari sometimes load a Worker
-script past the service worker when two runs start core Workers at once. COEP
-then refuses the script, and the run fails with `CORE_INIT` or `EXECUTION`.
+worker (such as coi-serviceworker), WebKit and Safari sometimes start a Worker
+that the service worker does not control, far more often when two runs start
+core Workers at once. The Worker's own script went through the service worker,
+but its imports and the scripts of the Workers it starts reach the server
+directly, without the COEP header the service worker adds. COEP then refuses
+them, and the run fails with `CORE_INIT` or `EXECUTION`. This can hit any core
+Worker, also one a guest starts for a thread in the middle of a run, which the
+queue does not cover. So the package Worker also starts the core from blob: URLs
+of the verified bytes, which involve no network load. A CSP sent with the Worker
+script may refuse blob: Workers; the package Worker tries one first, and otherwise
+loads the core from its asset URLs, where this failure can still occur.
 
 When a run fails inside the Worker, the Worker sends the error code and what it
 may tell about the original errors, the first four of the cause chain (the
@@ -96,9 +104,9 @@ package ships the same files under `assets/paludarium/`.
 `createPaludarium({ wasmUrl })`. The launcher it returns creates a filesystem
 from entries, runs a program with arguments, environment and working directory,
 and streams stdin, stdout and stderr until the guest exits. Node.js loads the
-verified bytes from a private run-specific directory; browsers load the core
-from the asset URLs after the check, and the core starts its own module Workers
-next to its loader. The core uses shared WebAssembly memory, so browsers need
+verified bytes from a private run-specific directory; browsers load them from
+blob: URLs, or from the asset URLs after the check if a CSP refuses blob:
+Workers, and the core starts its own module Workers next to its loader. The core uses shared WebAssembly memory, so browsers need
 `SharedArrayBuffer` and therefore cross-origin isolation. JIT work in
 formicarium stays deferred ([ADR 0002](/formicarium/development/decisions/0002-interpreter-only-jit-deferred/)).
 

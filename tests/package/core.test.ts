@@ -11,12 +11,14 @@ interface Posted {
 }
 
 import assert from 'node:assert/strict';
+import { resolveObjectURL } from 'node:buffer';
 import { createHash } from 'node:crypto';
 import test from 'node:test';
 import {
   CORE_FILES,
   CORE_PACKAGE,
   CORE_WASM,
+  createBlobCoreResources,
   createCoreResourceClient,
   createCoreResourceOwner,
   loadPackageCore,
@@ -245,6 +247,79 @@ test('Node.js imports the core from the host-owned copy of the verified files', 
   assert.deepEqual(allocated[0]?.[CORE_WASM], fixture.files[CORE_WASM]);
   assert.deepEqual(imported, [descriptor.moduleURL]);
   assert.deepEqual(calls, [{ wasmUrl: descriptor.wasmURL }]);
+});
+
+const BLOB_ASSETS = {
+  loaderURL: `${BASE}index.mjs`,
+  wasmURL: `${BASE}${CORE_WASM}`,
+};
+
+/** Module source behind a blob: URL, with the sibling URLs it was rewritten to. */
+async function blobText(url: string) {
+  return (await resolveObjectURL(url)!.text()) as string;
+}
+
+function moduleFiles(sources: Record<string, string>) {
+  return Object.fromEntries(
+    Object.entries(sources).map(([name, source]) => [
+      name,
+      new TextEncoder().encode(source),
+    ]),
+  );
+}
+
+test('browser core modules become blob: URLs with their siblings rewritten', async () => {
+  const resources = createBlobCoreResources(BLOB_ASSETS, async () => true);
+  const descriptor = await resources.allocate(
+    moduleFiles({
+      'index.mjs':
+        'import { a } from "./shared.mjs"; new Worker(new URL("child.mjs", import.meta.url));',
+      'child.mjs': 'import { a } from "./shared.mjs";',
+      'shared.mjs': 'export const a = 1;',
+    }),
+  );
+  assert.equal(descriptor.wasmURL, BLOB_ASSETS.wasmURL);
+  assert.match(descriptor.moduleURL, /^blob:/);
+  const index = await blobText(descriptor.moduleURL);
+  const shared = /from "(blob:[^"]+)"/.exec(index)?.[1];
+  const child = /new URL\("(blob:[^"]+)"\)/.exec(index)?.[1];
+  assert.ok(shared && child);
+  assert.equal(await blobText(shared), 'export const a = 1;');
+  // A module two others import is one module, so its state stays shared.
+  assert.equal(await blobText(child), `import { a } from "${shared}";`);
+});
+
+test('a CSP that refuses blob: Workers keeps the core at its asset URLs', async () => {
+  const resources = createBlobCoreResources(BLOB_ASSETS, async () => false);
+  assert.deepEqual(await resources.allocate({}), {
+    resourceId: 0,
+    moduleURL: BLOB_ASSETS.loaderURL,
+    wasmURL: BLOB_ASSETS.wasmURL,
+  });
+});
+
+test('a core module the rewrite does not understand fails closed', async () => {
+  for (const [sources, message] of [
+    [{ 'index.mjs': 'import "./other.mjs";' }, /reference: index\.mjs/],
+    [
+      { 'index.mjs': 'new Worker(new URL("./other.mjs", import.meta.url));' },
+      /reference: index\.mjs/,
+    ],
+    [{ 'index.mjs': 'import { a } from "./missing.mjs";' }, /graph: missing/],
+    [
+      {
+        'index.mjs': 'import { a } from "./other.mjs";',
+        'other.mjs': 'import { a } from "./index.mjs";',
+      },
+      /graph: index\.mjs/,
+    ],
+  ] as const)
+    await assert.rejects(
+      createBlobCoreResources(BLOB_ASSETS, async () => true).allocate(
+        moduleFiles(sources),
+      ),
+      message,
+    );
 });
 
 test('Node host owns exclusive read-only core files until disposal', {

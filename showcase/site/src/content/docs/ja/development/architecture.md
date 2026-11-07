@@ -41,9 +41,14 @@ Session がその写しを取り込むのは、実行が成功したときだけ
 開始したとみなします。ゲストの実行そのものは並んで動きます。順番を待つ時間も、その実行の `timeoutMs` に含まれます。
 
 理由は WebKit の不具合です。service worker（coi-serviceworker など）で
-cross-origin isolation にしたページでは、2 つの実行が同時にコアの Worker を起動すると、WebKit と Safari が Worker の
-script を service worker を通さずに読むことがあります。その script は COEP で拒否され、実行は `CORE_INIT` か
-`EXECUTION` で失敗します。
+cross-origin isolation にしたページでは、WebKit と Safari が service worker の制御を受けない Worker を起動することがあり、
+2 つの実行が同時にコアの Worker を起動するとずっと起きやすくなります。その Worker 自身の script は service worker を通りますが、
+その import と、その Worker が起動する Worker の script は、service worker が足す COEP ヘッダーのないままサーバーから直接届きます。
+それらは COEP で拒否され、実行は `CORE_INIT` か `EXECUTION` で失敗します。これはコアのどの Worker にも起こりえます。
+実行の途中でゲストがスレッドのために起動する Worker も同じで、起動の順番待ちでは防げません。そこで package Worker は、
+照合済みのバイト列から作った blob: URL でコアを起動します。これならネットワークからの読み込みはありません。Worker の script とともに送られる CSP が
+blob: の Worker を拒否することがあるので、package Worker は先に 1 つ試し、拒否されたらコアを資産の URL から読み込みます。
+その場合はこの失敗がまだ起こりえます。
 
 Worker の中で実行が失敗すると、Worker はエラーコードと、元のエラーについて伝えてよいことを送ります。
 cause の連なりの先頭の 4 つ（そのエラーと、3 つまでの cause）について、それぞれの名前と、エンジンの `RangeError`（受け取った値を引用しうる Node の `ERR_` code 付きのものは除く）・WebAssembly のエラー・core の `PaludariumError`（`kind` も）に限ったメッセージ（300 文字まで）です。
@@ -75,7 +80,7 @@ Session はこれらのエラーを `ExecutionError` の `cause` に入れます
 `runtime/core.ts` はすべての SHA-256 を照合してから、`createPaludarium({ wasmUrl })` でコアを起動します。
 返ってくる launcher は、entry の一覧からファイルシステムを作り、引数・環境変数・作業ディレクトリを渡してプログラムを動かし、
 ゲストが終わるまで stdin・stdout・stderr を流します。Node.js では照合した bytes を実行ごとの専用ディレクトリから読み込みます。
-ブラウザでは照合の後に資産の URL からコアを読み込み、コアは loader の隣にある module Worker を自分で立てます。
+ブラウザでは照合した bytes の blob: URL から（CSP が blob: の Worker を拒否するなら照合の後に資産の URL から）コアを読み込み、コアは loader の隣にある module Worker を自分で立てます。
 コアは共有の WebAssembly メモリを使うので、ブラウザでは `SharedArrayBuffer`、つまり cross-origin isolation が必要です。
 formicarium での JIT の作業は後回しのままです（[ADR 0002](/formicarium/ja/development/decisions/0002-interpreter-only-jit-deferred/)）。
 

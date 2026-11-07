@@ -3,6 +3,7 @@ import type {
   ControlChannel,
   CoreLauncher,
   CoreLoadOptions,
+  ResourceAllocator,
   ResourceDescriptor,
 } from './contracts.js';
 import { isRecord } from './contracts.js';
@@ -99,10 +100,9 @@ const initFailure = (message: string, cause?: unknown) =>
 
 /**
  * Verifies every core file against the build information, then starts the
- * core. In Node.js the verified bytes are written to a private directory
- * (resources) and loaded from there. Browsers load the core from the asset
- * URLs after their bytes were verified, because its modules start sibling
- * Workers relative to their own URL.
+ * core from those bytes (resources): Node.js writes them to a private
+ * directory, browsers make them blob: URLs (createBlobCoreResources) unless a
+ * CSP refuses that, and then load the core from its asset URLs.
  */
 export async function loadPackageCore({
   assets,
@@ -159,6 +159,108 @@ export async function loadPackageCore({
     buildInfo: info,
     async cleanup() {
       await launcher.dispose();
+    },
+  };
+}
+
+/** How long a page's CSP may take to answer whether blob: Workers may start. */
+const BLOB_PROBE_MS = 5000;
+
+/**
+ * Whether this Worker may start a blob: module Worker that imports a blob:
+ * module. A CSP sent with the Worker script may refuse either, and that refusal
+ * can arrive as a thrown error, an error event or nothing at all.
+ */
+function blobWorkersAllowed() {
+  const url = (source: string) =>
+    URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
+  return new Promise<boolean>((resolve) => {
+    let worker: Worker | undefined;
+    const settle = (allowed: boolean) => {
+      clearTimeout(timer);
+      worker?.terminate();
+      resolve(allowed);
+    };
+    const timer = setTimeout(() => settle(false), BLOB_PROBE_MS);
+    try {
+      worker = new Worker(
+        url(`import ${JSON.stringify(url('export {};'))}; postMessage(0);`),
+        { type: 'module' },
+      );
+      worker.addEventListener('message', () => settle(true));
+      worker.addEventListener('error', (event) => {
+        event.preventDefault();
+        settle(false);
+      });
+    } catch {
+      settle(false);
+    }
+  });
+}
+
+/**
+ * The verified core modules as blob: URLs, for browsers. Under cross-origin
+ * isolation from a service worker, WebKit sometimes starts a Worker that the
+ * service worker does not control. The Worker's own script went through the
+ * service worker, but its imports and the scripts of the Workers it starts go
+ * straight to the server, without the COEP header the service worker adds, and
+ * COEP refuses them. A blob: module is no network load, so no core Worker
+ * depends on being controlled. The wasm binary stays at its asset URL: a
+ * same-origin fetch needs no COEP header, and connect-src need not allow blob:.
+ *
+ * A CSP that refuses blob: Workers keeps the core at its asset URLs. The URLs
+ * live as long as the Worker that makes them, which is one run. A module the
+ * rewrite does not understand fails closed.
+ */
+export function createBlobCoreResources(
+  assets: Pick<Assets, 'loaderURL' | 'wasmURL'>,
+  allowed: () => Promise<boolean> = blobWorkersAllowed,
+): ResourceAllocator {
+  const wasmURL = String(assets.wasmURL);
+  return {
+    async allocate(files) {
+      if (!(await allowed()))
+        return {
+          resourceId: 0,
+          moduleURL: String(assets.loaderURL),
+          wasmURL,
+        };
+      const decoder = new TextDecoder();
+      const urls = new Map<string, string>();
+      const moduleURL = (
+        name: string,
+        importers: readonly string[],
+      ): string => {
+        const known = urls.get(name);
+        if (known) return known;
+        const bytes = files[name];
+        if (!bytes || name === CORE_WASM || importers.includes(name))
+          throw new Error(`core module graph: ${name}`);
+        const sibling = (target: string) =>
+          JSON.stringify(moduleURL(target, [...importers, name]));
+        const source = decoder
+          .decode(bytes)
+          .replace(
+            /\bfrom "\.\/([\w-]+\.mjs)"/g,
+            (_, target) => `from ${sibling(target)}`,
+          )
+          .replace(
+            /new URL\("([\w-]+\.mjs)", import\.meta\.url\)/g,
+            (_, target) => `new URL(${sibling(target)})`,
+          );
+        if (/["'`](?:\.{1,2}\/)?[\w-]+\.mjs["'`]/.test(source))
+          throw new Error(`core module reference: ${name}`);
+        const url = URL.createObjectURL(
+          new Blob([source], { type: 'text/javascript' }),
+        );
+        urls.set(name, url);
+        return url;
+      };
+      return {
+        resourceId: 0,
+        moduleURL: moduleURL(CORE_MODULES[0]!, []),
+        wasmURL,
+      };
     },
   };
 }

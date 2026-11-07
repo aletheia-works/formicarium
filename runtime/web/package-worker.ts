@@ -1,5 +1,5 @@
 import type { RunRequest } from '../contracts.js';
-import { loadPackageCore } from '../core.js';
+import { createBlobCoreResources, loadPackageCore } from '../core.js';
 import { identity, PROTOCOL_VERSION, workerErrorMessage } from '../protocol.js';
 import { executeWorkerRequest, inputChannel } from '../worker-execution.js';
 
@@ -91,6 +91,7 @@ if (typeof self !== 'undefined') {
         self.postMessage(message);
       },
       readBytes: readBrowserAsset,
+      resources: createBlobCoreResources(data.assets),
       loadCore: async (options) => {
         const loaded = await loadPackageCore(options);
         startedTimer = setTimeout(started, GUEST_START_MS);

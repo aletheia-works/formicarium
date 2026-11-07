@@ -5,12 +5,13 @@
 // 前提：bun run build と bash mise-tasks/build/guests.sh pitchfork を実行済み
 //       （README の「テスト」を参照）。
 import assert from 'node:assert/strict';
-import { Buffer } from 'node:buffer';
+import { Buffer, resolveObjectURL } from 'node:buffer';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
+import { CORE_FILES, createBlobCoreResources } from '../../runtime/core.js';
 import { missingArtifacts, PT_INTERP, readElfInfo, root } from './helpers.js';
 
 const CORE = path.join(root, 'dist/paludarium');
@@ -88,6 +89,26 @@ describe('paludarium のコア', () => {
         digest,
         name,
       );
+  });
+
+  it('固定した版のコアは、ブラウザで全部 blob: URL の module に書き換えられる', async () => {
+    const files = Object.fromEntries(
+      CORE_FILES.map((name) => [
+        name,
+        new Uint8Array(readFileSync(path.join(CORE, name))),
+      ]),
+    );
+    const assets = {
+      loaderURL: 'https://x.test/index.mjs',
+      wasmURL: 'https://x.test/w',
+    };
+    const { moduleURL } = await createBlobCoreResources(
+      assets,
+      async () => true,
+    ).allocate(files);
+    assert.match(moduleURL, /^blob:/);
+    const loader = await resolveObjectURL(moduleURL)!.text();
+    assert.doesNotMatch(loader, /"coordinator\.mjs"|"\.\/worker-support\.mjs"/);
   });
 
   it('wasm の memory は共有で、上限は 1 GB', () => {

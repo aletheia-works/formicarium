@@ -30,12 +30,15 @@ demo の file と home の設定を確かめます）。自分の page でも同
   service worker の scope（それを配るフォルダー）は、Worker とコアの資産も含めます。
   scope の外から読み込む Worker には COEP が付かず、ブラウザが拒否します。
   1 つのページの複数の Session を同時に実行できます。
-  コアは 1 つずつ起動するので、service worker による isolation での WebKit の失敗を避けます
+  コアは 1 つずつ起動するので、service worker による isolation での WebKit の失敗が起きにくくなります
   （[アーキテクチャ](/formicarium/ja/development/architecture/)）。
 - **CSP。** 同じ origin の script と Worker、WebAssembly の compile を許します。
   たとえば `script-src 'self' 'wasm-unsafe-eval'; worker-src 'self';
-  connect-src 'self'` です。`blob:` は要りません。コアは SHA-256 を照合した後に
-  資産の URL から読み込むので、信頼できる origin から配ります。
+  connect-src 'self'` です。実行するだけなら `blob:` は要りません。コアのファイルは資産の URL から読み、
+  SHA-256 を照合するので、信頼できる origin から配ります。isolation に service worker を使い、Worker の
+  script の応答にも CSP を付けるなら、`script-src` と `worker-src` に `blob:` を足します。足さないとコアは
+  資産の URL から読み込まれ、WebKit が Worker を拒否することがまだあります
+  （[アーキテクチャ](/formicarium/ja/development/architecture/)を参照）。ページの `<meta>` だけの CSP は package Worker に届きません。
   relay を通してゲストに network を渡す page は、relay の `wss:` の URL と、relay の token を
   取りに行く URL があればそれも `connect-src` で許します。showcase の端末が足すのは、token 関数の
   origin と `wss://*.lambda-microvm.ap-northeast-1.on.aws` だけです。

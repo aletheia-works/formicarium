@@ -33,12 +33,17 @@ session starts with). Your page can do the same.
   Worker and the core assets: a Worker loaded from outside it gets no COEP, and
   the browser refuses it. Several
   Sessions on one page may run at the same time; their cores start one at a
-  time, which avoids a WebKit failure under service-worker isolation (see the
+  time, which makes a WebKit failure under service-worker isolation rarer (see the
   [architecture](/formicarium/development/architecture/)).
 - **CSP.** Allow same-origin scripts and Workers and WebAssembly compilation,
   for example `script-src 'self' 'wasm-unsafe-eval'; worker-src 'self';
-  connect-src 'self'`. `blob:` is not needed. The core is loaded from the asset
-  URLs after its digests are checked, so serve them from an origin you trust.
+  connect-src 'self'`. `blob:` is not needed to run. The core's files are read
+  from the asset URLs and their digests are checked, so serve them from an origin
+  you trust. If you use a service worker for isolation and also send the CSP with
+  the Worker script's response, add `blob:` to `script-src` and `worker-src`:
+  otherwise the core loads from the asset URLs, where WebKit can still refuse a
+  Worker (see the [architecture](/formicarium/development/architecture/)). A CSP
+  only in the page's `<meta>` does not reach the package Worker.
   A page that gives guests a network through a relay also allows the relay's
   `wss:` URL in `connect-src`, and the URL it fetches relay tokens from, if
   any. The showcase terminals add exactly their token function's origin and

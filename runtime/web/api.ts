@@ -14,9 +14,11 @@ const STOP_GRACE_MS = 500;
 
 /**
  * The start-up of every run's core in this page, one at a time. Under
- * cross-origin isolation from a service worker, WebKit sometimes loads a
- * Worker script past the service worker when two runs start core Workers at
- * once, and COEP then refuses it (CORE_INIT or EXECUTION). A run's Worker is
+ * cross-origin isolation from a service worker, WebKit far more often starts a
+ * Worker the service worker does not control when two runs start core Workers
+ * at once. The core survives that from blob: URLs (createBlobCoreResources in
+ * ../core.ts), but a CSP may refuse those, and COEP then refuses the Worker's
+ * later loads (CORE_INIT or EXECUTION). A run's Worker is
  * created after the run before it reported `started`, ended or was stopped,
  * or STARTUP_HOLD_MS after its turn began, so a start-up that stalls
  * does not hold the page's other runs; guests still run side by side.
