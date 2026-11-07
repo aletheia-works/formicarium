@@ -31,7 +31,11 @@ import instrumentLibrary from 'istanbul-lib-instrument';
 
 const { createInstrumenter } = instrumentLibrary;
 
-/** The core's own Workers are third-party code; they run unwrapped and uncounted. */
+/**
+ * The core's own Workers are third-party code; they run unwrapped and uncounted.
+ * So do blob: Workers in browsers, which are the core or the check that blob:
+ * Workers may start.
+ */
 const CORE_WORKER = String(/\/(coordinator|execution)\.mjs$/);
 const babelGenerator = createRequire(
   import.meta.resolve('istanbul-lib-instrument'),
@@ -309,7 +313,7 @@ self.addEventListener('message',async function bootstrap(event){if(event.data.ty
 globalThis.__coverageCounters=new Int32Array(event.data.buffer);${bridge}
 const NativeWorker=globalThis.Worker;
 globalThis.Worker=class extends NativeWorker {constructor(target,options){
-if(${CORE_WORKER}.test(new URL(target,location.href).pathname)){super(target,options);return;}
+if(String(target).startsWith('blob:')||${CORE_WORKER}.test(new URL(target,location.href).pathname)){super(target,options);return;}
 const buffer=new SharedArrayBuffer(${workerSize});
 super('/coverage-browser-worker.mjs',options);
 this.addEventListener('message',event=>{if(event.data?.type==='coverage-descendant'){event.stopImmediatePropagation();self.postMessage(event.data);}});
@@ -579,7 +583,7 @@ process.on('exit',()=>writeFileSync(new URL('./coverage-node.json',import.meta.u
   await writeFile(resolve(out, 'coverage-node-preload.mjs'), nodePreload);
   const browserInit = `const realms=[{name:'browser-host',buffer:new (typeof SharedArrayBuffer==='function'?SharedArrayBuffer:ArrayBuffer)(${size})}];
 globalThis.__coverageRealms=realms;globalThis.__coverageCounters=new Int32Array(realms[0].buffer);${result.bridge}
-const Original=globalThis.Worker;if(Original)globalThis.Worker=class extends Original{constructor(target,options){if(${CORE_WORKER}.test(new URL(target,location.href).pathname)){super(target,options);return;}const realm={name:'browser-worker-'+realms.length,buffer:new SharedArrayBuffer(${size})};realms.push(realm);super('/coverage-browser-worker.mjs',options);
+const Original=globalThis.Worker;if(Original)globalThis.Worker=class extends Original{constructor(target,options){if(String(target).startsWith('blob:')||${CORE_WORKER}.test(new URL(target,location.href).pathname)){super(target,options);return;}const realm={name:'browser-worker-'+realms.length,buffer:new SharedArrayBuffer(${size})};realms.push(realm);super('/coverage-browser-worker.mjs',options);
 this.addEventListener('message',event=>{if(event.data?.type==='coverage-descendant'){event.stopImmediatePropagation();realms.push({name:'browser-worker-'+realms.length,buffer:event.data.buffer});}});
 super.postMessage({type:'coverage-bootstrap',target:String(new URL(target,location.href)),buffer:realm.buffer});}};`;
   await writeFile(resolve(out, 'coverage-browser-init.js'), browserInit);

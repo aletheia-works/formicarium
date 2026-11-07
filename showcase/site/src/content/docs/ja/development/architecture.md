@@ -48,7 +48,8 @@ cross-origin isolation にしたページでは、WebKit と Safari が service 
 実行の途中でゲストがスレッドのために起動する Worker も同じで、起動の順番待ちでは防げません。そこで package Worker は、
 照合済みのバイト列から作った blob: URL でコアを起動します。これならネットワークからの読み込みはありません。Worker の script とともに送られる CSP が
 blob: の Worker を拒否することがあるので、package Worker は先に 1 つ試し、拒否されたらコアを資産の URL から読み込みます。
-その場合はこの失敗がまだ起こりえます。
+その場合はこの失敗がまだ起こりえます。実行ごとに package Worker が新しくなるので、この試行は実行ごとに 1 回行います。
+`report-uri` や `report-to` のある policy では、実行ごとに 1 件の拒否が報告されます。ブラウザが答えないときは 5 秒で諦めます。
 
 Worker の中で実行が失敗すると、Worker はエラーコードと、元のエラーについて伝えてよいことを送ります。
 cause の連なりの先頭の 4 つ（そのエラーと、3 つまでの cause）について、それぞれの名前と、エンジンの `RangeError`（受け取った値を引用しうる Node の `ERR_` code 付きのものは除く）・WebAssembly のエラー・core の `PaludariumError`（`kind` も）に限ったメッセージ（300 文字まで）です。

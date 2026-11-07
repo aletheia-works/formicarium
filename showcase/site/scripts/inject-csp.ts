@@ -8,8 +8,9 @@ import { fail } from './common.ts';
 export { TERMINAL_ATTRIBUTE };
 
 /**
- * Same origin and wasm only. The paludarium core loads its modules and
- * Workers from same-origin URLs, so blob: is not needed. The only external
+ * Same origin and wasm only. blob: is not needed: this CSP is in the page's
+ * <meta>, which does not reach the package Worker that starts the core from
+ * blob: URLs. The only external
  * sources are the relay's, in connect-src alone: its token function and its
  * WebSocket host (src/terminal/relay.ts).
  */

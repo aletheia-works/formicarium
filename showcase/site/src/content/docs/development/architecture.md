@@ -62,7 +62,10 @@ Worker, also one a guest starts for a thread in the middle of a run, which the
 queue does not cover. So the package Worker also starts the core from blob: URLs
 of the verified bytes, which involve no network load. A CSP sent with the Worker
 script may refuse blob: Workers; the package Worker tries one first, and otherwise
-loads the core from its asset URLs, where this failure can still occur.
+loads the core from its asset URLs, where this failure can still occur. The try
+runs once per run, because each run has a new package Worker, and a policy with
+`report-uri` or `report-to` then reports one refusal per run. It gives up after
+5 seconds if the browser never answers.
 
 When a run fails inside the Worker, the Worker sends the error code and what it
 may tell about the original errors, the first four of the cause chain (the
