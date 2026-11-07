@@ -209,8 +209,9 @@ tag `v<version>` のコミットが `sourceCommit` に一致したときだけ�
 
 1. 安定版の publish（`publish.yml`）が成功すると、`showcase-release-pin.yml` が
    `scripts/pin-release.ts` でその版を確かめ（`distribute` と同じ取得と照合）、
-   `formicarium-release.json` を書き換える PR を bot で作る。版は安定版だけである（RC は出さない）。
-2. その PR を main に入れると、`showcase-site.yml` がその版で受け入れてから配布する。
+   `formicarium-release.json` を書き換える PR を bot で作り、その auto-merge を有効にする。
+   版は安定版だけである（RC は出さない）。
+2. その PR は必須チェックを通ると main に入り、`showcase-site.yml` がその版で受け入れてから配布する。
 3. 手で固定するときは `bun showcase/scripts/pin-release.ts <version>` か、版を指定した
    `showcase-release-pin.yml` の手動の実行。
 

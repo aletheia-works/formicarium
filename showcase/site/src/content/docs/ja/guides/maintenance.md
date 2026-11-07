@@ -43,8 +43,9 @@ deploy しますが、ほかは deploy しないので、`main` での手動の�
 
 formicarium の安定版が npm に公開されると、`showcase-release-pin.yml` が
 その版を `showcase/formicarium-release.json` に固定する PR を作ります（版、npm の
-integrity、タグのコミットを、配布と同じ方法で確かめます）。その PR を merge すると、
-その版でサイトを配布します。手で固定するときは、版を指定してこの workflow を実行します。
+integrity、タグのコミットを、配布と同じ方法で確かめます）、その auto-merge を有効にします。
+必須チェックを通ると PR が merge され、その版でサイトを配布します。手で固定するときは、
+版を指定してこの workflow を実行します。この PR も auto-merge します。
 
 build や受入の失敗では deploy しないので、前回のサイトが残ります。古い run を
 もう一度 deploy することはできません。deploy の job は、最新の deploy より古い

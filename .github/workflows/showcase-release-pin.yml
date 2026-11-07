@@ -1,8 +1,9 @@
 name: Pin the showcase release
 
 # After a stable formicarium release is published to npm, open a PR that pins
-# it in showcase/formicarium-release.json. Merging that PR deploys the site
-# with the release (showcase-site.yml runs on pushes to the pin file).
+# it in showcase/formicarium-release.json and turn on its auto-merge. Merging
+# that PR deploys the site with the release (showcase-site.yml runs on pushes
+# to the pin file).
 on:
   workflow_run:
     workflows: ['Publish package']
@@ -96,12 +97,9 @@ jobs:
           branch="showcase/pin-formicarium-$VERSION"
           # A rerun reuses the branch a failed or closed attempt left, and
           # opens a PR unless one is already open.
+          url=""
           if gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$branch" > /dev/null 2>&1; then
-            open=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$branch" --state open --json url --jq '.[].url')
-            if [ -n "$open" ]; then
-              echo "The pin PR is already open: $open" >> "$GITHUB_STEP_SUMMARY"
-              exit 0
-            fi
+            url=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$branch" --state open --json url --jq '.[].url')
           else
             base=$(git rev-parse HEAD)
             gh api "repos/$GITHUB_REPOSITORY/git/refs" -f "ref=refs/heads/$branch" -f "sha=$base" > /dev/null
@@ -112,6 +110,14 @@ jobs:
               -f "sha=$blob" \
               -f "branch=$branch" > /dev/null
           fi
-          gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" \
-            --title "chore(showcase): distribute formicarium $VERSION from npm" \
-            --body "Pins \`@aletheia-works/formicarium@$VERSION\` in \`$path\`: npm's integrity and the commit of tag \`v$VERSION\`, checked by \`showcase/scripts/pin-release.ts\` (download, integrity and tag commit, as distribute does). Merging deploys the showcase site with this release."
+          if [ -n "$url" ]; then
+            echo "The pin PR is already open: $url" >> "$GITHUB_STEP_SUMMARY"
+          else
+            url=$(gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$branch" \
+              --title "chore(showcase): distribute formicarium $VERSION from npm" \
+              --body "Pins \`@aletheia-works/formicarium@$VERSION\` in \`$path\`: npm's integrity and the commit of tag \`v$VERSION\`, checked by \`showcase/scripts/pin-release.ts\` (download, integrity and tag commit, as distribute does). Merging deploys the showcase site with this release.")
+          fi
+          # The bot sets up the merge so that it starts main's push workflows.
+          # The merge waits for the required checks, the site's acceptance included.
+          head=$(gh pr view "$url" --json headRefOid --jq .headRefOid)
+          gh pr merge "$url" --squash --auto --match-head-commit "$head"

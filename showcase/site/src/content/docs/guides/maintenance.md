@@ -49,9 +49,10 @@ with a manual run on `main`.
 When a stable formicarium release is published to npm,
 `showcase-release-pin.yml` opens a pull request that pins it in
 `showcase/formicarium-release.json` (the version, npm's integrity and the
-commit of its tag, checked the way distribution checks them). Merging that pull
-request deploys the site with the release. To pin a release by hand, run the
-workflow with its version.
+commit of its tag, checked the way distribution checks them) and turns on its
+auto-merge. Once the required checks pass, the pull request merges and the site
+deploys with the release. To pin a release by hand, run the workflow with its
+version; that pull request auto-merges too.
 
 Failed builds and acceptance never deploy, so the previous site stays. An old
 run cannot be deployed again: the deploy job refuses a run older than the
