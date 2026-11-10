@@ -289,7 +289,7 @@ jobs:
       - name: Node acceptance through the public /node export
         run: node showcase/scripts/accept-node.ts
       - name: Install Playwright browsers
-        uses: aletheia-works/.github/actions/install-playwright@0ab4b956b12760b3926ac8f768e04432404a5182 # v1.3.4
+        uses: aletheia-works/.github/actions/install-playwright@2d85c4ddca01b35127a16915f0000bc54fdc85a6 # v1.4.0
         with:
           browsers: chromium firefox webkit
           command: bun node_modules/@playwright/test/cli.js
