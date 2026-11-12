@@ -71,7 +71,8 @@ install が成功すると、ゲストはツールの名前で Session に登録
 振る舞いは同じです。
 
 `validateGuest(bytes, { elfSha256, buildInfoSha256, identity })` は、static な
-x86-64 の ELF そのもの（128 MiB まで）と、それがどうあるべきかを受け取ります。
+x86-64 の ELF そのもの（128 MiB まで。導入するゲストは static のままです。
+[ADR 0016](/formicarium/ja/development/decisions/0016-dynamically-linked-guests-through-system-files/) を参照）と、それがどうあるべきかを受け取ります。
 `elfSha256` は bytes の SHA-256、`identity` はその `GuestBuildInfo`（その中の
 `elfSha256` も同じ値）、`buildInfoSha256` は `identity` の正規形（下記）の SHA-256 です。
 どれかが合わなければ `INVALID_INPUT` です。返す handle は凍結され、`digest` と

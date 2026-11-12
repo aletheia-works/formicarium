@@ -152,6 +152,18 @@ test('hello ゲストが起動して終了コード 0 を返す', async ({ page 
   );
 });
 
+test('動的リンクの hello-dynamic が、systemEntries の動的リンカで動く', async ({
+  page,
+}) => {
+  await page.goto('/web/index.html?guest=hello-dynamic&arg=from-browser');
+  const result = await waitForResult(page);
+  expect(result.error).toBeUndefined();
+  expect(result.exitCode).toBe(0);
+  expect((await captureDiagnostics(page)).streams.stdout).toBe(
+    'hello from formicarium guest\narg: from-browser\n',
+  );
+});
+
 test('終了コード 3 のゲストの終了コードが伝わる', async ({ page }) => {
   await page.goto('/web/index.html?guest=exit3');
   const result = await waitForResult(page);

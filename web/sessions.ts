@@ -21,6 +21,24 @@ export const GUESTS = Object.freeze(
 );
 
 /**
+ * ゲストごとのシステムファイル（runtime/registry.js の system）。ゲストの中のパスから、
+ * このファイルからの相対パスのビルド物へ。
+ */
+export const GUEST_SYSTEM: Readonly<Record<string, Record<string, string>>> =
+  Object.freeze(
+    Object.fromEntries(
+      Object.entries(GUEST_TABLE).map(([name, guest]) => [
+        name,
+        Object.fromEntries(
+          Object.entries(
+            ('system' in guest ? guest.system : undefined) ?? {},
+          ).map(([at, file]) => [at, FROM_HERE + file]),
+        ),
+      ]),
+    ),
+  );
+
+/**
  * ゲストごとの環境変数（runtime/registry.js の env）。Node.js のテストと
  * mise-tasks/build/native-baseline.sh も同じ表の値を使う。
  */

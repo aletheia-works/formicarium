@@ -28,6 +28,12 @@ const deepFreeze = <T>(value: T): T => {
 export const GUESTS = deepFreeze({
   probe: { path: 'dist/guests/probe', env: {} },
   hello: { path: 'dist/guests/hello', env: {} },
+  // hello と同じ出力の動的リンクのゲスト。system の動的リンカを Session の systemEntries に置く（ADR 0016）
+  'hello-dynamic': {
+    path: 'dist/guests/hello-dynamic',
+    env: {},
+    system: { '/lib/ld-musl-x86_64.so.1': 'dist/guests/ld-musl-x86_64.so.1' },
+  },
   exit3: { path: 'dist/guests/exit3', env: {} },
   // 対話的な実行（stdin と端末）の確認用
   ttyecho: { path: 'dist/guests/ttyecho', env: {} },
@@ -36,7 +42,15 @@ export const GUESTS = deepFreeze({
   aube: { path: 'dist/guests/aube', env: { AUBE_NO_UPDATE_CHECK: '1' } },
   // 環境変数は不要（2026-10-06 に scripts/pitchfork-probe-paths.sh で native に確認済み）
   pitchfork: { path: 'dist/guests/pitchfork', env: {} },
-} satisfies Record<string, { path: string; env: Record<string, string> }>);
+} satisfies Record<
+  string,
+  {
+    path: string;
+    env: Record<string, string>;
+    /** Files the guest needs outside the session's roots: guest path to build output. */
+    system?: Record<string, string>;
+  }
+>);
 
 /**
  * 手順。project のファイル（projectBase 以下の projectFiles）は projectRoot 以下に置き、

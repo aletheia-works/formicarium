@@ -115,6 +115,8 @@ export interface RunRequest extends Identity {
   cwd: string;
   home: string;
   entries: FsEntry[];
+  /** The session's system files, placed outside the roots and never snapshotted (ADR 0016). */
+  systemEntries: FsEntry[];
   snapshotRoots: string[];
   /** True when the host sends `input` messages and then `input-end`. */
   interactive?: boolean;

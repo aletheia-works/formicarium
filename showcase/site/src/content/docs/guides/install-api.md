@@ -79,7 +79,9 @@ To register guest bytes that do not come from a catalog, check them with
 guest)`; the registration behaves the same.
 
 `validateGuest(bytes, { elfSha256, buildInfoSha256, identity })` takes the raw
-static x86-64 ELF (at most 128 MiB) and what it must be: `elfSha256` is the
+static x86-64 ELF (at most 128 MiB; installed guests stay static, see
+[ADR 0016](/formicarium/development/decisions/0016-dynamically-linked-guests-through-system-files/))
+and what it must be: `elfSha256` is the
 SHA-256 of the bytes, `identity` is its `GuestBuildInfo` (whose own `elfSha256`
 must be the same), and `buildInfoSha256` is the SHA-256 of `identity` in its
 canonical form (below). Any mismatch is `INVALID_INPUT`. The frozen handle it

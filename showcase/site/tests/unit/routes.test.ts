@@ -60,6 +60,7 @@ test('every page exists in English and Japanese', async () => {
       'decisions/0013-interactive-guest-runs',
       'decisions/0014-guest-tcp-clients-in-nodejs',
       'decisions/0015-guest-network-in-browser-through-a-relay',
+      'decisions/0016-dynamically-linked-guests-through-system-files',
     ].map((name) => `development/${name}/index.html`),
   ];
   for (const page of expected) {

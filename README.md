@@ -5,7 +5,7 @@ without booting a kernel. formicarium wraps
 [paludarium](https://github.com/aletheia-works/paludarium), a user-mode x86-64
 Linux emulator compiled to WebAssembly (a Rust counterpart of
 [jart/blink](https://github.com/jart/blink)), and gives it a small JavaScript
-API: give it a static Linux executable and some files, run it, and get back the
+API: give it a Linux executable and some files, run it, and get back the
 exit code, the output and the files it wrote. The goal is to let a CLI bug
 reproduction run as-is in a web page.
 
@@ -56,7 +56,9 @@ imported from a URL).
 import { createSession } from '@aletheia-works/formicarium/node';
 import { decodeUtf8 } from '@aletheia-works/formicarium';
 
-// guestBytes: a static ELF64 little-endian x86-64 Linux executable (Uint8Array).
+// guestBytes: an ELF64 little-endian x86-64 Linux executable (Uint8Array).
+// A dynamically linked one also needs its dynamic linker and libraries in
+// systemEntries (below).
 const session = await createSession({ cwd: '/work', home: '/home/guest' });
 try {
   const result = await session.run({ guest: guestBytes, args: ['--version'] });
@@ -68,6 +70,26 @@ try {
 
 Guests are not included. Build them as static musl executables, or install
 them from a catalog with the install API (below).
+
+A dynamically linked guest runs when the Session has its dynamic linker and
+shared libraries. Give them as `systemEntries`, files every run finds outside
+`cwd` and `home` that are never snapshotted:
+
+```js
+const session = await createSession({
+  systemEntries: [
+    {
+      path: '/lib/ld-musl-x86_64.so.1',
+      type: 'file',
+      mode: 0o755,
+      inodeId: 'ld',
+      data: linkerBytes,
+    },
+  ],
+});
+```
+
+Without its dynamic linker, a run fails with `INVALID_INPUT` before it starts.
 
 ## In the browser
 
@@ -146,8 +168,10 @@ has a complete example.
 
 ## Limits
 
-- Guests must be static x86-64 Linux ELF executables. `validateGuest` and
-  installs also refuse a guest over 128 MiB.
+- Guests must be x86-64 Linux ELF executables. A dynamically linked guest
+  needs its dynamic linker and libraries in `systemEntries`; installed guests
+  must be static. `validateGuest` and installs also refuse a guest over
+  128 MiB.
 - Guests reach the network only as TCP clients of the allowed destinations,
   through a relay in the browser. A guest may also serve TCP and exchange UDP
   on its own loopback; other UDP reaches only name lookups.

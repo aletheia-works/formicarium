@@ -4,9 +4,11 @@ title: Runtime architecture
 description: How the formicarium package runs a Linux guest, layer by layer.
 ---
 
-formicarium runs unmodified static x86-64 Linux binaries (ELF, typically built
-against musl) in WebAssembly, in browsers and in Node.js, without booting a
-kernel. This page describes the package (`@aletheia-works/formicarium`); the
+formicarium runs unmodified x86-64 Linux binaries (ELF, typically static ones
+built against musl) in WebAssembly, in browsers and in Node.js, without booting
+a kernel. A dynamically linked binary runs when the Session holds its dynamic
+linker and libraries as system files
+([ADR 0016](/formicarium/development/decisions/0016-dynamically-linked-guests-through-system-files/)). This page describes the package (`@aletheia-works/formicarium`); the
 [architecture guide](/formicarium/guides/architecture/) describes this site.
 
 ## Entry points
@@ -29,8 +31,9 @@ in browsers):
 
 1. The Worker loads the core assets and checks their SHA-256 digests against
    the build information before evaluating them.
-2. It places the Session's files and the guest binary in a new in-memory
-   filesystem, runs the guest with the given arguments and environment, and
+2. It places the Session's files, its system files (outside the working and
+   home directories), the installed guests and the guest binary in a new
+   in-memory filesystem, runs the guest with the given arguments and environment, and
    streams stdout and stderr back. For an interactive run, the Session also
    sends stdin to the Worker and the guest sees a terminal
    ([ADR 0013](/formicarium/development/decisions/0013-interactive-guest-runs/)).

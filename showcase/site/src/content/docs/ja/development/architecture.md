@@ -4,8 +4,10 @@ title: ランタイムの構成
 description: formicarium のパッケージが Linux のゲストを動かす仕組みを、層ごとに説明します。
 ---
 
-formicarium は、改変していない static な x86-64 Linux のバイナリ（ELF。多くは musl でビルドしたもの）を、
-カーネルを起動せずに、ブラウザと Node.js の WebAssembly で動かします。このページはパッケージ
+formicarium は、改変していない x86-64 Linux のバイナリ（ELF。多くは musl でビルドした static なもの）を、
+カーネルを起動せずに、ブラウザと Node.js の WebAssembly で動かします。動的リンクのバイナリは、Session がその動的リンカと
+ライブラリをシステムファイルとして持てば動きます
+（[ADR 0016](/formicarium/ja/development/decisions/0016-dynamically-linked-guests-through-system-files/)）。このページはパッケージ
 （`@aletheia-works/formicarium`）を説明します。このサイト自体の構成は
 [構成のガイド](/formicarium/ja/guides/architecture/)にあります。
 
@@ -25,7 +27,8 @@ formicarium は、改変していない static な x86-64 Linux のバイナリ�
 実行のたびに、**新しい Worker** を立てます（Node.js では `worker_threads`、ブラウザでは module Worker）。
 
 1. Worker はコアの資産を読み込み、評価する前に SHA-256 をビルド情報と照合します。
-2. Session のファイルとゲストのバイナリを新しいメモリ上のファイルシステムに置き、引数と環境変数を渡してゲストを実行し、
+2. Session のファイル、システムファイル（作業ディレクトリと home ディレクトリの外）、導入したゲスト、ゲストのバイナリを
+   新しいメモリ上のファイルシステムに置き、引数と環境変数を渡してゲストを実行し、
    stdout と stderr を流します。対話的な実行では、Session が stdin も Worker に送り、ゲストからは端末に見えます
    （[ADR 0013](/formicarium/ja/development/decisions/0013-interactive-guest-runs/)）。
 3. 終了したら、引き継ぐ場所（作業ディレクトリと home ディレクトリ）を写し取り、終了コードと一緒に返します。

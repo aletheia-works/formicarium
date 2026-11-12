@@ -54,11 +54,12 @@ Core-specific changes belong in
 
 ## Guests and native baselines
 
-The regression tests run static x86-64 musl guests from `dist/guests/`, built
-in containers:
+The regression tests run x86-64 musl guests from `dist/guests/`, built in
+containers. All are static except `hello-dynamic`, which runs with the musl
+dynamic linker built beside it (ADR 0016):
 
 ```sh
-mise run build-guests probe       # probe, hello, exit3, ttyecho, spawn and the package tests' fixture (about a minute)
+mise run build-guests probe       # probe, hello, hello-dynamic and its dynamic linker, exit3, ttyecho, spawn and the package tests' fixture (about a minute)
 mise run build-guests aube        # aube (over an hour; rebuild only when its inputs change)
 mise run build-guests pitchfork   # pitchfork, with its web UI built by dist/guests/aube (about 35 minutes cold)
 mise run build-guests nano        # nano with ncurses (about 11 minutes under amd64 emulation on an arm64 Mac)
@@ -95,7 +96,7 @@ natively, which paths each pitchfork command writes.
 
 ```sh
 # Node.js regressions (the same list as CI's Node suite)
-node --test --test-concurrency=1 tests/node/build.test.js tests/node/runner.test.js tests/node/probe.test.js tests/node/session.test.js tests/node/interactive.test.js tests/node/installed-guests.test.js tests/node/network.test.js tests/node/git-http.test.js tests/node/jj-http.test.js tests/node/aube-1645.test.js tests/node/pitchfork-basic.test.js tests/node/deno.test.js
+node --test --test-concurrency=1 tests/node/build.test.js tests/node/runner.test.js tests/node/probe.test.js tests/node/session.test.js tests/node/interactive.test.js tests/node/installed-guests.test.js tests/node/dynamic-guests.test.js tests/node/network.test.js tests/node/git-http.test.js tests/node/jj-http.test.js tests/node/aube-1645.test.js tests/node/pitchfork-basic.test.js tests/node/deno.test.js
 # Browser regressions: probe, the interactive runs of ttyecho and nano, tcp-echo through a local relay, aube #1645 and pitchfork-basic in Chromium, Firefox and WebKit
 bun run test:browser
 bun run test:browser -- --repeat-each=3   # repeatability

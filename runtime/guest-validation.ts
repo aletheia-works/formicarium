@@ -1,7 +1,7 @@
 import type { FsEntry } from './contracts.js';
 import { isRecord } from './contracts.js';
 import { invalid } from './errors.js';
-import { equalBytes, validateElf } from './validation.js';
+import { elfInterpreter, equalBytes, validateElf } from './validation.js';
 
 export interface GuestBuildInfo {
   schemaVersion: 1;
@@ -303,6 +303,11 @@ export function validateGuest(
   digest(expected.elfSha256);
   digest(expected.buildInfoSha256);
   const snapshot = validateElf(bytes);
+  // Installed guests stay static: a run places no dynamic linker for them (ADR 0016).
+  invalid(
+    elfInterpreter(snapshot) === null,
+    'dynamic ELF interpreter is unsupported',
+  );
   const metadata = guestCanonical(expected.identity);
   invalid(
     encoder.encode(metadata).length <= GUEST_LIMITS.metadata,

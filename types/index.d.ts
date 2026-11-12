@@ -191,11 +191,28 @@ export type FsEntry =
       data: Uint8Array;
     }
   | { path: string; type: 'symlink'; target: string };
+/**
+ * Options for a new Session.
+ *
+ * - `entries`: the session's own files, inside `cwd` and `home`. Runs change
+ *   them, and `reset()` returns to them.
+ * - `systemEntries`: files every run finds outside `cwd` and `home`, such as
+ *   the dynamic linker and shared libraries of a dynamically linked guest
+ *   (`/lib/ld-musl-x86_64.so.1`) or CA certificates. They are placed again
+ *   for each run, are never snapshotted, and stay as given for the session's
+ *   life, through `reset()`; `readFile` and `listEntries` do not see them.
+ *   They may not lie in `cwd`, `home`, `/guest`, `/dev`, `/proc`, `/tmp` or
+ *   `/usr/bin` (installed guests), and only a directory may hold one of
+ *   those; a symlink may not lead into `cwd` or `home` or a directory above
+ *   them. At most 4096 entries and 256 MiB of file data. Missing parent
+ *   directories are added.
+ */
 export interface SessionOptions {
   assets?: Assets;
   cwd?: string;
   home?: string;
   entries?: readonly FsEntry[];
+  systemEntries?: readonly FsEntry[];
 }
 export interface OutputChunk {
   runId: string;
@@ -211,6 +228,11 @@ export interface TerminalSize {
 /**
  * Options for one {@link Session.run}.
  *
+ * - `guest`: an x86-64 Linux ELF executable, static or dynamically linked. A
+ *   dynamically linked guest's dynamic linker (its PT_INTERP path) must be
+ *   among the session's `systemEntries` or `entries`, or the run fails with
+ *   `INVALID_INPUT` before it starts; the libraries it loads belong there
+ *   too. Installed guests stay static.
  * - `timeoutMs`: 600000 by default. With `stdin` there is no default limit,
  *   since an interactive guest waits for its user; pass `timeoutMs` or abort
  *   `signal` to stop it. In a browser, the runs of one page start their cores

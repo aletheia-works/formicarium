@@ -51,6 +51,10 @@ session starts with). Your page can do the same.
 - **Guests.** Use a catalog (`GuestCatalog`) whose entries name each guest's
   HTTPS URL, its SHA256 and its build info. A guest on another origin needs
   CORS. `install <tool>` checks every byte before it registers a guest.
+  Installed guests are static. To run a dynamically linked guest with
+  `session.run`, pass its dynamic linker and shared libraries as
+  `systemEntries` to `createSession`
+  ([ADR 0016](/formicarium/development/decisions/0016-dynamically-linked-guests-through-system-files/)).
 - **Network.** In the browser a guest reaches TCP destinations only through a
   WebSocket relay you name in `network.relay`
   ([command API](/formicarium/guides/command-api/)). The showcase passes

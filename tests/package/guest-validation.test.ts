@@ -8,6 +8,7 @@ import {
   guestSnapshot,
   validateGuest,
 } from '../../runtime/guest-validation.js';
+import { dynamicElfHeader } from './fixtures.js';
 import { digest, elf, expectation } from './session-fixtures.js';
 
 const invalid = (error: unknown) =>
@@ -117,6 +118,13 @@ test('metadata required identities, schema, key and duplicate dependency reject'
     expected.buildInfoSha256 = digest(guestCanonical(expected.identity));
     assert.throws(() => validateGuest(elf(), expected), invalid);
   }
+});
+test('an installed guest stays static even with a well-formed dynamic linker', () => {
+  const bytes = dynamicElfHeader();
+  assert.throws(() => validateGuest(bytes, expectation(bytes)), {
+    code: 'INVALID_INPUT',
+    message: 'dynamic ELF interpreter is unsupported',
+  });
 });
 test('ELF architecture, dynamic interpreter, table overflow and load memory overflow reject', () => {
   for (const modify of [

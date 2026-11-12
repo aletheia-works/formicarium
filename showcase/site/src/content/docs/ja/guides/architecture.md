@@ -9,7 +9,7 @@ showcase の page（Astro と Starlight、xterm.js）
   -> 公開 API：createSession（/browser）、createCommandSession、createInstaller、fixtureToFsEntries（root）
      -> Session：file・cwd、一度に1つの run
         -> run ごとの Web Worker：WebAssembly に compile した paludarium
-           -> static な x86-64 Linux の ELF の guest
+           -> x86-64 Linux の ELF の guest
 ```
 
 **エミュレータ。** formicarium は Rust で書いた user mode の x86-64 Linux エミュレータの

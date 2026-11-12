@@ -73,7 +73,12 @@ import {
   inspectMessage,
   joinBytes,
 } from './protocol.js';
-import { collapsePath, normalizePath, validateRun } from './validation.js';
+import {
+  checkInterpreter,
+  collapsePath,
+  normalizePath,
+  validateRun,
+} from './validation.js';
 
 /** Largest stdin chunk sent to the Worker in one message. */
 export const MAX_INPUT_CHUNK = 65536;
@@ -289,6 +294,7 @@ export function createLifecycle(
   ): Promise<RunResult> {
     let input: ReturnType<typeof validateRun>;
     let entries: FsEntry[];
+    let systemEntries: readonly FsEntry[];
     let tools: RunRequest['tools'];
     let reservation: Reservation;
     try {
@@ -297,7 +303,20 @@ export function createLifecycle(
       input = validateRun(options, state.home);
       reservation = reserved ?? state.acquire('run');
       entries = state.snapshot(reservation);
+      systemEntries = state.systemEntries(reservation);
       tools = state.installedGuests(reservation);
+      try {
+        checkInterpreter(input.guest, [
+          ...systemEntries,
+          ...entries,
+          ...tools.map(({ tool }) => ({
+            path: `${INSTALLED_GUEST_DIRECTORY}/${tool}`,
+          })),
+        ]);
+      } catch (error) {
+        if (!reserved) state.release(reservation);
+        throw error;
+      }
       input.signal = input.signal
         ? AbortSignal.any([input.signal, reservation.signal])
         : reservation.signal;
@@ -353,6 +372,7 @@ export function createLifecycle(
         cwd: state.cwd,
         home: state.home,
         entries,
+        systemEntries: [...systemEntries],
         snapshotRoots: [...state.roots],
         ...(input.stdin ? { interactive: true } : {}),
         ...(input.terminal ? { terminal: { ...input.terminal } } : {}),

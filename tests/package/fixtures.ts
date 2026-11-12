@@ -14,7 +14,7 @@ import { coreAssets } from '../../runtime/core.js';
 import type { FsEntry } from '../../types/index.js';
 
 /** Minimal ELF header for boundary tests; it is deliberately not executable. */
-export function elfHeader({ interpreter = false } = {}) {
+export function elfHeader() {
   const bytes = new Uint8Array(120);
   bytes.set([0x7f, 69, 76, 70, 2, 1, 1]);
   const view = new DataView(bytes.buffer);
@@ -25,9 +25,38 @@ export function elfHeader({ interpreter = false } = {}) {
   view.setUint16(54, 56, true);
   view.setBigUint64(32, 64n, true);
   view.setUint16(56, 1, true);
-  view.setUint32(64, interpreter ? 3 : 1, true);
+  view.setUint32(64, 1, true);
   view.setBigUint64(96, 120n, true);
   view.setBigUint64(104, 120n, true);
+  return bytes;
+}
+
+/**
+ * elfHeader with a PT_INTERP after its PT_LOAD, naming `interpreter`; `text`
+ * replaces the NUL-terminated path to test malformed ones.
+ */
+export function dynamicElfHeader(
+  interpreter = '/lib/ld-musl-x86_64.so.1',
+  text = new TextEncoder().encode(`${interpreter}\0`),
+) {
+  const bytes = new Uint8Array(176 + text.length);
+  bytes.set([0x7f, 69, 76, 70, 2, 1, 1]);
+  const view = new DataView(bytes.buffer);
+  view.setUint16(16, 3, true);
+  view.setUint16(18, 62, true);
+  view.setUint32(20, 1, true);
+  view.setUint16(52, 64, true);
+  view.setUint16(54, 56, true);
+  view.setBigUint64(32, 64n, true);
+  view.setUint16(56, 2, true);
+  view.setUint32(64, 1, true);
+  view.setBigUint64(96, BigInt(bytes.length), true);
+  view.setBigUint64(104, BigInt(bytes.length), true);
+  view.setUint32(120, 3, true);
+  view.setBigUint64(128, 176n, true);
+  view.setBigUint64(152, BigInt(text.length), true);
+  view.setBigUint64(160, BigInt(text.length), true);
+  bytes.set(text, 176);
   return bytes;
 }
 

@@ -39,6 +39,7 @@ const request = (): RunRequest => ({
   },
   guest: elfHeader(),
   tools: [],
+  systemEntries: [],
   args: [],
   env: { HOME: '/root' },
   cwd: '/work',
@@ -86,6 +87,46 @@ test('Worker execution places each installed guest in /usr/bin and never snapsho
   assert.equal(messages[0]!.type, 'done');
   assert.ok(
     messages[0]!.snapshot.every(({ path }) => !path.startsWith('/usr')),
+  );
+});
+test('Worker execution places the system files apart from the session files and never snapshots them', async () => {
+  const messages: TestMessage[] = [];
+  const runs: FakeRun[] = [];
+  const linker = {
+    ...fileEntry('/lib/ld.so', Uint8Array.of(7), 0o755),
+    inodeId: 'shared',
+  };
+  await executeWorkerRequest(
+    {
+      ...request(),
+      entries: [{ ...fileEntry(), inodeId: 'shared' }],
+      systemEntries: [
+        { path: '/lib', type: 'dir', mode: 0o755 },
+        linker,
+        { path: '/lib64', type: 'symlink', target: 'lib' },
+      ],
+    },
+    {
+      post: (message) => messages.push(message as TestMessage),
+      loadCore: adapter({
+        run(run) {
+          runs.push(run);
+          return {};
+        },
+      }),
+    },
+  );
+  const files = runs[0]!.files;
+  assert.deepEqual(files.get('/lib/ld.so')!.content, Uint8Array.of(7));
+  assert.equal(files.get('/lib/ld.so')!.mode, 0o100755);
+  assert.equal(files.get('/lib64')!.mode, 0o120777);
+  assert.notEqual(
+    files.get('/lib/ld.so')!.inode,
+    files.get('/work/input')!.inode,
+  );
+  assert.equal(messages[0]!.type, 'done');
+  assert.ok(
+    messages[0]!.snapshot.every(({ path }) => !path.startsWith('/lib')),
   );
 });
 test('Worker execution starts an installed guest from its /usr/bin path', async () => {

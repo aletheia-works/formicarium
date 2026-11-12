@@ -272,6 +272,18 @@ test('the hello guest starts and exits 0 in Safari', async () => {
   assert.match(streams.stdout, /arg: from-safari/);
 });
 
+test('the dynamically linked hello-dynamic runs with its system dynamic linker in Safari', async () => {
+  const { result, streams } = await runPage(
+    '/web/index.html?guest=hello-dynamic&arg=from-safari',
+  );
+  assert.equal(result.error, undefined);
+  assert.equal(result.exitCode, 0);
+  assert.equal(
+    streams.stdout,
+    'hello from formicarium guest\narg: from-safari\n',
+  );
+});
+
 test('a guest exit code of 3 reaches the page in Safari', async () => {
   const { result, streams } = await runPage('/web/index.html?guest=exit3');
   assert.equal(result.exitCode, 3);

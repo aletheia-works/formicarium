@@ -13,12 +13,15 @@ import {
   normalizeRoots,
   parentPath,
   validateEntries,
+  validateSystemEntries,
 } from './validation.js';
 
 /** This is the sole owner of a session's persistent filesystem state. */
 export class SessionState {
   #entries: FsEntry[];
   #seed: FsEntry[];
+  /** Fixed for the session: placed outside the roots for every run, never snapshotted. */
+  #system: readonly FsEntry[];
   #initialCwd: string;
   cwd: string;
   home: string;
@@ -43,6 +46,7 @@ export class SessionState {
     cwd = '/work',
     home = '/root',
     entries = [],
+    systemEntries = [],
   }: SessionOptions = {}) {
     this.cwd = normalizePath(cwd);
     this.home = normalizePath(home);
@@ -52,6 +56,9 @@ export class SessionState {
       directories: [this.cwd, this.home],
     });
     this.#seed = this.#entries.map(copyEntry);
+    this.#system = Object.freeze(
+      validateSystemEntries(systemEntries, this.roots),
+    );
     this.#initialCwd = this.cwd;
   }
 
@@ -153,6 +160,11 @@ export class SessionState {
     const snapshot = guestSnapshot(guest);
     this.assertCurrent(reservation);
     this.#guests.set(tool, snapshot);
+  }
+  /** The system files a run places; the Worker gets its own copy. */
+  systemEntries(reservation: Reservation): readonly FsEntry[] {
+    this.assertCurrent(reservation);
+    return this.#system;
   }
   /** Every installed guest, for the run that holds `reservation`. */
   installedGuests(reservation: Reservation) {

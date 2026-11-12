@@ -33,6 +33,15 @@ export const copyEntry = (entry: FsEntry): FsEntry =>
     ? { ...entry, data: new Uint8Array(entry.data) }
     : { ...entry };
 
+/** Paths the run itself fills: the guest, devices, procfs, scratch and installed guests. */
+const RESERVED_PATHS = Object.freeze([
+  '/guest',
+  '/dev',
+  '/proc',
+  '/tmp',
+  INSTALLED_GUEST_DIRECTORY,
+]);
+
 export function normalizeRoots(cwd: string, home: string) {
   const roots = [normalizePath(cwd), normalizePath(home)];
   for (const root of roots) {
@@ -40,13 +49,7 @@ export function normalizeRoots(cwd: string, home: string) {
     // its files would then be snapshotted and kept as the session's own.
     invalid(
       root !== '/' &&
-        !inRoots(root, [
-          '/guest',
-          '/dev',
-          '/proc',
-          '/tmp',
-          INSTALLED_GUEST_DIRECTORY,
-        ]) &&
+        !inRoots(root, RESERVED_PATHS) &&
         !inRoots(INSTALLED_GUEST_DIRECTORY, [root]),
       'reserved persistence root',
     );
@@ -185,6 +188,179 @@ export function validateEntries(
   );
 }
 
+/** At most this many system entries, and this many bytes of their files in all. */
+export const SYSTEM_ENTRY_LIMITS = Object.freeze({
+  entries: 4096,
+  bytes: 268435456,
+});
+
+/**
+ * The session's system files (ADR 0016): a dynamic linker, shared libraries
+ * or CA certificates, placed outside the persistence roots for every run and
+ * never snapshotted. They stay out of the roots and of the paths a run fills
+ * itself, and only a directory may hold either; a symlink may not lead into
+ * the roots, so the layer and the session's own files stay apart.
+ */
+export function validateSystemEntries(
+  entries: unknown,
+  roots: readonly string[],
+): FsEntry[] {
+  invalid(
+    Array.isArray(entries) && entries.length <= SYSTEM_ENTRY_LIMITS.entries,
+    `systemEntries must be an array of at most ${SYSTEM_ENTRY_LIMITS.entries} entries`,
+  );
+  const outside = (path: string) =>
+    path !== '/' && !inRoots(path, roots) && !inRoots(path, RESERVED_PATHS);
+  const holdsReserved = (path: string) =>
+    [...roots, ...RESERVED_PATHS].some((area) => inRoots(area, [path]));
+  const found = new Map<string, FsEntry>();
+  const inodes = new Map<string, Extract<FsEntry, { type: 'file' }>>();
+  let bytes = 0;
+  for (const raw of entries as unknown[]) {
+    invalid(isRecord(raw), 'system entry must be an object');
+    const path = normalizePath(raw.path);
+    invalid(
+      outside(path),
+      'system entry must lie outside the persistence roots and reserved paths',
+    );
+    invalid(!found.has(path), 'duplicate system entry path');
+    let entry: FsEntry;
+    if (raw.type === 'dir') {
+      validateMode(raw.mode);
+      entry = { path, type: 'dir', mode: raw.mode };
+    } else {
+      invalid(
+        !holdsReserved(path),
+        'only a system directory may hold the persistence roots or reserved paths',
+      );
+      if (raw.type === 'symlink') {
+        // Neither inside a root nor above one, as `/` or `..` would be.
+        const target = resolveLink(path, raw.target);
+        invalid(
+          target !== '/' &&
+            !inRoots(target, roots) &&
+            !roots.some((root) => inRoots(root, [target])),
+          'system symlink target leads into the persistence roots',
+        );
+        entry = { path, type: 'symlink', target: raw.target as string };
+      } else {
+        invalid(raw.type === 'file', 'system entry type is invalid');
+        // The path was checked above; the root given here is the path itself.
+        entry = validateEntry(raw, [path]);
+        bytes += (entry as Extract<FsEntry, { type: 'file' }>).data.length;
+        invalid(
+          bytes <= SYSTEM_ENTRY_LIMITS.bytes,
+          `system files exceed ${SYSTEM_ENTRY_LIMITS.bytes} bytes`,
+        );
+      }
+    }
+    found.set(path, entry);
+    if (entry.type !== 'file') continue;
+    const peer = inodes.get(entry.inodeId);
+    invalid(
+      !peer || (peer.mode === entry.mode && equalBytes(peer.data, entry.data)),
+      'hard-link group differs in data or mode',
+    );
+    inodes.set(entry.inodeId, entry);
+  }
+  for (const entry of [...found.values()]) {
+    for (
+      let parent = parentPath(entry.path);
+      parent !== '/';
+      parent = parentPath(parent)
+    ) {
+      const existing = found.get(parent);
+      invalid(
+        !existing || existing.type === 'dir',
+        'system entry has a non-directory parent',
+      );
+      if (!existing)
+        found.set(parent, { path: parent, type: 'dir', mode: 0o755 });
+    }
+  }
+  return [...found.values()].sort((a, b) =>
+    a.path < b.path ? -1 : a.path > b.path ? 1 : 0,
+  );
+}
+
+/** The longest PT_INTERP path taken, as Linux takes at most PATH_MAX. */
+const INTERPRETER_LENGTH = 4096;
+
+/** The program header table of an ELF that validateElf took. */
+function programHeaders(bytes: Uint8Array<ArrayBuffer>) {
+  const header = new DataView(bytes.buffer);
+  const offset = Number(header.getBigUint64(32, true));
+  return Array.from({ length: header.getUint16(56, true) }, (_, index) => {
+    const start = offset + index * 56;
+    return {
+      type: header.getUint32(start, true),
+      fileOffset: header.getBigUint64(start + 8, true),
+      fileSize: header.getBigUint64(start + 32, true),
+    };
+  });
+}
+
+/**
+ * The dynamic linker a guest names in PT_INTERP, or null for a static guest.
+ * Only an ELF that validateElf took may be passed.
+ */
+export function elfInterpreter(bytes: Uint8Array<ArrayBuffer>): string | null {
+  const interpreter = programHeaders(bytes).find(({ type }) => type === 3);
+  if (!interpreter) return null;
+  const start = Number(interpreter.fileOffset);
+  const text = bytes.subarray(start, start + Number(interpreter.fileSize));
+  return new TextDecoder().decode(text.subarray(0, text.length - 1));
+}
+
+/** At most this many symlinks are followed, as Linux's ELOOP limit. */
+const SYMLINK_LIMIT = 40;
+
+/**
+ * Refuses a dynamically linked guest whose dynamic linker the run would not
+ * find, so the caller sees the missing path instead of the core's failure.
+ * Symlinks are followed through `entries`, the files the run places.
+ */
+export function checkInterpreter(
+  guest: Uint8Array<ArrayBuffer>,
+  entries: readonly { path: string; type?: string; target?: string }[],
+) {
+  const interpreter = elfInterpreter(guest);
+  if (interpreter === null) return;
+  const byPath = new Map(entries.map((entry) => [entry.path, entry]));
+  let pending = interpreter.split('/').filter((part) => part && part !== '.');
+  let resolved: string[] = [];
+  let links = 0;
+  let found: { type?: string } | undefined;
+  while (pending.length > 0) {
+    const part = pending.shift()!;
+    if (part === '..') {
+      resolved.pop();
+      continue;
+    }
+    const path = `/${[...resolved, part].join('/')}`;
+    found = byPath.get(path);
+    if (found?.type === 'symlink') {
+      links++;
+      if (links > SYMLINK_LIMIT) break;
+      const target = (found as { target: string }).target;
+      if (target.startsWith('/')) resolved = [];
+      pending = [
+        ...target.split('/').filter((p) => p && p !== '.'),
+        ...pending,
+      ];
+      found = undefined;
+      continue;
+    }
+    resolved.push(part);
+  }
+  invalid(
+    found !== undefined &&
+      (found.type ?? 'file') === 'file' &&
+      links <= SYMLINK_LIMIT,
+    `ELF interpreter ${interpreter} is not in the session`,
+  );
+}
+
 export function validateElf(guest: unknown): Uint8Array<ArrayBuffer> {
   invalid(
     guest instanceof Uint8Array && guest.length >= 64,
@@ -215,10 +391,10 @@ export function validateElf(guest: unknown): Uint8Array<ArrayBuffer> {
     'ELF program headers exceed guest bounds',
   );
   let hasLoad = false;
+  let interpreters = 0;
   for (let index = 0; index < count; index++) {
     const start = Number(offset) + index * size;
     const type = header.getUint32(start, true);
-    invalid(type !== 3, 'dynamic ELF interpreter is unsupported');
     hasLoad ||= type === 1;
     const fileOffset = header.getBigUint64(start + 8, true);
     const fileSize = header.getBigUint64(start + 32, true);
@@ -226,6 +402,22 @@ export function validateElf(guest: unknown): Uint8Array<ArrayBuffer> {
       fileOffset + fileSize <= BigInt(bytes.length),
       'ELF segment exceeds guest bounds',
     );
+    if (type === 3) {
+      // PT_INTERP: one absolute path of the dynamic linker, ending in NUL.
+      interpreters++;
+      const text = bytes.subarray(
+        Number(fileOffset),
+        Number(fileOffset + fileSize),
+      );
+      invalid(
+        interpreters === 1 &&
+          text.length >= 2 &&
+          text.length <= INTERPRETER_LENGTH &&
+          text[0] === 0x2f &&
+          text.indexOf(0) === text.length - 1,
+        'ELF interpreter must be one absolute path ending in NUL',
+      );
+    }
     invalid(
       type !== 1 || fileSize <= header.getBigUint64(start + 40, true),
       'ELF load segment memory bounds are invalid',

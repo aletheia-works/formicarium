@@ -9,7 +9,7 @@ showcase page (Astro + Starlight, xterm.js)
   -> public API: createSession (/browser), createCommandSession, createInstaller, fixtureToFsEntries (root)
      -> Session: files, cwd and one run at a time
         -> Web Worker per run: paludarium compiled to WebAssembly
-           -> static x86-64 Linux ELF guest
+           -> x86-64 Linux ELF guest
 ```
 
 **Emulator.** formicarium runs paludarium, a user-mode x86-64 Linux emulator

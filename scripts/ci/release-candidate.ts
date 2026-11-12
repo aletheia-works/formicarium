@@ -159,6 +159,8 @@ async function preparePublic(root: string) {
 const CANDIDATE_GUESTS = Object.freeze([
   'probe',
   'hello',
+  'hello-dynamic',
+  'ld-musl-x86_64.so.1',
   'exit3',
   'aube',
   'aube.commit',

@@ -17,7 +17,8 @@ import type { ExecutionError } from '../../runtime/errors.js';
 import { createLifecycle } from '../../runtime/lifecycle.js';
 import { identity, workerErrorMessage } from '../../runtime/protocol.js';
 import { SessionState } from '../../runtime/state.js';
-import { elfHeader, fileEntry } from './fixtures.js';
+import { entryAt } from '../shared/assertions.js';
+import { dynamicElfHeader, elfHeader, fileEntry } from './fixtures.js';
 
 function fixture({
   cleanup = () => Promise.resolve(),
@@ -397,4 +398,88 @@ test('removed cwd snapshot commits only after cleanup and reset restores seed mo
   );
   assert.deepEqual(await session.readFile('/work/peer'), Uint8Array.of(9));
   await session.dispose();
+});
+
+test('system entries reach every run, stay out of snapshots and survive reset', async () => {
+  const workers: Pick<TestWorker, 'request' | 'handlers'>[] = [];
+  const linker = fileEntry('/lib/ld-musl-x86_64.so.1', Uint8Array.of(5), 0o755);
+  const state = new SessionState({
+    entries: [fileEntry()],
+    systemEntries: [linker],
+  });
+  const session = createLifecycle(state, {
+    spawn(request, handlers) {
+      workers.push({ request, handlers });
+      return { terminate: () => Promise.resolve() };
+    },
+  });
+  const finish = (exitCode = 0) => {
+    const worker = workers.at(-1)!;
+    worker.handlers.message({
+      ...identity(worker.request),
+      type: 'done',
+      result: {
+        runId: worker.request.runId,
+        exitCode,
+        elapsedMs: 1,
+        stdout: new Uint8Array(),
+        stderr: new Uint8Array(),
+      },
+      snapshot: worker.request.entries,
+    });
+  };
+  linker.data[0] = 0;
+  const first = session.run({ guest: dynamicElfHeader() });
+  await turn();
+  assert.deepEqual(
+    workers[0]!.request.systemEntries.map((entry) => entry.path),
+    ['/lib', '/lib/ld-musl-x86_64.so.1'],
+  );
+  assert.deepEqual(
+    entryAt(
+      workers[0]!.request.systemEntries,
+      '/lib/ld-musl-x86_64.so.1',
+      'file',
+    ).data,
+    Uint8Array.of(5),
+  );
+  assert.ok(
+    workers[0]!.request.entries.every(({ path }) => !path.startsWith('/lib')),
+  );
+  finish();
+  assert.equal((await first).exitCode, 0);
+  await assert.rejects(session.readFile('/lib/ld-musl-x86_64.so.1'), {
+    code: 'INVALID_INPUT',
+  });
+  assert.ok(
+    (await session.listEntries('/work')).every(
+      ({ path }) => !path.startsWith('/lib'),
+    ),
+  );
+  await session.reset();
+  const second = session.run({ guest: dynamicElfHeader() });
+  await turn();
+  assert.equal(workers[1]!.request.systemEntries.length, 2);
+  finish();
+  await second;
+});
+test('a dynamically linked guest without its dynamic linker never starts a Worker', async () => {
+  let spawned = 0;
+  const session = createLifecycle(new SessionState(), {
+    spawn() {
+      spawned++;
+      return { terminate: () => Promise.resolve() };
+    },
+  });
+  await assert.rejects(session.run({ guest: dynamicElfHeader() }), {
+    code: 'INVALID_INPUT',
+    message: 'ELF interpreter /lib/ld-musl-x86_64.so.1 is not in the session',
+  });
+  assert.equal(spawned, 0);
+  // The refused run released its reservation, so the session is idle again.
+  assert.deepEqual(await session.listEntries('/work'), []);
+  assert.throws(
+    () => new SessionState({ systemEntries: [fileEntry('/work/lib.so')] }),
+    { code: 'INVALID_INPUT' },
+  );
 });

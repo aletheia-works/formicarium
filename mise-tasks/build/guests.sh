@@ -4,7 +4,8 @@
 # usage: mise run build-guests [probe|aube|pitchfork|nano|git|jj|all]
 # static-musl x86-64 のゲストをコンテナ（rust:alpine）でビルドし、dist/guests/ に置く。
 #   probe     : guest/probe の probe・hello・exit3・ttyecho・spawn と、パッケージのテストが使う
-#               tests/package/fixtures/guest.rs の fixture
+#               tests/package/fixtures/guest.rs の fixture。hello と同じ出力をする動的リンクの
+#               hello-dynamic（guest/dynamic/hello.c）と、その動的リンカ ld-musl-x86_64.so.1（ADR 0016 の確認用）
 #   aube      : aubepkg/aube の AUBE_REF（既定 v2.8.5）
 #   pitchfork : jdx/pitchfork（公式リポジトリ）の PITCHFORK_REF（既定 v2.32.4）。ソースは変えない
 #   nano      : GNU nano NANO_VERSION（既定 9.3）。ncurses NCURSES_VERSION（既定 6.6）に
@@ -15,6 +16,7 @@
 # git から取得したゲストは、取得したコミットを dist/guests/<name>.commit に記録する。nano と git は tarball から
 # ビルドするので .commit はなく、版と確かめた SHA-256 を dist/guests/<name>.build-info に記録する。
 # ビルド後、dist/guests/ にあるすべてのゲストが x86-64 の static な ELF であることを確かめる。
+# dynamic_guests のゲストだけは、PT_INTERP が /lib/ld-musl-x86_64.so.1 であることを確かめる。
 # runtime/registry.js の GUESTS にあるゲストは、すべて下の guests に含める
 # （tests/node/runner.test.js で確かめる）。
 # コンテナは scripts/lib/container.sh の規則で選ぶ（wslc を優先し、使えなければ docker）。
@@ -28,7 +30,9 @@ what=${1:-all}
 case $what in probe|aube|pitchfork|nano|git|jj|all) ;; *) echo "usage: $0 [probe|aube|pitchfork|nano|git|jj|all]" >&2; exit 2;; esac
 
 # ビルドで作られるゲストの一覧（生成物の確認に使う）
-guests="probe hello exit3 ttyecho fixture aube pitchfork nano git git-remote-https jj"
+guests="probe hello hello-dynamic exit3 ttyecho fixture aube pitchfork nano git git-remote-https jj"
+# 動的リンクのゲスト（Session の systemEntries に動的リンカを置いて動かす）
+dynamic_guests="hello-dynamic"
 
 image=${FORMICARIUM_RUST_IMAGE:-rust:alpine}
 aube_repo=${AUBE_REPO:-https://github.com/aubepkg/aube.git}
@@ -81,7 +85,7 @@ target=x86_64-unknown-linux-musl
 mkdir -p "$root/dist/guests"
 
 build_probe() {
-  echo "== probe・hello・exit3・ttyecho・spawn・fixture をビルド（${image}）"
+  echo "== probe・hello・hello-dynamic・exit3・ttyecho・spawn・fixture をビルド（${image}）"
   container_run "$image" dist/guests "
     apk add --no-cache musl-dev >/dev/null
     cargo build --release --locked --target $target \
@@ -91,7 +95,12 @@ build_probe() {
     done
     rustc --edition 2021 -C opt-level=2 -C strip=symbols --target $target \
       -o /out/fixture tests/package/fixtures/guest.rs
-  " guest/probe/Cargo.toml guest/probe/Cargo.lock guest/probe/src tests/package/fixtures/guest.rs
+    # Alpine の cc は既定で動的リンク。libc だけを使うので、要るのは /lib/ld-musl-x86_64.so.1 だけ
+    cc -O2 -s -o /out/hello-dynamic guest/dynamic/hello.c
+    cp /lib/ld-musl-x86_64.so.1 /out/ld-musl-x86_64.so.1
+    apk info -e -v musl > /out/ld-musl-x86_64.so.1.version
+  " guest/probe/Cargo.toml guest/probe/Cargo.lock guest/probe/src tests/package/fixtures/guest.rs \
+    guest/dynamic/hello.c
 }
 
 build_aube() {
@@ -279,10 +288,11 @@ case $what in
 esac
 
 # 生成物が static な ELF であること（プログラムヘッダに PT_INTERP がない）を確かめる。
+# 2 つ目の引数を渡すと、PT_INTERP がちょうどその動的リンカを指すことを確かめる。
 # ELF64 のヘッダ：e_phoff は 32 バイト目から 8 バイト、e_phentsize は 54、e_phnum は 56（リトルエンディアン）。
 # od の -tu はホストのバイト順で読むので、リトルエンディアンのホスト（x86-64 など）を前提にする。
 check_static_elf() {
-  local bin=$1 class data phoff phentsize phnum i p_type
+  local bin=$1 interpreter=${2:-} class data phoff phentsize phnum i p_type p_offset p_filesz found=
   class=$(od -An -tu1 -j4 -N1 "$bin" | tr -d ' \n')
   data=$(od -An -tu1 -j5 -N1 "$bin" | tr -d ' \n')
   if [ "$class" != 2 ] || [ "$data" != 1 ]; then
@@ -299,10 +309,19 @@ check_static_elf() {
   for ((i = 0; i < phnum; i++)); do
     p_type=$(od -An -tu4 -j$((phoff + i * phentsize)) -N4 "$bin" | tr -d ' \n')
     if [ "$p_type" = 3 ]; then
-      echo "error: $bin は動的リンクです（PT_INTERP があります）" >&2
-      return 1
+      if [ -z "$interpreter" ]; then
+        echo "error: $bin は動的リンクです（PT_INTERP があります）" >&2
+        return 1
+      fi
+      p_offset=$(od -An -tu8 -j$((phoff + i * phentsize + 8)) -N8 "$bin" | tr -d ' \n')
+      p_filesz=$(od -An -tu8 -j$((phoff + i * phentsize + 32)) -N8 "$bin" | tr -d ' \n')
+      found=$(head -c $((p_offset + p_filesz - 1)) "$bin" | tail -c $((p_filesz - 1)))
     fi
   done
+  if [ -n "$interpreter" ] && [ "$found" != "$interpreter" ]; then
+    echo "error: $bin の PT_INTERP が ${interpreter} ではありません（${found:-なし}）" >&2
+    return 1
+  fi
 }
 
 # 生成物が x86-64 の ELF であることを確かめる（e_ident と e_machine）。あわせて static であることも確かめる。
@@ -315,6 +334,9 @@ for name in $guests; do
     echo "error: $bin は x86-64 の ELF ではありません" >&2
     exit 1
   fi
-  check_static_elf "$bin" || exit 1
+  case " $dynamic_guests " in
+    *" $name "*) check_static_elf "$bin" /lib/ld-musl-x86_64.so.1 || exit 1 ;;
+    *) check_static_elf "$bin" || exit 1 ;;
+  esac
 done
 ls -la "$root/dist/guests"

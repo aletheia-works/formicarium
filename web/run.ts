@@ -10,7 +10,7 @@ import {
 import { createSession } from '../runtime/web/api.js';
 import type { FsEntry, OutputChunk, Session } from '../types/index.js';
 import type { parseRunRequest } from './sessions.js';
-import { GUEST_ENV, GUESTS, SESSIONS } from './sessions.js';
+import { GUEST_ENV, GUEST_SYSTEM, GUESTS, SESSIONS } from './sessions.js';
 
 type Request = ReturnType<typeof parseRunRequest>;
 export interface Outcome {
@@ -76,7 +76,16 @@ async function runGuest(
   sink: Sink,
 ): Promise<Outcome> {
   const guest = await fetchBytes(GUESTS[name]!);
-  const session = await createSession({ assets });
+  const systemEntries: FsEntry[] = await Promise.all(
+    Object.entries(GUEST_SYSTEM[name] ?? {}).map(async ([path, file]) => ({
+      path,
+      type: 'file' as const,
+      mode: 0o755,
+      inodeId: path,
+      data: await fetchBytes(file),
+    })),
+  );
+  const session = await createSession({ assets, systemEntries });
   const input = stdin === null ? null : typedInput(stdin);
   const output = textOutput(sink);
   try {

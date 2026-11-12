@@ -100,6 +100,12 @@ export async function executeWorkerRequest(
       // An installed guest is already placed in INSTALLED_GUEST_DIRECTORY.
       guestPath: request.program ?? '/guest/program',
       entries: [
+        // A NUL never appears in a session inodeId, so the layers share no inode.
+        ...request.systemEntries.map((entry) =>
+          entry.type === 'file'
+            ? { ...entry, inodeId: `\0system:${entry.inodeId}` }
+            : entry,
+        ),
         ...request.entries,
         ...(request.program
           ? []
