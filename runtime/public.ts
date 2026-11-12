@@ -1,3 +1,6 @@
+// JSR and Deno read the types of this entry from its declaration file.
+// @ts-self-types="../types/index.d.ts"
+
 export { ERROR_CODES, ExecutionError } from './errors.js';
 
 import type { RunOptions, RunResult, Session } from '../types/index.js';

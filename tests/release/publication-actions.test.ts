@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { delimiter, join } from 'node:path';
 import type { TestContext } from 'node:test';
 import test from 'node:test';
 import { parse } from 'yaml';
@@ -168,4 +168,107 @@ test('existing release-please release receives the verified asset without recrea
   );
   assert.equal(calls[1].args[2], TAG);
   assert.ok(!calls[1].args.includes('--clobber'));
+});
+
+/**
+ * Run the actual YAML shell steps of the JSR job on a real tarball, each in
+ * its own working directory. Only the JSR write is replaced, by a fake that
+ * logs its arguments and directory; the registry lookup is tested on its own.
+ */
+async function jsrActions(
+  t: TestContext,
+  { distTag = 'latest', version = TAG.slice(1), tamper = false } = {},
+) {
+  const root = await mkdtemp(join(tmpdir(), 'formicarium-jsr-yaml-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const bin = join(root, 'bin');
+  await mkdir(bin);
+  const log = join(root, 'calls.jsonl');
+  await writeFile(
+    join(bin, 'bunx'),
+    `#!${process.execPath}\nrequire('node:fs').appendFileSync(process.env.CALL_LOG, JSON.stringify({args:process.argv.slice(2), files:require('node:fs').readdirSync('.').sort()})+'\\n');\n`,
+    { mode: 0o755 },
+  );
+  if (
+    process.platform === 'darwin' ||
+    spawnSync('sha256sum', ['--version']).error
+  )
+    await writeFile(
+      join(bin, 'sha256sum'),
+      '#!/bin/sh\nexec shasum -a 256 "$@"\n',
+      { mode: 0o755 },
+    );
+  const source = join(root, 'source', 'package');
+  await mkdir(source, { recursive: true });
+  await writeFile(
+    join(source, 'jsr.json'),
+    JSON.stringify({ name: '@aletheia-works/formicarium', version }),
+  );
+  await writeFile(join(source, 'README.md'), 'verified');
+  const pub = join(root, '.artifacts', 'publication-package');
+  await mkdir(pub, { recursive: true });
+  // Relative paths: GNU tar on Windows reads C: as a remote host.
+  const tar = spawnSync(
+    'tar',
+    ['-czf', '../.artifacts/publication-package/candidate.tgz', 'package'],
+    { cwd: join(root, 'source'), encoding: 'utf8' },
+  );
+  assert.equal(tar.status, 0, tar.stderr);
+  const bytes = await readFile(join(pub, 'candidate.tgz'));
+  if (tamper) await writeFile(join(pub, 'candidate.tgz'), 'tampered');
+  const env = {
+    ...process.env,
+    // Git Bash converts a Windows PATH, which ; separates.
+    PATH: `${bin}${delimiter}${process.env.PATH}`,
+    CALL_LOG: log,
+    EXPECTED_SHA256: createHash('sha256').update(bytes).digest('hex'),
+    DIST_TAG: distTag,
+    VERSION: TAG.slice(1),
+  };
+  for (const step of workflow.jobs.jsr.steps.filter(
+    (s: { run?: string; id?: string }) =>
+      s.run && s.id !== 'registry' && s.id !== 'select-package',
+  )) {
+    const result = spawnSync('bash', ['-c', step.run], {
+      cwd: join(root, step['working-directory']),
+      env,
+      encoding: 'utf8',
+    });
+    if (result.error) throw result.error;
+    if (result.status !== 0)
+      return {
+        failed: true,
+        failure: result.stderr + result.stdout,
+        calls: await readFile(log, 'utf8').catch(() => ''),
+      };
+  }
+  return {
+    failed: false,
+    failure: '',
+    calls: (await readFile(log, 'utf8'))
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line)),
+  };
+}
+
+test('JSR YAML publishes the files of the verified tarball only', async (t) => {
+  assert.deepEqual(await jsrActions(t), {
+    failed: false,
+    failure: '',
+    calls: [
+      { args: ['jsr@latest', 'publish'], files: ['README.md', 'jsr.json'] },
+    ],
+  });
+  for (const [options, reason] of [
+    [{ tamper: true }, /checksum|FAILED/],
+    // jsr.json must carry the version being released.
+    [{ version: '0.1.9' }, /^$/],
+    [{ distTag: 'next' }, /dist-tag must be latest, got next/],
+  ] as const) {
+    const result = await jsrActions(t, options);
+    assert.equal(result.failed, true);
+    assert.match(result.failure, reason);
+    assert.equal(result.calls, '');
+  }
 });

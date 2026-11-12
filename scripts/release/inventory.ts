@@ -46,6 +46,7 @@ export const PACKAGE_FILES = Object.freeze([
   'assets/paludarium/THIRD-PARTY-NOTICES.txt',
   'LICENSE',
   'README.md',
+  'jsr.json',
   'package.json',
 ]);
 export const sha256 = (bytes: string | Uint8Array) =>

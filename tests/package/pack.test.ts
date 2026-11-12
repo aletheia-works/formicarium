@@ -37,7 +37,7 @@ test('real tarball inventory is exactly the fixed public files', () => {
     .map((path) => path.slice(8));
   assert.deepEqual(paths.sort(), [...PACKAGE_FILES].sort());
   assert.equal(FIRST_PARTY_JS.length, 23);
-  assert.equal(PACKAGE_FILES.length, 41);
+  assert.equal(PACKAGE_FILES.length, 42);
 });
 test('real tarball every file matches staged manifest digest', () => {
   assert.deepEqual(

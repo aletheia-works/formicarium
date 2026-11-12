@@ -164,6 +164,75 @@ test('registry recovery skips identical bytes and refuses mismatches and lookup 
   );
 });
 
+test('JSR recovery skips identical files and refuses other files, identities and lookup failures', async (t) => {
+  const root = await mkdtemp(join(tmpdir(), 'formicarium-jsr-registry-'));
+  t.after(async () => {
+    const { rm } = await import('node:fs/promises');
+    await rm(root, { recursive: true, force: true });
+  });
+  const script = workflow.jobs.jsr.steps
+    .find((s: any) => s.id === 'registry')
+    .run.split("<<'JS'\n")[1]
+    .replace(/\nJS\s*$/, '');
+  const config = {
+    name: '@aletheia-works/formicarium',
+    version: '0.2.1',
+    publish: { include: ['README.md', 'jsr.json'] },
+  };
+  const entry = (bytes: string) => ({
+    size: Buffer.byteLength(bytes),
+    checksum: `sha256-${createHash('sha256').update(bytes).digest('hex')}`,
+  });
+  const check = async (
+    status: number,
+    manifest: unknown,
+    local: object = config,
+  ) => {
+    const dir = await mkdtemp(join(root, 'package-'));
+    await writeFile(join(dir, 'jsr.json'), JSON.stringify(local));
+    await writeFile(join(dir, 'README.md'), 'verified');
+    const output = join(dir, 'output');
+    const stub = `globalThis.fetch=async url=>{if(String(url)!=='https://jsr.io/@aletheia-works/formicarium/0.2.1_meta.json')throw Error('unexpected '+url);return new Response(JSON.stringify(${JSON.stringify({ manifest })}),{status:${status}});};\n`;
+    const result = spawnSync(
+      process.execPath,
+      ['--input-type=module', '--eval', stub + script],
+      {
+        cwd: dir,
+        encoding: 'utf8',
+        env: { ...process.env, VERSION: '0.2.1', GITHUB_OUTPUT: output },
+      },
+    );
+    return {
+      status: result.status,
+      output: await readFile(output, 'utf8').catch(() => ''),
+    };
+  };
+  const published = {
+    '/README.md': entry('verified'),
+    '/jsr.json': entry(JSON.stringify(config)),
+  };
+  assert.deepEqual(await check(404, undefined), {
+    status: 0,
+    output: 'skip=false\n',
+  });
+  assert.deepEqual(await check(200, published), {
+    status: 0,
+    output: 'skip=true\n',
+  });
+  for (const [status, manifest, local] of [
+    [500, undefined, config],
+    [200, { ...published, '/README.md': entry('altered') }, config],
+    [200, { '/jsr.json': published['/jsr.json'] }, config],
+    [200, { ...published, '/extra.js': entry('') }, config],
+    [404, undefined, { ...config, version: '0.2.0' }],
+    [404, undefined, { ...config, name: '@other/formicarium' }],
+  ] as const) {
+    const r = await check(status, manifest, local);
+    assert.notEqual(r.status, 0);
+    assert.equal(r.output, '');
+  }
+});
+
 test('source CI, measured package and writers form a same-run dependency chain', async () => {
   const ci = parse(await readFile('.github/workflows/ci.yml', 'utf8'));
   const candidate = parse(
@@ -173,6 +242,7 @@ test('source CI, measured package and writers form a same-run dependency chain',
   assert.equal(workflow.jobs.verify.needs, 'authorize');
   assert.equal(workflow.jobs.publish.needs, 'verify');
   assert.deepEqual(workflow.jobs.release.needs, ['verify', 'publish']);
+  assert.deepEqual(workflow.jobs.jsr.needs, ['verify', 'publish']);
   assert.equal(
     ci.on.workflow_call.outputs['candidate-sha256'].value,
     '${{ jobs.release-candidate.outputs.sha256 }}',
@@ -190,10 +260,11 @@ test('source CI, measured package and writers form a same-run dependency chain',
   assert.match(exportStep.run, /coverage.lines.pct < 80/);
   assert.match(exportStep.run, /coverage.files.length !== 23/);
   assert.equal(exportStep.if, undefined);
-  assert.equal(
-    workflow.jobs.publish.steps.at(-1).if,
-    "steps.registry.outputs.skip == 'false'",
-  );
+  for (const name of ['publish', 'jsr'])
+    assert.equal(
+      workflow.jobs[name].steps.at(-1).if,
+      "steps.registry.outputs.skip == 'false'",
+    );
   assert.doesNotMatch(
     JSON.stringify(workflow),
     /FORMICARIUM_RELEASE_INPUT|rcAdoption|humanInput|NPM_TOKEN/,

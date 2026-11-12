@@ -1,22 +1,25 @@
 ---
 
 title: Package releases
-description: How a formicarium version goes from a release PR to npm.
+description: How a formicarium version goes from a release PR to npm and JSR.
 ---
 
 Releases are automated as in vivarium. release-please prepares a release PR from
 Conventional Commits. Merging it after the required checks is the approval of
 that version: it creates the matching `v<version>` tag and GitHub Release, and
 `publish.yml` publishes the verified package to npm with trusted publishing
-(OIDC). As in vivarium and paludarium,
+(OIDC), and then the same package's files to JSR, also over OIDC. As in
+vivarium and paludarium,
 there are no prerelease versions: every version is stable and goes to npm's
 `latest` dist-tag. The CI job named release candidate checks the tarball that
 will be published; it is not a prerelease.
 
 ## Version and triggers
 
-`package.json` and the release-please manifest carry the same version, and so do
-the stable tag and the GitHub Release. The development package at the
+`package.json`, `jsr.json` and the release-please manifest carry the same
+version, and so do the stable tag and the GitHub Release; the release PR updates
+`jsr.json` as an extra file. `jsr.json` ships in the npm package, so JSR
+receives exactly its files apart from `package.json`. The development package at the
 repository root stays private; the staged distribution is public.
 
 A commit that touches only the showcase (`showcase/`, `mise-tasks/showcase/` and
@@ -32,7 +35,8 @@ Monday at 00:23 UTC, but only while the variable
 are merged by hand. The organisation's bot (`BOT_CLIENT_ID`,
 `BOT_PRIVATE_KEY`) creates the tag so that it can trigger Actions. npm trusts
 exactly the repository `aletheia-works/formicarium`, the workflow
-`publish.yml` and the environment `release`.
+`publish.yml` and the environment `release`. JSR accepts OIDC from the GitHub
+repository linked in the package's settings on jsr.io.
 
 ## Checks before publishing
 
@@ -40,7 +44,9 @@ The release PR runs every CI group: lint, types and light tests, the native
 baselines, the Node.js, Chromium, Firefox and WebKit regressions, real Safari
 on macOS and in an iOS Simulator, and the
 release candidate, which packs the exact tarball and requires at least 80% line
-coverage of the 23 distributed JavaScript files. The candidate is packed once;
+coverage of the 23 distributed JavaScript files, and runs
+`jsr publish --dry-run` on the unpacked tarball, which refuses slow types and
+files JSR would reject. The candidate is packed once;
 Node.js and each browser then check those bytes in parallel jobs, each with one
 worker and no retries, and a last job merges their checks and coverage. It
 counts a part only if it measured the same inputs and instrumentation.
@@ -79,6 +85,12 @@ Different bytes or a registry error stop the release. The verified tarball is
 attached to the release-please GitHub Release without replacing existing assets
 or notes. An unknown publication result is never resent blindly.
 
+After npm, the JSR job takes the same tarball, checks its SHA-256, unpacks it
+and runs `bunx jsr@latest publish` in the unpacked package, without a checkout
+and without a token. It first reads the version's `_meta.json` from jsr.io: a
+missing version is published, and an existing one is skipped only when its
+manifest lists exactly the files of `jsr.json` with the same sizes and SHA-256.
+
 A defective release is fixed in the next patch release; publishing stops and
 users are pointed to the last good version.
 
@@ -88,5 +100,5 @@ The workflow's shell steps are tested with fake GitHub and registry responses
 and fake writers: release, head and source identity, failed CI, version drift,
 modified tarballs, coverage refusal and recovery of the same version. CI on the
 release PR, and on a PR that changes the candidate's own code, runs the real
-candidate preparation, regression and coverage; npm
-OIDC and tag authorization need a real release tag.
+candidate preparation, regression and coverage, and the JSR dry run; npm and
+JSR OIDC and tag authorization need a real release tag.

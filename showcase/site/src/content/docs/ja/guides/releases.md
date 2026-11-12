@@ -10,7 +10,7 @@ release-please が Conventional Commits から release の PR を作ります。
 check の後に merge する（手で、または有効にしたときは毎週の `release-merge.yml` で）と
 `v<version>` の tag と GitHub Release ができ、
 `publish.yml` が検証済みの tarball を trusted publishing と provenance で npm に
-公開します。既にある版を置き換えることはありません。チェックの詳細は
+公開し、続けてそのファイルを JSR に公開します。既にある版を置き換えることはありません。チェックの詳細は
 [パッケージの公開](/formicarium/ja/development/releases/)にあります。
 
 ## showcase

@@ -22,6 +22,7 @@ export function validatePublishWorkflow(text: string) {
   requireCondition(
     same(Object.keys(w.jobs).sort(), [
       'authorize',
+      'jsr',
       'publish',
       'release',
       'verify',
@@ -65,20 +66,33 @@ export function validatePublishWorkflow(text: string) {
       }),
     'verification dependency/permissions differ',
   );
-  for (const name of ['publish', 'release']) {
+  // Both registries take the verified tarball over OIDC; JSR gets it after npm.
+  const NEEDS: Record<string, unknown> = {
+    publish: 'verify',
+    jsr: ['verify', 'publish'],
+    release: ['verify', 'publish'],
+  };
+  const WRITERS: Record<string, string> = {
+    publish:
+      'bunx npm@latest publish ./candidate.tgz --provenance --access public --registry https://registry.npmjs.org/ --tag "$DIST_TAG" --ignore-scripts',
+    jsr: 'bunx jsr@latest publish',
+    release: 'gh release upload "$RELEASE_TAG" ./candidate.tgz',
+  };
+  for (const name of ['publish', 'jsr', 'release']) {
     const job = w.jobs[name];
+    const registry = name !== 'release';
     requireCondition(
       job.if === origin && job.environment === 'release',
       'publication environment/origin differs',
     );
     requireCondition(
-      same(job.needs, name === 'publish' ? 'verify' : ['verify', 'publish']),
+      same(job.needs, NEEDS[name]),
       'publication dependency differs',
     );
     requireCondition(
       same(
         job.permissions,
-        name === 'publish'
+        registry
           ? { contents: 'read', 'id-token': 'write' }
           : { contents: 'write' },
       ),
@@ -118,15 +132,48 @@ export function validatePublishWorkflow(text: string) {
     );
     requireCondition(
       job.steps.filter((s: any) => s.run).length ===
-        (name === 'publish' ? 4 : 3),
+        { publish: 4, jsr: 5, release: 3 }[name],
       'unvalidated publication steps',
     );
-    if (name === 'publish') {
-      const registry = job.steps.find((s: any) => s.id === 'registry');
+    if (name === 'jsr') {
+      // JSR publishes the files of the checked tarball, never the checkout.
+      const unpack = job.steps.find((s: any) => s.id === 'unpack');
       requireCondition(
-        registry &&
-          job.steps.indexOf(digest) < job.steps.indexOf(registry) &&
-          registry.run.includes('digest !== process.env.EXPECTED_SHA256') &&
+        unpack?.run.includes('tar -xzf candidate.tgz') &&
+          job.steps.indexOf(digest) < job.steps.indexOf(unpack) &&
+          job.steps.every(
+            (s: any) => !s.uses?.startsWith('actions/checkout@'),
+          ) &&
+          job.steps
+            .slice(job.steps.indexOf(unpack) + 1)
+            .every(
+              (s: any) =>
+                s['working-directory'] ===
+                '.artifacts/publication-package/package',
+            ),
+        'verified JSR files required',
+      );
+      // No flag may let JSR publish more than jsr.json names.
+      requireCondition(
+        job.steps
+          .at(-1)
+          .run.split('\n')
+          .map((line: string) => line.trim())
+          .filter((line: string) => line.startsWith('bunx '))
+          .join('\n') === WRITERS.jsr,
+        'unvalidated publication command',
+      );
+    }
+    if (registry) {
+      const lookup = job.steps.find((s: any) => s.id === 'registry');
+      requireCondition(
+        lookup &&
+          job.steps.indexOf(digest) < job.steps.indexOf(lookup) &&
+          lookup.run.includes(
+            name === 'publish'
+              ? 'digest !== process.env.EXPECTED_SHA256'
+              : 'manifest[path].checksum !== expected[path].checksum',
+          ) &&
           job.steps.at(-1).if === "steps.registry.outputs.skip == 'false'",
         'registry integrity gate missing',
       );
@@ -134,15 +181,11 @@ export function validatePublishWorkflow(text: string) {
     const writer = job.steps.at(-1);
     requireCondition(
       job.steps.indexOf(digest) < job.steps.indexOf(writer) &&
-        writer.run.includes(
-          name === 'publish'
-            ? 'bunx npm@latest publish ./candidate.tgz --provenance --access public --registry https://registry.npmjs.org/ --tag "$DIST_TAG" --ignore-scripts'
-            : 'gh release upload "$RELEASE_TAG" ./candidate.tgz',
-        ),
+        writer.run.includes(WRITERS[name] as string),
       'unvalidated publication command',
     );
-    // Every release is stable (no RCs) and goes to latest, so both writers
-    // refuse any other dist-tag themselves.
+    // Every release is stable (no RCs) and goes to latest, so every writer
+    // refuses any other dist-tag itself.
     requireCondition(
       writer.run.includes(
         '[[ "$DIST_TAG" == latest ]] || { echo "dist-tag must be latest, got $DIST_TAG" >&2; exit 1; }',

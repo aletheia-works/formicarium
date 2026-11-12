@@ -22,10 +22,35 @@ test('automatic workflow delegates full source-bound CI and exports only a verif
     /FORMICARIUM_RELEASE_INPUT|publication-cli|rcAdoption/,
   );
 });
+test('JSR takes only the unpacked verified tarball, through its own lookup', () => {
+  for (const mutate of [
+    // Publishing a checkout would skip the verified bytes.
+    (w: any) =>
+      w.jobs.jsr.steps.splice(1, 0, {
+        uses: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
+      }),
+    (w: any) =>
+      (w.jobs.jsr.steps.at(-1)['working-directory'] =
+        '.artifacts/publication-package'),
+    (w: any) => (w.jobs.jsr.steps.find((s: any) => s.id === 'unpack').id = 'x'),
+    (w: any) =>
+      (w.jobs.jsr.steps.find((s: any) => s.id === 'registry').run = 'true'),
+    (w: any) => delete w.jobs.jsr.steps.at(-1).if,
+    (w: any) =>
+      (w.jobs.jsr.steps.at(-1).run = 'bunx jsr@latest publish --allow-dirty'),
+  ]) {
+    const workflow = parse(text);
+    mutate(workflow);
+    assert.throws(() => validatePublishWorkflow(stringify(workflow)));
+  }
+});
 test('failed prerequisite cannot bypass dependencies permissions or tag serialization', () => {
   for (const mutate of [
     (w: any) => (w.jobs.publish.needs = 'authorize'),
     (w: any) => (w.jobs.release.needs = 'verify'),
+    (w: any) => (w.jobs.jsr.needs = 'verify'),
+    (w: any) => (w.jobs.jsr.permissions.contents = 'write'),
+    (w: any) => (w.jobs.jsr.environment = undefined),
     (w: any) => (w.jobs.verify.permissions.contents = 'write'),
     (w: any) => (w.concurrency['cancel-in-progress'] = true),
   ]) {
@@ -33,7 +58,7 @@ test('failed prerequisite cannot bypass dependencies permissions or tag serializ
     mutate(workflow);
     assert.throws(
       () => validatePublishWorkflow(stringify(workflow)),
-      /dependency|permissions|concurrency/,
+      /dependency|permissions|concurrency|environment/,
     );
   }
 });

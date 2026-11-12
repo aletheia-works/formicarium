@@ -130,6 +130,87 @@ jobs:
           [[ "$DIST_TAG" == latest ]] || { echo "dist-tag must be latest, got $DIST_TAG" >&2; exit 1; }
           bunx npm@latest publish ./candidate.tgz --provenance --access public --registry https://registry.npmjs.org/ --tag "$DIST_TAG" --ignore-scripts
 
+  jsr:
+    # JSR receives the files of the same verified tarball, after npm has it.
+    needs: [verify, publish]
+    if: github.event_name == 'push' && github.repository == 'aletheia-works/formicarium' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: release
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      EXPECTED_SHA256: ${{ needs.verify.outputs.candidate-sha256 }}
+      DIST_TAG: ${{ needs.verify.outputs.candidate-dist-tag }}
+      VERSION: ${{ needs.verify.outputs.candidate-version }}
+    steps:
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: latest
+      - name: Download this run's verified package
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          name: ${{ needs.verify.outputs.candidate-artifact }}
+          path: .artifacts/downloaded-candidate
+      - name: Select the verified tarball
+        id: select-package
+        run: |
+          mkdir -p .artifacts/publication-package
+          cp .artifacts/downloaded-candidate/release-candidate/candidate.tgz .artifacts/publication-package/candidate.tgz
+      - name: Verify package digest
+        id: digest
+        working-directory: .artifacts/publication-package
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_SHA256" =~ ^[a-f0-9]{64}$ ]]
+          printf '%s  candidate.tgz\n' "$EXPECTED_SHA256" | sha256sum --check --strict
+      - name: Unpack the verified tarball
+        id: unpack
+        working-directory: .artifacts/publication-package
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -xzf candidate.tgz
+          test "$(jq -r .version package/jsr.json)" = "$VERSION"
+      - name: Refuse conflicting existing JSR versions; resume an identical publication
+        id: registry
+        working-directory: .artifacts/publication-package/package
+        run: |
+          bun - <<'JS'
+          import { appendFileSync, readFileSync } from 'node:fs';
+          import { createHash } from 'node:crypto';
+          const version = process.env.VERSION;
+          if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version)) throw Error('stable version required');
+          const config = JSON.parse(readFileSync('jsr.json', 'utf8'));
+          if (config.name !== '@aletheia-works/formicarium' || config.version !== version) throw Error('jsr.json identity differs');
+          const response = await fetch(`https://jsr.io/@aletheia-works/formicarium/${version}_meta.json`, {signal: AbortSignal.timeout(30000)});
+          let skip = false;
+          if (response.status !== 404) {
+            if (!response.ok) throw Error(`JSR lookup failed: ${response.status}`);
+            // JSR keeps each file as published, with its size and SHA-256.
+            const manifest = (await response.json()).manifest ?? {};
+            const expected = Object.fromEntries(config.publish.include.map((path) => {
+              const bytes = readFileSync(path);
+              return [`/${path}`, {size: bytes.length, checksum: `sha256-${createHash('sha256').update(bytes).digest('hex')}`}];
+            }));
+            const paths = Object.keys(expected).sort();
+            if (JSON.stringify(Object.keys(manifest).sort()) !== JSON.stringify(paths) || paths.some((path) => manifest[path].size !== expected[path].size || manifest[path].checksum !== expected[path].checksum)) throw Error('existing JSR version has different files; never overwrite');
+            skip = true;
+          }
+          appendFileSync(process.env.GITHUB_OUTPUT, `skip=${skip}\n`);
+          JS
+      - name: Publish the verified files with JSR OIDC
+        if: steps.registry.outputs.skip == 'false'
+        working-directory: .artifacts/publication-package/package
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$DIST_TAG" == latest ]] || { echo "dist-tag must be latest, got $DIST_TAG" >&2; exit 1; }
+          bunx jsr@latest publish
+
   release:
     needs: [verify, publish]
     if: github.event_name == 'push' && github.repository == 'aletheia-works/formicarium' && startsWith(github.ref, 'refs/tags/v')

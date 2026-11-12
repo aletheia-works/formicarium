@@ -13,7 +13,7 @@ reproduction run as-is in a web page.
   has terminals that install and run aube, pitchfork, Biome, nano, jj and git in your
   browser.
 - **Package:** [`@aletheia-works/formicarium`](https://www.npmjs.com/package/@aletheia-works/formicarium)
-  on npm.
+  on npm and [JSR](https://jsr.io/@aletheia-works/formicarium).
 - **Documentation:** the [site](https://aletheia-works.github.io/formicarium/)
   has guides (including the install and command APIs) and a Development
   section (runtime architecture, design decisions), in English and Japanese.
@@ -42,13 +42,17 @@ safaridriver cannot drive); a real iPhone is not tested.
 npm install @aletheia-works/formicarium
 ```
 
-Node.js 26 or later is required.
+Node.js 26 or later is required. The same package is on JSR:
+
+```sh
+deno add jsr:@aletheia-works/formicarium
+```
 
 The `/node` entry also runs in Deno (2.9.8 is the version tested), imported
-with `npm:` or from a URL. It writes the verified core to a private temporary
-directory, so give it `--allow-read`, `--allow-write` and `--allow-env`, and
-`--allow-net` for the host it is loaded from (with `--allow-import` too when
-imported from a URL).
+with `jsr:`, `npm:` or from a URL. It writes the verified core to a private
+temporary directory, so give it `--allow-read`, `--allow-write` and
+`--allow-env`, and `--allow-net` for the host it is loaded from (with
+`--allow-import` too when imported from a URL).
 
 ## Quick start (Node.js)
 

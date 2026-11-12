@@ -1,3 +1,6 @@
+// JSR and Deno read the types of this entry from its declaration file.
+// @ts-self-types="../../types/browser.d.ts"
+
 import type { Session, SessionOptions } from '../../types/index.js';
 import type { RunRequest, WorkerHandle, WorkerHandlers } from '../contracts.js';
 import { packageAssets } from '../core.js';

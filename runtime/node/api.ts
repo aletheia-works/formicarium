@@ -1,3 +1,6 @@
+// JSR and Deno read the types of this entry from its declaration file.
+// @ts-self-types="../../types/node.d.ts"
+
 import { existsSync } from 'node:fs';
 import { Worker } from 'node:worker_threads';
 import type { Session, SessionOptions } from '../../types/index.js';

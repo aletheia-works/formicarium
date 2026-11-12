@@ -67,6 +67,15 @@ jobs:
         run: |
           bunx npm@latest pack ./.artifacts/release-candidate/public --ignore-scripts --pack-destination .artifacts/release-candidate
           mv .artifacts/release-candidate/aletheia-works-formicarium-*.tgz .artifacts/release-candidate/candidate.tgz
+      - name: Check that JSR accepts the candidate's files, without publishing
+        # publish.yml sends JSR these files of the same tarball.
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir "$RUNNER_TEMP/jsr-dry-run"
+          tar -xzf .artifacts/release-candidate/candidate.tgz -C "$RUNNER_TEMP/jsr-dry-run"
+          cd "$RUNNER_TEMP/jsr-dry-run/package"
+          bunx jsr@latest publish --dry-run
       - name: Bind fresh candidate bytes and current source to the fixtures
         run: bun scripts/ci/release-candidate.ts prepare-inputs
       - name: Hand the candidate and inputs to the checking jobs

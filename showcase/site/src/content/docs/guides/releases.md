@@ -10,7 +10,7 @@ release-please prepares a release PR from Conventional Commits. Merging it
 after the required checks (by hand, or by the weekly `release-merge.yml` when
 it is turned on) creates the `v<version>` tag and GitHub Release, and
 `publish.yml` publishes the verified tarball to npm with trusted publishing and
-provenance. An existing version is never replaced. The
+provenance, and then its files to JSR. An existing version is never replaced. The
 [package releases](/formicarium/development/releases/) page describes the
 checks in detail.
 
