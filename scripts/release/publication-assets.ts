@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
 import { open } from 'node:fs/promises';
 import { gunzipSync, inflateRawSync } from 'node:zlib';
@@ -57,9 +56,6 @@ export async function readBoundedFile(
   } finally {
     await file.close();
   }
-}
-export function assetDigest(bytes: Uint8Array) {
-  return createHash('sha256').update(bytes).digest('hex');
 }
 export function safeAssetPath(path: string) {
   ensure(
