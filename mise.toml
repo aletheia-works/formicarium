@@ -5,6 +5,7 @@ shellcheck = "latest"
 ripgrep = "latest"
 node = "latest"
 bun = "latest"
+deno = "latest"
 rust = { version = "stable", targets = "x86_64-unknown-linux-musl" }
 cmake = "latest"
 ninja = "latest"

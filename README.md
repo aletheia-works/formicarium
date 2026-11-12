@@ -44,6 +44,12 @@ npm install @aletheia-works/formicarium
 
 Node.js 26 or later is required.
 
+The `/node` entry also runs in Deno (2.9.8 is the version tested), imported
+with `npm:` or from a URL. It writes the verified core to a private temporary
+directory, so give it `--allow-read`, `--allow-write` and `--allow-env`, and
+`--allow-net` for the host it is loaded from (with `--allow-import` too when
+imported from a URL).
+
 ## Quick start (Node.js)
 
 ```js

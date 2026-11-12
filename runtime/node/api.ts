@@ -17,11 +17,23 @@ function spawnNodeWorker(
   if (Number(process.versions.node.split('.')[0]) < 26)
     throw failure('UNSUPPORTED_ENV', 'Node >=26 is required');
   const url = new URL(request.assets.workerURL);
-  if (url.protocol !== 'file:' || !existsSync(url))
+  // Deno loads this module from jsr: or another URL, and its worker_threads
+  // takes only file: and data: URLs, so a remote Worker starts from a data:
+  // module that imports it. Node.js loads no modules over the network.
+  const remote =
+    'Deno' in globalThis &&
+    (url.protocol === 'https:' || url.protocol === 'http:');
+  if (!remote && (url.protocol !== 'file:' || !existsSync(url)))
     throw failure('ASSET_LOAD', 'Package Worker file is unavailable');
   let worker: Worker;
   try {
-    worker = new Worker(url);
+    worker = new Worker(
+      remote
+        ? new URL(
+            `data:text/javascript,import ${encodeURIComponent(JSON.stringify(url.href))};`,
+          )
+        : url,
+    );
   } catch {
     throw failure('ASSET_LOAD', 'Package Worker could not be created');
   }

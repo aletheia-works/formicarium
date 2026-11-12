@@ -70,6 +70,20 @@ test('missing explicit Worker asset is ASSET_LOAD before guest starts', async ()
   });
   await session.dispose();
 });
+test('Node.js starts no Worker from an http: or https: URL, which only Deno imports', async () => {
+  for (const workerURL of [
+    'http://127.0.0.1:9/runtime/node/package-worker.js',
+    'https://example.invalid/runtime/node/package-worker.js',
+  ]) {
+    const session = await createSession({
+      assets: { ...(await developmentAssets()), workerURL },
+    });
+    await assert.rejects(session.run({ guest: elfHeader() }), {
+      code: 'ASSET_LOAD',
+    });
+    await session.dispose();
+  }
+});
 test('real Node Worker runs registry-independent hello with copied args and byte output', async (t) => {
   const session = await createSession({ assets: await developmentAssets(t) });
   t.after(() => session.dispose());
