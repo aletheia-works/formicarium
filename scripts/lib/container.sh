@@ -11,6 +11,10 @@
 # Docker Desktop は共有設定にないパスをマウントできず、Windows のバインド
 # マウントは遅いため。キャッシュ（cargo のレジストリやビルド先）だけは名前付き
 # ボリュームに置く。
+#
+# ゲストとネイティブのベースラインは x86-64 なので、docker では linux/amd64 の
+# イメージを使う。arm64 の Mac でも、arm64 のイメージで x86-64 の musl を
+# ビルドしようとして失敗せず、amd64 のエミュレーションで動く。
 
 _formicarium_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 
@@ -51,9 +55,14 @@ container_run() {
   container_select || return 2
   mkdir -p "$_formicarium_root/$outdir"
   local status
+  local -a platform=()
+  case "${CONTAINER_CLI##*/}" in
+    wslc | wslc.exe) ;;
+    *) platform=(--platform linux/amd64) ;;
+  esac
   set +e
   tar -C "$_formicarium_root" -cf - "$@" |
-    MSYS_NO_PATHCONV=1 "$CONTAINER_CLI" run --rm -i ${CONTAINER_EXTRA_ARGS:-} \
+    MSYS_NO_PATHCONV=1 "$CONTAINER_CLI" run --rm -i ${platform[@]+"${platform[@]}"} ${CONTAINER_EXTRA_ARGS:-} \
       -v formicarium-cargo-registry:/usr/local/cargo/registry \
       -v formicarium-cache:/cache \
       "$image" sh -euc "
