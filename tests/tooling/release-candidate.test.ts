@@ -8,6 +8,7 @@ import {
   validateReleaseCandidateContext,
 } from '../../scripts/ci/release-candidate.js';
 import type { InputManifest } from '../../scripts/ci/verification.js';
+import type { WorkflowStep } from '../../scripts/release/workflow.js';
 
 const sha = 'a'.repeat(40);
 const event = {
@@ -164,7 +165,11 @@ test('release candidate workflow builds the pinned core itself and exports no wr
   };
   const { prepare, check, verify } = workflow.jobs as Record<
     string,
-    { needs?: unknown; steps: Step[]; strategy?: any }
+    {
+      needs?: unknown;
+      steps: Step[];
+      strategy?: { matrix: Record<string, unknown> };
+    }
   >;
   // The core comes from the pinned npm package through this run's own build,
   // and the guests from this run's product build; nothing else is downloaded.
@@ -225,7 +230,7 @@ test('release candidate workflow builds the pinned core itself and exports no wr
     [...CANDIDATE_PARTS],
   );
   assert.equal(check!.needs, 'prepare');
-  assert.deepEqual(check!.strategy.matrix.part, [...CANDIDATE_PARTS]);
+  assert.deepEqual(check!.strategy?.matrix.part, [...CANDIDATE_PARTS]);
   // The parts together record exactly the mandatory checks.
   assert.deepEqual(
     CANDIDATE_PARTS.flatMap(partChecks).sort(),
@@ -286,7 +291,9 @@ test('dispatch, tags and the release PR select candidate verification and forwar
   const { spawnSync } = await import('node:child_process');
   const { parse } = await import('yaml');
   const ci = parse(await readFile('.github/workflows/ci.yml', 'utf8'));
-  const groups = ci.jobs.changes.steps.find((s: any) => s.id === 'groups');
+  const groups = ci.jobs.changes.steps.find(
+    (s: WorkflowStep) => s.id === 'groups',
+  );
   const {
     mkdtemp,
     readFile: readOutput,

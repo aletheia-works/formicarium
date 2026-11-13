@@ -1,9 +1,49 @@
 import { parse } from 'yaml';
 import { requireCondition } from './evidence.ts';
 
+/**
+ * One step of a GitHub Actions job, with the fields the release checks read.
+ * A parsed workflow is only cast to these types; the checks below still test
+ * every value they rely on.
+ */
+export interface WorkflowStep {
+  id?: string;
+  name?: string;
+  uses?: string;
+  run?: string;
+  if?: string;
+  with?: Record<string, unknown>;
+  env?: Record<string, string>;
+  'working-directory'?: string;
+  'continue-on-error'?: boolean;
+}
+
+/** One job; a job that calls a reusable workflow has `uses` and no steps. */
+export interface WorkflowJob {
+  if?: string;
+  needs?: string | string[];
+  uses?: string;
+  environment?: string;
+  permissions?: Record<string, string>;
+  env?: Record<string, string>;
+  strategy?: unknown;
+  steps: WorkflowStep[];
+}
+
+/** A parsed GitHub Actions workflow file. */
+export interface Workflow {
+  on?: Record<string, unknown>;
+  permissions?: Record<string, string>;
+  concurrency?: { group?: string; 'cancel-in-progress'?: boolean };
+  jobs: Record<string, WorkflowJob>;
+}
+
+/** Parses a workflow file as a {@link Workflow}. */
+export const parseWorkflow = (text: string) => parse(text) as Workflow;
+
 /** Check the YAML-owned automatic publication boundary. */
 export function validatePublishWorkflow(text: string) {
-  const w = parse(text);
+  const w = parseWorkflow(text);
   const same = (a: unknown, b: unknown) =>
     JSON.stringify(a) === JSON.stringify(b);
   requireCondition(
@@ -29,9 +69,14 @@ export function validatePublishWorkflow(text: string) {
     ]),
     'publication jobs differ',
   );
+  // The check above leaves exactly these jobs.
+  const jobs = w.jobs as Record<
+    'authorize' | 'jsr' | 'publish' | 'release' | 'verify',
+    WorkflowJob
+  >;
   const origin =
     "github.event_name == 'push' && github.repository == 'aletheia-works/formicarium' && startsWith(github.ref, 'refs/tags/v')";
-  const auth = w.jobs.authorize;
+  const auth = jobs.authorize;
   requireCondition(
     auth.if === origin &&
       same(auth.permissions, {
@@ -41,7 +86,7 @@ export function validatePublishWorkflow(text: string) {
       }),
     'authorization permissions/origin differ',
   );
-  const authorization = auth.steps.find((s: any) => s.run)?.run ?? '';
+  const authorization = auth.steps.find((s) => s.run)?.run ?? '';
   for (const term of [
     '.merge_commit_sha == $sha',
     '.base.ref == "main"',
@@ -57,9 +102,9 @@ export function validatePublishWorkflow(text: string) {
       'merged release PR CI gate missing',
     );
   requireCondition(
-    w.jobs.verify.needs === 'authorize' &&
-      w.jobs.verify.uses === './.github/workflows/ci.yml' &&
-      same(w.jobs.verify.permissions, {
+    jobs.verify.needs === 'authorize' &&
+      jobs.verify.uses === './.github/workflows/ci.yml' &&
+      same(jobs.verify.permissions, {
         contents: 'read',
         actions: 'read',
         'pull-requests': 'read',
@@ -78,8 +123,11 @@ export function validatePublishWorkflow(text: string) {
     jsr: 'bunx jsr@latest publish',
     release: 'gh release upload "$RELEASE_TAG" ./candidate.tgz',
   };
-  for (const name of ['publish', 'jsr', 'release']) {
-    const job = w.jobs[name];
+  for (const name of ['publish', 'jsr', 'release'] as const) {
+    const job = jobs[name];
+    // A missing step is at -1, as indexOf(undefined) would answer.
+    const at = (step: WorkflowStep | undefined) =>
+      step ? job.steps.indexOf(step) : -1;
     const registry = name !== 'release';
     requireCondition(
       job.if === origin && job.environment === 'release',
@@ -99,12 +147,12 @@ export function validatePublishWorkflow(text: string) {
       'writer permissions differ',
     );
     requireCondition(
-      job.env.EXPECTED_SHA256 ===
+      job.env?.EXPECTED_SHA256 ===
         '${{ needs.verify.outputs.candidate-sha256 }}' &&
-        job.env.DIST_TAG === '${{ needs.verify.outputs.candidate-dist-tag }}',
+        job.env?.DIST_TAG === '${{ needs.verify.outputs.candidate-dist-tag }}',
       'verified identity output differs',
     );
-    const download = job.steps.find((s: any) =>
+    const download = job.steps.find((s) =>
       s.uses?.startsWith('actions/download-artifact@'),
     );
     requireCondition(
@@ -115,39 +163,37 @@ export function validatePublishWorkflow(text: string) {
         !download.with.repository,
       'same-run artifact required',
     );
-    const digest = job.steps.find((s: any) => s.id === 'digest');
+    const digest = job.steps.find((s) => s.id === 'digest');
     requireCondition(
-      digest?.run.includes('sha256sum --check --strict') &&
+      digest?.run?.includes('sha256sum --check --strict') &&
         digest.run.includes('$EXPECTED_SHA256') &&
-        job.steps.indexOf(download) < job.steps.indexOf(digest),
+        at(download) < at(digest),
       'artifact digest gate missing',
     );
-    const selector = job.steps.find((s: any) => s.id === 'select-package');
+    const selector = job.steps.find((s) => s.id === 'select-package');
     requireCondition(
-      selector?.run.trim() ===
+      selector?.run?.trim() ===
         'mkdir -p .artifacts/publication-package\ncp .artifacts/downloaded-candidate/release-candidate/candidate.tgz .artifacts/publication-package/candidate.tgz' &&
-        job.steps.indexOf(download) < job.steps.indexOf(selector) &&
-        job.steps.indexOf(selector) < job.steps.indexOf(digest),
+        at(download) < at(selector) &&
+        at(selector) < at(digest),
       'artifact selection differs',
     );
     requireCondition(
-      job.steps.filter((s: any) => s.run).length ===
+      job.steps.filter((s) => s.run).length ===
         { publish: 4, jsr: 5, release: 3 }[name],
       'unvalidated publication steps',
     );
     if (name === 'jsr') {
       // JSR publishes the files of the checked tarball, never the checkout.
-      const unpack = job.steps.find((s: any) => s.id === 'unpack');
+      const unpack = job.steps.find((s) => s.id === 'unpack');
       requireCondition(
-        unpack?.run.includes('tar -xzf candidate.tgz') &&
-          job.steps.indexOf(digest) < job.steps.indexOf(unpack) &&
-          job.steps.every(
-            (s: any) => !s.uses?.startsWith('actions/checkout@'),
-          ) &&
+        unpack?.run?.includes('tar -xzf candidate.tgz') &&
+          at(digest) < at(unpack) &&
+          job.steps.every((s) => !s.uses?.startsWith('actions/checkout@')) &&
           job.steps
-            .slice(job.steps.indexOf(unpack) + 1)
+            .slice(at(unpack) + 1)
             .every(
-              (s: any) =>
+              (s) =>
                 s['working-directory'] ===
                 '.artifacts/publication-package/package',
             ),
@@ -157,7 +203,7 @@ export function validatePublishWorkflow(text: string) {
       requireCondition(
         job.steps
           .at(-1)
-          .run.split('\n')
+          ?.run?.split('\n')
           .map((line: string) => line.trim())
           .filter((line: string) => line.startsWith('bunx '))
           .join('\n') === WRITERS.jsr,
@@ -165,29 +211,28 @@ export function validatePublishWorkflow(text: string) {
       );
     }
     if (registry) {
-      const lookup = job.steps.find((s: any) => s.id === 'registry');
+      const lookup = job.steps.find((s) => s.id === 'registry');
       requireCondition(
         lookup &&
-          job.steps.indexOf(digest) < job.steps.indexOf(lookup) &&
-          lookup.run.includes(
+          at(digest) < at(lookup) &&
+          lookup.run?.includes(
             name === 'publish'
               ? 'digest !== process.env.EXPECTED_SHA256'
               : 'manifest[path].checksum !== expected[path].checksum',
           ) &&
-          job.steps.at(-1).if === "steps.registry.outputs.skip == 'false'",
+          job.steps.at(-1)?.if === "steps.registry.outputs.skip == 'false'",
         'registry integrity gate missing',
       );
     }
     const writer = job.steps.at(-1);
     requireCondition(
-      job.steps.indexOf(digest) < job.steps.indexOf(writer) &&
-        writer.run.includes(WRITERS[name] as string),
+      at(digest) < at(writer) && writer?.run?.includes(WRITERS[name] as string),
       'unvalidated publication command',
     );
     // Every release is stable (no RCs) and goes to latest, so every writer
     // refuses any other dist-tag itself.
     requireCondition(
-      writer.run.includes(
+      writer?.run?.includes(
         '[[ "$DIST_TAG" == latest ]] || { echo "dist-tag must be latest, got $DIST_TAG" >&2; exit 1; }',
       ),
       'latest-only guard missing',

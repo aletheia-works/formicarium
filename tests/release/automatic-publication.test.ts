@@ -6,6 +6,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import { parse } from 'yaml';
+import type {
+  WorkflowJob,
+  WorkflowStep,
+} from '../../scripts/release/workflow.js';
 
 const workflow = parse(await readFile('.github/workflows/publish.yml', 'utf8'));
 const sha = 'a'.repeat(40);
@@ -107,7 +111,7 @@ test('registry recovery skips identical bytes and refuses mismatches and lookup 
     await rm(root, { recursive: true, force: true });
   });
   const script = workflow.jobs.publish.steps
-    .find((s: any) => s.id === 'registry')
+    .find((s: WorkflowStep) => s.id === 'registry')
     .run.split("<<'JS'\n")[1]
     .replace(/\nJS\s*$/, '');
   const bytes = 'verified candidate';
@@ -115,7 +119,7 @@ test('registry recovery skips identical bytes and refuses mismatches and lookup 
   const check = async (
     status: number,
     body: string,
-    metadata: any = {
+    metadata: unknown = {
       name: '@aletheia-works/formicarium',
       version: '0.2.1',
       dist: { tarball: 'https://registry.npmjs.org/package.tgz' },
@@ -171,7 +175,7 @@ test('JSR recovery skips identical files and refuses other files, identities and
     await rm(root, { recursive: true, force: true });
   });
   const script = workflow.jobs.jsr.steps
-    .find((s: any) => s.id === 'registry')
+    .find((s: WorkflowStep) => s.id === 'registry')
     .run.split("<<'JS'\n")[1]
     .replace(/\nJS\s*$/, '');
   const config = {
@@ -248,10 +252,10 @@ test('source CI, measured package and writers form a same-run dependency chain',
     '${{ jobs.release-candidate.outputs.sha256 }}',
   );
   const exportStep = candidate.jobs.verify.steps.find(
-    (s: any) => s.id === 'candidate',
+    (s: WorkflowStep) => s.id === 'candidate',
   );
   const merge = candidate.jobs.verify.steps.findIndex(
-    (s: any) => s.name === "Merge the parts' regression and coverage",
+    (s: WorkflowStep) => s.name === "Merge the parts' regression and coverage",
   );
   assert.ok(
     merge >= 0 && merge < candidate.jobs.verify.steps.indexOf(exportStep),
@@ -281,7 +285,7 @@ test('actual candidate export refuses changed bytes, failed checks and insuffici
     await readFile('.github/workflows/release-candidate.yml', 'utf8'),
   );
   const script = candidateWorkflow.jobs.verify.steps
-    .find((s: any) => s.id === 'candidate')
+    .find((s: WorkflowStep) => s.id === 'candidate')
     .run.split("<<'JS'\n")[1]
     .replace(/\nJS\s*$/, '');
   const dir = join(root, '.artifacts/release-candidate');
@@ -301,7 +305,7 @@ test('actual candidate export refuses changed bytes, failed checks and insuffici
     checks: [{ exitCode: 0, timedOut: false, skipped: 0 }],
     coverage: { lines: { pct: 80.16 }, files: Array(23).fill({}) },
   };
-  const check = async (c: any, a: any) => {
+  const check = async (c: unknown, a: unknown) => {
     await writeFile(join(dir, 'candidate.json'), JSON.stringify(c));
     await writeFile(join(checks, 'acceptance.json'), JSON.stringify(a));
     const output = join(root, `output-${Math.random()}`);
@@ -369,7 +373,7 @@ test('each reusable workflow call grants every permission its jobs request', asy
   ) => {
     const called = parse(await readFile(file, 'utf8'));
     const top = scopes(called.permissions, file);
-    for (const [name, job] of Object.entries<any>(called.jobs)) {
+    for (const [name, job] of Object.entries<WorkflowJob>(called.jobs)) {
       const own = scopes(job.permissions, `${file} / ${name}`);
       const requested = own ?? top ?? {};
       for (const [scope, level] of Object.entries<string>(requested))
@@ -391,7 +395,7 @@ test('each reusable workflow call grants every permission its jobs request', asy
     const file = `.github/workflows/${caller}`;
     const source = parse(await readFile(file, 'utf8'));
     const top = scopes(source.permissions, file);
-    for (const [name, job] of Object.entries<any>(source.jobs))
+    for (const [name, job] of Object.entries<WorkflowJob>(source.jobs))
       if (typeof job.uses === 'string' && job.uses.startsWith('./'))
         await visit(
           job.uses.slice(2),

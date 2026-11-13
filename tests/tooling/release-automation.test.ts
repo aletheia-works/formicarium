@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { test } from 'node:test';
 import { pathToFileURL } from 'node:url';
 import { parse } from 'yaml';
+import type { WorkflowJob } from '../../scripts/release/workflow.js';
 
 const workflow = (name: string) =>
   parse(readFileSync(`.github/workflows/${name}.yml`, 'utf8'));
@@ -11,15 +12,21 @@ const workflow = (name: string) =>
 test('release automation is restricted to upstream main and explicit enablement', () => {
   for (const name of ['release', 'release-merge']) {
     const w = workflow(name);
-    const job = Object.values(w.jobs)[0] as any;
-    assert.match(job.if, /github.repository == 'aletheia-works\/formicarium'/);
-    assert.match(job.if, /github.ref == 'refs\/heads\/main'/);
-    assert.match(job.if, /vars.RELEASE_AUTOMATION_ENABLED == 'true'/);
+    const job = Object.values(w.jobs)[0] as WorkflowJob;
+    assert.match(
+      job.if ?? '',
+      /github.repository == 'aletheia-works\/formicarium'/,
+    );
+    assert.match(job.if ?? '', /github.ref == 'refs\/heads\/main'/);
+    assert.match(job.if ?? '', /vars.RELEASE_AUTOMATION_ENABLED == 'true'/);
     assert.deepEqual(w.permissions, { contents: 'read' });
     assert.equal(w.concurrency['cancel-in-progress'], false);
-    const token = job.steps.find((s: any) => s.id === 'app-token');
-    assert.match(token.uses, /^actions\/create-github-app-token@[a-f0-9]{40}$/);
-    assert.equal(token.with['permission-contents'], 'write');
+    const token = job.steps.find((s) => s.id === 'app-token');
+    assert.match(
+      token?.uses ?? '',
+      /^actions\/create-github-app-token@[a-f0-9]{40}$/,
+    );
+    assert.equal(token?.with?.['permission-contents'], 'write');
   }
 });
 
