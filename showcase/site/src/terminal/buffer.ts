@@ -108,7 +108,7 @@ function outOfEscape(text: string, cut: number): number {
   const start = text.lastIndexOf('\x1b', cut - 1);
   if (start === -1) return cut;
   const end = escapeEnd(text, start);
-  return end > cut ? end : cut;
+  return Math.max(end, cut);
 }
 
 export interface TrimResult {

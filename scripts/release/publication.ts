@@ -79,10 +79,20 @@ const extract = (path: string, member: string) =>
   execFileSync('tar', ['-xOzf', path, `package/${member}`], {
     maxBuffer: 64 * 1024 * 1024,
   });
-function manifestIdentity(
-  manifest: Record<string, any>,
-  i: PublicationIdentity,
-) {
+/** The package.json fields the public identity check reads. */
+interface PublicManifest {
+  name?: unknown;
+  version?: unknown;
+  private?: unknown;
+  type?: unknown;
+  repository?: { type?: unknown; url?: unknown };
+  publishConfig?: { registry?: unknown; access?: unknown };
+  exports?: Record<string, unknown>;
+  scripts?: unknown;
+  devDependencies?: unknown;
+}
+
+function manifestIdentity(manifest: PublicManifest, i: PublicationIdentity) {
   requireCondition(
     manifest.name === '@aletheia-works/formicarium' &&
       manifest.version === i.version &&

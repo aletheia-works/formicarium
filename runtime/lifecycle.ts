@@ -73,12 +73,7 @@ import {
   inspectMessage,
   joinBytes,
 } from './protocol.js';
-import {
-  checkInterpreter,
-  collapsePath,
-  normalizePath,
-  validateRun,
-} from './validation.js';
+import { checkInterpreter, collapsePath, validateRun } from './validation.js';
 
 /** Largest stdin chunk sent to the Worker in one message. */
 export const MAX_INPUT_CHUNK = 65536;
