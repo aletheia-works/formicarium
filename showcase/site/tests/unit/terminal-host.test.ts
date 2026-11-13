@@ -1321,29 +1321,28 @@ function networkHarness(
 const RELAY_UNREACHABLE =
   'Relay unreachable, so this runs without the network; clone and fetch will fail.';
 
-test('only a network tool gets the network, through the relay, with the CA bundle in the home', async () => {
+test('only a network tool gets the network, through the relay, with the CA bundle as a system file', async () => {
   const seen: [string, CommandOptions][] = [];
   const h = networkHarness(async (line, options) => {
     seen.push([line, options]);
     return line.startsWith('install ') ? installed('git') : result('guest');
   });
   await h.host.start();
-  // The CA bundle is written below the home when the session starts, beside
-  // the directories it needs; no token is fetched before a network run.
-  const home = h.sessions[0]!.entries!.filter((entry) =>
-    entry.path.startsWith('/root'),
-  );
+  // The CA bundle is given as the session's only system file when the
+  // session starts, outside the home, which gets nothing of it; no token is
+  // fetched before a network run.
   assert.deepEqual(
-    home.map((entry) => [entry.path, entry.type]),
-    [
-      ['/root/.config', 'dir'],
-      ['/root/.config/ssl', 'dir'],
-      ['/root/.config/ssl/cacert.pem', 'file'],
-    ],
+    h.sessions[0]!.entries!.filter((entry) => entry.path.startsWith('/root')),
+    [],
+  );
+  const system = h.sessions[0]!.systemEntries!;
+  assert.deepEqual(
+    system.map((entry) => [entry.path, entry.type]),
+    [['/etc/ssl/certs/ca-certificates.crt', 'file']],
   );
   assert.equal(
     new TextDecoder().decode(
-      (home[2] as Extract<FsEntry, { type: 'file' }>).data,
+      (system[0] as Extract<FsEntry, { type: 'file' }>).data,
     ),
     caText,
   );

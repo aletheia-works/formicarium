@@ -58,8 +58,8 @@ minutes and reuses it until a minute before it expires. The token function
 answers only requests whose `Origin` is this site, and the relay itself
 connects to github.com:443 and nowhere else. TLS runs inside the guest, so the
 relay sees only encrypted bytes. The guest checks github.com's certificate
-against Mozilla's CA certificates as curl extracts them, which the page writes
-to `/root/.config/ssl/cacert.pem` when the session starts. If the relay cannot
+against Mozilla's CA certificates as curl extracts them, which the page places
+at `/etc/ssl/certs/ca-certificates.crt` when the session starts. If the relay cannot
 be reached, the command runs without the network and says so first, so local
 work (`jj log`, `git status`) goes on while clone and fetch fail; type it
 again to retry. `git push` and `jj git push` do not work, since the page has

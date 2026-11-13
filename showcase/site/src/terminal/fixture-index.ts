@@ -20,25 +20,26 @@ export const WORK_CWD = '/work/app';
 /** The session home, where tools read their settings. */
 export const HOME = '/root';
 /**
- * The CA bundle below the home: git's `.gitconfig` names it as
- * `http.sslCAInfo`, and curl was built with it as its default bundle.
+ * The CA bundle, a system file outside the persistence roots (ADR 0016):
+ * git's `.gitconfig` names it as `http.sslCAInfo`, and curl was built with it
+ * as its default bundle.
  */
-export const CA_BUNDLE_HOME_PATH = '.config/ssl/cacert.pem';
+export const CA_BUNDLE_PATH = '/etc/ssl/certs/ca-certificates.crt';
 
-/** A file below the home given as bytes (the CA bundle). */
-export interface HomeBytes {
-  path: string;
-  data: Uint8Array;
-}
-
-/** Fetches the site's CA bundle and checks its embedded SHA256. */
+/**
+ * Fetches the site's CA bundle, checks its embedded SHA256 and returns it as
+ * a Session system entry, which no snapshot or reset touches.
+ */
 export async function loadCaBundle(options: {
   url: string;
   sha256: string;
   fetch?: Omit<FetchLimitedOptions, 'maxBytes'>;
-}): Promise<HomeBytes> {
+}): Promise<FsEntry> {
   return {
-    path: CA_BUNDLE_HOME_PATH,
+    path: CA_BUNDLE_PATH,
+    type: 'file',
+    mode: 0o644,
+    inodeId: 'ca-bundle',
     data: await fetchVerified(options.url, options.sha256, {
       ...options.fetch,
       maxBytes: MAX_CA_BUNDLE_BYTES,
@@ -118,22 +119,15 @@ export const emptyEntries = (): FsEntry[] => [
 
 /**
  * The home files below /root, each with the directories above it, so a tool
- * finds its settings on every page (tools.json `homeFiles`); `bytes` are
- * further files given as bytes (the CA bundle), sharing those directories.
+ * finds its settings on every page (tools.json `homeFiles`).
  */
-export function homeEntries(
-  files: readonly HomeFile[],
-  bytes: readonly HomeBytes[] = [],
-): FsEntry[] {
+export function homeEntries(files: readonly HomeFile[]): FsEntry[] {
   const directories = new Set<string>();
   const entries: FsEntry[] = [];
-  const all = [
-    ...files.map((file) => ({
-      path: file.path,
-      data: new TextEncoder().encode(file.text),
-    })),
-    ...bytes,
-  ];
+  const all = files.map((file) => ({
+    path: file.path,
+    data: new TextEncoder().encode(file.text),
+  }));
   for (const [index, file] of all.entries()) {
     const parts = file.path.split('/');
     for (let depth = 1; depth < parts.length; depth++) {

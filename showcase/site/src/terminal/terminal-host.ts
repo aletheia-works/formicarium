@@ -399,8 +399,8 @@ export class TerminalHost {
           )
         : emptyEntries();
       // The Session takes files only when it is created, so the CA bundle of
-      // the network tools is written then, below the home that every run
-      // keeps (a page without network tools fetches none).
+      // the network tools is given then, as a system file that every run
+      // places outside the roots (a page without network tools fetches none).
       const caBundle = data.caBundle
         ? [
             await loadCaBundle({
@@ -427,8 +427,9 @@ export class TerminalHost {
         cwd: WORK_ROOT,
         entries: loaded.root.fixtureToFsEntries([
           ...entries,
-          ...homeEntries(data.homeFiles, caBundle),
+          ...homeEntries(data.homeFiles),
         ]),
+        systemEntries: caBundle,
       });
       await session.setCwd(WORK_CWD);
       if (this.state === 'disposed') {

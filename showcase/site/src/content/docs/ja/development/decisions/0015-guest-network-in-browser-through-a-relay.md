@@ -45,7 +45,9 @@ relay は `@aletheia-works/paludarium-wasm/relay` です。relay は自分の許
   そう示してから network なしで実行するので、手元の git と jj の作業は続けられます。端末の page の CSP が `connect-src` に足すのは、その関数の origin と
   `wss://*.lambda-microvm.ap-northeast-1.on.aws` だけです。git と curl は、showcase が公開された
   SHA-256 と照合して取得した、curl が取り出した Mozilla の CA の一覧（MPL-2.0）で証明書を確かめます。
-  page は session を始めるときに、それを `/root/.config/ssl/cacert.pem` に置きます。
+  page は session を始めるときに、それを
+  [0016](/formicarium/ja/development/decisions/0016-dynamically-linked-guests-through-system-files/) の
+  システムファイルとして `/etc/ssl/certs/ca-certificates.crt` に置きます（それまでは home の下でした）。
 
 ## 退けた案
 

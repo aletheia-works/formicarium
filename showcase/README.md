@@ -142,7 +142,8 @@ Safari の job は macOS の System keychain に job CA を信頼させ、leaf �
    TLS の検証に使う CA の一覧は、resolve が `https://curl.se/ca/cacert.pem` を公開の
    `cacert.pem.sha256` と照合して取り（MPL-2.0、resolutions の `caBundle`）、候補が
    `site/ca/cacert.pem` に置き（manifest の `caBundle`、NOTICES）、端末の page が session を
-   始めるときに SHA-256 を確かめて `/root/.config/ssl/cacert.pem` に書く。homeFiles はその path を使えない。
+   始めるときに SHA-256 を確かめ、Session の `systemEntries`（ADR 0016）として
+   `/etc/ssl/certs/ca-certificates.crt` に置く。home の外なので、homeFiles とは重ならない。
    ツールが設定ファイルを home から読むなら、`homeFiles` に home からの相対 path と
    中身（4096 bytes まで）を書く。端末の page は、どのツールの page でもそれを
    `/root` の下に置く（例：jj の pager を止める `.config/jj/config.toml`）。

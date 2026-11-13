@@ -48,6 +48,7 @@ formicarium で止めていたのは 2 つです。PT_INTERP を断る検査と�
   ディストリビューションのものです。formicarium はどちらも同梱しないので、パッケージの大きさとライセンスは変わりません。
 - 同じ層には、ゲストが home の外の決まったパスで探すほかのファイルも置けます。たとえば
   [0014](/formicarium/ja/development/decisions/0014-guest-tcp-clients-in-nodejs/) の TLS のための、`/etc/ssl/certs` の CA 証明書です。
+  showcase の端末の page は、こうして CA の一覧をそこに置きます。
 - 実行のたびに、Session のファイルと同じく、システムファイルを Worker に送ります。ライブラリが多いと、そのぶん実行の開始が遅くなります。
 - ほかのプログラムを起動する（`execve`）プログラムでは、その動的リンカはコアが探します。Session が確かめるのは、起動するゲストだけです。
 

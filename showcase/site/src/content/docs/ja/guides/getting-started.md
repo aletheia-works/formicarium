@@ -47,7 +47,7 @@ WebSocket の relay）を通ります。最初の git か jj の command の前�
 15 分使える token を求め、切れる 1 分前まで使い回します。token 関数は `Origin` がこのサイトの要求にだけ
 答え、relay 自身も github.com:443 にだけ接続します。TLS はゲストの中で動くので、relay に見えるのは
 暗号化された bytes だけです。ゲストは github.com の証明書を、curl が取り出した Mozilla の CA 証明書で
-確かめます。page は session を始めるときに、それを `/root/.config/ssl/cacert.pem` に置きます。relay に
+確かめます。page は session を始めるときに、それを `/etc/ssl/certs/ca-certificates.crt` に置きます。relay に
 届かないときは、そう示してから network なしで実行します。手元の作業（`jj log`、`git status`）は
 続けられ、clone と fetch は失敗します。もう一度打つと再試行します。page には
 認証情報がないので、`git push` と `jj git push` はできません。

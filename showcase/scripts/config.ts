@@ -593,12 +593,6 @@ function tool(value: unknown, index: number, allowed: Set<string>): ToolConfig {
 const HOME_SEGMENT = /^\.?[A-Za-z0-9_][A-Za-z0-9._-]*$/;
 /** Home files are small settings, embedded in every terminal page. */
 export const MAX_HOME_FILE_BYTES = 4096;
-/**
- * The CA bundle's path below the home. The terminal pages write the site's
- * CA bundle there (too large for a home file), so no home file may use it.
- */
-export const CA_BUNDLE_HOME_PATH = '.config/ssl/cacert.pem';
-
 function homeFiles(value: unknown, where: string): Record<string, string> {
   const raw = record(value, where);
   const files = Object.entries(raw);
@@ -654,16 +648,12 @@ export function validateToolsConfig(
     names.add(name);
   }
   // Every page writes the home files of all tools into one home, so no two
-  // may share a path and none may be the directory of another, nor of the
-  // CA bundle the pages write beside them.
+  // may share a path and none may be the directory of another.
   const homePaths = tools.flatMap((entry) =>
     Object.keys(entry.homeFiles ?? {}),
   );
   for (const path of homePaths)
     if (
-      path === CA_BUNDLE_HOME_PATH ||
-      CA_BUNDLE_HOME_PATH.startsWith(`${path}/`) ||
-      path.startsWith(`${CA_BUNDLE_HOME_PATH}/`) ||
       homePaths.some(
         (other, index) =>
           (other === path && homePaths.indexOf(path) !== index) ||

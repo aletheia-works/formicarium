@@ -62,7 +62,10 @@ refuses `network` in a browser.
   `wss://*.lambda-microvm.ap-northeast-1.on.aws` to `connect-src`. git and
   curl check certificates against curl's extract of Mozilla's CA store
   (MPL-2.0), which the showcase resolves with its published SHA-256 and the
-  page writes to `/root/.config/ssl/cacert.pem` when the session starts.
+  page places at `/etc/ssl/certs/ca-certificates.crt` when the session starts,
+  as a system file of
+  [0016](/formicarium/development/decisions/0016-dynamically-linked-guests-through-system-files/)
+  (it was below the home until then).
 
 ## Alternatives rejected
 

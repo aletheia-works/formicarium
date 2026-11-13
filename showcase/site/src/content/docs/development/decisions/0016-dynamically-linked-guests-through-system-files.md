@@ -68,6 +68,7 @@ again and never snapshots them.
 - The same layer can hold other files a guest expects at a fixed path outside
   its home, such as CA certificates in `/etc/ssl/certs` for the TLS of
   [0014](/formicarium/development/decisions/0014-guest-tcp-clients-in-nodejs/).
+  The showcase's terminal pages place their CA bundle there this way.
 - Every run sends the system files to its Worker, as it does the session's
   files, so a large set of libraries adds to each run's start.
 - A program that starts others (`execve`) finds their dynamic linkers through

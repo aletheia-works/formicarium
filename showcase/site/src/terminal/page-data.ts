@@ -50,8 +50,8 @@ export interface TerminalPageData {
   /** The site's relay: its token function and the allow list. */
   relay: RelaySettings;
   /**
-   * The site's CA bundle, written to /root/.config/ssl/cacert.pem when the
-   * session starts; null when no tool has the network.
+   * The site's CA bundle, placed at /etc/ssl/certs/ca-certificates.crt as a
+   * system file when the session starts; null when no tool has the network.
    */
   caBundle: EmbeddedFile | null;
 }

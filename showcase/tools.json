@@ -115,7 +115,7 @@
       "everyPage": true,
       "network": true,
       "homeFiles": {
-        ".gitconfig": "[http]\n\tsslCAInfo = /root/.config/ssl/cacert.pem\n[init]\n\tdefaultBranch = main\n\ttemplateDir =\n[user]\n\tname = Showcase\n\temail = showcase@example.com\n"
+        ".gitconfig": "[http]\n\tsslCAInfo = /etc/ssl/certs/ca-certificates.crt\n[init]\n\tdefaultBranch = main\n\ttemplateDir =\n[user]\n\tname = Showcase\n\temail = showcase@example.com\n"
       },
       "acquire": {
         "kind": "gnu-source",
@@ -288,7 +288,7 @@
               "--disable-ldap",
               "--disable-docs",
               "--disable-manual",
-              "--with-ca-bundle=/root/.config/ssl/cacert.pem",
+              "--with-ca-bundle=/etc/ssl/certs/ca-certificates.crt",
               "--without-ca-path",
               "LIBS=-lhogweed -lnettle -lgmp",
               "ac_cv_func_memset_explicit=no"

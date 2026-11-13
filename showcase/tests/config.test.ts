@@ -4,7 +4,6 @@ import { join } from 'node:path';
 import test from 'node:test';
 import {
   assetName,
-  CA_BUNDLE_HOME_PATH,
   companionNames,
   gnuTag,
   MAX_HOME_FILE_BYTES,
@@ -15,7 +14,7 @@ import {
   validateTrustedCallers,
 } from '../scripts/config.ts';
 import { causeOf } from '../scripts/errors.ts';
-import { CA_BUNDLE_HOME_PATH as SITE_CA_BUNDLE_HOME_PATH } from '../site/src/terminal/fixture-index.ts';
+import { CA_BUNDLE_PATH } from '../site/src/terminal/fixture-index.ts';
 import { MAIN_ALLOWED, withLayout } from './fixtures/work.ts';
 
 const allowed = validateAllowedSources(JSON.parse(MAIN_ALLOWED));
@@ -109,20 +108,21 @@ test('network is kept only as true (git and jj), and any other value is refused'
   }
 });
 
-test('the site writes the CA bundle where the config guards it and git and curl read it', async () => {
-  // The terminal writes the bundle at its own copy of the path; a change on
+test('git and curl read the CA bundle where the site places it', async () => {
+  // The terminal places the bundle at its own copy of the path; a change on
   // one side would only show as a TLS error in the browser.
-  assert.equal(SITE_CA_BUNDLE_HOME_PATH, CA_BUNDLE_HOME_PATH);
   const git = (await current()).tools.find((item) => item.tool === 'git')!;
-  const guestPath = `/root/${CA_BUNDLE_HOME_PATH}`;
   assert.match(
     (git.homeFiles as Record<string, string>)['.gitconfig']!,
-    new RegExp(`^\\s*sslCAInfo = ${guestPath.replaceAll('.', '\\.')}$`, 'm'),
+    new RegExp(
+      `^\\s*sslCAInfo = ${CA_BUNDLE_PATH.replaceAll('.', '\\.')}$`,
+      'm',
+    ),
   );
   const curl = (
     git.acquire as { libraries: { package: string; configure: string[] }[] }
   ).libraries.find((item) => item.package === 'curl')!;
-  assert.ok(curl.configure.includes(`--with-ca-bundle=${guestPath}`));
+  assert.ok(curl.configure.includes(`--with-ca-bundle=${CA_BUNDLE_PATH}`));
 });
 
 test('git commits as the same user as jj and git init prints no warning', async () => {
@@ -159,22 +159,6 @@ test('GMP is built for plain x86_64, not for the runner CPU', async () => {
   ).libraries.find((item) => item.package === 'gmp')!;
   assert.ok(gmp.configure.includes('--build=x86_64-pc-linux-gnu'));
   assert.ok(gmp.configure.includes('--host=x86_64-pc-linux-gnu'));
-});
-
-test('no home file may take the CA bundle path or a directory of it', async () => {
-  for (const path of [
-    CA_BUNDLE_HOME_PATH,
-    '.config/ssl',
-    '.config',
-    `${CA_BUNDLE_HOME_PATH}/x`,
-  ]) {
-    const bad = await current();
-    bad.tools[0]!.homeFiles = { [path]: 'x' };
-    rejects(() => validateToolsConfig(bad, allowed), 'config-invalid');
-  }
-  const beside = await current();
-  beside.tools[0]!.homeFiles = { '.config/ssl/other.pem': 'x' };
-  assert.doesNotThrow(() => validateToolsConfig(beside, allowed));
 });
 
 test('homeFiles keeps small text files at plain relative paths', async () => {
