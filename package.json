@@ -100,7 +100,7 @@
   "devDependencies": {
     "@aletheia-works/coi-serviceworker": "0.2.0",
     "@aletheia-works/paludarium-wasm": "0.16.0",
-    "@biomejs/biome": "^2.6.7",
+    "@biomejs/biome": "^2.6.8",
     "@playwright/test": "1.65.1",
     "@types/istanbul-lib-coverage": "^2.0.6",
     "@types/istanbul-lib-instrument": "^1.7.8",
