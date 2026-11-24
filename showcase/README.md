@@ -167,7 +167,10 @@ Safari の job は macOS の System keychain に job CA を信頼させ、leaf �
    git は GPL-2.0-only なので、TLS は GPLv2 と両立する GnuTLS（LGPL-2.1-or-later）と
    nettle（LGPL-3.0-or-later OR GPL-2.0-or-later）と GMP（同じ二重 license、`COPYINGv2`）で
    作る。GMP の鍵は nettle と同じ Niels Möller の鍵である。
-   GnuTLS の libtasn1 と libunistring は同梱のものを使う。
+   GnuTLS の libtasn1 と libunistring は同梱のものを使う。GnuTLS 3.8.14 は同梱の libtasn1 と
+   `--with-included-libtasn1` を削除したので、libtasn1 を独立した library として build する
+   までは、GnuTLS の `version` を `3.8.13` にして固定する。package に `version` を書くと、
+   一覧の最も新しい版の代わりにその版を使う（一覧に同じ条件で載っていなければ止める）。
    release の server（ftp.gnu.org、Savannah、kernel.org など）は CI の runner からの接続を
    ときどき落とすので、その取得と
    `git ls-remote` の通信の失敗だけは 10 秒・30 秒あけて 2 回までやり直す（GitHub API と、

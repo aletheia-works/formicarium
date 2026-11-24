@@ -69,6 +69,33 @@ test('the latest version is the highest signed tarball, compared by number', () 
   );
 });
 
+test('a pinned version is taken from the listing instead of the newest, and must be there', () => {
+  const page = [
+    '/download/gnutls-3.8.13.tar.xz',
+    '/download/gnutls-3.8.14.tar.xz',
+  ]
+    .map((href) => `<a href="${href}">x</a>`)
+    .join('\n');
+  const options = { anyPrefix: true, suffix: '.tar.xz' } as const;
+  assert.equal(latestVersion(page, 'gnutls', options), '3.8.14');
+  assert.equal(
+    latestVersion(page, 'gnutls', { ...options, pinned: '3.8.13' }),
+    '3.8.13',
+  );
+  assert.throws(
+    () => latestVersion(page, 'gnutls', { ...options, pinned: '3.8.12' }),
+    (error) => causeOf(error) === 'release-invalid',
+  );
+  // In the GNU listing a pinned version needs its listed .sig as well.
+  assert.throws(
+    () =>
+      latestVersion('<a href="nano-9.3.tar.gz">x</a>', 'nano', {
+        pinned: '9.3',
+      }),
+    (error) => causeOf(error) === 'release-invalid',
+  );
+});
+
 test('a package with its own source takes links with any prefix and no listed signature', () => {
   const page = [
     'curl-8.9.1.tar.gz',

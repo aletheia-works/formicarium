@@ -213,12 +213,18 @@ export function sourceUrls(source: GnuSource, version: string) {
  * the source's tarball is `.tar.xz`). In the GNU listing (the default) the
  * link is relative and the `.sig` must be listed too. With `anyPrefix` (a
  * package with its own source) the link may carry any path or origin and the
- * signature need not be listed: its fetch must still succeed.
+ * signature need not be listed: its fetch must still succeed. With `pinned`
+ * that version is taken instead of the highest, and it must be listed the
+ * same way.
  */
 export function latestVersion(
   listing: string,
   name: string,
-  options: { anyPrefix?: boolean; suffix?: '.tar.gz' | '.tar.xz' } = {},
+  options: {
+    anyPrefix?: boolean;
+    suffix?: '.tar.gz' | '.tar.xz';
+    pinned?: string;
+  } = {},
 ): string {
   const suffix = (options.suffix ?? '.tar.gz').replaceAll('.', '\\.');
   const tarballs = new Set<string>();
@@ -238,6 +244,14 @@ export function latestVersion(
   const versions = options.anyPrefix
     ? [...tarballs]
     : [...tarballs].filter((version) => signatures.has(version));
+  if (options.pinned !== undefined) {
+    if (!versions.includes(options.pinned))
+      fail(
+        'release-invalid',
+        `no signed ${name} ${options.pinned} tarball in the listing`,
+      );
+    return options.pinned;
+  }
   if (versions.length === 0)
     fail('release-invalid', `no signed ${name} tarball in the listing`);
   return versions.sort(compareVersions).at(-1)!;
@@ -450,7 +464,7 @@ export async function fetchSignedTarball(
 export const signatureNameOf = (tarball: SignedTarball) =>
   tarball.signatureName ?? `${tarball.name}.sig`;
 
-/** The latest signed release of one package. */
+/** The latest signed release of one package, or its pinned version. */
 export async function resolveGnuPackage(
   pkg: GnuPackage,
   options: GnuTransferOptions = {},
@@ -471,6 +485,7 @@ export async function resolveGnuPackage(
           return latestVersion(text, pkg.package, {
             anyPrefix: pkg.source !== undefined,
             suffix: source.tarball.endsWith('.tar.xz') ? '.tar.xz' : '.tar.gz',
+            ...(pkg.version === undefined ? {} : { pinned: pkg.version }),
           });
         } catch (error) {
           const title = /<title>([^<]{0,80})/i.exec(text)?.[1]?.trim() ?? '';

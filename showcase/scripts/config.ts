@@ -68,6 +68,11 @@ export interface GnuPackage {
   /** configure arguments; the builder adds --prefix, CC and the search paths. */
   configure: string[];
   source?: GnuSource;
+  /**
+   * The signed version to use instead of the newest in the listing, for a
+   * release that cannot be built yet (GnuTLS 3.8.14 needs libtasn1).
+   */
+  version?: string;
 }
 export interface GnuLibrary extends GnuPackage {
   /**
@@ -148,6 +153,8 @@ const IDENTIFIER = /^[A-Za-z0-9_-]{1,128}$/;
 const ASSET = /^[A-Za-z0-9._@+-]+$/;
 const GNU_PACKAGE = /^[a-z][a-z0-9-]{0,63}$/;
 const FINGERPRINT = /^[0-9A-F]{40}$/;
+/** A pinned GNU version, in the form gnu.ts reads from a listing. */
+const PINNED_VERSION = /^\d{1,4}(?:\.\d{1,4}){1,2}$/;
 /** One SPDX identifier, or identifiers joined by ` OR ` / ` AND `. */
 const SPDX = /^(?=.{1,128}$)[A-Za-z0-9.+-]+(?: (?:OR|AND) [A-Za-z0-9.+-]+)*$/;
 const TAG_TEMPLATE = /^[A-Za-z0-9._{}-]{1,128}$/;
@@ -407,6 +414,9 @@ function gnuPackage(value: Json, where: string, untagged = false): GnuPackage {
     ...(value.source === undefined
       ? {}
       : { source: gnuSourceSettings(value.source, `${where}.source`, name) }),
+    ...(value.version === undefined
+      ? {}
+      : { version: text(value.version, `${where}.version`, PINNED_VERSION) }),
   };
 }
 
@@ -417,6 +427,7 @@ const GNU_PACKAGE_KEYS = [
   'spdx',
   'configure',
   'source',
+  'version',
 ];
 
 function makeVariables(value: unknown, where: string): string[] {
