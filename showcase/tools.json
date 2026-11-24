@@ -222,6 +222,7 @@
             "package": "gnutls",
             "repository": "https://github.com/gnutls/gnutls",
             "tag": "{version}",
+            "version": "3.8.13",
             "signers": [
               "5D46CB0F763405A7053556F47A75A648B3F9220C",
               "E987AB7F7E89667776D05B3BB0E9DD20B29F1432"

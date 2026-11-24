@@ -149,6 +149,50 @@ test('git commits as the same user as jj and git init prints no warning', async 
   );
 });
 
+test('GnuTLS stays at 3.8.13 until libtasn1 is built as a library', async () => {
+  // GnuTLS 3.8.14 removed its bundled libtasn1 and --with-included-libtasn1,
+  // so its configure stops without a libtasn1 of its own.
+  const git = (await current()).tools.find((item) => item.tool === 'git')!;
+  const gnutls = (
+    git.acquire as {
+      libraries: { package: string; version?: string; configure: string[] }[];
+    }
+  ).libraries.find((item) => item.package === 'gnutls')!;
+  assert.equal(gnutls.version, '3.8.13');
+  assert.ok(gnutls.configure.includes('--with-included-libtasn1'));
+});
+
+test('a GNU package may pin a plain version, and nothing else', async () => {
+  const gnutls = (config: { tools: ToolJson[] }) =>
+    (
+      config.tools.find((item) => item.tool === 'git')!.acquire as {
+        libraries: Record<string, unknown>[];
+      }
+    ).libraries.find((item) => item.package === 'gnutls')!;
+  const config = await current();
+  delete gnutls(config).version;
+  const unpinned = validateToolsConfig(config, allowed).tools.find(
+    (item) => item.tool === 'git',
+  )!;
+  assert.ok(
+    unpinned.acquire.kind === 'gnu-source' &&
+      unpinned.acquire.libraries.every((item) => item.version === undefined),
+  );
+  for (const version of ['3.8.13.1', 'v3.8.13', '3.8.x', '', 3.8]) {
+    const bad = await current();
+    gnutls(bad).version = version;
+    rejects(() => validateToolsConfig(bad, allowed), 'config-invalid');
+  }
+  const tool = await current();
+  tool.tools.find((item) => item.tool === 'git')!.acquire.version = '2.56.1';
+  const git = validateToolsConfig(tool, allowed).tools.find(
+    (item) => item.tool === 'git',
+  )!;
+  assert.ok(
+    git.acquire.kind === 'gnu-source' && git.acquire.version === '2.56.1',
+  );
+});
+
 test('GMP is built for plain x86_64, not for the runner CPU', async () => {
   // GMP's configure picks assembly and -march for the CPU it runs on; on a
   // CI runner that is BMI2/ADX code (mulx, adcx, adox), which the emulator

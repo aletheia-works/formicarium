@@ -27,7 +27,10 @@ showcase のツールは
   このような package では、`source` に一覧・tarball（`.tar.gz`、または GnuTLS が出す
   `.tar.xz`）・署名（git は圧縮前の tar に、ほかは archive に署名します）と license の
   file を書きます。例外は nettle が使う GMP で、tag の付いた公開 repository が無いので、
-  ftp.gnu.org の署名付き tarball だけで識別し、commit は記録しません。nano と同じく、ゲストとすべての library の署名された tarball を
+  ftp.gnu.org の署名付き tarball だけで識別し、commit は記録しません。package の
+  `version` は、最も新しい版の代わりに一覧の中の1つの署名付きの版に固定します。GnuTLS は
+  3.8.14 で同梱の libtasn1 が無くなったので、libtasn1 を独立した library として build する
+  までは 3.8.13 に固定しています。nano と同じく、ゲストとすべての library の署名された tarball を
   `sources/` に置きます。同じ build から出る
   `git-remote-https` は独立したゲストで、どの page も git と一緒に何も出さずに導入する
   ので、jj からも git を動かせます。

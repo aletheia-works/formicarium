@@ -33,7 +33,10 @@ its full commit for the rest of the run.
   package (git signs the uncompressed tar, the others the archive) and its
   license file. GMP, which nettle uses and which has no tagged public
   repository, is the one exception: it is identified by its signed
-  ftp.gnu.org tarball alone, and no commit is recorded for it. As for nano, the signed tarballs of the guest and of every
+  ftp.gnu.org tarball alone, and no commit is recorded for it. A package's
+  `version` pins one signed release from its listing in place of the newest:
+  GnuTLS stays at 3.8.13 because 3.8.14 removed its bundled libtasn1, until
+  libtasn1 is built as a library of its own. As for nano, the signed tarballs of the guest and of every
   library are published under `sources/`. The same build
   also gives `git-remote-https`, a guest of its own that every page installs
   quietly with git, so jj can run git too.
