@@ -544,6 +544,17 @@ test('git resolves from its own servers with its libraries, signature names and 
         'LGPL-3.0-or-later OR GPL-2.0-or-later',
         SIGNERS.nettle,
       ],
+      // libtasn1's tag is found with git ls-remote on GitLab.
+      [
+        'libtasn1',
+        '4.21.0',
+        'v4.21.0',
+        commit('libtasn1'),
+        'COPYING.LESSERv2',
+        'libtasn1-COPYING.LESSERv2',
+        'LGPL-2.1-or-later',
+        SIGNERS.libtasn1,
+      ],
       [
         'gnutls',
         '3.8.13',
@@ -580,6 +591,8 @@ test('git resolves from its own servers with its libraries, signature names and 
       'gmp-6.3.0.tar.gz.sig',
       'nettle-4.0.tar.gz',
       'nettle-4.0.tar.gz.sig',
+      'libtasn1-4.21.0.tar.gz',
+      'libtasn1-4.21.0.tar.gz.sig',
       'gnutls-3.8.13.tar.xz',
       'gnutls-3.8.13.tar.xz.sig',
       'curl-8.23.0.tar.gz',
