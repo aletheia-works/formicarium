@@ -149,17 +149,31 @@ test('git commits as the same user as jj and git init prints no warning', async 
   );
 });
 
-test('GnuTLS stays at 3.8.13 until libtasn1 is built as a library', async () => {
+test('GnuTLS takes the newest release and links libtasn1 built before it', async () => {
   // GnuTLS 3.8.14 removed its bundled libtasn1 and --with-included-libtasn1,
-  // so its configure stops without a libtasn1 of its own.
+  // so libtasn1 is built as its own library and every static link names it.
   const git = (await current()).tools.find((item) => item.tool === 'git')!;
-  const gnutls = (
-    git.acquire as {
-      libraries: { package: string; version?: string; configure: string[] }[];
-    }
-  ).libraries.find((item) => item.package === 'gnutls')!;
-  assert.equal(gnutls.version, '3.8.13');
-  assert.ok(gnutls.configure.includes('--with-included-libtasn1'));
+  const acquire = git.acquire as {
+    make: string[];
+    libraries: { package: string; version?: string; configure: string[] }[];
+  };
+  const names = acquire.libraries.map((item) => item.package);
+  assert.ok(names.indexOf('libtasn1') < names.indexOf('gnutls'));
+  const library = (name: string) =>
+    acquire.libraries.find((item) => item.package === name)!;
+  const gnutls = library('gnutls');
+  assert.equal(gnutls.version, undefined);
+  assert.ok(!gnutls.configure.includes('--with-included-libtasn1'));
+  assert.ok(gnutls.configure.includes('LIBTASN1_LIBS=-L{prefix}/lib -ltasn1'));
+  assert.ok(
+    library('curl').configure.includes('LIBS=-ltasn1 -lhogweed -lnettle -lgmp'),
+  );
+  assert.ok(
+    acquire.make.some(
+      (item) =>
+        item.startsWith('CURL_LDFLAGS=') && item.includes('-lgnutls -ltasn1 '),
+    ),
+  );
 });
 
 test('a GNU package may pin a plain version, and nothing else', async () => {
@@ -349,13 +363,19 @@ test('git names its own source servers, GnuTLS and nettle, make variables and a 
         '{tarball}.sig',
         'COPYINGv2',
       ],
+      ['libtasn1', 'v{version}', '{tarball}.sig', 'COPYING.LESSERv2'],
       ['gnutls', '{version}', '{tarball}.sig', 'COPYING.LESSERv2'],
       ['curl', 'curl-{major}_{minor}_{patch}', '{tarball}.asc', 'COPYING'],
     ],
   );
-  // GMP has no repository; GnuTLS ships .tar.xz only; nettle is dual licensed.
+  // GMP has no repository; libtasn1 tags only on GitLab; GnuTLS ships
+  // .tar.xz only; nettle is dual licensed.
   assert.equal(parsed.acquire.libraries[1]!.repository, null);
-  assert.ok(parsed.acquire.libraries[3]!.source?.tarball.endsWith('.tar.xz'));
+  assert.equal(
+    parsed.acquire.libraries[3]!.repository,
+    'https://gitlab.com/gnutls/libtasn1.git',
+  );
+  assert.ok(parsed.acquire.libraries[4]!.source?.tarball.endsWith('.tar.xz'));
   assert.equal(
     parsed.acquire.libraries[2]!.spdx,
     'LGPL-3.0-or-later OR GPL-2.0-or-later',

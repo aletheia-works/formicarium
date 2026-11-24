@@ -149,7 +149,7 @@
           "NO_CURL=",
           "CURLDIR={prefix}",
           "CURL_CONFIG={prefix}/bin/curl-config",
-          "CURL_LDFLAGS=-L{prefix}/lib -lcurl -lgnutls -lhogweed -lnettle -lgmp -lz -pthread"
+          "CURL_LDFLAGS=-L{prefix}/lib -lcurl -lgnutls -ltasn1 -lhogweed -lnettle -lgmp -lz -pthread"
         ],
         "binary": "git",
         "output": "git",
@@ -219,10 +219,32 @@
             ]
           },
           {
+            "package": "libtasn1",
+            "repository": "https://gitlab.com/gnutls/libtasn1.git",
+            "tag": "v{version}",
+            "signers": ["B1D2BD1375BECB784CF4F8C4D73CF638C53C06BE"],
+            "spdx": "LGPL-2.1-or-later",
+            "source": {
+              "listing": "https://ftp.gnu.org/gnu/libtasn1/",
+              "tarball": "https://ftp.gnu.org/gnu/libtasn1/libtasn1-{version}.tar.gz",
+              "signature": "{tarball}.sig",
+              "license": "COPYING.LESSERv2",
+              "mirrors": [
+                "https://mirrors.kernel.org/gnu/libtasn1/",
+                "https://mirrors.dotsrc.org/gnu/libtasn1/"
+              ]
+            },
+            "configure": [
+              "--disable-shared",
+              "--enable-static",
+              "--disable-doc",
+              "--disable-valgrind-tests"
+            ]
+          },
+          {
             "package": "gnutls",
             "repository": "https://github.com/gnutls/gnutls",
             "tag": "{version}",
-            "version": "3.8.13",
             "signers": [
               "5D46CB0F763405A7053556F47A75A648B3F9220C",
               "E987AB7F7E89667776D05B3BB0E9DD20B29F1432"
@@ -241,7 +263,6 @@
             "configure": [
               "--disable-shared",
               "--enable-static",
-              "--with-included-libtasn1",
               "--with-included-unistring",
               "--without-p11-kit",
               "--disable-tools",
@@ -259,7 +280,9 @@
               "NETTLE_CFLAGS=-I{prefix}/include",
               "NETTLE_LIBS=-L{prefix}/lib -lnettle",
               "HOGWEED_CFLAGS=-I{prefix}/include",
-              "HOGWEED_LIBS=-L{prefix}/lib -lhogweed -lnettle -lgmp"
+              "HOGWEED_LIBS=-L{prefix}/lib -lhogweed -lnettle -lgmp",
+              "LIBTASN1_CFLAGS=-I{prefix}/include",
+              "LIBTASN1_LIBS=-L{prefix}/lib -ltasn1"
             ]
           },
           {
@@ -291,7 +314,7 @@
               "--disable-manual",
               "--with-ca-bundle=/etc/ssl/certs/ca-certificates.crt",
               "--without-ca-path",
-              "LIBS=-lhogweed -lnettle -lgmp",
+              "LIBS=-ltasn1 -lhogweed -lnettle -lgmp",
               "ac_cv_func_memset_explicit=no"
             ]
           }

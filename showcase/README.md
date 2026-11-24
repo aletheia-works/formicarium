@@ -157,7 +157,7 @@ Safari の job は macOS の System keychain に job CA を信頼させ、leaf �
    サイトの最新のものから取った（どちらも 2029 年に期限が切れるので、その前に入れ替える）。
    ツール自身の SPDX が GPL・LGPL のとき、ゲストの横の `sources/<tool>/` に、ツールと
    すべての library の tarball と署名を置き、対応する source とする（nano は ncurses も、
-   git は curl・GnuTLS・nettle・GMP・zlib も置く）。
+   git は curl・GnuTLS・libtasn1・nettle・GMP・zlib も置く）。
    `source` を持つ package では一覧から最も新しい版を選び、その署名の file を取って
    同じように確かめる。署名に複数の署名が入っているとき（GnuTLS は 2 つの鍵で署名する）は、
    すべてが良い署名で、すべての主鍵が `signers` にあるときだけ受け入れる。
@@ -165,14 +165,22 @@ Safari の job は macOS の System keychain に job CA を信頼させ、leaf �
    いるものを最小に書き出して置いた。GnuTLS の 2 つの鍵（Zoltan Fridrich と
    Alexander Sosedkin）は gnutls.org の `gnutls-release-keyring.gpg` から、nettle の
    Niels Möller の鍵は、GNU の keyring の写しが 2023 年に期限切れなので、同じ
-   fingerprint の keys.openpgp.org のものから取った（2030 年に期限が切れる）。
+   fingerprint の keys.openpgp.org のものから取った（2030 年に期限が切れる）。libtasn1 の
+   Simon Josefsson の鍵（主鍵 `B1D2BD1375BECB784CF4F8C4D73CF638C53C06BE`）も、GNU の keyring の
+   写しが 2026-11-19 に期限切れなので（gpgv は `EXPKEYSIG` を出し、受け入れない）、同じ
+   fingerprint の keys.openpgp.org のものから取った（2027-05-24 に期限が切れるので、その前に
+   入れ替える）。
    git は GPL-2.0-only なので、TLS は GPLv2 と両立する GnuTLS（LGPL-2.1-or-later）と
    nettle（LGPL-3.0-or-later OR GPL-2.0-or-later）と GMP（同じ二重 license、`COPYINGv2`）で
    作る。GMP の鍵は nettle と同じ Niels Möller の鍵である。
-   GnuTLS の libtasn1 と libunistring は同梱のものを使う。GnuTLS 3.8.14 は同梱の libtasn1 と
-   `--with-included-libtasn1` を削除したので、libtasn1 を独立した library として build する
-   までは、GnuTLS の `version` を `3.8.13` にして固定する。package に `version` を書くと、
-   一覧の最も新しい版の代わりにその版を使う（一覧に同じ条件で載っていなければ止める）。
+   GnuTLS の libunistring は同梱のものを使う。GnuTLS 3.8.14 は同梱の libtasn1 と
+   `--with-included-libtasn1` を削除したので、libtasn1（LGPL-2.1-or-later）は ftp.gnu.org の
+   署名付き tarball から GnuTLS の前に独立した library として build し、GnuTLS には
+   `LIBTASN1_CFLAGS`・`LIBTASN1_LIBS` で、curl と git の static link には `-ltasn1` で渡す。
+   libtasn1 の tag は GitLab（`https://gitlab.com/gnutls/libtasn1.git`）にしか無い
+   （GitHub の写しは v4.19.0 で止まっている）ので、tag の commit は `git ls-remote` で取る。
+   package に `version` を書くと、一覧の最も新しい版の代わりにその版を使う（一覧に同じ条件で
+   載っていなければ止める）。新しい版がまだ build できないときだけ使い、直したら外す。
    release の server（ftp.gnu.org、Savannah、kernel.org など）は CI の runner からの接続を
    ときどき落とすので、その取得と
    `git ls-remote` の通信の失敗だけは 10 秒・30 秒あけて 2 回までやり直す（GitHub API と、

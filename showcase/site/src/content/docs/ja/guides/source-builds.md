@@ -22,15 +22,16 @@ showcase のツールは
   commit で識別します。どちらも musl-gcc で static な library と program に build し、
   署名された tarball を、対応する source としてゲストの横の `sources/` に置きます。
 - **ほかの server の署名された tarball。** git も同じように、kernel.org の tarball と、
-  それぞれの release の server にある zlib・GMP・nettle・GnuTLS・curl から build します。
+  それぞれの release の server にある zlib・GMP・nettle・libtasn1・GnuTLS・curl から build します。
   GnuTLS と nettle を使うので、link するものはすべて git の GPL-2.0-only と両立します。
   このような package では、`source` に一覧・tarball（`.tar.gz`、または GnuTLS が出す
   `.tar.xz`）・署名（git は圧縮前の tar に、ほかは archive に署名します）と license の
   file を書きます。例外は nettle が使う GMP で、tag の付いた公開 repository が無いので、
-  ftp.gnu.org の署名付き tarball だけで識別し、commit は記録しません。package の
-  `version` は、最も新しい版の代わりに一覧の中の1つの署名付きの版に固定します。GnuTLS は
-  3.8.14 で同梱の libtasn1 が無くなったので、libtasn1 を独立した library として build する
-  までは 3.8.13 に固定しています。nano と同じく、ゲストとすべての library の署名された tarball を
+  ftp.gnu.org の署名付き tarball だけで識別し、commit は記録しません。GnuTLS 3.8.14 で
+  同梱の libtasn1 が無くなったので、libtasn1 は ftp.gnu.org の署名付き tarball から、GnuTLS の
+  前に独立した library として build します。libtasn1 の tag は GitLab にしか無いので、tag の
+  commit は `git ls-remote` で取ります。package の `version` は、まだ build できない新しい版の
+  代わりに、一覧の中の1つの署名付きの版に固定します。nano と同じく、ゲストとすべての library の署名された tarball を
   `sources/` に置きます。同じ build から出る
   `git-remote-https` は独立したゲストで、どの page も git と一緒に何も出さずに導入する
   ので、jj からも git を動かせます。

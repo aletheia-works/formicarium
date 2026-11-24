@@ -13,6 +13,7 @@ export const SIGNERS: Record<string, string> = {
   zlib: '5ED46A6721D365587791E2AA783FCD8E58BCAFBA',
   gmp: '343C2FF0FBEE5EC2EDBEF399F3599FF828C67298',
   nettle: '343C2FF0FBEE5EC2EDBEF399F3599FF828C67298',
+  libtasn1: 'B1D2BD1375BECB784CF4F8C4D73CF638C53C06BE',
   gnutls: '5D46CB0F763405A7053556F47A75A648B3F9220C',
   curl: '27EDEAF22F3ABCEB50DB9A125CC908FDB71E12C2',
 };
@@ -93,6 +94,15 @@ export const GIT_SOURCES = [
     href: (file: string) => file,
     tarball: 'https://ftp.gnu.org/gnu/nettle/nettle-4.0.tar.gz',
     signature: 'https://ftp.gnu.org/gnu/nettle/nettle-4.0.tar.gz.sig',
+  },
+  {
+    name: 'libtasn1',
+    version: '4.21.0',
+    license: 'COPYING.LESSERv2',
+    listing: 'https://ftp.gnu.org/gnu/libtasn1/',
+    href: (file: string) => file,
+    tarball: 'https://ftp.gnu.org/gnu/libtasn1/libtasn1-4.21.0.tar.gz',
+    signature: 'https://ftp.gnu.org/gnu/libtasn1/libtasn1-4.21.0.tar.gz.sig',
   },
   {
     name: 'gnutls',
@@ -211,7 +221,8 @@ export const ncursesTagRoutes = (): Record<string, Route> => ({
 
 /**
  * gpgv answers a good signature by the keyring's pinned signer; git
- * ls-remote answers nano's peeled tag. `status` overrides gpgv's output.
+ * ls-remote answers the asked tag of the repository it names (nano on
+ * Savannah, libtasn1 on GitLab), peeled. `status` overrides gpgv's output.
  */
 export function gnuExec(
   options: { status?: string; calls?: string[][] } = {},
@@ -228,11 +239,16 @@ export function gnuExec(
           `[GNUPG:] VALIDSIG ${signer} 2026-10-21 0 0 4 0 1 10 00 ${signer}\n`
       );
     }
-    if (file === 'git')
+    if (file === 'git') {
+      const name = (args[2] ?? '')
+        .split('/')
+        .at(-1)!
+        .replace(/\.git$/, '');
+      const ref = args[3] ?? '';
       return (
-        `${commit('nano-tag')}\trefs/tags/v9.3\n` +
-        `${commit('nano')}\trefs/tags/v9.3^{}\n`
+        `${commit(`${name}-tag`)}\t${ref}\n` + `${commit(name)}\t${ref}^{}\n`
       );
+    }
     throw Error(`unexpected exec ${file}`);
   };
 }
