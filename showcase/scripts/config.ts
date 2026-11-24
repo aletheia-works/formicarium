@@ -146,9 +146,12 @@ export interface FormicariumRelease {
 }
 
 const TOOL = /^[a-z][a-z0-9-]{0,63}$/;
-/** A GitHub repository, or a Savannah git repository (GNU packages). */
+/**
+ * A GitHub repository, or a Savannah or GitLab git repository (GNU packages;
+ * libtasn1 publishes its tags only on GitLab).
+ */
 const REPOSITORY =
-  /^https:\/\/(?:github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+|git\.savannah\.gnu\.org\/git\/[a-z0-9][a-z0-9_-]*\.git)$/;
+  /^https:\/\/(?:github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+|git\.savannah\.gnu\.org\/git\/[a-z0-9][a-z0-9_-]*\.git|gitlab\.com\/[A-Za-z0-9][A-Za-z0-9_.-]*\/[A-Za-z0-9][A-Za-z0-9_.-]*\.git)$/;
 const IDENTIFIER = /^[A-Za-z0-9_-]{1,128}$/;
 const ASSET = /^[A-Za-z0-9._@+-]+$/;
 const GNU_PACKAGE = /^[a-z][a-z0-9-]{0,63}$/;

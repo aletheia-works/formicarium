@@ -178,8 +178,8 @@ export function createGitHubApi(options: GitHubApiOptions = {}): GitHubApi {
 
 /**
  * owner/repo of a https://github.com/<owner>/<repo> URL. The allow list also
- * takes Savannah git URLs, but config.ts gives only GitHub repositories to the
- * acquire kinds that call this.
+ * takes Savannah and GitLab git URLs, but config.ts gives only GitHub
+ * repositories to the acquire kinds that call this.
  */
 export function repositorySlug(repository: string): string {
   const match =
