@@ -31,6 +31,7 @@ export const MAIN_ALLOWED = JSON.stringify({
     'https://github.com/gnutls/gnutls',
     'https://github.com/gnutls/nettle',
     'https://github.com/madler/zlib',
+    'https://gitlab.com/gnutls/libtasn1.git',
   ],
 });
 /** Stand-in for `git show origin/main:<path>` in unit tests. */

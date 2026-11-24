@@ -11,6 +11,7 @@
     "https://github.com/curl/curl",
     "https://github.com/gnutls/gnutls",
     "https://github.com/gnutls/nettle",
-    "https://github.com/madler/zlib"
+    "https://github.com/madler/zlib",
+    "https://gitlab.com/gnutls/libtasn1.git"
   ]
 }

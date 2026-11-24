@@ -100,7 +100,9 @@ Safari の job は macOS の System keychain に job CA を信頼させ、leaf �
 
 1. upstream が公式の x86-64 static musl 資産を出しているかを確かめる。
 2. `allowed-sources.json` に repository を加える PR を出し、main に入れる
-   （許可一覧は main の定義だけが効く）。
+   （許可一覧は main の定義だけが効く）。書けるのは `https://github.com/<owner>/<repo>`、
+   `https://git.savannah.gnu.org/git/<name>.git`、`https://gitlab.com/<owner>/<repo>.git`
+   （tag を GitLab にだけ出す libtasn1 のため）の形だけである。
 3. `tools.json` に条件を加える。公式資産があれば `release-asset`
    （`asset` の名前、`format`、tar.gz なら `archiveEntry`）、なければ
    `source-build`（`builder: "cargo"`、`binary`）。GitHub ではなく GNU の tarball で

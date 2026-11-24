@@ -341,9 +341,10 @@ const SAVANNAH_GIT = 'https://git.savannah.gnu.org/';
 const SAVANNAH_FRONTEND = 'https://https.git.savannah.gnu.org/';
 
 /**
- * The tag's commit in a Savannah git repository, peeled like
- * resolveTagCommit. A failed git run is retried like a GNU transfer, then
- * sent to Savannah's frontend; a missing tag is an answer and is not.
+ * The tag's commit in a Savannah or GitLab git repository, peeled like
+ * resolveTagCommit. A failed git run is retried like a GNU transfer, and a
+ * Savannah one is then sent to Savannah's frontend; a missing tag is an
+ * answer and is not.
  */
 export async function lsRemoteCommit(
   repository: string,

@@ -506,12 +506,13 @@ test('git names its own source servers, GnuTLS and nettle, make variables and a 
   }
 });
 
-test('the allow list takes GitHub and Savannah git repositories only', () => {
+test('the allow list takes GitHub, Savannah and GitLab git repositories only', () => {
   const list = (repository: string) => () =>
     validateAllowedSources({ schemaVersion: 1, repositories: [repository] });
   for (const repository of [
     'https://github.com/aubepkg/aube',
     'https://git.savannah.gnu.org/git/nano.git',
+    'https://gitlab.com/gnutls/libtasn1.git',
   ])
     assert.deepEqual(list(repository)().repositories, [repository]);
   for (const repository of [
@@ -520,6 +521,10 @@ test('the allow list takes GitHub and Savannah git repositories only', () => {
     'https://git.savannah.gnu.org/cgit/nano.git',
     'https://git.savannah.gnu.org/git/../nano.git',
     'https://gitlab.com/someone/nano',
+    'http://gitlab.com/gnutls/libtasn1.git',
+    'https://gitlab.com/gnutls/group/libtasn1.git',
+    'https://gitlab.com/../libtasn1.git',
+    'https://gitlab.com/gnutls/.git',
   ])
     rejects(list(repository), 'config-invalid');
 });

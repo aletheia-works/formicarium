@@ -246,7 +246,7 @@ type Resolved = {
   files: [string, Uint8Array][];
 };
 
-/** A tag commit on GitHub (peeled through the API) or in a Savannah repository. */
+/** A tag commit on GitHub (peeled through the API) or in a Savannah or GitLab repository. */
 export async function tagCommit(
   api: GitHubApi,
   repository: string,
