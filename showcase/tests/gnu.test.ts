@@ -14,11 +14,12 @@ import {
   latestVersion,
   lsRemoteCommit,
   processExec,
+  resolveGnuPackage,
   signatureNameOf,
   verifySignature,
 } from '../scripts/gnu.ts';
 import { resolveGnuTool } from '../scripts/resolve.ts';
-import { commit, fakeFetch, sha } from './fixtures/github.ts';
+import { commit, fakeFetch, json, sha } from './fixtures/github.ts';
 import {
   GIT_SOURCES,
   gitTagRoutes,
@@ -29,6 +30,7 @@ import {
   ncursesTagRoutes,
   SIGNERS,
   xzTarball,
+  zlibRelease,
 } from './fixtures/gnu.ts';
 import { pax, tgz } from './fixtures/tar.ts';
 import { MAIN_ALLOWED } from './fixtures/work.ts';
@@ -479,6 +481,113 @@ test('the license can be another file, and a pax global header is accepted', asy
       ),
     ),
     'gnutls license\n',
+  );
+});
+
+test('zlib resolves from its GitHub release while zlib.net answers a challenge page', async () => {
+  // zlib.net has answered CI runners with a bot challenge for whole runs.
+  const challenge =
+    '<html><head><title>One moment, please...</title></head></html>';
+  const fetchImpl = fakeFetch({
+    ...gnuRoutes(),
+    'https://zlib.net/': () => new Response(challenge),
+  });
+  const found = await resolveGnuTool(gitApi(), git, {
+    ...gnuOptions(),
+    fetchImpl,
+  });
+  const zlib = found.resolution.gnu?.libraries.find(
+    (item) => item.package === 'zlib',
+  );
+  assert.equal(zlib?.version, '1.3.2');
+  assert.equal(
+    zlib?.tarball.url,
+    'https://github.com/madler/zlib/releases/download/v1.3.2/zlib-1.3.2.tar.gz',
+  );
+  assert.ok(fetchImpl.calls.every((call) => !call.url.includes('zlib.net')));
+});
+
+test('a GitHub release source takes only a stable release whose assets were downloaded', async () => {
+  const latest = 'https://api.github.com/repos/madler/zlib/releases/latest';
+  const withRelease = (release: unknown, url = latest) =>
+    createGitHubApi({
+      fetchImpl: fakeFetch({ ...gitTagRoutes(), [url]: () => json(release) }),
+    });
+  const run = (api: ReturnType<typeof gitApi>, tool = git) =>
+    resolveGnuTool(api, tool, gnuOptions());
+  await rejects(
+    run(withRelease({ ...zlibRelease(), prerelease: true })),
+    'release-invalid',
+  );
+  await rejects(
+    run(withRelease({ ...zlibRelease(), tag_name: 1 })),
+    'release-invalid',
+  );
+  for (const tag_name of ['1.3.2', 'zlib-1.3.2', 'v1.3.2-rc1'])
+    await rejects(
+      run(withRelease({ ...zlibRelease(), tag_name })),
+      'tag-mismatch',
+    );
+  // Both files must be assets, with the bytes that were downloaded.
+  await rejects(
+    run(
+      withRelease(
+        zlibRelease([
+          ['zlib-1.3.2.tar.gz', gnuTarball('zlib', '1.3.2', 'LICENSE')],
+        ]),
+      ),
+    ),
+    'release-invalid',
+  );
+  for (const files of [
+    [
+      ['zlib-1.3.2.tar.gz', 'other bytes'],
+      ['zlib-1.3.2.tar.gz.asc', 'signature of zlib'],
+    ],
+    [
+      ['zlib-1.3.2.tar.gz', gnuTarball('zlib', '1.3.2', 'LICENSE')],
+      ['zlib-1.3.2.tar.gz.asc', 'other signature'],
+    ],
+  ] as [string, Uint8Array | string][][])
+    await assert.rejects(
+      run(withRelease(zlibRelease(files))),
+      (error: Error) =>
+        causeOf(error) === 'release-invalid' &&
+        error.message.includes('differ from their GitHub release assets'),
+    );
+  for (const index of [0, 1]) {
+    const release = zlibRelease();
+    release.assets[index]!.size += 1;
+    await rejects(run(withRelease(release)), 'release-invalid');
+  }
+  // A pinned version reads the release of its own tag.
+  const pinned = structuredClone(git);
+  if (pinned.acquire.kind !== 'gnu-source') throw Error('git is gnu-source');
+  pinned.acquire.libraries[0]!.version = '1.3.2';
+  const found = await run(
+    withRelease(
+      zlibRelease(),
+      'https://api.github.com/repos/madler/zlib/releases/tags/v1.3.2',
+    ),
+    pinned,
+  );
+  assert.equal(found.resolution.gnu?.libraries[0]?.version, '1.3.2');
+  pinned.acquire.libraries[0]!.version = '1.3.1';
+  await rejects(
+    run(
+      withRelease(
+        zlibRelease(),
+        'https://api.github.com/repos/madler/zlib/releases/tags/v1.3.1',
+      ),
+      pinned,
+    ),
+    'tag-mismatch',
+  );
+  // Without the release's version there is nothing to resolve.
+  if (git.acquire.kind !== 'gnu-source') throw Error('git is gnu-source');
+  await rejects(
+    resolveGnuPackage(git.acquire.libraries[0]!, gnuOptions()),
+    'config-invalid',
   );
 });
 

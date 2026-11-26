@@ -496,6 +496,27 @@ test('git names its own source servers, GnuTLS and nettle, make variables and a 
         'https://zlib.net/gmp-{version}.tar.gz'),
     (config) => (lib(config, 1).source!.signature = '{tarball}.asc'),
     (config) => (lib(config, 1).source!.signedData = 'tar'),
+    // A GitHub release source (zlib): the package's GitHub repository, a
+    // {version} tag, both files in that tag's downloads, no mirrors.
+    (config) => (lib(config, 0).source!.mirrors = ['https://zlib.net/']),
+    // curl's files are on curl.se; libtasn1's repository is on GitLab.
+    (config) => (lib(config, 5).source!.listing = 'github-release'),
+    (config) => {
+      lib(config, 3).source!.listing = 'github-release';
+      delete lib(config, 3).source!.mirrors;
+      lib(config, 3).source!.tarball =
+        'https://gitlab.com/gnutls/libtasn1.git/releases/download/v{version}/libtasn1-{version}.tar.gz';
+    },
+    (config) => (lib(config, 0).tag = 'v{major}.{minor}'),
+    (config) =>
+      (lib(config, 0).source!.tarball =
+        'https://github.com/madler/zlib/releases/download/{version}/zlib-{version}.tar.gz'),
+    (config) =>
+      (lib(config, 0).source!.tarball =
+        'https://github.com/madler/zlib/releases/download/v{version}/x/zlib-{version}.tar.gz'),
+    (config) =>
+      (lib(config, 0).source!.signature =
+        'https://github.com/madler/zlib/releases/download/v1/zlib-{version}.tar.gz.asc'),
     // SPDX: identifiers joined by OR/AND, nothing else.
     (config) => (lib(config, 2).spdx = 'LGPL-3.0-or-later or GPL-2.0'),
     (config) => (lib(config, 2).spdx = 'LGPL-3.0-or-later OR'),

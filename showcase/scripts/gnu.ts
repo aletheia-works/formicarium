@@ -5,7 +5,12 @@ import { join } from 'node:path';
 import { fetchBounded } from './acquire.ts';
 import { expandTarball, readTar, selectEntry, singleRoot } from './archive.ts';
 import { COMMIT_PATTERN, sha256 } from './build-key.ts';
-import { type GnuPackage, type GnuSource, gnuTag } from './config.ts';
+import {
+  GITHUB_RELEASE,
+  type GnuPackage,
+  type GnuSource,
+  gnuTag,
+} from './config.ts';
 import { fail, ShowcaseError } from './errors.ts';
 import type { FetchLike } from './github.ts';
 import { SOURCE_ARCHIVE_LIMITS, TRANSFER_POLICY } from './limits.ts';
@@ -465,15 +470,31 @@ export async function fetchSignedTarball(
 export const signatureNameOf = (tarball: SignedTarball) =>
   tarball.signatureName ?? `${tarball.name}.sig`;
 
-/** The latest signed release of one package, or its pinned version. */
+/**
+ * The latest signed release of one package, or its pinned version. A
+ * package from a GitHub release takes `released`, the version its release
+ * names (resolve.ts reads it through the GitHub API), instead of a listing.
+ */
 export async function resolveGnuPackage(
   pkg: GnuPackage,
   options: GnuTransferOptions = {},
+  released?: string,
 ) {
-  // zlib.net has given CI a listing without its tarball while the same
-  // request elsewhere had it, so such a listing is asked again like a
-  // dropped connection, and the last one is described in the failure.
   const source = sourceOf(pkg);
+  const tagOf = (version: string) =>
+    pkg.tag === null ? null : gnuTag(pkg.tag, version);
+  if (source.listing === GITHUB_RELEASE) {
+    if (released === undefined)
+      fail('config-invalid', `${pkg.package} needs its GitHub release`);
+    return {
+      version: released,
+      tag: tagOf(released),
+      ...(await fetchSignedTarball(pkg, released, options)),
+    };
+  }
+  // A listing without the tarball (a release server's bot challenge, say)
+  // is asked again like a dropped connection, and the last one is
+  // described in the failure.
   const listed = (url: string) =>
     retrying(
       async () => {
@@ -507,7 +528,7 @@ export async function resolveGnuPackage(
   );
   return {
     version,
-    tag: pkg.tag === null ? null : gnuTag(pkg.tag, version),
+    tag: tagOf(version),
     ...(await fetchSignedTarball(pkg, version, options, server)),
   };
 }

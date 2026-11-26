@@ -32,7 +32,11 @@ export interface SourceBuildAcquire {
  * `{minor}` and `{patch}`; `signature` may also start with `{tarball}`.
  */
 export interface GnuSource {
-  /** Page whose links name the tarball's file (any path prefix). */
+  /**
+   * Page whose links name the tarball's file (any path prefix), or
+   * GITHUB_RELEASE: the version is the repository's latest stable GitHub
+   * release, whose assets are the tarball and signature.
+   */
   listing: string;
   /** Ends in `/<package>-{version}.tar.gz` or `.tar.xz`. */
   tarball: string;
@@ -354,11 +358,17 @@ function gnuSourceSettings(
     );
   if (raw.signedData !== undefined && raw.signedData !== 'tar')
     fail('config-invalid', `${where}.signedData must be tar when present`);
-  const listing = urlTemplate(raw.listing, `${where}.listing`);
+  const listing =
+    raw.listing === GITHUB_RELEASE
+      ? GITHUB_RELEASE
+      : urlTemplate(raw.listing, `${where}.listing`);
   const mirrors =
     raw.mirrors === undefined
       ? undefined
       : mirrorList(raw.mirrors, `${where}.mirrors`);
+  // GitHub serves a release's assets from one place only.
+  if (mirrors && listing === GITHUB_RELEASE)
+    fail('config-invalid', `${where} from a GitHub release has no mirrors`);
   // A mirror holds the listing's directory, so the files must be in it.
   if (
     mirrors &&
@@ -395,6 +405,41 @@ function versionTag(value: unknown, where: string): string {
 
 /** The GNU mirror (gnu.ts GNU_MIRROR), which signs every release tarball. */
 const GNU_FTP = 'https://ftp.gnu.org/gnu';
+/**
+ * The `listing` of a package whose tarball and signature are assets of its
+ * repository's GitHub release (zlib.net answers CI runners with a bot
+ * challenge, while GitHub serves the same signed files).
+ */
+export const GITHUB_RELEASE = 'github-release';
+
+/**
+ * A GitHub release source needs the package's GitHub repository and a tag
+ * with `{version}`, and its tarball and signature in that tag's downloads.
+ */
+function checkGithubRelease(
+  pkg: GnuPackage,
+  repository: string | null,
+  where: string,
+) {
+  if (pkg.source?.listing !== GITHUB_RELEASE) return;
+  const tag = pkg.tag ?? '';
+  const downloads = `${repository}/releases/download/${tag}/`;
+  const { tarball } = pkg.source;
+  const signature = pkg.source.signature.replace('{tarball}', tarball);
+  const inDownloads = (url: string) =>
+    url.startsWith(downloads) && !url.slice(downloads.length).includes('/');
+  if (
+    !repository?.startsWith('https://github.com/') ||
+    !tag.includes('{version}') ||
+    tag.includes('{date}') ||
+    !inDownloads(tarball) ||
+    !inDownloads(signature)
+  )
+    fail(
+      'config-invalid',
+      `${where} from a GitHub release needs its GitHub repository, a {version} tag and the files in that tag's downloads`,
+    );
+}
 
 function gnuPackage(value: Json, where: string, untagged = false): GnuPackage {
   const tag = untagged ? null : versionTag(value.tag, `${where}.tag`);
@@ -508,7 +553,9 @@ function gnuSource(
     const repository = text(raw.repository, `${at}.repository`, REPOSITORY);
     if (!allowed.has(repository))
       fail('source-not-allowed', `${repository} is not in the main allow list`);
-    return { ...gnuPackage(raw, at), repository };
+    const pkg = gnuPackage(raw, at);
+    checkGithubRelease(pkg, repository, `${at}.source`);
+    return { ...pkg, repository };
   });
   const result: GnuSourceAcquire = {
     kind: 'gnu-source',
@@ -525,6 +572,7 @@ function gnuSource(
       ? {}
       : { companions: companions(value.companions, `${where}.companions`) }),
   };
+  checkGithubRelease(result, toolRepository, `${where}.source`);
   // A dated tag is found among the repository's tags through the GitHub API.
   for (const [pkg, repository] of [
     [result, toolRepository],

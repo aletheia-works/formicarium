@@ -27,7 +27,10 @@ showcase のツールは
   このような package では、`source` に一覧・tarball（`.tar.gz`、または GnuTLS が出す
   `.tar.xz`）・署名（git は圧縮前の tar に、ほかは archive に署名します）と license の
   file を書きます。例外は nettle が使う GMP で、tag の付いた公開 repository が無いので、
-  ftp.gnu.org の署名付き tarball だけで識別し、commit は記録しません。GnuTLS 3.8.14 で
+  ftp.gnu.org の署名付き tarball だけで識別し、commit は記録しません。zlib は、CI の runner に
+  bot の確認 page を返す zlib.net ではなく、GitHub の release から取ります。`listing` を
+  `github-release` にすると、最新の安定版の release の tag から版を決め、取った tarball と
+  署名がその release の資産の digest と一致することを確かめます。GnuTLS 3.8.14 で
   同梱の libtasn1 が無くなったので、libtasn1 は ftp.gnu.org の署名付き tarball から、GnuTLS の
   前に独立した library として build します。libtasn1 の tag は GitLab にしか無いので、tag の
   commit は `git ls-remote` で取ります。package の `version` は、まだ build できない新しい版の

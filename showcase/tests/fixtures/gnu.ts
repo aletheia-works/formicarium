@@ -54,8 +54,9 @@ export const xzTarball = (name: string, version: string, license = 'COPYING') =>
 
 /**
  * The release servers of git and its libraries: relative links (kernel.org,
- * zlib.net, ftp.gnu.org), absolute-path links without the signature
- * (curl.se), and absolute URLs (GnuTLS here, to cover that form).
+ * ftp.gnu.org), absolute-path links without the signature (curl.se),
+ * absolute URLs (GnuTLS here, to cover that form), and zlib's GitHub
+ * release, which has no listing.
  */
 export const GIT_SOURCES = [
   {
@@ -72,10 +73,13 @@ export const GIT_SOURCES = [
     name: 'zlib',
     version: '1.3.2',
     license: 'LICENSE',
-    listing: 'https://zlib.net/',
+    // zlib comes from its GitHub release (gitTagRoutes), with no listing.
+    listing: null,
     href: (file: string) => file,
-    tarball: 'https://zlib.net/zlib-1.3.2.tar.gz',
-    signature: 'https://zlib.net/zlib-1.3.2.tar.gz.asc',
+    tarball:
+      'https://github.com/madler/zlib/releases/download/v1.3.2/zlib-1.3.2.tar.gz',
+    signature:
+      'https://github.com/madler/zlib/releases/download/v1.3.2/zlib-1.3.2.tar.gz.asc',
   },
   {
     name: 'gmp',
@@ -127,6 +131,24 @@ export const GIT_SOURCES = [
   },
 ] as const;
 
+/** zlib 1.3.2's GitHub release, as the API describes it. */
+export const zlibRelease = (
+  files: [string, Uint8Array | string][] = [
+    ['zlib-1.3.2.tar.gz', gnuTarball('zlib', '1.3.2', 'LICENSE')],
+    ['zlib-1.3.2.tar.gz.asc', 'signature of zlib'],
+  ],
+) => ({
+  tag_name: 'v1.3.2',
+  draft: false,
+  prerelease: false,
+  assets: files.map(([name, body]) => ({
+    name,
+    size: typeof body === 'string' ? Buffer.byteLength(body) : body.length,
+    digest: `sha256:${sha(body)}`,
+    browser_download_url: `https://github.com/madler/zlib/releases/download/v1.3.2/${name}`,
+  })),
+});
+
 /** GitHub tags of git and its libraries; git's is annotated. */
 export const gitTagRoutes = (): Record<string, Route> => {
   const routes: Record<string, Route> = {};
@@ -149,6 +171,9 @@ export const gitTagRoutes = (): Record<string, Route> => {
     routes[`${base}/git/tags/${object}`] = () =>
       json({ object: { type: 'commit', sha: commit(slug) } });
   }
+  // zlib's version and asset digests come from its latest GitHub release.
+  routes['https://api.github.com/repos/madler/zlib/releases/latest'] = () =>
+    json(zlibRelease());
   // nettle's tag names its release date: it is found among the matching tags.
   routes[
     'https://api.github.com/repos/gnutls/nettle/git/matching-refs/tags/nettle_4.0_release_'
@@ -180,13 +205,14 @@ export function gnuRoutes(): Record<string, Route> {
     const file = `${source.name}-${source.version}${suffix}`;
     const older = `${source.name}-1.0.0${suffix}`;
     const signature = source.signature.split('/').at(-1)!;
-    routes[source.listing] = () =>
-      new Response(
-        [older, file, signature]
-          .filter((item) => source.name !== 'curl' || item !== signature)
-          .map((item) => `<a href="${source.href(item)}">${item}</a>`)
-          .join('\n'),
-      );
+    if (source.listing !== null)
+      routes[source.listing] = () =>
+        new Response(
+          [older, file, signature]
+            .filter((item) => source.name !== 'curl' || item !== signature)
+            .map((item) => `<a href="${source.href(item)}">${item}</a>`)
+            .join('\n'),
+        );
     routes[source.tarball] = () =>
       new Response(
         suffix === '.tar.xz'

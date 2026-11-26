@@ -167,8 +167,8 @@
             "signers": ["5ED46A6721D365587791E2AA783FCD8E58BCAFBA"],
             "spdx": "Zlib",
             "source": {
-              "listing": "https://zlib.net/",
-              "tarball": "https://zlib.net/zlib-{version}.tar.gz",
+              "listing": "github-release",
+              "tarball": "https://github.com/madler/zlib/releases/download/v{version}/zlib-{version}.tar.gz",
               "signature": "{tarball}.asc",
               "license": "LICENSE"
             },

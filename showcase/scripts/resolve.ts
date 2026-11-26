@@ -4,7 +4,9 @@ import { join } from 'node:path';
 import { COMMIT_PATTERN, parseUniqueJson, sha256 } from './build-key.ts';
 import {
   assetName,
+  GITHUB_RELEASE,
   type GnuPackage,
+  gnuTag,
   readConfigFile,
   type ToolConfig,
   type ToolsConfig,
@@ -28,6 +30,7 @@ import {
   type SignedTarball,
   signatureNameOf,
   sourceOf,
+  sourceUrls,
 } from './gnu.ts';
 import { TRANSFER_POLICY } from './limits.ts';
 import {
@@ -289,13 +292,74 @@ export async function datedTag(
   return tags[0]!;
 }
 
+/**
+ * The version and signed assets of a package's stable GitHub release: the
+ * latest, or the one of its pinned version.
+ */
+async function githubRelease(
+  api: GitHubApi,
+  pkg: GnuPackage,
+  repository: string | null,
+): Promise<{ version: string; tarball: AssetRecord; signature: AssetRecord }> {
+  if (!repository || pkg.tag === null)
+    fail('config-invalid', `${pkg.package} needs its GitHub repository`);
+  const slug = repositorySlug(repository);
+  const release = object(
+    await api.get(
+      pkg.version === undefined
+        ? `repos/${slug}/releases/latest`
+        : `repos/${slug}/releases/tags/${encodeTag(gnuTag(pkg.tag, pkg.version))}`,
+    ),
+    'release',
+  );
+  if (release.draft !== false || release.prerelease !== false)
+    fail('release-invalid', `${pkg.package} release is not stable`);
+  const tag = release.tag_name;
+  if (typeof tag !== 'string')
+    fail('release-invalid', `${pkg.package} release has no tag`);
+  // The tag template with each placeholder as digits; {version} is captured.
+  const pattern = pkg.tag
+    .replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    .replace('\\{version\\}', '(\\d{1,4}(?:\\.\\d{1,4}){1,2})')
+    .replaceAll(/\\\{(?:major|minor|patch)\\\}/g, '\\d{1,4}');
+  const version = new RegExp(`^${pattern}$`).exec(tag)?.[1];
+  if (
+    !version ||
+    gnuTag(pkg.tag, version) !== tag ||
+    (pkg.version !== undefined && version !== pkg.version)
+  )
+    fail('tag-mismatch', `${pkg.package} tag ${tag} has no match`);
+  const urls = sourceUrls(sourceOf(pkg), version);
+  return {
+    version,
+    tarball: releaseAsset(release, slug, tag, urls.name),
+    signature: releaseAsset(release, slug, tag, urls.signatureName),
+  };
+}
+
 async function gnuPackage(
   api: GitHubApi,
   pkg: GnuPackage,
   repository: string | null,
   options: GnuResolveOptions,
 ) {
-  const found = await resolveGnuPackage(pkg, options);
+  const release =
+    sourceOf(pkg).listing === GITHUB_RELEASE
+      ? await githubRelease(api, pkg, repository)
+      : null;
+  const found = await resolveGnuPackage(pkg, options, release?.version);
+  // The downloaded files must be the assets GitHub published.
+  if (
+    release &&
+    (found.record.sha256 !== release.tarball.sha256 ||
+      found.record.size !== release.tarball.size ||
+      found.record.signatureSha256 !== release.signature.sha256 ||
+      found.signature.length !== release.signature.size)
+  )
+    fail(
+      'release-invalid',
+      `${pkg.package} files differ from their GitHub release assets`,
+    );
   if (repository && found.tag?.includes('{date}'))
     found.tag = await datedTag(api, repository, found.tag);
   const licensePath = sourceOf(pkg).license;
