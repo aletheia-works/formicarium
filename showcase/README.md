@@ -116,7 +116,11 @@ Safari の job は macOS の System keychain に job CA を信頼させ、leaf �
    `xz -dc` で展開し、出力の大きさと時間を `.tar.gz` と同じ上限で打ち切る）、
    `signature`（`{tarball}.asc` か完全な URL）、署名が圧縮前の tar に対するものなら
    `signedData: "tar"`、`license`（tarball の root からの path）。URL は https で、
-   `{version}`・`{major}`・`{minor}`・`{patch}` だけを使える。`source` が無ければ
+   `{version}`・`{major}`・`{minor}`・`{patch}` だけを使える。tarball を GitHub の release
+   の資産として出す package（zlib）は `listing` を `github-release` にする。版は
+   repository の最新の安定版の release の tag（`{version}` を含み `{date}` は不可）から
+   決め、`tarball` と `signature` はその tag の `releases/download/<tag>/` に置き、mirror は
+   書かない。取った tarball と署名は release の資産の SHA256 と一致しなければならない。`source` が無ければ
    今までどおり GNU の既定（ftp.gnu.org の一覧、`.sig`、`COPYING`）になる。
    license の file は `licenses/<package>-<file 名>` に置く。`spdx` は
    `LGPL-3.0-or-later OR GPL-2.0-or-later` のような `OR`・`AND` の式でもよい。

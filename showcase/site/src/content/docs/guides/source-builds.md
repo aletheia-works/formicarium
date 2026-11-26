@@ -33,7 +33,11 @@ its full commit for the rest of the run.
   package (git signs the uncompressed tar, the others the archive) and its
   license file. GMP, which nettle uses and which has no tagged public
   repository, is the one exception: it is identified by its signed
-  ftp.gnu.org tarball alone, and no commit is recorded for it. GnuTLS 3.8.14
+  ftp.gnu.org tarball alone, and no commit is recorded for it. zlib comes
+  from its GitHub release instead of zlib.net, which answers CI runners with
+  a bot challenge: its `listing` is `github-release`, the version is the
+  latest stable release's tag, and the downloaded tarball and signature must
+  match that release's asset digests. GnuTLS 3.8.14
   removed its bundled libtasn1, so libtasn1 is built from its signed
   ftp.gnu.org tarball as a library of its own before GnuTLS; its tags are
   only on GitLab, where `git ls-remote` finds the tag's commit. A package's
